@@ -8,4 +8,5 @@ from frappe.utils import nowdate
 
 class ProgressReport(Document):
 	def on_submit(self):
-		self.approved_on = nowdate()
+		# assignments made in on_submit are not persisted by the framework
+		self.db_set("approved_on", nowdate())
