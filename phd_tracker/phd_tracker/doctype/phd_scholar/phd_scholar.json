@@ -1,0 +1,105 @@
+{
+ "actions": [],
+ "autoname": "field:roll_number",
+ "creation": "2026-10-11 00:00:00",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "scholar_name",
+  "scholar_email",
+  "roll_number",
+  "department",
+  "admission_date",
+  "supervisor",
+  "stage",
+  "github_url"
+ ],
+ "fields": [
+  {
+   "fieldname": "scholar_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Scholar Name",
+   "reqd": 1
+  },
+  {
+   "fieldname": "scholar_email",
+   "fieldtype": "Data",
+   "label": "Scholar Email",
+   "options": "Email"
+  },
+  {
+   "fieldname": "roll_number",
+   "fieldtype": "Data",
+   "label": "Roll Number",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "department",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Department"
+  },
+  {
+   "fieldname": "admission_date",
+   "fieldtype": "Date",
+   "label": "Admission Date"
+  },
+  {
+   "fieldname": "supervisor",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Supervisor",
+   "options": "PhD Supervisor"
+  },
+  {
+   "default": "Registered",
+   "fieldname": "stage",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Stage",
+   "options": "Registered\nCoursework\nProposal Approved\nResearch Phase\nPre-Synopsis Done\nThesis Submitted\nViva Voce\nDegree Awarded"
+  },
+  {
+   "fieldname": "github_url",
+   "fieldtype": "Data",
+   "label": "GitHub Repository URL",
+   "options": "URL"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-10-11 00:00:00",
+ "modified_by": "Administrator",
+ "module": "Phd Tracker",
+ "name": "PhD Scholar",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Research Office Admin",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "PhD Scholar"
+  },
+  {
+   "read": 1,
+   "role": "PhD Supervisor"
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}
