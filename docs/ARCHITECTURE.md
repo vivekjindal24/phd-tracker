@@ -119,6 +119,16 @@ phd-tracker/
   scholars; a university ≈ hundreds).
 - No external API calls in any request path in v1.
 
+### Performance playbook (triaged against this stack)
+
+| Item | Verdict | Home |
+|---|---|---|
+| Compress API responses in transit | **Applies at deployment.** Enable gzip/brotli on the nginx edge in front of bench for JSON/text responses >1 KB (Desk + REST); Accept-Encoding negotiation is browser-automatic. Do not compress print-format PDFs — already compressed by wkhtmltopdf. Verify: transfer sizes drop, JSON still parses on the client. | Pilot deployment checklist (TESTING.md flow) |
+| Batch inserts/updates | **Rule for all future code.** No per-row INSERT/UPDATE loops; bulk writes, chunked ≤1000 rows, inside one transaction. First consumer: seed fixtures. | CODE_STYLE.md §10 |
+| Circuit breaker for slow dependencies | **Deferred — nothing to break yet.** v1 has zero external calls in request paths. When plagiarism/GitHub APIs arrive they run as Frappe background jobs with timeouts and fail-soft fallbacks (manual score entry), never inline middleware; a degraded dependency must not drag unrelated flows. | §12 Failure Scenarios |
+| Optimistic UI updates | **Deferred to custom UI.** v1 is stock Desk with no client JS of ours. Principle recorded for the future portal. | DESIGN_SYSTEM.md §1 |
+| Cache rendered pages/fragments | **Not applicable in v1 — would be a correctness bug.** Desk views are per-user/personalized; print-format PDFs are compliance artifacts that must reflect current data on every render. Revisit only if a public page or heavy aggregate report appears. | — |
+
 ## 11. Scalability Considerations
 
 - One department → one university: add per-department `department` filtering
@@ -134,5 +144,10 @@ phd-tracker/
   Compliance chain never depends on email.
 - **Workflow missing after botched upgrade:** `install.py` is idempotent
   (`db.exists` guards) — re-running migrate restores roles/workflow.
+- **External dependency slow or down (post-v1: plagiarism API, GitHub mirror):**
+  such calls run as background jobs with timeouts and fail-soft behavior (score
+  recorded manually; mirror lags, nothing blocks). A degraded external service must
+  never block a request path or a committee export. Circuit-breaker-style
+  fast-failing comes with the first real dependency, not before.
 - **App updated with breaking DocType change:** Frappe patches (`patches.txt`) are
   the only sanctioned migration path — never hand-edit synced JSON in the DB.

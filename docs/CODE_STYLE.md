@@ -80,6 +80,9 @@ Rules:
 - Make idempotent install/patch code (`db.exists` guards before inserts).
 - Extend existing patterns: new milestone types go in the Select options; new
   roles in `ROLES`.
+- Write in batches, not loops: no per-row INSERT/UPDATE loops — use bulk writes
+  (multi-row insert / single batched statement), chunked to ≤1000 rows, inside
+  one transaction. First consumer: seed fixtures.
 
 ## 11. Don't
 

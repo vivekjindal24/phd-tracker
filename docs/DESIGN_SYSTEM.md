@@ -13,6 +13,11 @@
   2. When custom UI comes, it replaces Desk only for scholar/supervisor flows —
      admin/research office stays on Desk (they're power users of filters/exports).
   3. Read-only surfaces (committee, buyer) get PDFs, never logins.
+  4. Optimistic updates in custom flows: update the UI immediately as if the
+     action succeeded, reconcile with the server result, and roll back visibly
+     with a clear error on failure — a user must never be misled about whether
+     their APR was submitted. (Stock Desk v1: not applicable — no client JS
+     of ours.)
 
 ## 2. Brand
 
