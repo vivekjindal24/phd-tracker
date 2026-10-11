@@ -30,6 +30,25 @@ the conflict and ask — do not guess.
 - This repository lives on an exFAT volume: `._*` AppleDouble files and
   `__pycache__` are junk — gitignored; never stage or edit them.
 
+Standing engineering principles (owner directive, applies to every change):
+- **Clean structure, strict separation:** each DocType = one self-contained folder;
+  business logic lives in controllers/workflow config, never in UI or scripts.
+- **No dead or duplicate code:** when touching an area, delete what it no longer
+  needs; never re-create a utility Frappe already provides.
+- **Consistent naming** per CODE_STYLE.md §2 — no new conventions.
+- **Error handling everywhere:** no swallowed exceptions, no silent fallbacks —
+  every failure surfaces to the user or the error log (CODE_STYLE.md §6).
+- **Environment stays out of code:** config via bench `site_config.json` only
+  (SECURITY.md §4).
+- **One source of state:** document lifecycle state lives in the Frappe workflow
+  engine — never in ad-hoc status fields or client-side variables.
+- **Scalable API structure, when custom endpoints ever appear:** all whitelisted
+  methods in one `phd_tracker/api/` package, permission-checked server-side,
+  versioned by folder (`api/v1/`) from the second endpoint onward — not scattered
+  across controllers.
+- **Data stays documented:** any schema change updates DATABASE.md in the same
+  commit.
+
 ## 4. Planning
 
 Before implementing a non-trivial task:
