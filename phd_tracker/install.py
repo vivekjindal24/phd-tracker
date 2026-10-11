@@ -2,13 +2,23 @@ import frappe
 
 ROLES = ["PhD Scholar", "PhD Supervisor", "Research Office Admin"]
 
+WORKFLOW_STATES = ["Draft", "Submitted", "Approved", "Rejected"]
+WORKFLOW_ACTIONS = ["Submit Report", "Approve", "Send Back", "Revise and Resubmit"]
+
+
+def _ensure_master(doctype, name_field, name):
+	"""Create a simple master record if missing (idempotent)."""
+	if not frappe.db.exists(doctype, name):
+		frappe.get_doc({"doctype": doctype, name_field: name}).insert(ignore_permissions=True)
+
 
 def after_install():
 	for role in ROLES:
-		if not frappe.db.exists("Role", role):
-			frappe.get_doc({"doctype": "Role", "role_name": role, "desk_access": 1}).insert(
-				ignore_permissions=True
-			)
+		_ensure_master("Role", "role_name", role)
+	for state in WORKFLOW_STATES:
+		_ensure_master("Workflow State", "workflow_state_name", state)
+	for action in WORKFLOW_ACTIONS:
+		_ensure_master("Workflow Action Master", "workflow_action_name", action)
 
 	if not frappe.db.exists("Workflow", "Progress Report Approval"):
 		frappe.get_doc(
