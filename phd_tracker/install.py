@@ -5,6 +5,14 @@ ROLES = ["PhD Scholar", "PhD Supervisor", "Research Office Admin"]
 WORKFLOW_STATES = ["Draft", "Submitted", "Approved", "Rejected"]
 WORKFLOW_ACTIONS = ["Submit Report", "Approve", "Send Back", "Revise and Resubmit"]
 
+SEARCHABLE_DOCTYPES = [
+	"PhD Scholar",
+	"PhD Supervisor",
+	"Progress Report",
+	"PhD Milestone",
+	"Meeting Record",
+]
+
 
 def _ensure_master(doctype, name_field, name):
 	"""Create a simple master record if missing (idempotent)."""
@@ -13,6 +21,8 @@ def _ensure_master(doctype, name_field, name):
 
 
 def after_install():
+	_ensure_global_search_settings()
+
 	for role in ROLES:
 		_ensure_master("Role", "role_name", role)
 	for state in WORKFLOW_STATES:
@@ -63,3 +73,17 @@ def after_install():
 				],
 			}
 		).insert(ignore_permissions=True)
+
+
+def _ensure_global_search_settings():
+	"""Register our DocTypes in Global Search Settings so Desk search covers them."""
+	settings = frappe.get_single("Global Search Settings")
+	listed = {d.document_type for d in settings.allowed_in_global_search}
+	missing = [dt for dt in SEARCHABLE_DOCTYPES if dt not in listed]
+	if missing:
+		for dt in missing:
+			settings.append(
+				"allowed_in_global_search",
+				{"doctype": "Global Search DocType", "document_type": dt},
+			)
+		settings.save(ignore_permissions=True)

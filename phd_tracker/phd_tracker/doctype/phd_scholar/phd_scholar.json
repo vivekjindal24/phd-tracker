@@ -18,6 +18,7 @@
   {
    "fieldname": "scholar_name",
    "fieldtype": "Data",
+   "in_global_search": 1,
    "in_list_view": 1,
    "label": "Scholar Name",
    "reqd": 1
@@ -31,6 +32,7 @@
   {
    "fieldname": "roll_number",
    "fieldtype": "Data",
+   "in_global_search": 1,
    "label": "Roll Number",
    "reqd": 1,
    "unique": 1
@@ -70,7 +72,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-10-11 00:00:00",
+ "modified": "2026-10-12 00:00:00",
  "modified_by": "Administrator",
  "module": "Phd Tracker",
  "name": "PhD Scholar",

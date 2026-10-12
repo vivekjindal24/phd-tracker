@@ -17,6 +17,7 @@
   {
    "fieldname": "scholar",
    "fieldtype": "Link",
+   "in_global_search": 1,
    "in_list_view": 1,
    "label": "Scholar",
    "options": "PhD Scholar",
@@ -25,6 +26,7 @@
   {
    "fieldname": "milestone_type",
    "fieldtype": "Select",
+   "in_global_search": 1,
    "in_list_view": 1,
    "label": "Milestone Type",
    "options": "Coursework Completion\nProposal Approval (RDC)\nPre-Synopsis Seminar\nThesis Submission\nViva Voce\nDegree Awarded",
@@ -47,6 +49,7 @@
   {
    "fieldname": "resolution_number",
    "fieldtype": "Data",
+   "in_global_search": 1,
    "label": "Resolution Number"
   },
   {
@@ -62,7 +65,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-10-11 00:00:00",
+ "modified": "2026-10-12 00:00:00",
  "modified_by": "Administrator",
  "module": "Phd Tracker",
  "name": "PhD Milestone",
