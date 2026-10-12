@@ -44,10 +44,16 @@ bench site and database.
 
 ### Install hook
 - `install.py after_install()`: creates the three roles (PhD Scholar, PhD Supervisor,
-  Research Office Admin) and the workflow.
+  Research Office Admin), the workflow, and registers our DocTypes in Global Search
+  Settings (so Desk search covers them).
 
-### Print formats
-- Compliance artifacts (APR PDF, milestone register). v1: simple print formats.
+### Print formats and reports
+- Compliance artifacts (APR PDF, milestone register). v1 ships them as fixtures
+  synced by `bench migrate` via `hooks.py`:
+  - `fixtures/print_format.json` — "APR" custom HTML print format (`custom_format: 1`)
+    on Progress Report (scholar, supervisor, dates, summary).
+  - `fixtures/report.json` — "Milestone Register" query report (SQL join onto
+    PhD Scholar) with Scholar / Department filters; exportable to PDF/Excel.
 
 ## 5. Architecture Diagram
 

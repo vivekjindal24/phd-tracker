@@ -82,6 +82,13 @@ Frappe defaults: primary key (`name`), `modified`, and an index per Link field.
 v1 access patterns (list by scholar, list by status/stage) are covered. Add custom
 indexes only when a real list view measurably lags.
 
+Desk global search: fields flagged `in_global_search` (scholar_name, roll_number,
+full_name, summary, agenda, milestone_type, resolution_number, and the scholar links)
+are indexed into Frappe's `__global_search` table; `install.py` registers the five
+DocTypes in Global Search Settings so Desk search covers them. Fulltext tokenizes
+hyphenated IDs unreliably — ID lookup goes through Link-field autocomplete / list
+filters (LIKE queries), not the search bar.
+
 ## 7. Data Validation
 
 - Select fields validate against their option lists (invalid option → error on save).

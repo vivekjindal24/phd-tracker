@@ -49,7 +49,8 @@ created manually (no scheduling/calendar integration in v1).
 1. Admin opens PhD Milestone → New.
 2. Selects scholar, milestone type (e.g. Proposal Approval (RDC)), status
    Approved, fills approval body, resolution number, resolution date.
-3. Saves; exports the register via print format for the committee meeting.
+3. Saves; runs the Milestone Register report (filter by scholar or department)
+   and exports it for the committee meeting.
 
 **Success:** Milestone read-only to the scholar, listed on their record.
 **Error:** milestone_type not in the Select list → rejected on save.
