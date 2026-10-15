@@ -1,0 +1,20 @@
+"""SQLAlchemy async engine/session. Small pool: Neon free tier is connection-capped."""
+
+from collections.abc import AsyncIterator
+
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+
+from .config import settings
+
+engine = create_async_engine(
+	settings.database_url,
+	pool_size=2,
+	max_overflow=3,
+	pool_pre_ping=True,  # Neon drops idle connections; never hand out a dead one
+)
+SessionLocal = async_sessionmaker(engine, expire_on_commit=False)
+
+
+async def get_db() -> AsyncIterator[AsyncSession]:
+	async with SessionLocal() as db:
+		yield db
