@@ -10,7 +10,11 @@
 		"noFallthroughCasesInSwitch": true,
 		"declaration": false,
 		"sourceMap": false,
-		"skipLibCheck": true
+		"skipLibCheck": true,
+		"allowImportingTsExtensions": true,
+		"noEmit": true
 	},
-	"include": ["src"]
+	"include": [
+		"src"
+	]
 }
