@@ -2,10 +2,22 @@
 
 ## 1. Project Context
 
-- **Project:** PhD Tracker
-- **Purpose:** Supervisor–scholar workspace for Indian university PhD programs on
-  the Frappe framework. The daily-use layer (meetings, progress reports,
-  milestones) is the product; UGC compliance paperwork is generated as a byproduct.
+- **Project:** PhD Tracker v2 — cloud-native rewrite.
+- **Purpose:** Supervisor–scholar workspace for Indian university PhD programs.
+  The daily-use layer (meetings, progress reports, milestones) is the product;
+  UGC compliance paperwork is generated as a byproduct.
+- **Stack:** polyglot monorepo, no single framework:
+  - `services/api` — Python/FastAPI: auth (JWT + rotating refresh tokens), all
+    entities, the APR workflow state machine, search, audit. Sole owner of the
+    Postgres schema `core`.
+  - `services/export` — Node/TypeScript: stateless PDF/CSV exports; holds zero
+    auth/data logic, reads only via the API's internal endpoints with the
+    caller's token forwarded.
+  - `web` — Next.js (App Router) on Vercel.
+  - `phd_tracker/` — Frappe v1 app, **frozen reference only, never modify**.
+- **Deployment:** everything on cloud platforms at $0 free tiers — Neon Postgres,
+  Koyeb (API), Render (export), Vercel (web); GitHub Actions → GHCR images.
+  Services are stateless and idle-spin-down tolerant; expect cold starts.
 - **Primary Users:** PhD scholars, PhD supervisors, research office admins.
   The buyer (registrar/dean) gets PDF exports, never a login.
 
@@ -20,32 +32,33 @@ the conflict and ask — do not guess.
 
 ## 3. General Rules
 
-- Understand the existing code before modifying it; this is a Frappe app —
-  most behavior is DocType JSON and workflow config, not Python.
-- Prefer platform config over code (see CODE_STYLE.md).
-- No third-party Python dependencies. No client-side JS in v1.
 - Enforce nothing in the UI that isn't enforced server-side (SECURITY.md).
 - Do not invent business requirements; PRD.md non-goals are real non-goals.
-- Never touch secrets; never commit `site_config.json`.
+- Never touch secrets; never commit `.env` files. Config arrives by environment
+  only and is validated loudly at startup (app/config.py).
+- Soft-delete only, never hard delete. Every mutation writes an `audit_log` row.
 - This repository lives on an exFAT volume: `._*` AppleDouble files and
-  `__pycache__` are junk — gitignored; never stage or edit them.
+  `__pycache__` are junk — gitignored; never stage or edit them. They break
+  tools that scan directories (alembic chokes on `._*.py`): delete them
+  (`find . -name '._*' -delete`) before running such tools. Python virtual
+  environments must live off this volume (e.g. `~/.venvs/phd-tracker-api`) —
+  exFAT breaks wheel RECORD verification.
 
 Standing engineering principles (owner directive, applies to every change):
-- **Clean structure, strict separation:** each DocType = one self-contained folder;
-  business logic lives in controllers/workflow config, never in UI or scripts.
+- **Clean structure, strict separation:** each service is self-contained; the
+  export service owns no tables and no auth; business logic lives in the API's
+  service/rbac/workflow modules, never in UI or scripts.
 - **No dead or duplicate code:** when touching an area, delete what it no longer
-  needs; never re-create a utility Frappe already provides.
-- **Consistent naming** per CODE_STYLE.md §2 — no new conventions.
+  needs.
+- **Consistent naming** per CODE_STYLE.md — no new conventions.
 - **Error handling everywhere:** no swallowed exceptions, no silent fallbacks —
-  every failure surfaces to the user or the error log (CODE_STYLE.md §6).
-- **Environment stays out of code:** config via bench `site_config.json` only
-  (SECURITY.md §4).
-- **One source of state:** document lifecycle state lives in the Frappe workflow
-  engine — never in ad-hoc status fields or client-side variables.
-- **Scalable API structure, when custom endpoints ever appear:** all whitelisted
-  methods in one `phd_tracker/api/` package, permission-checked server-side,
-  versioned by folder (`api/v1/`) from the second endpoint onward — not scattered
-  across controllers.
+  uniform error envelope (`app/errors.py`), every failure surfaces to the user
+  or the log.
+- **One source of state:** APR lifecycle state lives in the `workflow.py` state
+  machine — never in ad-hoc status fields or client-side variables.
+- **API surface stays structured:** all routes versioned under `/api/v1`;
+  endpoints the export service consumes live under `/internal` with the same
+  JWT auth, not scattered.
 - **Data stays documented:** any schema change updates DATABASE.md in the same
   commit.
 
@@ -53,29 +66,29 @@ Standing engineering principles (owner directive, applies to every change):
 
 Before implementing a non-trivial task:
 1. Read the relevant doc(s) above.
-2. Read the DocType JSON(s) you will touch.
-3. List affected files (schema JSON, controller, install/patches, docs, tests).
-4. Decide: is this expressible in workflow/permissions/field options? If yes,
-   no Python.
+2. Read the touched model/router (`app/models.py`, `app/routers/`).
+3. List affected files (models, migration, routers, docs, tests).
+4. Is it a schema change? Then it needs an Alembic migration in the same change.
 5. State a concise plan before writing.
 
 ## 5. Implementation
 
-- Focused changes; preserve existing patterns (folders, naming, perm matrix).
-- DocType JSON in the repo is the schema's source of truth — never make
-  Desk-only edits.
-- New DocTypes: folder with `__init__.py`, `<name>.json`, `<name>.py`; add to no
-  registry (Frappe discovers folders) but keep modules.txt consistent.
-- Data migrations go through `patches.txt` — never raw SQL against a site DB.
+- API: async routes with async SQLAlchemy sessions (never sync sessions from
+  async routes); ruff-clean; Pydantic validates every boundary.
+- Export: TypeScript strict; `npm run typecheck` clean.
+- Data migrations go through Alembic (`alembic/versions/`) — never raw SQL
+  against a live DB by hand.
+- No cross-schema writes; the export service reads via internal REST only.
 
 ## 6. Validation
 
-After implementation:
-1. `python3 -m py_compile` touched `.py` files; `python3 -m json.tool` touched
-   JSONs (bench commands in TESTING.md once a bench env exists).
-2. Click-verify the affected UX flow in docs/UX_FLOWS.md if a bench is available.
-3. Confirm no unrelated files changed (`git status`).
-4. Report honestly: what was run, what was skipped, what's unresolved.
+After implementation (run what applies; report what was skipped):
+1. API: `ruff check .` + `pytest` (needs `DATABASE_URL` and a live Postgres;
+   venv: `~/.venvs/phd-tracker-api`).
+2. Export: `npm run typecheck` + `npm test`.
+3. Migration sanity: `alembic upgrade head` against a scratch DB when DDL changed.
+4. Confirm no unrelated files changed (`git status`).
+5. Report honestly: what was run, what was skipped, what's unresolved.
 
 ## 7. Documentation
 
@@ -93,7 +106,8 @@ Never resolve a conflict by silently implementing a third option.
 
 A task is complete only when:
 - The PRD acceptance criteria for the touched feature hold.
-- Syntax/JSON checks pass; bench tests pass when a bench exists.
+- Lint/tests pass for the touched services.
 - No unintended files changed.
-- Security matrix (SECURITY.md §2) still holds — including negative cases.
+- Security matrix (SECURITY.md §2) still holds — including negative cases
+  (e.g. a scholar cannot read another scholar's records).
 - Docs updated where behavior changed.

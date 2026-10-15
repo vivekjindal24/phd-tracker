@@ -3,3 +3,13 @@
 __pycache__/
 *.pyc
 node_modules/
+dist/
+.next/
+.venv/
+venv/
+*.tsbuildinfo
+.env
+.pytest_cache/
+.ruff_cache/
+npm-debug.log*
+coverage/

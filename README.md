@@ -1,75 +1,92 @@
 # PhD Tracker
 
-Supervisor–scholar workspace for Indian university PhD programs, built on the
-[Frappe framework](https://frappeframework.com). The daily-use layer (meetings,
-progress reports, milestone approvals) is the product; UGC compliance paperwork
-(UGC 2022 PhD Regulations, as amended March 2024) falls out as a byproduct.
+Supervisor–scholar workspace for Indian university PhD programs. The daily-use
+layer (meetings, progress reports, milestone approvals) is the product; UGC
+compliance paperwork (UGC 2022 PhD Regulations, as amended March 2024) falls
+out as a byproduct.
 
-Status: **v0.0.1 — app scaffold, not yet installed on a bench site.**
+Status: **v2 — cloud-native rewrite in progress.** The original Frappe v1 app
+(`phd_tracker/`) stays in-repo as a reference implementation until the v2
+stack reaches parity; it is never modified.
 
-## Why this shape
+## Architecture (v2)
 
-Incumbent Indian products (Pegado, Unity, Assessfy, Contineo) are
-administration/compliance tools — forms the research office opens a few times
-a year. None of them own the layer supervisors and scholars touch weekly.
-This app starts from that layer and generates compliance artifacts from it,
-so adoption pulls itself instead of being mandated.
-
-Three roles at launch. Everyone else (HoD, Dean, VC, committees) gets PDF
-exports and email — deliberately no portals in v1.
-
-## DocTypes
-
-| DocType | Purpose |
-|---|---|
-| PhD Scholar | Scholar profile, supervisor assignment, current stage, GitHub repo URL |
-| PhD Supervisor | Faculty profile, UGC supervision cap (8/6/4 by designation) |
-| Meeting Record | Supervisor–scholar meeting log: agenda, minutes, action items, next date |
-| Progress Report | Six-monthly APR — runs through the approval workflow |
-| PhD Milestone | RDC/DPGC-style approvals with resolution number, date, approval body |
-
-## Workflow: Progress Report Approval
-
-Created in `install.py` on app install:
+Three codebases, deliberately not one framework, everything on free-tier cloud:
 
 ```
-Draft --(Scholar: Submit Report)--> Submitted
-Submitted --(Supervisor: Approve)--> Approved       (doc_status 1)
-Submitted --(Supervisor: Send Back)--> Rejected
-Rejected --(Scholar: Revise and Resubmit)--> Draft
+web (Next.js, Vercel)  ──►  services/api (FastAPI, Koyeb)  ──►  Neon Postgres
+        └──────────────►  services/export (Node/TS, Render) ──┘ (via API /internal, token forwarded)
 ```
 
-## Setup (once a bench environment exists)
+| Service | Stack | Owns |
+|---|---|---|
+| `services/api` | Python/FastAPI, SQLAlchemy 2 async, Alembic | Auth (JWT + rotating refresh), scholars/supervisors/meetings/reports/milestones, APR workflow state machine, RBAC + ownership, audit log, trigram search |
+| `services/export` | Node 22/TypeScript, pdfkit | APR PDF, milestone register PDF/CSV. Stateless; no DB, no auth logic |
+| `web` | Next.js App Router | Login, role-gated UI, workflow actions, downloads |
 
-Frappe v15 needs Python 3.10–3.13 — the system Python 3.14 is not supported.
-Keep the bench on your internal disk; this repo can stay on the external volume.
+Data model: single `core` schema — soft-delete only, one `audit_log` table
+with full row snapshots per change (the compliance trail is the product).
+Duplicate APRs per (scholar, year, period) blocked by a partial unique index.
+
+## Local development
+
+Requirements: Homebrew Postgres 15+ (with `pg_trgm`, `citext`), Python 3.12
+(venv off the exFAT volume), Node 22.
 
 ```bash
-brew install mariadb redis pyenv
-pyenv install 3.12 && pyenv local 3.12
-pipx install frappe-bench
+# API
+createdb phd_tracker_dev
+psql -d phd_tracker_dev -c "CREATE EXTENSION IF NOT EXISTS pg_trgm; CREATE EXTENSION IF NOT EXISTS citext;"
+cd services/api
+uv venv --python 3.12 ~/.venvs/phd-tracker-api
+uv pip install -e ".[dev]" --python ~/.venvs/phd-tracker-api/bin/python
+export DATABASE_URL="postgresql+psycopg://$(whoami)@localhost/phd_tracker_dev"
+alembic upgrade head          # note: exFAT — delete ._* junk first if alembic errors
+uvicorn app.main:app --port 8000
 
-bench init phd-dev --frappe-branch version-15
-cd phd-dev
-bench get-app /Volumes/VivekJindal/phd-tracker
-bench new-site phd.local --db-root-password <pw> --admin-password <pw>
-bench --site phd.local install-app phd_tracker
-bench start
+# Export
+cd services/export
+npm install
+npm run dev                   # :8100
+
+# Web — added in Phase 3
 ```
 
-Installing the app creates the three roles (PhD Scholar, PhD Supervisor,
-Research Office Admin) and the progress-report workflow.
+## CI/CD
+
+GitHub Actions (`.github/workflows/ci.yml`): ruff + pytest against a Postgres
+service container (api), typecheck + node:test (export). Images build in CI to
+GHCR and deploy via hooks (Koyeb/Render); Vercel deploys `web/` on push.
+
+## Environment variables (never in repo)
+
+| Service | Vars |
+|---|---|
+| api | `DATABASE_URL` (Neon pooled string), `JWT_SECRET`, `CORS_ORIGINS` |
+| export | `API_URL`, `PORT` |
+| web | `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_EXPORT_URL` |
+
+## Workflow: Progress Report (APR) approval
+
+```
+draft --(scholar: submit)--> submitted --(supervisor: approve)--> approved (approved_on set)
+                                submitted --(supervisor: send_back)--> rejected
+                                rejected --(scholar: resubmit)--> draft
+```
+
+Enforced server-side in `services/api/app/workflow.py`; the UI only offers
+what the API permits.
 
 ## Deliberately NOT in v1
 
 Admissions, coursework grading, grants/ledger, plagiarism-check API
 integration (record similarity scores manually for now), NAAC/NIRF exports,
-Shodhganga sync, GitHub activity mirroring, VC dashboards, fine-grained
-per-document owner permissions. Each waits for a paying university to pull it.
+Shodhganga sync, GitHub activity mirroring, VC dashboards, committee logins.
+Each waits for a paying university to pull it.
 
 ## Roadmap
 
-1. Exports pack: UGC-format APR PDF + RDC milestone register per scholar
+1. v2 parity with Frappe v1 (then delete `phd_tracker/`)
 2. Per-scholar timeline view (meetings + reports + milestones on one page)
 3. Read-only GitHub activity mirror (commit streak per scholar)
-4. Fine-grained ownership rules (scholars see only their own docs)
+4. UGC-format export pack once a pilot university supplies formats
