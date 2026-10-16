@@ -5,7 +5,7 @@
 - **Product Name:** PhD Tracker
 - **One-Line Description:** A supervisor–scholar workspace for Indian university PhD programs where UGC compliance paperwork is generated as a byproduct of daily use.
 - **Product Type:** Vertical SaaS (per-university deployed instances)
-- **Primary Platform:** Web (Frappe Desk)
+- **Primary Platform:** Web (Next.js on Vercel; v1 was Frappe Desk)
 
 ## 2. Problem
 
@@ -100,10 +100,11 @@ feedback, progress reports) — adoption pulls itself instead of being mandated.
 - **Outputs:** Submitted APR with audit trail; count toward compliance exports.
 - **Acceptance Criteria:**
   - Only the scholar's role can move Draft→Submitted; only supervisor can
-    Submitted→Approved/Rejected (enforced by Frappe workflow, server-side).
-  - approved_on auto-set on submit.
-  - One APR per scholar per (year, period) expected — duplicate warning (hard
-    constraint deferred; see Open Questions).
+    Submitted→Approved/Rejected — enforced server-side by the workflow state
+    machine (`services/api/app/workflow.py`); illegal moves → 422.
+  - approved_on auto-set on approve.
+  - One APR per scholar per (year, period) — hard constraint
+    (`uq_apr_active` partial unique index → 409 `duplicate_apr`).
 - **Edge Cases:** Scholar submits late period; supervisor changes before approval;
   scholar exits program mid-period (report remains for record).
 
@@ -184,17 +185,19 @@ document versioning for drafts/thesis; per-university workflow configuration.
 ## 12. Open Questions
 
 - Pricing: per-scholar vs flat per-department? (Test with first pilot.)
-- Should duplicate (scholar, year, period) APRs be hard-blocked? (Frappe unique
-  constraint on 3 columns is awkward; probably a validate() check.)
+- ~~Should duplicate (scholar, year, period) APRs be hard-blocked?~~
+  Resolved in v2: partial unique index `uq_apr_active` → 409 `duplicate_apr`.
 - Which university is the pilot? No commitment yet.
 - Do print formats need per-university templates in v1, or one generic UGC format?
 - GitHub mirror: fetch via API on schedule vs webhook? (Roadmap item 3; decide then.)
 
 ## 13. Definition of Done
 
-- [ ] Requirements implemented per feature's acceptance criteria
-- [ ] APR workflow verified by click-through on a bench site with all three roles
-- [ ] Tests pass (`bench run-tests --app phd_tracker`)
-- [ ] App installs cleanly on a fresh site (roles + workflow created)
-- [ ] Security rules (SECURITY.md) satisfied
-- [ ] Documentation updated to match behavior
+- [x] Requirements implemented per feature's acceptance criteria (v2 core, Phases 0–3)
+- [x] APR workflow verified by click-through with all three roles (Playwright,
+      docs/TESTING.md — including immutability and the v1-gap regression)
+- [x] Tests pass (`pytest` / `node:test` / `npm run build` — CI green)
+- [x] App installs cleanly on a fresh database (`alembic upgrade head`; CI runs
+      the chain on every push)
+- [x] Security rules (SECURITY.md) satisfied
+- [x] Documentation updated to match behavior

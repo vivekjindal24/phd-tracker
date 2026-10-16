@@ -1,46 +1,60 @@
 # Design System
 
+> v2 rewrite: the "stock Frappe Desk" decision is superseded — the custom UI
+> arrived with the Next.js web app. Direction unchanged: calm, institutional,
+> print-like. The interface should feel like a well-kept register, not a
+> startup dashboard.
+
 ## 1. Design Direction
 
-- **Style:** v1 uses the **stock Frappe Desk UI** unchanged. This is a deliberate
-  decision, not a gap: v1 is an internal tool for a single-department pilot, and
-  custom UI before product validation is wasted money.
-- **Mood (when custom UI arrives):** calm, institutional, print-like — the product
-  generates compliance paperwork, so the interface should feel like a well-kept
-  register, not a startup dashboard.
+- **Style:** "a well-kept register" — ink-on-paper palette, serif display over
+  system sans body, 2px radius (registers don't have rounded corners), rules
+  instead of shadows, state conveyed text-first (badge text) with color second.
 - **Design Principles:**
-  1. Zero custom UI before the pilot proves the workflow.
-  2. When custom UI comes, it replaces Desk only for scholar/supervisor flows —
-     admin/research office stays on Desk (they're power users of filters/exports).
-  3. Read-only surfaces (committee, buyer) get PDFs, never logins.
-  4. Optimistic updates in custom flows: update the UI immediately as if the
-     action succeeded, reconcile with the server result, and roll back visibly
-     with a clear error on failure — a user must never be misled about whether
-     their APR was submitted. (Stock Desk v1: not applicable — no client JS
-     of ours.)
+  1. The API is the security enforcer; the UI only hides what the API already
+     denies — visual gating is never the enforcement.
+  2. Read-only surfaces (committee, buyer) get PDFs, never logins.
+  3. Optimistic churn avoided: actions are explicit button → result; the user
+     is never misled about whether their APR was submitted.
 
 ## 2. Brand
 
 - **Brand Name:** PhD Tracker
-- **Logo:** none yet — do not invent one for Desk (Frappe app icon suffices in v1).
+- **Logo:** none — do not invent one; the wordmark suffices until a pilot asks.
 - **Brand Voice:** plain, official, zero marketing gloss inside the product.
 
-## 3–14. Tokens, Typography, Components
+## 3. Tokens — the source is the CSS
 
-**Deferred.** Colors, type scale, spacing, buttons, cards, navigation, states,
-icons, breakpoints: all inherit from Frappe Desk defaults in v1. Defining custom
-tokens now would be fabrication — no custom screen exists to apply them to.
+Tokens live in `web/src/app/globals.css` (`:root` custom properties) and page
+styles in `web/src/app/(app)/app.css`. **Change tokens there, not per-page.**
 
-**The rule while Desk is the UI:** change nothing. No custom CSS, no Desk
-overrides, no theme app. Any visual change request gets routed through this
-document first: we define the tokens (palette, type, spacing per the ECC web
-design-quality rules — intentional palette, semantic color, real type pairing)
-at the moment the first custom page is committed, not before.
+- **Palette:** ink `#1c1917` / ink-soft `#57534e` on paper `#faf9f7`, card
+  `#ffffff`, rules `#d6d3d1`/`#a8a29e`; accent = register maroon `#7c2d12`
+  (official, not startup); semantic `--danger` `#b91c1c`, `--ok` `#166534`.
+- **Type:** `--font-display` Georgia/serif for headings (print pedigree, zero
+  webfont bytes), system sans for body. Sizes `--text-sm` / `--text-base`.
+- **Spacing/radius:** page rhythm via the layout grid; `--radius: 2px`.
 
-## 15. Accessibility
+## 4. Components — `web/src/lib/ui.tsx`
 
-Non-negotiable even on stock Desk:
-- Keyboard navigation and visible focus states (Desk provides; don't break them).
-- Do not rely on color alone to convey report states (state names are text).
-- Print formats must be readable in grayscale — they are photocopied in committee
-  meetings.
+Button (`kind: primary/ghost/danger`), Field (label + control), Table
+(head/rows/empty), PageHeader (title + optional `sub` ReactNode — a
+StateBadge fits), StateBadge (workflow-state chip), ErrorText; `form-card`
+and `.kv` layout classes in `app.css`. Real `<table>` for registers,
+`<dl class="kv">` for key-value, `<label>`-wrapped controls — semantic HTML
+first, no component library.
+
+Rules for changes:
+- New page composes the kit; no new button styles, no inline palettes.
+- A new state value appears in StateBadge, fed by the API — never a client-side
+  status guess.
+- Hover/focus states exist and use the tokens; `:focus-visible` is the accent
+  outline (accessibility floor, kept).
+
+## 5. Accessibility (non-negotiable)
+
+- Keyboard navigable; visible `:focus-visible` outline (tokens).
+- Never color alone: every state badge carries its text (Draft/Submitted/…).
+- Labels on every control (`aria-label` where visual text is absent).
+- Export PDFs must stay readable in grayscale — they are photocopied in
+  committee meetings.
