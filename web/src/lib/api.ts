@@ -111,16 +111,16 @@ export async function logout(): Promise<void> {
 	clearTokens();
 }
 
-/** Blob download from the export service, replaying auth the same way as api(). */
-export async function exportDownload(path: string, filename: string): Promise<void> {
-	const run = () => fetch(`${EXPORT_URL}${path}`, { headers: { Authorization: `Bearer ${accessToken}` } });
+/** Blob download with the same 401-refresh-replay as api(). */
+async function blobDownload(base: string, path: string, filename: string): Promise<void> {
+	const run = () => fetch(`${base}${path}`, { headers: { Authorization: `Bearer ${accessToken}` } });
 	let res = await run();
 	if (res.status === 401 && (await tryRefresh())) {
 		res = await run();
 	}
 	if (!res.ok) {
 		const body = (await res.json().catch(() => null)) as ApiErrorEnvelope | null;
-		throw new ApiError(res.status, body?.error.code ?? "export_failed", body?.error.message ?? "Export failed");
+		throw new ApiError(res.status, body?.error.code ?? "download_failed", body?.error.message ?? "Download failed");
 	}
 	const blob = await res.blob();
 	const url = URL.createObjectURL(blob);
@@ -129,4 +129,37 @@ export async function exportDownload(path: string, filename: string): Promise<vo
 	link.download = filename;
 	link.click();
 	URL.revokeObjectURL(url);
+}
+
+/** Blob download from the export service. */
+export function exportDownload(path: string, filename: string): Promise<void> {
+	return blobDownload(EXPORT_URL, path, filename);
+}
+
+/** Blob download from the API (attachment bytes). */
+export function apiDownload(path: string, filename: string): Promise<void> {
+	return blobDownload(API_URL, path, filename);
+}
+
+/** Multipart upload through api() — browser sets the boundary, so no JSON
+ * Content-Type here. Same 401-refresh-replay. */
+export async function apiUpload<T>(path: string, file: File, fields: Record<string, string>): Promise<T> {
+	const form = new FormData();
+	for (const [key, value] of Object.entries(fields)) form.append(key, value);
+	form.append("file", file);
+	const run = () =>
+		fetch(`${API_URL}${path}`, {
+			method: "POST",
+			headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
+			body: form,
+		});
+	let res = await run();
+	if (res.status === 401 && (await tryRefresh())) {
+		res = await run();
+	}
+	if (!res.ok) {
+		const body = (await res.json().catch(() => null)) as ApiErrorEnvelope | null;
+		throw new ApiError(res.status, body?.error.code ?? "upload_failed", body?.error.message ?? `Upload failed (${res.status})`);
+	}
+	return (await res.json()) as T;
 }

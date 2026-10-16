@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 
 import { doLogin } from "@/lib/auth";
-import { Button, ErrorText, Field } from "@/lib/ui";
+import { Button, ErrorText, Field } from "@/components/ui";
 import "@/app/(app)/app.css";
 
 export default function LoginPage() {

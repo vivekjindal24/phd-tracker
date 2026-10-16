@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 
 import { api, ApiError } from "@/lib/api";
-import { Button, ErrorText, PageHeader, StateBadge } from "@/lib/ui";
+import { Badge, Button, Card, EmptyState, ErrorText, PageHeader } from "@/components/ui";
 
 interface SearchResults {
 	scholars: { id: string; scholar_name: string; roll_number: string; department: string }[];
@@ -12,6 +12,15 @@ interface SearchResults {
 	meetings: { id: string; meeting_date: string; agenda: string | null }[];
 	reports: { id: string; report_year: number; period: string; state: string; summary: string }[];
 	milestones: { id: string; milestone_type: string; status: string }[];
+}
+
+function ResultSection({ title, children }: { title: string; children: React.ReactNode }) {
+	return (
+		<Card>
+			<h2>{title}</h2>
+			{children}
+		</Card>
+	);
 }
 
 export default function SearchPage() {
@@ -44,11 +53,12 @@ export default function SearchPage() {
 				}}
 			>
 				<input
+					className="field"
+					style={{ flex: 1 }}
 					value={q}
 					onChange={(e) => setQ(e.target.value)}
 					placeholder="Name, roll number, department…"
 					aria-label="Search query"
-					style={{ flex: 1, minWidth: "16rem" }}
 				/>
 				<Button type="submit" kind="primary" disabled={busy}>
 					{busy ? "Searching…" : "Search"}
@@ -57,65 +67,75 @@ export default function SearchPage() {
 			<ErrorText>{error}</ErrorText>
 			{results && (
 				<div className="stack">
-					<section>
-						<h2>Scholars</h2>
-						<ul>
-							{results.scholars.map((s) => (
-								<li key={s.id}>
-									{s.scholar_name} — {s.roll_number} · {s.department}
-								</li>
-							))}
-							{results.scholars.length === 0 && <li className="soft">No matches.</li>}
-						</ul>
-					</section>
-					<section>
-						<h2>Supervisors</h2>
-						<ul>
-							{results.supervisors.map((s) => (
-								<li key={s.id}>
-									{s.full_name} — {s.designation} · {s.department}
-								</li>
-							))}
-							{results.supervisors.length === 0 && <li className="soft">No matches.</li>}
-						</ul>
-					</section>
-					<section>
-						<h2>Reports</h2>
-						<ul>
-							{results.reports.map((r) => (
-								<li key={r.id}>
-									<Link href={`/reports/${r.id}`}>
-										{r.report_year} {r.period}
-									</Link>{" "}
-									<StateBadge state={r.state} /> — {r.summary.slice(0, 60)}
-									{r.summary.length > 60 ? "…" : ""}
-								</li>
-							))}
-							{results.reports.length === 0 && <li className="soft">No matches.</li>}
-						</ul>
-					</section>
-					<section>
-						<h2>Meetings</h2>
-						<ul>
-							{results.meetings.map((m) => (
-								<li key={m.id}>
-									{m.meeting_date} — {m.agenda ?? "(no agenda)"}
-								</li>
-							))}
-							{results.meetings.length === 0 && <li className="soft">No matches.</li>}
-						</ul>
-					</section>
-					<section>
-						<h2>Milestones</h2>
-						<ul>
-							{results.milestones.map((m) => (
-								<li key={m.id}>
-									{m.milestone_type} — <StateBadge state={m.status} />
-								</li>
-							))}
-							{results.milestones.length === 0 && <li className="soft">No matches.</li>}
-						</ul>
-					</section>
+					<ResultSection title="Scholars">
+						{results.scholars.length === 0 ? (
+							<EmptyState>No matches.</EmptyState>
+						) : (
+							<ul>
+								{results.scholars.map((s) => (
+									<li key={s.id}>
+										<Link href={`/scholars/${s.id}`}>{s.scholar_name}</Link> — {s.roll_number} · {s.department}
+									</li>
+								))}
+							</ul>
+						)}
+					</ResultSection>
+					<ResultSection title="Supervisors">
+						{results.supervisors.length === 0 ? (
+							<EmptyState>No matches.</EmptyState>
+						) : (
+							<ul>
+								{results.supervisors.map((s) => (
+									<li key={s.id}>
+										{s.full_name} — {s.designation} · {s.department}
+									</li>
+								))}
+							</ul>
+						)}
+					</ResultSection>
+					<ResultSection title="Reports">
+						{results.reports.length === 0 ? (
+							<EmptyState>No matches.</EmptyState>
+						) : (
+							<ul>
+								{results.reports.map((r) => (
+									<li key={r.id}>
+										<Link href={`/reports/${r.id}`}>
+											{r.report_year} {r.period}
+										</Link>{" "}
+										<Badge value={r.state} /> — {r.summary.slice(0, 60)}
+										{r.summary.length > 60 ? "…" : ""}
+									</li>
+								))}
+							</ul>
+						)}
+					</ResultSection>
+					<ResultSection title="Meetings">
+						{results.meetings.length === 0 ? (
+							<EmptyState>No matches.</EmptyState>
+						) : (
+							<ul>
+								{results.meetings.map((m) => (
+									<li key={m.id}>
+										{m.meeting_date} — {m.agenda ?? "(no agenda)"}
+									</li>
+								))}
+							</ul>
+						)}
+					</ResultSection>
+					<ResultSection title="Milestones">
+						{results.milestones.length === 0 ? (
+							<EmptyState>No matches.</EmptyState>
+						) : (
+							<ul>
+								{results.milestones.map((m) => (
+									<li key={m.id}>
+										{m.milestone_type} — <Badge value={m.status} />
+									</li>
+								))}
+							</ul>
+						)}
+					</ResultSection>
 				</div>
 			)}
 		</>

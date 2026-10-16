@@ -1,11 +1,15 @@
 "use client";
 
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+
+import { useTable } from "@refinedev/core";
 
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { Button, ErrorText, Field, PageHeader, StateBadge, Table } from "@/lib/ui";
+import { Badge, Button, ErrorText, Field, PageHeader, queryError } from "@/components/ui";
+import { Column, DataTable, Pager } from "@/components/data-table";
+import { Dialog } from "@/components/overlay";
 
 interface Report {
 	id: string;
@@ -21,40 +25,31 @@ interface Scholar {
 	roll_number: string;
 }
 
-const STATES = ["", "draft", "submitted", "approved", "rejected"];
+const STATES = ["draft", "submitted", "approved", "rejected"] as const;
 const PERIODS = ["January-June", "July-December"];
 const EMPTY_FORM = { scholar_id: "", report_year: String(new Date().getFullYear()), period: PERIODS[0], summary: "" };
 
 export default function ReportsPage() {
 	const { user } = useAuth();
-	const [items, setItems] = useState<Report[]>([]);
+	const router = useRouter();
+	const { tableQuery, sorters, setSorters, filters, setFilters, currentPage, setCurrentPage, pageSize } = useTable({
+		resource: "reports",
+		pagination: { pageSize: 20 },
+		sorters: { initial: [{ field: "created_at", order: "desc" }] },
+	});
+
 	const [scholars, setScholars] = useState<Scholar[]>([]);
-	const [stateFilter, setStateFilter] = useState("");
-	const [error, setError] = useState("");
 	const [showForm, setShowForm] = useState(false);
 	const [form, setForm] = useState(EMPTY_FORM);
 	const [formError, setFormError] = useState("");
 
-	async function load() {
-		try {
-			const q = new URLSearchParams({ per_page: "100", ...(stateFilter ? { state: stateFilter } : {}) });
-			const page = await api<{ items: Report[] }>(`/reports?${q}`);
-			setItems(page.items);
-		} catch (err) {
-			setError(err instanceof ApiError ? err.message : "Could not load reports");
-		}
-	}
-
 	useEffect(() => {
-		if (!user) return;
-		void load();
-		if (user.role === "admin") {
-			// only the admin form picks a scholar; the scholar form uses the caller's own id
-			api<{ items: Scholar[] }>("/scholars?per_page=100")
-				.then((p) => setScholars(p.items))
-				.catch(() => undefined);
-		}
-	}, [user, stateFilter]);
+		if (user?.role !== "admin") return;
+		// only the admin form picks a scholar; the scholar form uses the caller's own id
+		api<{ items: Scholar[] }>("/scholars?per_page=100")
+			.then((p) => setScholars(p.items))
+			.catch(() => setScholars([]));
+	}, [user]);
 
 	async function create() {
 		setFormError("");
@@ -70,86 +65,125 @@ export default function ReportsPage() {
 			});
 			setForm(EMPTY_FORM);
 			setShowForm(false);
-			await load();
+			await tableQuery.refetch();
 		} catch (err) {
 			setFormError(err instanceof ApiError ? err.message : "Could not create the report");
 		}
 	}
 
+	type EqFilter = { field: string; operator: "eq"; value: unknown };
+	const stateFilter = filters.find((f): f is EqFilter => "field" in f && f.field === "state");
+	const columns: Column<Report>[] = [
+		{ key: "year", head: "Year", sort: "report_year", cell: (r) => String(r.report_year) },
+		{ key: "period", head: "Period", cell: (r) => r.period },
+		{
+			key: "summary",
+			head: "Summary",
+			cell: (r) => (r.summary.length > 80 ? `${r.summary.slice(0, 80)}…` : r.summary),
+		},
+		{ key: "state", head: "State", sort: "state", cell: (r) => <Badge value={r.state} /> },
+	];
+
 	return (
 		<>
-			<div className="page-head page-head-row">
-				<PageHeader title="Progress reports" sub="Annual progress reports (APR)" />
-				<div className="page-actions">
-					<select value={stateFilter} onChange={(e) => setStateFilter(e.target.value)} aria-label="Filter by state">
-						{STATES.map((s) => (
-							<option key={s} value={s}>
-								{s || "All states"}
-							</option>
-						))}
-					</select>
-					{/* scholars author APRs; supervisors only act on them (RBAC MATRIX) */}
-					{user?.role !== "supervisor" && (
-						<Button onClick={() => setShowForm((v) => !v)}>{showForm ? "Close" : "New report"}</Button>
-					)}
-				</div>
+			<PageHeader
+				title="Progress reports"
+				sub="Annual progress reports (APR)"
+				actions={
+					// scholars author APRs; supervisors only act on them (RBAC MATRIX)
+					user?.role !== "supervisor" && (
+						<Button kind="primary" onClick={() => setShowForm(true)}>
+							New report
+						</Button>
+					)
+				}
+			/>
+			<div className="toolbar" role="group" aria-label="Filter by state">
+				<button type="button" className="chip" aria-pressed={!stateFilter} onClick={() => setFilters([], "replace")}>
+					All
+				</button>
+				{STATES.map((s) => (
+					<button
+						key={s}
+						type="button"
+						className="chip"
+						aria-pressed={stateFilter?.value === s}
+						onClick={() => setFilters([{ field: "state", operator: "eq", value: s }], "replace")}
+					>
+						{s}
+					</button>
+				))}
 			</div>
-			<ErrorText>{error}</ErrorText>
+			<DataTable
+				columns={columns}
+				rows={(tableQuery.data?.data as Report[] | undefined) ?? []}
+				rowId={(r) => r.id}
+				loading={tableQuery.isLoading}
+				error={queryError(tableQuery.error)}
+				empty="No reports yet."
+				sort={sorters[0]}
+				onSort={(s) => setSorters([s])}
+				onRowClick={(r) => router.push(`/reports/${r.id}`)}
+				footer={
+					<Pager
+						page={currentPage}
+						perPage={pageSize}
+						total={tableQuery.data?.total ?? 0}
+						onPage={setCurrentPage}
+					/>
+				}
+			/>
 			{showForm && (
-				<form
-					className="form-card stack"
-					onSubmit={(e) => {
-						e.preventDefault();
-						void create();
-					}}
-				>
-					{user?.role === "admin" && (
-						<Field label="Scholar">
-							<select required value={form.scholar_id} onChange={(e) => setForm({ ...form, scholar_id: e.target.value })}>
-								<option value="">— select —</option>
-								{scholars.map((s) => (
-									<option key={s.id} value={s.id}>
-										{s.scholar_name} ({s.roll_number})
-									</option>
+				<Dialog title="New progress report" onClose={() => setShowForm(false)}>
+					<form
+						className="form-card stack"
+						onSubmit={(e) => {
+							e.preventDefault();
+							void create();
+						}}
+					>
+						{user?.role === "admin" && (
+							<Field label="Scholar">
+								<select required value={form.scholar_id} onChange={(e) => setForm({ ...form, scholar_id: e.target.value })}>
+									<option value="">— select —</option>
+									{scholars.map((s) => (
+										<option key={s.id} value={s.id}>
+											{s.scholar_name} ({s.roll_number})
+										</option>
+									))}
+								</select>
+							</Field>
+						)}
+						<Field label="Report year">
+							<input
+								required
+								type="number"
+								min={2000}
+								max={2100}
+								value={form.report_year}
+								onChange={(e) => setForm({ ...form, report_year: e.target.value })}
+							/>
+						</Field>
+						<Field label="Period">
+							<select value={form.period} onChange={(e) => setForm({ ...form, period: e.target.value })}>
+								{PERIODS.map((p) => (
+									<option key={p}>{p}</option>
 								))}
 							</select>
 						</Field>
-					)}
-					<Field label="Report year">
-						<input
-							required
-							type="number"
-							min={2000}
-							max={2100}
-							value={form.report_year}
-							onChange={(e) => setForm({ ...form, report_year: e.target.value })}
-						/>
-					</Field>
-					<Field label="Period">
-						<select value={form.period} onChange={(e) => setForm({ ...form, period: e.target.value })}>
-							{PERIODS.map((p) => (
-								<option key={p}>{p}</option>
-							))}
-						</select>
-					</Field>
-					<Field label="Summary of progress">
-						<textarea required rows={6} value={form.summary} onChange={(e) => setForm({ ...form, summary: e.target.value })} />
-					</Field>
-					<ErrorText>{formError}</ErrorText>
-					<Button type="submit" kind="primary">Create draft</Button>
-				</form>
+						<Field label="Summary of progress">
+							<textarea required rows={6} value={form.summary} onChange={(e) => setForm({ ...form, summary: e.target.value })} />
+						</Field>
+						<ErrorText>{formError}</ErrorText>
+						<div className="form-actions">
+							<Button onClick={() => setShowForm(false)}>Cancel</Button>
+							<Button type="submit" kind="primary">
+								Create draft
+							</Button>
+						</div>
+					</form>
+				</Dialog>
 			)}
-			<Table
-				head={["Year", "Period", "Summary", "State", ""]}
-				rows={items.map((r) => [
-					String(r.report_year),
-					r.period,
-					r.summary.length > 80 ? `${r.summary.slice(0, 80)}…` : r.summary,
-					<StateBadge state={r.state} />,
-					<Link href={`/reports/${r.id}`}>Open →</Link>,
-				])}
-				empty="No reports yet."
-			/>
 		</>
 	);
 }

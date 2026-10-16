@@ -1,89 +1,125 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCustom } from "@refinedev/core";
 
-import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { ErrorText, PageHeader } from "@/lib/ui";
+import { Card, ErrorState, PageHeader, queryError, StatCard } from "@/components/ui";
+import { BarChart } from "@/components/tabs";
 
-interface Page<T> {
-	items: T[];
-	total: number;
+interface UpcomingMeeting {
+	id: string;
+	scholar_id: string;
+	scholar_name: string;
+	meeting_date: string;
+	agenda: string | null;
 }
 
+interface Activity {
+	id: number;
+	at: string;
+	table_name: string;
+	action: string;
+	actor_role: string;
+}
+
+interface Dashboard {
+	scholars: number;
+	supervisors: number;
+	reports_by_state: Record<string, number>;
+	scholars_by_stage: Record<string, number>;
+	upcoming_meetings: UpcomingMeeting[];
+	recent_activity: Activity[];
+}
+
+/** One endpoint, role-scoped server-side — the same payload renders differently
+ * per role. recent_activity is admin-only (SECURITY.md §2). */
 export default function DashboardPage() {
 	const { user } = useAuth();
-	const [counts, setCounts] = useState<{ label: string; num: number; href: string }[]>([]);
-	const [error, setError] = useState("");
+	const { query } = useCustom<Dashboard>({ url: "/stats/dashboard", method: "get" });
 
-	useEffect(() => {
-		if (!user) return;
-		let cancelled = false;
-		(async () => {
-			try {
-				if (user.role === "scholar") {
-					const reports = await api<Page<never>>("/reports?per_page=1");
-					const meetings = await api<Page<never>>("/meetings?per_page=1");
-					const milestones = await api<Page<never>>("/milestones?per_page=1");
-					if (!cancelled)
-						setCounts([
-							{ label: "My progress reports", num: reports.total, href: "/reports" },
-							{ label: "Meeting records", num: meetings.total, href: "/meetings" },
-							{ label: "Milestones", num: milestones.total, href: "/milestones" },
-						]);
-				} else if (user.role === "supervisor") {
-					const pending = await api<Page<never>>("/reports?state=submitted&per_page=1");
-					const reports = await api<Page<never>>("/reports?per_page=1");
-					const scholars = await api<Page<never>>("/scholars?per_page=1");
-					if (!cancelled)
-						setCounts([
-							{ label: "Reports awaiting my action", num: pending.total, href: "/reports?state=submitted" },
-							{ label: "All my scholars' reports", num: reports.total, href: "/reports" },
-							{ label: "My scholars", num: scholars.total, href: "/scholars" },
-						]);
-				} else {
-					const scholars = await api<Page<never>>("/scholars?per_page=1");
-					const supervisors = await api<Page<never>>("/supervisors?per_page=1");
-					const pending = await api<Page<never>>("/reports?state=submitted&per_page=1");
-					if (!cancelled)
-						setCounts([
-							{ label: "Registered scholars", num: scholars.total, href: "/scholars" },
-							{ label: "Supervisors", num: supervisors.total, href: "/supervisors" },
-							{ label: "APRs awaiting approval", num: pending.total, href: "/reports?state=submitted" },
-						]);
-				}
-			} catch (err) {
-				if (!cancelled) setError(err instanceof ApiError ? err.message : "Could not load the dashboard");
-			}
-		})();
-		return () => {
-			cancelled = true;
-		};
-	}, [user]);
+	if (query.isLoading) return <p className="soft">Loading…</p>;
+	if (query.error) return <ErrorState>{queryError(query.error)}</ErrorState>;
+
+	const d = query.data?.data;
+	if (!d || !user) return null;
+
+	const pending = d.reports_by_state["submitted"] ?? 0;
+	const reportsTotal = Object.values(d.reports_by_state).reduce((a, b) => a + b, 0);
+	const isScholar = user.role === "scholar";
+
+	const cards = isScholar
+		? [
+				{ num: reportsTotal, label: "My progress reports", href: "/reports" },
+				{ num: pending, label: "Awaiting approval", href: "/reports" },
+				{ num: d.upcoming_meetings.length, label: "Upcoming meetings", href: "/meetings" },
+			]
+		: user.role === "supervisor"
+			? [
+					{ num: d.scholars, label: "My scholars", href: "/scholars" },
+					{ num: pending, label: "Reports awaiting my action", href: "/reports" },
+					{ num: reportsTotal, label: "All my scholars' reports", href: "/reports" },
+				]
+			: [
+					{ num: d.scholars, label: "Registered scholars", href: "/scholars" },
+					{ num: d.supervisors, label: "Supervisors", href: "/supervisors" },
+					{ num: pending, label: "APRs awaiting approval", href: "/reports" },
+				];
 
 	return (
 		<>
 			<PageHeader
-				title={`Welcome, ${user?.full_name ?? ""}`}
+				title={`Welcome, ${user.full_name}`}
 				sub={
-					user?.role === "scholar"
+					isScholar
 						? "Your supervision record — reports, meetings, milestones."
-						: user?.role === "supervisor"
+						: user.role === "supervisor"
 							? "Your scholars' reports and meetings."
 							: "The department register at a glance."
 				}
 			/>
-			<ErrorText>{error}</ErrorText>
 			<div className="count-grid">
-				{counts.map((c) => (
-					<Link key={c.label} href={c.href} className="count-cell">
-						<span className="num">{c.num}</span>
-						<span className="lbl">{c.label}</span>
-					</Link>
+				{cards.map((c) => (
+					<StatCard key={c.label} num={c.num} label={c.label} href={c.href} />
 				))}
+			</div>
+			<div className="stack">
+				<Card>
+					<h2>{isScholar ? "My stage" : "Scholars by stage"}</h2>
+					<BarChart data={Object.entries(d.scholars_by_stage).map(([label, count]) => ({ label, count }))} />
+				</Card>
+				<Card>
+					<h2>Upcoming meetings</h2>
+					{d.upcoming_meetings.length === 0 ? (
+						<p className="soft">Nothing scheduled.</p>
+					) : (
+						<ul>
+							{d.upcoming_meetings.map((m) => (
+								<li key={m.id}>
+									<Link href={`/scholars/${m.scholar_id}`}>{m.scholar_name}</Link> — {m.meeting_date}
+									{m.agenda ? ` · ${m.agenda}` : ""}
+								</li>
+							))}
+						</ul>
+					)}
+				</Card>
+				{user.role === "admin" && (
+					<Card>
+						<h2>Recent activity</h2>
+						{d.recent_activity.length === 0 ? (
+							<p className="soft">No recorded activity yet.</p>
+						) : (
+							<ul>
+								{d.recent_activity.map((a) => (
+									<li key={a.id}>
+										<span className="faint">{new Date(a.at).toLocaleString()}</span> — {a.action} on {a.table_name} ({a.actor_role})
+									</li>
+								))}
+							</ul>
+						)}
+					</Card>
+				)}
 			</div>
 		</>
 	);
 }
-

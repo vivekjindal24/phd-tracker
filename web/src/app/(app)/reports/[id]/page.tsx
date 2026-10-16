@@ -6,7 +6,10 @@ import { useCallback, useEffect, useState } from "react";
 
 import { api, ApiError, exportDownload } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { Button, ErrorText, PageHeader, StateBadge } from "@/lib/ui";
+import { Badge, Button, ErrorText, Field, PageHeader } from "@/components/ui";
+import { ConfirmDialog } from "@/components/overlay";
+import { Tabs } from "@/components/tabs";
+import { AttachmentsPanel, CommentThread } from "@/components/record-panels";
 
 interface Report {
 	id: string;
@@ -41,6 +44,7 @@ export default function ReportDetailPage() {
 	const [actionError, setActionError] = useState("");
 	const [comment, setComment] = useState("");
 	const [saving, setSaving] = useState(false);
+	const [confirmDelete, setConfirmDelete] = useState(false);
 
 	const load = useCallback(async () => {
 		try {
@@ -70,7 +74,12 @@ export default function ReportDetailPage() {
 		setActionError("");
 		setSaving(true);
 		try {
-			setReport(await api<Report>(`/reports/${params.id}`, { method: "PATCH", body: JSON.stringify({ supervisor_comment: comment }) }));
+			setReport(
+				await api<Report>(`/reports/${params.id}`, {
+					method: "PATCH",
+					body: JSON.stringify({ supervisor_comment: comment }),
+				}),
+			);
 			setComment("");
 		} catch (err) {
 			setActionError(err instanceof ApiError ? err.message : "Could not save the comment");
@@ -107,6 +116,7 @@ export default function ReportDetailPage() {
 			router.push("/reports");
 		} catch (err) {
 			setActionError(err instanceof ApiError ? err.message : "Delete failed");
+			setConfirmDelete(false);
 		}
 	}
 
@@ -127,22 +137,9 @@ export default function ReportDetailPage() {
 	const canComment = user.role === "supervisor" && report.state === "submitted";
 	const actions = allowedActions(report.state, user.role);
 
-	return (
-		<>
-			<div className="page-head page-head-row">
-				<PageHeader
-					title={`APR ${report.report_year} · ${report.period}`}
-					sub={<StateBadge state={report.state} />}
-				/>
-				<div className="page-actions">
-					{user.role === "admin" && report.state === "approved" && <Button onClick={() => void downloadPdf()}>Download PDF</Button>}
-					{user.role === "admin" && <Button kind="danger" onClick={() => void remove()}>Delete</Button>}
-				</div>
-			</div>
-			<ErrorText>{actionError}</ErrorText>
+	const overview = (
+		<div className="stack">
 			<dl className="kv">
-				<dt>State</dt>
-				<dd><StateBadge state={report.state} /></dd>
 				<dt>Approved on</dt>
 				<dd>{report.approved_on ?? "—"}</dd>
 				<dt>Created</dt>
@@ -169,23 +166,74 @@ export default function ReportDetailPage() {
 							if (comment.trim()) void saveComment();
 						}}
 					>
-						<textarea required rows={4} value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Comment visible to the scholar" />
-						<Button type="submit" disabled={saving}>Save comment</Button>
+						<Field label="Comment visible to the scholar">
+							<textarea required rows={4} value={comment} onChange={(e) => setComment(e.target.value)} />
+						</Field>
+						<Button type="submit" kind="primary" disabled={saving}>
+							Save comment
+						</Button>
 					</form>
 				)}
 			</section>
 			{actions.length > 0 && (
 				<div className="toolbar">
 					{actions.map((a) => (
-						<Button key={a.action} disabled={saving} onClick={() => void doAction(a.action)}>
+						<Button key={a.action} kind="primary" disabled={saving} onClick={() => void doAction(a.action)}>
 							{a.label}
 						</Button>
 					))}
 				</div>
 			)}
-			<p>
-				<Link href="/reports">← Back to reports</Link>
-			</p>
+		</div>
+	);
+
+	return (
+		<>
+			<PageHeader
+				title={`APR ${report.report_year} · ${report.period}`}
+				sub={<Badge value={report.state} />}
+				actions={
+					<>
+						{user.role === "admin" && report.state === "approved" && (
+							<Button size="sm" onClick={() => void downloadPdf()}>
+								Download PDF
+							</Button>
+						)}
+						{user.role === "admin" && (
+							<Button size="sm" kind="danger" onClick={() => setConfirmDelete(true)}>
+								Delete
+							</Button>
+						)}
+						<Link href="/reports" className="btn btn-ghost btn-sm">
+							← Reports
+						</Link>
+					</>
+				}
+			/>
+			<ErrorText>{actionError}</ErrorText>
+			<Tabs
+				tabs={[
+					{ id: "overview", label: "Overview", panel: overview },
+					{
+						id: "comments",
+						label: "Comments",
+						panel: <CommentThread tableName="progress_reports" recordId={report.id} />,
+					},
+					{
+						id: "documents",
+						label: "Documents",
+						panel: <AttachmentsPanel tableName="progress_reports" recordId={report.id} />,
+					},
+				]}
+			/>
+			{confirmDelete && (
+				<ConfirmDialog
+					title="Delete this report?"
+					message="Soft-delete — the audit trail is preserved; no data is lost."
+					onConfirm={() => void remove()}
+					onCancel={() => setConfirmDelete(false)}
+				/>
+			)}
 		</>
 	);
 }
@@ -204,7 +252,9 @@ function SummaryEditor({ summary, disabled, onSave }: { summary: string; disable
 				}}
 			>
 				<textarea required rows={8} value={text} onChange={(e) => setText(e.target.value)} />
-				<Button type="submit" disabled={disabled}>Save summary</Button>
+				<Button type="submit" kind="primary" disabled={disabled}>
+					Save summary
+				</Button>
 			</form>
 		</section>
 	);

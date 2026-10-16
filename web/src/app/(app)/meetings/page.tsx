@@ -2,19 +2,20 @@
 
 import { useEffect, useState } from "react";
 
+import { useTable } from "@refinedev/core";
+
 import { api, ApiError } from "@/lib/api";
-import { useAuth } from "@/lib/auth";
-import { Button, ErrorText, Field, PageHeader, Table } from "@/lib/ui";
+import { Button, ErrorText, Field, PageHeader, queryError } from "@/components/ui";
+import { Column, DataTable, Pager } from "@/components/data-table";
+import { Dialog } from "@/components/overlay";
 
 interface Meeting {
 	id: string;
 	scholar_id: string;
-	supervisor_id: string;
 	meeting_date: string;
 	agenda: string | null;
 	minutes: string | null;
 	action_items: string | null;
-	next_meeting_date: string | null;
 }
 
 interface Scholar {
@@ -27,33 +28,23 @@ interface Scholar {
 const EMPTY_FORM = { scholar_id: "", meeting_date: "", agenda: "", minutes: "", action_items: "" };
 
 export default function MeetingsPage() {
-	const { user } = useAuth();
-	const [items, setItems] = useState<Meeting[]>([]);
+	const { tableQuery, sorters, setSorters, filters, setFilters, currentPage, setCurrentPage, pageSize } = useTable({
+		resource: "meetings",
+		pagination: { pageSize: 20 },
+		sorters: { initial: [{ field: "meeting_date", order: "desc" }] },
+	});
+
 	const [scholars, setScholars] = useState<Scholar[]>([]);
-	const [error, setError] = useState("");
 	const [showForm, setShowForm] = useState(false);
 	const [form, setForm] = useState(EMPTY_FORM);
 	const [formError, setFormError] = useState("");
 
-	async function load() {
-		try {
-			const page = await api<{ items: Meeting[] }>("/meetings?per_page=100");
-			setItems(page.items);
-		} catch (err) {
-			setError(err instanceof ApiError ? err.message : "Could not load meetings");
-		}
-	}
-
 	useEffect(() => {
-		if (!user) return;
-		void load();
-		// scholar/supervisor pick the counterparty from their own scoped list
-		if (user.role !== "admin") {
-			api<{ items: Scholar[] }>("/scholars?per_page=100")
-				.then((p) => setScholars(p.items))
-				.catch(() => undefined);
-		}
-	}, [user]);
+		// filter + counterparty pick from the caller's own scoped list
+		api<{ items: Scholar[] }>("/scholars?per_page=100")
+			.then((p) => setScholars(p.items))
+			.catch(() => setScholars([]));
+	}, []);
 
 	async function create() {
 		setFormError("");
@@ -76,65 +67,113 @@ export default function MeetingsPage() {
 			});
 			setForm(EMPTY_FORM);
 			setShowForm(false);
-			await load();
+			await tableQuery.refetch();
 		} catch (err) {
 			setFormError(err instanceof ApiError ? err.message : "Could not record the meeting");
 		}
 	}
 
+	type EqFilter = { field: string; operator: "eq"; value: unknown };
+	const scholarFilter = filters.find((f): f is EqFilter => "field" in f && f.field === "scholar_id");
+	const columns: Column<Meeting>[] = [
+		{ key: "date", head: "Date", sort: "meeting_date", cell: (m) => m.meeting_date },
+		{ key: "agenda", head: "Agenda", cell: (m) => m.agenda ?? "—" },
+		{ key: "minutes", head: "Minutes", cell: (m) => m.minutes ?? "—" },
+		{ key: "actions", head: "Action items", cell: (m) => m.action_items ?? "—" },
+	];
+
 	return (
 		<>
-			<div className="page-head page-head-row">
-				<PageHeader title="Meetings" sub="Supervision meeting record" />
-				<div className="page-actions">
-					<Button onClick={() => setShowForm((v) => !v)}>{showForm ? "Close" : "Record meeting"}</Button>
-				</div>
-			</div>
-			<ErrorText>{error}</ErrorText>
-			{showForm && (
-				<form
-					className="form-card stack"
-					onSubmit={(e) => {
-						e.preventDefault();
-						void create();
-					}}
-				>
-					<Field label="Scholar">
-						<select required value={form.scholar_id} onChange={(e) => setForm({ ...form, scholar_id: e.target.value })}>
-							<option value="">— select —</option>
-							{scholars.map((s) => (
-								<option key={s.id} value={s.id}>
-									{s.scholar_name} ({s.roll_number})
-								</option>
-							))}
-						</select>
-					</Field>
-					<Field label="Date">
-						<input
-							required
-							type="date"
-							value={form.meeting_date}
-							onChange={(e) => setForm({ ...form, meeting_date: e.target.value })}
-						/>
-					</Field>
-					<Field label="Agenda">
-						<input value={form.agenda} onChange={(e) => setForm({ ...form, agenda: e.target.value })} />
-					</Field>
-					<Field label="Minutes">
-						<textarea rows={4} value={form.minutes} onChange={(e) => setForm({ ...form, minutes: e.target.value })} />
-					</Field>
-					<Field label="Action items">
-						<textarea rows={2} value={form.action_items} onChange={(e) => setForm({ ...form, action_items: e.target.value })} />
-					</Field>
-					<ErrorText>{formError}</ErrorText>
-					<Button type="submit" kind="primary">Save record</Button>
-				</form>
-			)}
-			<Table
-				head={["Date", "Agenda", "Minutes", "Action items"]}
-				rows={items.map((m) => [m.meeting_date, m.agenda ?? "—", m.minutes ?? "—", m.action_items ?? "—"])}
-				empty="No meetings recorded yet."
+			<PageHeader
+				title="Meetings"
+				sub="Supervision meeting record"
+				actions={<Button kind="primary" onClick={() => setShowForm(true)}>Record meeting</Button>}
 			/>
+			<div className="toolbar">
+				<label className="field">
+					<span className="field-label">Scholar</span>
+					<select
+						value={scholarFilter ? String(scholarFilter.value ?? "") : ""}
+						onChange={(e) =>
+							setFilters(
+								e.target.value ? [{ field: "scholar_id", operator: "eq", value: e.target.value }] : [],
+								"replace",
+							)
+						}
+					>
+						<option value="">All scholars</option>
+						{scholars.map((s) => (
+							<option key={s.id} value={s.id}>
+								{s.scholar_name} ({s.roll_number})
+							</option>
+						))}
+					</select>
+				</label>
+			</div>
+			<DataTable
+				columns={columns}
+				rows={(tableQuery.data?.data as Meeting[] | undefined) ?? []}
+				rowId={(m) => m.id}
+				loading={tableQuery.isLoading}
+				error={queryError(tableQuery.error)}
+				empty="No meetings recorded yet."
+				sort={sorters[0]}
+				onSort={(s) => setSorters([s])}
+				footer={
+					<Pager
+						page={currentPage}
+						perPage={pageSize}
+						total={tableQuery.data?.total ?? 0}
+						onPage={setCurrentPage}
+					/>
+				}
+			/>
+			{showForm && (
+				<Dialog title="Record meeting" onClose={() => setShowForm(false)}>
+					<form
+						className="form-card stack"
+						onSubmit={(e) => {
+							e.preventDefault();
+							void create();
+						}}
+					>
+						<Field label="Scholar">
+							<select required value={form.scholar_id} onChange={(e) => setForm({ ...form, scholar_id: e.target.value })}>
+								<option value="">— select —</option>
+								{scholars.map((s) => (
+									<option key={s.id} value={s.id}>
+										{s.scholar_name} ({s.roll_number})
+									</option>
+								))}
+							</select>
+						</Field>
+						<Field label="Date">
+							<input
+								required
+								type="date"
+								value={form.meeting_date}
+								onChange={(e) => setForm({ ...form, meeting_date: e.target.value })}
+							/>
+						</Field>
+						<Field label="Agenda">
+							<input value={form.agenda} onChange={(e) => setForm({ ...form, agenda: e.target.value })} />
+						</Field>
+						<Field label="Minutes">
+							<textarea rows={4} value={form.minutes} onChange={(e) => setForm({ ...form, minutes: e.target.value })} />
+						</Field>
+						<Field label="Action items">
+							<textarea rows={2} value={form.action_items} onChange={(e) => setForm({ ...form, action_items: e.target.value })} />
+						</Field>
+						<ErrorText>{formError}</ErrorText>
+						<div className="form-actions">
+							<Button onClick={() => setShowForm(false)}>Cancel</Button>
+							<Button type="submit" kind="primary">
+								Save record
+							</Button>
+						</div>
+					</form>
+				</Dialog>
+			)}
 		</>
 	);
 }
