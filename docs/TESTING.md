@@ -59,8 +59,8 @@ docker compose up            # Postgres + API + export
 # web: cd web && npm run dev (see web/README.md for NEXT_PUBLIC_* vars)
 ```
 
-The compose stack doubles as the smoke test: `/healthz` on :8900 and :8902,
-login with the seeded admin, and the flows in UX_FLOWS.md.
+The compose stack doubles as the smoke test: `/api/v1/healthz` on :8900 and
+`/healthz` on :8902, login with the seeded admin, and the flows in UX_FLOWS.md.
 
 ## 4. Coverage
 
