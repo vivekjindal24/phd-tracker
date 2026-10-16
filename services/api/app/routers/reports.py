@@ -12,12 +12,12 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..auth.deps import Actor, get_actor
-from ..crud import insert, list_page, live_and_scoped, soft_delete, update
+from ..crud import apply_list_opts, insert, list_page, live_and_scoped, soft_delete, update
 from ..db import get_db
 from ..errors import ApiError
 from ..models import ProgressReport
 from ..rbac import ensure_scholar_visible, get_or_403, require_perm
-from ..schemas import Page, ReportIn, ReportOut, ReportPatch
+from ..schemas import Page, Period, ReportIn, ReportOut, ReportPatch
 from ..workflow import apply_action
 
 router = APIRouter(prefix="/reports", tags=["reports"])
@@ -38,18 +38,27 @@ async def _ensure_editable(report: ProgressReport, actor: Actor, patch: dict[str
 async def list_reports(
 	page: int = Query(default=1, ge=1),
 	per_page: int = Query(default=20, ge=1, le=100),
+	sort: str | None = None,
 	state: str | None = None,
 	scholar_id: UUID | None = None,
+	period: Period | None = None,
+	report_year: int | None = Query(default=None, ge=2000, le=2100),
 	actor: Actor = Depends(get_actor),
 	db: AsyncSession = Depends(get_db),
 ) -> dict:
 	require_perm(actor.role, "reports", "read")
-	extra = []
-	if state is not None:
-		extra.append(ProgressReport.state == state)
-	if scholar_id is not None:
-		extra.append(ProgressReport.scholar_id == scholar_id)
-	return await list_page(db, live_and_scoped(ProgressReport, actor, extra), page, per_page)
+	stmt = apply_list_opts(
+		ProgressReport,
+		live_and_scoped(ProgressReport, actor),
+		sort,
+		{
+			"state": state,
+			"scholar_id": scholar_id,
+			"period": period,
+			"report_year": report_year,
+		},
+	)
+	return await list_page(db, stmt, page, per_page)
 
 
 @router.get("/{id}", response_model=ReportOut)

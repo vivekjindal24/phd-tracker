@@ -9,7 +9,18 @@ from __future__ import annotations
 import uuid
 from datetime import date, datetime
 
-from sqlalchemy import BigInteger, CheckConstraint, Date, ForeignKey, Index, Integer, Text, func, text
+from sqlalchemy import (
+	BigInteger,
+	CheckConstraint,
+	Date,
+	ForeignKey,
+	Index,
+	Integer,
+	LargeBinary,
+	Text,
+	func,
+	text,
+)
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -179,3 +190,56 @@ class RefreshToken(Base):
 	token_hash: Mapped[str] = mapped_column(Text, nullable=False)
 	expires_at: Mapped[datetime] = mapped_column(nullable=False)
 	revoked_at: Mapped[datetime | None] = mapped_column(default=None)
+
+
+class Comment(SoftDeleteMixin, Base):
+	"""Flat per-record comment thread. Mirrors audit_log's (table_name, record_id)
+	polymorphic pattern: no FK on record_id, a CHECK whitelist substitutes for it."""
+
+	__tablename__ = "comments"
+	__table_args__ = (
+		CheckConstraint(
+			"table_name IN ('scholars', 'meetings', 'progress_reports', 'milestones')",
+			name="ck_comments_table",
+		),
+		{"schema": "core"},
+	)
+
+	table_name: Mapped[str] = mapped_column(Text, nullable=False)
+	record_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+	author_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("core.users.id"), nullable=False)
+	body: Mapped[str] = mapped_column(Text, nullable=False)
+
+
+class Attachment(SoftDeleteMixin, Base):
+	"""File bytes in Postgres (bytea) — Render's disk is ephemeral, Neon is the only
+	persistent store on the free tier. 2MB cap enforced by both the CHECK below and
+	the router (fast rejection)."""
+
+	__tablename__ = "attachments"
+	__table_args__ = (
+		CheckConstraint(
+			"table_name IN ('scholars', 'meetings', 'progress_reports', 'milestones')",
+			name="ck_attachments_table",
+		),
+		CheckConstraint("size_bytes <= 2097152", name="ck_attachments_size"),
+		{"schema": "core"},
+	)
+
+	table_name: Mapped[str] = mapped_column(Text, nullable=False)
+	record_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+	file_name: Mapped[str] = mapped_column(Text, nullable=False)
+	content_type: Mapped[str] = mapped_column(Text, nullable=False)
+	size_bytes: Mapped[int] = mapped_column(Integer, nullable=False)
+	content: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+	uploaded_by: Mapped[uuid.UUID] = mapped_column(ForeignKey("core.users.id"), nullable=False)
+
+
+# Polymorphic comment/attachment targets: visibility is enforced by fetching the
+# target row through rbac.get_or_403 — never by a scope() on the comment itself.
+TARGET_MODELS: dict[str, type] = {
+	"scholars": Scholar,
+	"meetings": Meeting,
+	"progress_reports": ProgressReport,
+	"milestones": Milestone,
+}

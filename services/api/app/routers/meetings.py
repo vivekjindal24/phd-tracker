@@ -8,7 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..auth.deps import Actor, get_actor
-from ..crud import insert, list_page, live_and_scoped, soft_delete, update
+from ..crud import apply_list_opts, insert, list_page, live_and_scoped, soft_delete, update
 from ..db import get_db
 from ..errors import ApiError
 from ..models import Meeting, Scholar, Supervisor
@@ -35,15 +35,16 @@ async def _validate_pair(db: AsyncSession, actor: Actor, scholar_id: UUID, super
 async def list_meetings(
 	page: int = Query(default=1, ge=1),
 	per_page: int = Query(default=20, ge=1, le=100),
+	sort: str | None = None,
 	scholar_id: UUID | None = None,
 	actor: Actor = Depends(get_actor),
 	db: AsyncSession = Depends(get_db),
 ) -> dict:
 	require_perm(actor.role, "meetings", "read")
-	extra = []
-	if scholar_id is not None:
-		extra.append(Meeting.scholar_id == scholar_id)
-	return await list_page(db, live_and_scoped(Meeting, actor, extra), page, per_page)
+	stmt = apply_list_opts(
+		Meeting, live_and_scoped(Meeting, actor), sort, {"scholar_id": scholar_id}
+	)
+	return await list_page(db, stmt, page, per_page)
 
 
 @router.get("/{id}", response_model=MeetingOut)

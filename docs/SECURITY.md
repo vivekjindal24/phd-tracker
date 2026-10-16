@@ -43,6 +43,22 @@ Row-level scope (`rbac.scope()`):
 - The v1 gap ("scholar can read another scholar's records") is closed by
   construction and covered by a regression test
   (`test_scholar_cannot_read_another_scholars_records`).
+- **Polymorphic records (comments, attachments):** they have no matrix row
+  and no `scope()` of their own — visibility is *the target record's*
+  `get_or_403`, applied on every list/create/download/delete route. A
+  scholar therefore can never comment on, attach to, or download a file
+  hanging off another scholar's record (covered by `test_comments.py`,
+  `test_attachments.py`). Deletion is author/uploader-or-admin. Attachment
+  uploads are capped at 2MB (router 413 + DB CHECK); download responses
+  sanitize the filename header (no header injection).
+- **Dashboard stats** (`/stats/dashboard`) are scoped through the same
+  `scope()` machinery — a scholar's counts are their slice, no role
+  branching. Raw audit rows (`recent_activity`) are admin-only: they are
+  polymorphic and their JSONB snapshots need redaction before any other
+  role could see them.
+  - Known follow-up: pre-existing audit `snapshot()` includes
+    `users.password_hash` in `data` when a user row is mutated; harmless
+    while recent_activity is admin-only, redact before ever widening it.
 
 ## 3. Workflow Role-gating
 

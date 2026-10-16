@@ -6,11 +6,11 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..auth.deps import Actor, get_actor
-from ..crud import insert, list_page, live_and_scoped, soft_delete, update
+from ..crud import apply_list_opts, insert, list_page, live_and_scoped, soft_delete, update
 from ..db import get_db
 from ..models import Milestone
 from ..rbac import ensure_scholar_visible, get_or_403, require_perm
-from ..schemas import MilestoneIn, MilestoneOut, MilestonePatch, Page
+from ..schemas import MilestoneIn, MilestoneOut, MilestonePatch, MilestoneStatus, MilestoneType, Page
 
 router = APIRouter(prefix="/milestones", tags=["milestones"])
 
@@ -19,15 +19,21 @@ router = APIRouter(prefix="/milestones", tags=["milestones"])
 async def list_milestones(
 	page: int = Query(default=1, ge=1),
 	per_page: int = Query(default=20, ge=1, le=100),
+	sort: str | None = None,
 	scholar_id: UUID | None = None,
+	status: MilestoneStatus | None = None,
+	milestone_type: MilestoneType | None = None,
 	actor: Actor = Depends(get_actor),
 	db: AsyncSession = Depends(get_db),
 ) -> dict:
 	require_perm(actor.role, "milestones", "read")
-	extra = []
-	if scholar_id is not None:
-		extra.append(Milestone.scholar_id == scholar_id)
-	return await list_page(db, live_and_scoped(Milestone, actor, extra), page, per_page)
+	stmt = apply_list_opts(
+		Milestone,
+		live_and_scoped(Milestone, actor),
+		sort,
+		{"scholar_id": scholar_id, "status": status, "milestone_type": milestone_type},
+	)
+	return await list_page(db, stmt, page, per_page)
 
 
 @router.get("/{id}", response_model=MilestoneOut)

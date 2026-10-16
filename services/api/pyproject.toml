@@ -13,6 +13,7 @@ dependencies = [
 	"pyjwt>=2.9",
 	"argon2-cffi>=23.1",
 	"alembic>=1.13",
+	"python-multipart>=0.0.9",
 ]
 
 [project.optional-dependencies]
@@ -37,8 +38,8 @@ target-version = "py312"
 select = ["E", "F", "I", "UP", "B"]
 
 [tool.ruff.lint.flake8-bugbear]
-# Depends()/HTTPBearer in parameter defaults is the FastAPI idiom
-extend-immutable-calls = ["fastapi.Depends", "fastapi.security.HTTPBearer"]
+# Depends()/Form()/HTTPBearer in parameter defaults is the FastAPI idiom
+extend-immutable-calls = ["fastapi.Depends", "fastapi.Form", "fastapi.security.HTTPBearer"]
 
 [tool.ruff.lint.per-file-ignores]
 "alembic/versions/*" = ["E501", "E101"]  # DDL string blocks: long CHECK lists, space-indented SQL

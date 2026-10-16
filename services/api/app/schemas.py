@@ -256,3 +256,77 @@ class SearchOut(BaseModel):
 	meetings: list[MeetingOut]
 	reports: list[ReportOut]
 	milestones: list[MilestoneOut]
+
+
+# --- comments / attachments (polymorphic, target-visibility-gated) ---
+
+class CommentIn(BaseModel):
+	table_name: Literal["scholars", "meetings", "progress_reports", "milestones"]
+	record_id: uuid.UUID
+	body: str = Field(min_length=1, max_length=4000)
+
+
+class CommentOut(ORMModel):
+	id: uuid.UUID
+	table_name: str
+	record_id: uuid.UUID
+	author_id: uuid.UUID
+	body: str
+	created_at: datetime
+	updated_at: datetime
+
+
+class AttachmentOut(ORMModel):
+	"""Metadata only — the bytes never ride a JSON response."""
+
+	id: uuid.UUID
+	table_name: str
+	record_id: uuid.UUID
+	file_name: str
+	content_type: str
+	size_bytes: int
+	uploaded_by: uuid.UUID
+	created_at: datetime
+	updated_at: datetime
+
+
+# --- stats ---
+
+class UpcomingMeetingOut(BaseModel):
+	id: uuid.UUID
+	scholar_id: uuid.UUID
+	scholar_name: str
+	meeting_date: date
+	agenda: str | None
+
+
+class ActivityOut(BaseModel):
+	"""Metadata only — audit JSONB snapshots stay behind the admin API."""
+
+	id: int
+	at: datetime
+	table_name: str
+	action: str
+	actor_role: str
+
+
+class DashboardOut(BaseModel):
+	scholars: int
+	supervisors: int
+	reports_by_state: dict[str, int]
+	scholars_by_stage: dict[str, int]
+	upcoming_meetings: list[UpcomingMeetingOut]
+	recent_activity: list[ActivityOut]
+
+
+# --- scholar timeline ---
+
+class TimelineEvent(BaseModel):
+	kind: Literal["meeting", "report", "transition", "milestone", "comment"]
+	at: datetime
+	data: dict[str, object]
+
+
+class TimelineOut(BaseModel):
+	scholar_id: uuid.UUID
+	events: list[TimelineEvent]

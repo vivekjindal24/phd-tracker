@@ -73,6 +73,25 @@ happen only in `crud.py`/`workflow.py`, never ad-hoc.
 are never stored), `expires_at`, `revoked_at`. Single-use: each refresh
 rotates (revoke old row + issue new token).
 
+### comments
+Flat per-record threads. `(table_name, record_id)` polymorphic pair
+(indexed) — same pattern as audit_log: no FK on `record_id` (Postgres can't
+express a polymorphic FK), a CHECK whitelist on `table_name`
+(scholars/meetings/progress_reports/milestones) substitutes for it.
+`author_id` FK users, `body` (1–4000 chars). Visibility is the target
+record's `get_or_403` — comments have no MATRIX row and no `scope()`.
+
+### attachments
+File bytes in Postgres (`content bytea`) — Render's disk is ephemeral, Neon
+is the only persistent store on the free tier. Same polymorphic
+`(table_name, record_id)` pair + CHECK whitelist as comments, plus
+`file_name`, `content_type`, `size_bytes`, `uploaded_by` FK users.
+2MB cap enforced twice: `ck_attachments_size` CHECK and a router check
+(fast 413 rejection). List responses are metadata-only (`AttachmentOut`);
+bytes are served solely by `GET /attachments/{id}/download`, which applies
+the target record's `get_or_403` first. `audit.snapshot()` skips bytea
+columns — file bytes never enter the audit JSONB.
+
 ## 4. Constraints & Invariants
 
 - **Duplicate APR:** partial unique index

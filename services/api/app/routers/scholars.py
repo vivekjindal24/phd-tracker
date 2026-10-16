@@ -3,19 +3,31 @@ Scholar create/patch validates the UGC supervision cap (8/6/4 by designation).
 """
 
 import uuid
+from datetime import UTC, datetime, time
 from typing import Any
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import func, select
+from sqlalchemy import func, select, tuple_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..auth.deps import Actor, get_actor
-from ..crud import insert, list_page, live_and_scoped, soft_delete, update
+from ..crud import apply_list_opts, insert, list_page, live_and_scoped, soft_delete, update
 from ..db import get_db
 from ..errors import ApiError
-from ..models import Scholar, Supervisor, User
+from ..models import AuditLog, Comment, Meeting, Milestone, ProgressReport, Scholar, Supervisor, User
 from ..rbac import get_or_403, require_perm
-from ..schemas import Page, ScholarIn, ScholarOut, ScholarPatch
+from ..schemas import (
+	MeetingOut,
+	MilestoneOut,
+	Page,
+	ReportOut,
+	ScholarIn,
+	ScholarOut,
+	ScholarPatch,
+	Stage,
+	TimelineEvent,
+	TimelineOut,
+)
 
 router = APIRouter(prefix="/scholars", tags=["scholars"])
 
@@ -55,11 +67,109 @@ async def validate_user_link(db: AsyncSession, user_id: uuid.UUID) -> None:
 async def list_scholars(
 	page: int = Query(default=1, ge=1),
 	per_page: int = Query(default=20, ge=1, le=100),
+	sort: str | None = None,
+	stage: Stage | None = None,
+	department: str | None = None,
 	actor: Actor = Depends(get_actor),
 	db: AsyncSession = Depends(get_db),
 ) -> dict:
 	require_perm(actor.role, "scholars", "read")
-	return await list_page(db, live_and_scoped(Scholar, actor), page, per_page)
+	stmt = apply_list_opts(
+		Scholar, live_and_scoped(Scholar, actor), sort, {"stage": stage, "department": department}
+	)
+	return await list_page(db, stmt, page, per_page)
+
+
+@router.get("/{id}/timeline", response_model=TimelineOut)
+async def scholar_timeline(
+	id: uuid.UUID, actor: Actor = Depends(get_actor), db: AsyncSession = Depends(get_db)
+) -> TimelineOut:
+	"""Merged per-scholar event feed — five boring selects, one Python merge.
+
+	ponytail: no pagination; fetch-window the queries when a scholar's history grows past a screen.
+	"""
+	require_perm(actor.role, "scholars", "read")
+	scholar = await get_or_403(db, Scholar, id, actor)
+
+	meetings = (
+		await db.scalars(
+			live_and_scoped(Meeting, actor).where(Meeting.scholar_id == scholar.id)
+		)
+	).all()
+	reports = (
+		await db.scalars(
+			live_and_scoped(ProgressReport, actor).where(ProgressReport.scholar_id == scholar.id)
+		)
+	).all()
+	report_ids = [r.id for r in reports]
+	transitions = (
+		await db.scalars(
+			select(AuditLog).where(
+				AuditLog.table_name == "progress_reports",
+				AuditLog.record_id.in_(report_ids or [uuid.uuid4()]),
+				AuditLog.action == "transition",
+			)
+		)
+	).all()
+	milestones = (
+		await db.scalars(live_and_scoped(Milestone, actor).where(Milestone.scholar_id == scholar.id))
+	).all()
+	pairs = [("scholars", scholar.id)] + [
+		("meetings", m.id) for m in meetings
+	] + [("progress_reports", r.id) for r in reports] + [("milestones", m.id) for m in milestones]
+	comments = (
+		await db.scalars(
+			select(Comment).where(
+				tuple_(Comment.table_name, Comment.record_id).in_(pairs),
+				Comment.deleted_at.is_(None),
+			)
+		)
+	).all()
+
+	events = [
+		TimelineEvent(
+			kind="meeting",
+			at=datetime.combine(m.meeting_date, time.min, tzinfo=UTC),
+			data=MeetingOut.model_validate(m).model_dump(mode="json"),
+		)
+		for m in meetings
+	] + [
+		TimelineEvent(
+			kind="report",
+			at=r.created_at,
+			data=ReportOut.model_validate(r).model_dump(mode="json"),
+		)
+		for r in reports
+	] + [
+		TimelineEvent(
+			kind="transition",
+			at=t.at,
+			data={
+				"report_id": str(t.record_id),
+				"from_state": t.from_state,
+				"to_state": t.to_state,
+			},
+		)
+		for t in transitions
+	] + [
+		TimelineEvent(
+			kind="milestone",
+			at=datetime.combine(m.resolution_date, time.min, tzinfo=UTC)
+			if m.resolution_date
+			else m.created_at,
+			data=MilestoneOut.model_validate(m).model_dump(mode="json"),
+		)
+		for m in milestones
+	] + [
+		TimelineEvent(
+			kind="comment",
+			at=c.created_at,
+			data={"author_id": str(c.author_id), "body": c.body, "table_name": c.table_name},
+		)
+		for c in comments
+	]
+	events.sort(key=lambda e: e.at, reverse=True)
+	return TimelineOut(scholar_id=scholar.id, events=events)
 
 
 @router.get("/{id}", response_model=ScholarOut)

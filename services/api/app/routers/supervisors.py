@@ -7,12 +7,12 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..auth.deps import Actor, get_actor
-from ..crud import insert, list_page, live_and_scoped, soft_delete, update
+from ..crud import apply_list_opts, insert, list_page, live_and_scoped, soft_delete, update
 from ..db import get_db
 from ..errors import ApiError
 from ..models import Supervisor
 from ..rbac import get_or_403, require_perm
-from ..schemas import Page, SupervisorIn, SupervisorOut, SupervisorPatch
+from ..schemas import Designation, Page, SupervisorIn, SupervisorOut, SupervisorPatch
 
 router = APIRouter(prefix="/supervisors", tags=["supervisors"])
 
@@ -30,11 +30,20 @@ async def _reject_duplicate_email(db: AsyncSession, email: str) -> None:
 async def list_supervisors(
 	page: int = Query(default=1, ge=1),
 	per_page: int = Query(default=20, ge=1, le=100),
+	sort: str | None = None,
+	department: str | None = None,
+	designation: Designation | None = None,
 	actor: Actor = Depends(get_actor),
 	db: AsyncSession = Depends(get_db),
 ) -> dict:
 	require_perm(actor.role, "supervisors", "read")
-	return await list_page(db, live_and_scoped(Supervisor, actor), page, per_page)
+	stmt = apply_list_opts(
+		Supervisor,
+		live_and_scoped(Supervisor, actor),
+		sort,
+		{"department": department, "designation": designation},
+	)
+	return await list_page(db, stmt, page, per_page)
 
 
 @router.get("/{id}", response_model=SupervisorOut)

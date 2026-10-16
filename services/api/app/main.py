@@ -6,7 +6,18 @@ from fastapi.middleware.cors import CORSMiddleware
 from .auth import router as auth_router
 from .config import settings
 from .errors import register_error_handlers
-from .routers import internal, meetings, milestones, reports, scholars, search, supervisors
+from .routers import (
+	attachments,
+	comments,
+	internal,
+	meetings,
+	milestones,
+	reports,
+	scholars,
+	search,
+	stats,
+	supervisors,
+)
 
 
 def create_app() -> FastAPI:
@@ -25,7 +36,18 @@ def create_app() -> FastAPI:
 
 	prefix = settings.api_prefix
 	app.include_router(auth_router.router, prefix=prefix)
-	for router in (scholars, supervisors, meetings, reports, milestones, search, internal):
+	for router in (
+		scholars,
+		supervisors,
+		meetings,
+		reports,
+		milestones,
+		comments,
+		attachments,
+		stats,
+		search,
+		internal,
+	):
 		app.include_router(router.router, prefix=prefix)
 
 	@app.get(f"{prefix}/healthz")
