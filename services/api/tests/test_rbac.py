@@ -104,3 +104,15 @@ def test_internal_export_endpoints_are_admin_only(client, trio):
 	scholar = auth_headers(login(client, "a@x.edu")["access_token"])
 	resp = client.get("/api/v1/internal/milestones", headers=scholar)
 	assert resp.status_code == 403
+
+def test_duplicate_supervisor_email_rejected(client, trio):
+	"""A double-submitted create form must not mint a second row (production hit this)."""
+	admin = auth_headers(login(client, "admin@x.edu")["access_token"])
+	body = {
+		"full_name": "Dr. Meera Krishnan", "email": "meera@x.edu", "department": "CS",
+		"designation": "Professor",
+	}
+	resp = client.post("/api/v1/supervisors", json=body, headers=admin)
+	assert resp.status_code == 409
+	assert resp.json()["error"]["code"] == "duplicate_email"
+	assert client.get("/api/v1/supervisors", headers=admin).json()["total"] == 1

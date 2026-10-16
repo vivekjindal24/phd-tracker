@@ -3,16 +3,27 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..auth.deps import Actor, get_actor
 from ..crud import insert, list_page, live_and_scoped, soft_delete, update
 from ..db import get_db
+from ..errors import ApiError
 from ..models import Supervisor
 from ..rbac import get_or_403, require_perm
 from ..schemas import Page, SupervisorIn, SupervisorOut, SupervisorPatch
 
 router = APIRouter(prefix="/supervisors", tags=["supervisors"])
+
+
+async def _reject_duplicate_email(db: AsyncSession, email: str) -> None:
+    # ponytail: check-then-insert race; a partial unique index if concurrent admins appear
+    exists = await db.scalar(
+        select(Supervisor.id).where(Supervisor.email == email, Supervisor.deleted_at.is_(None))
+    )
+    if exists:
+        raise ApiError(409, "duplicate_email", "A supervisor with this email already exists")
 
 
 @router.get("", response_model=Page[SupervisorOut])
@@ -41,6 +52,7 @@ async def create_supervisor(
 	db: AsyncSession = Depends(get_db),
 ) -> Supervisor:
 	require_perm(actor.role, "supervisors", "create")
+	await _reject_duplicate_email(db, body.email)
 	return await insert(db, Supervisor(**body.model_dump()), actor, "supervisors")
 
 
@@ -53,7 +65,10 @@ async def patch_supervisor(
 ) -> Supervisor:
 	require_perm(actor.role, "supervisors", "write")
 	sup = await get_or_403(db, Supervisor, id, actor)
-	for key, value in body.model_dump(exclude_unset=True).items():
+	patch = body.model_dump(exclude_unset=True)
+	if patch.get("email") and patch["email"] != sup.email:
+		await _reject_duplicate_email(db, patch["email"])
+	for key, value in patch.items():
 		setattr(sup, key, value)
 	return await update(db, sup, actor, "supervisors")
 

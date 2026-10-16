@@ -117,6 +117,17 @@ export default function ScholarsPage() {
 		}
 	}
 
+	async function remove(s: Scholar) {
+		if (!window.confirm(`Remove ${s.scholar_name}? (Soft-delete — audit trail preserved; no data is lost.)`)) return;
+		setError("");
+		try {
+			await api(`/scholars/${s.id}`, { method: "DELETE" });
+			await load();
+		} catch (err) {
+			setError(err instanceof ApiError ? err.message : "Could not remove the scholar");
+		}
+	}
+
 	return (
 		<>
 			<div className="page-head page-head-row">
@@ -196,7 +207,10 @@ export default function ScholarsPage() {
 					s.stage,
 					s.admission_date,
 					...(user?.role === "admin"
-						? [<Button key="edit" kind="ghost" onClick={() => startEdit(s)}>Edit</Button>]
+						? [
+								<Button key="edit" kind="ghost" onClick={() => startEdit(s)}>Edit</Button>,
+								<Button key="del" kind="danger" onClick={() => void remove(s)}>Delete</Button>,
+							]
 						: []),
 				])}
 				empty="No scholars visible to you yet."

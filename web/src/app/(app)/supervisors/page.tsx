@@ -75,6 +75,17 @@ export default function SupervisorsPage() {
 		}
 	}
 
+	async function remove(s: Supervisor) {
+		if (!window.confirm(`Remove ${s.full_name}? (Soft-delete — audit trail preserved; no data is lost.)`)) return;
+		setError("");
+		try {
+			await api(`/supervisors/${s.id}`, { method: "DELETE" });
+			await load();
+		} catch (err) {
+			setError(err instanceof ApiError ? err.message : "Could not remove the supervisor");
+		}
+	}
+
 	return (
 		<>
 			<div className="page-head page-head-row">
@@ -141,7 +152,10 @@ export default function SupervisorsPage() {
 					s.designation,
 					String(s.max_scholars),
 					...(user?.role === "admin"
-						? [<Button key="edit" kind="ghost" onClick={() => startEdit(s)}>Edit</Button>]
+						? [
+								<Button key="edit" kind="ghost" onClick={() => startEdit(s)}>Edit</Button>,
+								<Button key="del" kind="danger" onClick={() => void remove(s)}>Delete</Button>,
+							]
 						: []),
 				])}
 				empty="No supervisors registered."
