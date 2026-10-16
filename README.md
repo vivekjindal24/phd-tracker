@@ -5,10 +5,11 @@ layer (meetings, progress reports, milestone approvals) is the product; UGC
 compliance paperwork (UGC 2022 PhD Regulations, as amended March 2024) falls
 out as a byproduct.
 
-Status: **v2 — core complete (Phases 0–3).** The Frappe v1 app (`phd_tracker/`)
-stays in-repo as a frozen reference until the v2 stack reaches parity; it is
-never modified. Deploy (Phase 4) follows the runbook below — the code, CI,
-images, and docs are ready.
+Status: **v2 — deployed.** Live at
+`https://phd-tracker-vivekjindal24s-projects.vercel.app` (web),
+`https://phd-tracker-api.onrender.com` (API), `https://phd-tracker-export.onrender.com`
+(export), on Neon Postgres. The Frappe v1 app (`phd_tracker/`) stays in-repo as a
+frozen reference until deleted per the roadmap; it is never modified.
 
 ## Architecture (v2)
 
