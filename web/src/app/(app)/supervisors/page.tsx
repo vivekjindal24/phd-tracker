@@ -15,13 +15,14 @@ interface Supervisor {
 	max_scholars: number;
 }
 
-const EMPTY_FORM = { full_name: "", email: "", department: "", designation: "Assistant Professor" };
+const EMPTY_FORM = { full_name: "", email: "", department: "", designation: "Assistant Professor", max_scholars: "8" };
 
 export default function SupervisorsPage() {
 	const { user } = useAuth();
 	const [items, setItems] = useState<Supervisor[]>([]);
 	const [error, setError] = useState("");
 	const [showForm, setShowForm] = useState(false);
+	const [editing, setEditing] = useState<Supervisor | null>(null);
 	const [form, setForm] = useState(EMPTY_FORM);
 	const [formError, setFormError] = useState("");
 
@@ -38,15 +39,39 @@ export default function SupervisorsPage() {
 		void load();
 	}, []);
 
-	async function create() {
+	function openCreate() {
+		setEditing(null);
+		setForm(EMPTY_FORM);
+		setShowForm(true);
+	}
+
+	function startEdit(s: Supervisor) {
+		setEditing(s);
+		setForm({
+			full_name: s.full_name,
+			email: s.email,
+			department: s.department,
+			designation: s.designation,
+			max_scholars: String(s.max_scholars),
+		});
+		setShowForm(true);
+	}
+
+	async function submit() {
 		setFormError("");
+		const body = { ...form, max_scholars: Number(form.max_scholars) };
 		try {
-			await api("/supervisors", { method: "POST", body: JSON.stringify(form) });
+			if (editing) {
+				await api(`/supervisors/${editing.id}`, { method: "PATCH", body: JSON.stringify(body) });
+			} else {
+				await api("/supervisors", { method: "POST", body: JSON.stringify(body) });
+			}
 			setForm(EMPTY_FORM);
+			setEditing(null);
 			setShowForm(false);
 			await load();
 		} catch (err) {
-			setFormError(err instanceof ApiError ? err.message : "Could not create the supervisor");
+			setFormError(err instanceof ApiError ? err.message : "Could not save the supervisor");
 		}
 	}
 
@@ -56,7 +81,11 @@ export default function SupervisorsPage() {
 				<PageHeader title="Supervisors" sub="Faculty directory with UGC supervision caps" />
 				{user?.role === "admin" && (
 					<div className="page-actions">
-						<Button onClick={() => setShowForm((v) => !v)}>{showForm ? "Close" : "New supervisor"}</Button>
+						{showForm ? (
+							<Button onClick={() => setShowForm(false)}>Close</Button>
+						) : (
+							<Button onClick={openCreate}>New supervisor</Button>
+						)}
 					</div>
 				)}
 			</div>
@@ -66,9 +95,10 @@ export default function SupervisorsPage() {
 					className="form-card stack"
 					onSubmit={(e) => {
 						e.preventDefault();
-						void create();
+						void submit();
 					}}
 				>
+					<h2>{editing ? `Edit ${editing.full_name}` : "Add supervisor"}</h2>
 					<Field label="Name">
 						<input required value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} />
 					</Field>
@@ -88,13 +118,32 @@ export default function SupervisorsPage() {
 							<option>Assistant Professor</option>
 						</select>
 					</Field>
+					<Field label="Supervision cap (max scholars)">
+						<input
+							required
+							type="number"
+							min={1}
+							max={8}
+							value={form.max_scholars}
+							onChange={(e) => setForm({ ...form, max_scholars: e.target.value })}
+						/>
+					</Field>
 					<ErrorText>{formError}</ErrorText>
-					<Button type="submit" kind="primary">Add supervisor</Button>
+					<Button type="submit" kind="primary">{editing ? "Save changes" : "Add supervisor"}</Button>
 				</form>
 			)}
 			<Table
-				head={["Name", "Email", "Department", "Designation", "Cap"]}
-				rows={items.map((s) => [s.full_name, s.email, s.department, s.designation, String(s.max_scholars)])}
+				head={["Name", "Email", "Department", "Designation", "Cap", ...(user?.role === "admin" ? ["Actions"] : [])]}
+				rows={items.map((s) => [
+					s.full_name,
+					s.email,
+					s.department,
+					s.designation,
+					String(s.max_scholars),
+					...(user?.role === "admin"
+						? [<Button key="edit" kind="ghost" onClick={() => startEdit(s)}>Edit</Button>]
+						: []),
+				])}
 				empty="No supervisors registered."
 			/>
 		</>

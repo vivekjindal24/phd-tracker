@@ -24,12 +24,24 @@ interface Supervisor {
 	designation: string;
 }
 
+const STAGES = [
+	"Registered",
+	"Coursework",
+	"Proposal Approved",
+	"Research Phase",
+	"Pre-Synopsis Done",
+	"Thesis Submitted",
+	"Viva Voce",
+	"Degree Awarded",
+];
+
 const EMPTY_FORM = {
 	scholar_name: "",
 	roll_number: "",
 	department: "",
 	admission_date: "",
 	supervisor_id: "",
+	stage: "",
 };
 
 export default function ScholarsPage() {
@@ -38,6 +50,7 @@ export default function ScholarsPage() {
 	const [supervisors, setSupervisors] = useState<Supervisor[]>([]);
 	const [error, setError] = useState("");
 	const [showForm, setShowForm] = useState(false);
+	const [editing, setEditing] = useState<Scholar | null>(null);
 	const [form, setForm] = useState(EMPTY_FORM);
 	const [formError, setFormError] = useState("");
 
@@ -60,24 +73,47 @@ export default function ScholarsPage() {
 		void load();
 	}, [user]);
 
-	async function create() {
+	function openCreate() {
+		setEditing(null);
+		setForm(EMPTY_FORM);
+		setShowForm(true);
+	}
+
+	function startEdit(s: Scholar) {
+		setEditing(s);
+		setForm({
+			scholar_name: s.scholar_name,
+			roll_number: s.roll_number,
+			department: s.department,
+			admission_date: s.admission_date,
+			supervisor_id: s.supervisor_id ?? "",
+			stage: s.stage,
+		});
+		setShowForm(true);
+	}
+
+	async function submit() {
 		setFormError("");
+		const body = {
+			scholar_name: form.scholar_name,
+			roll_number: form.roll_number,
+			department: form.department,
+			admission_date: form.admission_date,
+			supervisor_id: form.supervisor_id || null,
+			...(editing ? { stage: form.stage } : {}),
+		};
 		try {
-			await api("/scholars", {
-				method: "POST",
-				body: JSON.stringify({
-					scholar_name: form.scholar_name,
-					roll_number: form.roll_number,
-					department: form.department,
-					admission_date: form.admission_date,
-					...(form.supervisor_id ? { supervisor_id: form.supervisor_id } : {}),
-				}),
-			});
+			if (editing) {
+				await api(`/scholars/${editing.id}`, { method: "PATCH", body: JSON.stringify(body) });
+			} else {
+				await api("/scholars", { method: "POST", body: JSON.stringify(body) });
+			}
 			setForm(EMPTY_FORM);
+			setEditing(null);
 			setShowForm(false);
 			await load();
 		} catch (err) {
-			setFormError(err instanceof ApiError ? err.message : "Could not create the scholar");
+			setFormError(err instanceof ApiError ? err.message : "Could not save the scholar");
 		}
 	}
 
@@ -90,7 +126,11 @@ export default function ScholarsPage() {
 				/>
 				{user?.role === "admin" && (
 					<div className="page-actions">
-						<Button onClick={() => setShowForm((v) => !v)}>{showForm ? "Close" : "New scholar"}</Button>
+						{showForm ? (
+							<Button onClick={() => setShowForm(false)}>Close</Button>
+						) : (
+							<Button onClick={openCreate}>New scholar</Button>
+						)}
 					</div>
 				)}
 			</div>
@@ -100,9 +140,10 @@ export default function ScholarsPage() {
 					className="form-card stack"
 					onSubmit={(e) => {
 						e.preventDefault();
-						void create();
+						void submit();
 					}}
 				>
+					<h2>{editing ? `Edit ${editing.scholar_name}` : "Register scholar"}</h2>
 					<Field label="Name">
 						<input required value={form.scholar_name} onChange={(e) => setForm({ ...form, scholar_name: e.target.value })} />
 					</Field>
@@ -133,18 +174,30 @@ export default function ScholarsPage() {
 							))}
 						</select>
 					</Field>
+					{editing && (
+						<Field label="Stage">
+							<select required value={form.stage} onChange={(e) => setForm({ ...form, stage: e.target.value })}>
+								{STAGES.map((s) => (
+									<option key={s}>{s}</option>
+								))}
+							</select>
+						</Field>
+					)}
 					<ErrorText>{formError}</ErrorText>
-					<Button type="submit" kind="primary">Register scholar</Button>
+					<Button type="submit" kind="primary">{editing ? "Save changes" : "Register scholar"}</Button>
 				</form>
 			)}
 			<Table
-				head={["Roll number", "Name", "Department", "Stage", "Admitted"]}
+				head={["Roll number", "Name", "Department", "Stage", "Admitted", ...(user?.role === "admin" ? ["Actions"] : [])]}
 				rows={items.map((s) => [
 					s.roll_number,
 					s.scholar_name,
 					s.department,
 					s.stage,
 					s.admission_date,
+					...(user?.role === "admin"
+						? [<Button key="edit" kind="ghost" onClick={() => startEdit(s)}>Edit</Button>]
+						: []),
 				])}
 				empty="No scholars visible to you yet."
 			/>
