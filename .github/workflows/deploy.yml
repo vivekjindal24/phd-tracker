@@ -1,7 +1,7 @@
 name: deploy
 
 # Build and push API + export images to GHCR on every push to main.
-# Koyeb and Render auto-deploy from these images; Vercel deploys web/ itself.
+# Render auto-deploys from these images; Vercel deploys web/ itself.
 on:
   push:
     branches: [main]

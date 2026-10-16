@@ -57,7 +57,7 @@ immutable for every role** — it is the compliance record.
   startup (`app/config.py`).
 - Required: `DATABASE_URL`, `JWT_SECRET` (≥32 bytes, startup fails if
   shorter); `SEED_PASSWORD` only for seeding.
-- Deploy-time secrets (Neon, Koyeb, Render, Vercel) live in each platform's
+- Deploy-time secrets (Neon, Render, Vercel) live in each platform's
   environment settings — never in this repo. Rotate any exposed secret
   immediately.
 
@@ -88,7 +88,7 @@ handler proxy (noted in `web/src/lib/api.ts`); nothing else changes.
 ## 7. Data Protection
 
 - **Sensitive data:** emails, meeting minutes, research summaries, GitHub
-  URLs. Transport is HTTPS (Vercel/Koyeb/Render endpoints are TLS by
+  URLs. Transport is HTTPS (Vercel/Render endpoints are TLS by
   default); at-rest is Neon's storage encryption.
 - **Retention:** records are permanent — they ARE the PhD's audit trail.
   Soft-delete only. Deletion requests escalate to the owner; never

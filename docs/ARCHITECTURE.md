@@ -15,7 +15,7 @@ generated as a byproduct (PDF exports).
 
 | Service | Stack | Deploy | Owns |
 |---|---|---|---|
-| `services/api` | Python/FastAPI | Koyeb (GHCR image) | Postgres schema `core`, auth, RBAC, workflow, search, audit |
+| `services/api` | Python/FastAPI | Render (GHCR image) | Postgres schema `core`, auth, RBAC, workflow, search, audit |
 | `services/export` | Node/TypeScript | Render (GHCR image) | Nothing — stateless PDF/CSV rendering over the API's `/internal` endpoints |
 | `web` | Next.js App Router | Vercel | Nothing — client-only UI |
 | Database | Neon Postgres (free tier) | — | the single source of state |
@@ -40,7 +40,7 @@ live in the API's `rbac`/`workflow` modules, never in UI or scripts.
 ```
 Browser (Vercel web)
    │  Bearer access JWT (memory) + refresh token (localStorage)
-   ├────────────────────► services/api (Koyeb) ──► Neon Postgres, schema `core`
+   ├────────────────────► services/api (Render) ──► Neon Postgres, schema `core`
    │                          ▲  /internal/*, caller's token forwarded verbatim
    └──── PDF/CSV download ────┘  services/export (Render)
 ```
@@ -98,7 +98,7 @@ phd-tracker/
 ## 8. Deployment
 
 - GH Actions builds `ghcr.io/<owner>/phd-tracker-api` and `…-export` on push
-  to main; Koyeb and Render auto-deploy from those images.
+  to main; Render auto-deploys from those images.
 - The API runs `alembic upgrade head` before serving (single replica; move to
   a deploy step if replicas ever exceed one).
 - All config arrives by environment and is validated loudly at startup
@@ -123,7 +123,7 @@ phd-tracker/
 | Decision | Reason |
 |---|---|
 | Three tiny services over a Frappe bench | $0 cloud hosting; no server to run; the buyer (registrar/dean) never logs in — PDFs only |
-| JWT + rotating refresh over server sessions | stateless API; works across Koyeb/Render/Vercel with no session store |
+| JWT + rotating refresh over server sessions | stateless API; works across Render/Vercel with no session store |
 | Workflow as a dict, not an engine | four transitions; an engine would be the over-engineering the v1 already paid for |
 | Postgres CHECK constraints + partial unique index | duplicate-APR and UGC designation caps enforced by the DB, not hopeful app code |
 | Trigram search over a search engine | one DB, no extra service; covers name/roll-number/summary lookups at department scale |

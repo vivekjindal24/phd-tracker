@@ -16,7 +16,7 @@
   - `web` — Next.js (App Router) on Vercel.
   - `phd_tracker/` — Frappe v1 app, **frozen reference only, never modify**.
 - **Deployment:** everything on cloud platforms at $0 free tiers — Neon Postgres,
-  Koyeb (API), Render (export), Vercel (web); GitHub Actions → GHCR images.
+  Render (API + export), Vercel (web); GitHub Actions → GHCR images.
   Services are stateless and idle-spin-down tolerant; expect cold starts.
 - **Primary Users:** PhD scholars, PhD supervisors, research office admins.
   The buyer (registrar/dean) gets PDF exports, never a login.

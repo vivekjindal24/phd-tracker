@@ -15,7 +15,7 @@ images, and docs are ready.
 Three codebases, deliberately not one framework, everything on free-tier cloud:
 
 ```
-web (Next.js, Vercel)  ──►  services/api (FastAPI, Koyeb)  ──►  Neon Postgres
+web (Next.js, Vercel)  ──►  services/api (FastAPI, Render)  ──►  Neon Postgres
         └──────────────►  services/export (Node/TS, Render) ──┘ (via API /internal, token forwarded)
 ```
 
@@ -67,7 +67,7 @@ click-through checklist lives in `docs/TESTING.md`.
 GitHub Actions: `ci.yml` (ruff + pytest against a Postgres service container;
 typecheck + node:test) runs on every push/PR. On `main`, `deploy.yml` builds
 `ghcr.io/<owner>/phd-tracker-api` and `…-export` and pushes them to GHCR —
-Koyeb and Render auto-deploy from those images; Vercel deploys `web/` itself.
+Render auto-deploys from those images; Vercel deploys `web/` itself.
 
 ## Environment variables (never in repo)
 
@@ -81,18 +81,20 @@ Koyeb and Render auto-deploy from those images; Vercel deploys `web/` itself.
 
 1. **Neon**: create project → copy the pooled connection string.
 2. **GHCR**: push to `main` — `deploy.yml` publishes both images.
-3. **Koyeb** (API): create service from `ghcr.io/<owner>/phd-tracker-api:latest`;
-   set `DATABASE_URL`, `JWT_SECRET`, `CORS_ORIGINS=https://<app>.vercel.app`.
+3. **Render** (API): New → Web Service → existing image, deploy
+   `ghcr.io/<owner>/phd-tracker-api:latest`; set `DATABASE_URL`, `JWT_SECRET`,
+   `PORT=8000`, `CORS_ORIGINS=https://<app>.vercel.app`.
    The container runs `alembic upgrade head` before serving.
-4. **Render** (export): create web service from
-   `ghcr.io/<owner>/phd-tracker-export:latest`; set `API_URL` (the Koyeb URL +
-   `/api/v1`), `PORT`, `CORS_ORIGINS` as above. Expect ~15-min idle spin-down.
+4. **Render** (export): same project, second web service from
+   `ghcr.io/<owner>/phd-tracker-export:latest`; set `API_URL` (the API URL +
+   `/api/v1`), `PORT=8100`, `CORS_ORIGINS` as above. Both free services
+   spin down after ~15 min idle.
 5. **Vercel** (web): import the repo, root directory `web/`, set the two
-   `NEXT_PUBLIC_*` vars to the Koyeb/Render URLs.
+   `NEXT_PUBLIC_*` vars to the Render URLs.
 6. **Seed production once**: `DATABASE_URL='<neon>' SEED_PASSWORD='<one-time>' \
    python -m app.seed` (idempotent; rotate the password on first login).
 7. Click through `docs/TESTING.md` against the deployed URLs; a first-request
-   cold start of 15–60s is expected on both Koyeb and Render.
+   cold start of 15–60s is expected on both Render services.
 
 ## Workflow: Progress Report (APR) approval
 
