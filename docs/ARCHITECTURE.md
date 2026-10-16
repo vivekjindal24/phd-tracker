@@ -63,7 +63,8 @@ Browser (Vercel web)
 - `errors.py` — one envelope everywhere: `{"error": {code, message, details}}`;
   Postgres constraint violations map to named 409s (`duplicate_apr`,
   `duplicate_roll_number`, `duplicate_email`).
-- `seed.py` — idempotent `python -m app.seed` (requires `SEED_PASSWORD`):
+- `seed.py` — idempotent `python -m app.seed` (requires `SEED_PASSWORD`; pass
+  `--reset-passwords` to reset existing seeded accounts):
   admin, 2 supervisors, 3 scholars, records in every workflow state.
 
 ## 6. Data Flow — APR approval (the critical chain)

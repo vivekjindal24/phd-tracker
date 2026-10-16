@@ -126,7 +126,8 @@ Schema changes must:
 ## 7. Seed Data
 
 `DATABASE_URL=… SEED_PASSWORD=… python -m app.seed` — idempotent (re-runs
-touch nothing). Seeds: admin, 2 supervisors (Dr. Meera Krishnan, Dr. Rajesh
+touch nothing unless `--reset-passwords` or `RESET_PASSWORDS=1` is specified).
+Seeds: admin, 2 supervisors (Dr. Meera Krishnan, Dr. Rajesh
 Nair), 3 scholars (Arun Bhatt PHD-CS-2024-001, Priya Sharma, Vikram Rao),
 and records covering every workflow state. In production, seed runs once
 against Neon after first deploy; the password arrives by env, and the first

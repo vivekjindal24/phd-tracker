@@ -3,6 +3,8 @@
 Creates the demo dataset — admin, Dr. Meera Krishnan + one more supervisor, three
 scholars (Arun Bhatt PHD-CS-2024-001 among them) with user accounts, and records
 covering every workflow state. Re-running adds nothing that already exists.
+
+Pass `--reset-passwords` (or set `RESET_PASSWORDS=1`) to reset passwords for existing seeded accounts.
 """
 
 import asyncio
@@ -10,11 +12,11 @@ import os
 import sys
 from datetime import date
 
-from sqlalchemy import select
+from sqlalchemy import func, select, update
 
 from .auth.service import hash_password
 from .db import SessionLocal
-from .models import Meeting, Milestone, ProgressReport, Scholar, Supervisor, User
+from .models import Meeting, Milestone, ProgressReport, RefreshToken, Scholar, Supervisor, User
 
 DEMO_DATA = {
 	"admin": ("admin@university.edu", "Research Office"),
@@ -30,7 +32,7 @@ DEMO_DATA = {
 }
 
 
-async def seed() -> None:
+async def seed(reset_passwords: bool = False) -> None:
 	password = os.environ.get("SEED_PASSWORD")
 	if not password:  # loud failure, config-by-env only
 		sys.exit("SEED_PASSWORD is not set — refusing to seed (would create unknown credentials)")
@@ -45,6 +47,9 @@ async def seed() -> None:
 		if admin is None:
 			admin = User(email=admin_email, password_hash=pw_hash, full_name=admin_name, role="admin")
 			db.add(admin)
+		elif reset_passwords:
+			admin.password_hash = pw_hash
+
 		supervisors: dict[str, Supervisor] = {}
 		for email, name, designation, department in DEMO_DATA["supervisors"]:
 			user = await get_user(email)
@@ -52,6 +57,8 @@ async def seed() -> None:
 				user = User(email=email, password_hash=pw_hash, full_name=name, role="supervisor")
 				db.add(user)
 				await db.flush()
+			elif reset_passwords:
+				user.password_hash = pw_hash
 			sup = await db.scalar(select(Supervisor).where(Supervisor.email == email))
 			if sup is None:
 				sup = Supervisor(
@@ -68,6 +75,8 @@ async def seed() -> None:
 				user = User(email=email, password_hash=pw_hash, full_name=name, role="scholar")
 				db.add(user)
 				await db.flush()
+			elif reset_passwords:
+				user.password_hash = pw_hash
 			scholar = await db.scalar(select(Scholar).where(Scholar.roll_number == roll))
 			if scholar is None:
 				scholar = Scholar(
@@ -122,9 +131,36 @@ async def seed() -> None:
 				notes="Approved unanimously",
 			))
 
+		if reset_passwords:
+			all_seed_emails = (
+				[admin_email]
+				+ [s[0] for s in DEMO_DATA["supervisors"]]
+				+ [s[0] for s in DEMO_DATA["scholars"]]
+			)
+			await db.execute(
+				update(RefreshToken)
+				.where(
+					RefreshToken.user_id.in_(
+						select(User.id).where(User.email.in_(all_seed_emails))
+					),
+					RefreshToken.revoked_at.is_(None),
+				)
+				.values(revoked_at=func.now())
+			)
+
 		await db.commit()
-	print("Seed complete (idempotent — existing rows untouched).")
+	msg = (
+		"Seed complete (seeded passwords reset)."
+		if reset_passwords
+		else "Seed complete (idempotent — existing rows untouched)."
+	)
+	print(msg)
 
 
 if __name__ == "__main__":
-	asyncio.run(seed())
+	reset = (
+		"--reset-passwords" in sys.argv
+		or "--reset" in sys.argv
+		or os.environ.get("RESET_PASSWORDS", "").lower() in ("1", "true", "yes")
+	)
+	asyncio.run(seed(reset_passwords=reset))
