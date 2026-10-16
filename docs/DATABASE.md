@@ -1,137 +1,122 @@
 # Database
 
-## 1. Database Engine
+> v2 rewrite: MariaDB/Frappe DocTypes → Neon Postgres, schema `core`, Alembic
+> migrations. The Frappe-era table descriptions are superseded; the
+> authoritative DDL is `services/api/alembic/versions/0001_initial.py`.
 
-- **Database:** MariaDB 10.6+ (managed by the Frappe/bench stack)
-- **Hosting:** Per-university instance, site-local
+## 1. Engine & Access
+
+- **Postgres 16** (Neon free tier in production; brew pg15 locally; a GH
+  Actions `postgres:16` service container in CI). Extensions: `pg_trgm`
+  (search), `citext` (case-insensitive emails).
+- Only `services/api` connects to the database. The export service reads via
+  the API's `/internal` REST endpoints with the caller's token; the web holds
+  no DB access at all.
+- Connection string arrives as `DATABASE_URL` (`postgresql+psycopg://…`),
+  validated at startup. Pool is small (`pool_size=2, max_overflow=3`) — Neon
+  free tier caps connections; `pool_pre_ping` drops dead ones.
 
 ## 2. Naming Conventions
 
-Frappe conventions — do not invent your own:
-- **DocTypes:** Title Case names ("PhD Scholar"); table is `tabPhD Scholar`
-- **Fields:** snake_case (`report_year`, `resolution_number`)
-- **Primary key:** `name` (DocType autoname — see below)
-- **Links (FKs):** fieldtype Link with `options` = target DocType
-- **Timestamps:** `creation`, `modified`, `owner`, `modified_by` — automatic
+- Tables: plural snake_case in schema `core` (`users`, `scholars`,
+  `progress_reports`, `audit_log`).
+- Columns: snake_case; ids are `uuid` (`gen_random_uuid()`).
+- Every row carries `created_at`/`updated_at` (`timestamptz`) and
+  `deleted_at` (soft delete marker).
+- Enums are `text` + `CHECK` constraints (no Postgres enum types) — values
+  mirror the Pydantic Literals exactly, and vice versa.
 
-## 3. DocTypes
+## 3. Tables
 
-### PhD Scholar
-- **Purpose:** Registered research scholar profile.
-- **Autoname:** `field:roll_number` (the doc name IS the roll number)
-- **Fields:** scholar_name* (Data), scholar_email (Data/Email), roll_number* (Data,
-  unique), department (Data), admission_date (Date), supervisor (Link → PhD
-  Supervisor), stage (Select: Registered / Coursework / Proposal Approved / Research
-  Phase / Pre-Synopsis Done / Thesis Submitted / Viva Voce / Degree Awarded,
-  default Registered), github_url (Data/URL)
-- \* = mandatory
+### users
+Login identity: `email` (citext, UNIQUE), `password_hash`, `full_name`,
+`role` CHECK (`scholar`/`supervisor`/`admin`). The 1:1 profile bindings live
+on the profile tables (`scholars.user_id`, `supervisors.user_id`, UNIQUE).
 
-### PhD Supervisor
-- **Purpose:** Faculty supervisor; UGC supervision cap reference.
-- **Autoname:** `field:full_name`
-- **Fields:** full_name*, email (Email), department (Data), designation (Select:
-  Professor / Associate Professor / Assistant Professor), max_scholars (Int,
-  default 8 — UGC cap 8/6/4), user (Link → User, optional login binding)
+### supervisors
+`full_name`, `email` (citext), `department`, `designation` CHECK
+(Professor/Associate Professor/Assistant Professor), `max_scholars`
+(default 8). UGC designation caps (8/6/4) are enforced in the scholars
+router on assignment — over cap → 409 `supervisor_cap_exceeded`.
 
-### Meeting Record
-- **Purpose:** One supervisor–scholar meeting.
-- **Autoname:** `MTG-{#####}`
-- **Fields:** scholar* (Link → PhD Scholar), supervisor* (Link → PhD Supervisor),
-  meeting_date* (Date), agenda (Small Text), minutes (Text), action_items
-  (Small Text), next_meeting_date (Date)
+### scholars
+`scholar_name`, `roll_number` (UNIQUE), `scholar_email` (citext),
+`department`, `admission_date`, `stage` CHECK (Registered → Degree
+Awarded, default Registered), `github_url`, `supervisor_id` FK (indexed).
 
-### Progress Report
-- **Purpose:** Six-monthly UGC progress report; submittable (doc_status).
-- **Autoname:** `APR-{#####}`
-- **Fields:** scholar* (Link), report_year* (Int), period* (Select: January-June /
-  July-December), summary* (Text), supervisor_comment (Small Text), approved_on
-  (Date, read-only, set by on_submit), workflow_state (added by workflow engine)
+### meetings
+`scholar_id`, `supervisor_id` (both FKs, indexed), `meeting_date`, `agenda`,
+`minutes`, `action_items`, `next_meeting_date`.
 
-### PhD Milestone
-- **Purpose:** Committee approval record (RDC/DPGC-style).
-- **Autoname:** `MS-{#####}`
-- **Fields:** scholar* (Link), milestone_type* (Select: Coursework Completion /
-  Proposal Approval (RDC) / Pre-Synopsis Seminar / Thesis Submission / Viva Voce /
-  Degree Awarded), status (Select: Pending / Approved / Rejected, default Pending),
-  approval_body (Data, e.g. RDC / DPGC), resolution_number (Data), resolution_date
-  (Date), notes (Small Text)
+### progress_reports (the APR)
+`scholar_id` (indexed), `report_year` CHECK 2000–2100, `period` CHECK
+(January-June/July-December), `summary`, `supervisor_comment`,
+`approved_on` (set on approve), `state` CHECK
+(draft/submitted/approved/rejected, default draft). APR lifecycle state
+lives ONLY in this column, driven by `workflow.py` — never in a client or
+ad-hoc field.
 
-## 4. Relationships
+### milestones
+`scholar_id` (indexed), `milestone_type` CHECK (six UGC lifecycle types),
+`status` CHECK (Pending/Approved/Rejected, default Pending),
+`approval_body`, `resolution_number`, `resolution_date`, `notes`.
 
-- **PhD Supervisor → PhD Scholar:** one-to-many (scholar.supervisor Link).
-  UGC cap check (count ≤ max_scholars) not yet enforced — validate() hook is the
-  planned place.
-- **PhD Scholar → Meeting Record / Progress Report / PhD Milestone:** one-to-many
-  (child docs link back via `scholar`).
-- **PhD Supervisor ↔ User:** optional 1:1 binding for login identity
-  (`supervisor.user`).
+### audit_log
+Every mutation on every table writes one row: `table_name`, `record_id`,
+`action` CHECK (insert/update/soft_delete/restore/transition),
+`from_state`/`to_state` (transitions), `prev`/`data` (JSONB snapshots),
+`actor_id` FK, `actor_role`, `at`. This is the compliance product — writes
+happen only in `crud.py`/`workflow.py`, never ad-hoc.
 
-## 5. Constraints
+### refresh_tokens
+`user_id` (indexed), `token_hash` (sha256 of the urlsafe token — raw tokens
+are never stored), `expires_at`, `revoked_at`. Single-use: each refresh
+rotates (revoke old row + issue new token).
 
-- **Required:** marked per field above (Frappe `reqd`).
-- **Unique:** PhD Scholar.roll_number (`unique: 1`).
-- **Link integrity:** Frappe enforces Link validity on insert; deleting a doc with
-  dependents is blocked.
-- **Not yet enforced** (deliberate v1 gaps — see PRD Open Questions):
-  - duplicate (scholar, year, period) Progress Report
-  - supervisor scholar-count ≤ max_scholars
+## 4. Constraints & Invariants
 
-## 6. Indexes
+- **Duplicate APR:** partial unique index
+  `uq_apr_active (scholar_id, report_year, period) WHERE deleted_at IS NULL`
+  → 409 `duplicate_apr`. One live APR per scholar per period; soft-deleted
+  rows excluded.
+- **Unique identities:** `scholars.roll_number`, `users.email` — constraint
+  violations map to named 409s in `errors.py` (psycopg `.diag.constraint_name`).
+- **Referential integrity:** FKs on every link; all writes go through the
+  API's crud helpers, which audit before commit.
+- **Soft delete only.** `deleted_at` on every domain table; no hard deletes
+  by anyone. Every query path filters `deleted_at IS NULL` (`live_and_scoped`).
 
-Frappe defaults: primary key (`name`), `modified`, and an index per Link field.
-v1 access patterns (list by scholar, list by status/stage) are covered. Add custom
-indexes only when a real list view measurably lags.
+## 5. Search
 
-Desk global search: fields flagged `in_global_search` (scholar_name, roll_number,
-full_name, summary, agenda, milestone_type, resolution_number, and the scholar links)
-are indexed into Frappe's `__global_search` table; `install.py` registers the five
-DocTypes in Global Search Settings so Desk search covers them. Fulltext tokenizes
-hyphenated IDs unreliably — ID lookup goes through Link-field autocomplete / list
-filters (LIKE queries), not the search bar.
+Trigram GIN indexes (`pg_trgm`): scholar_name, roll_number, supervisor
+full_name, report summary, meeting agenda, milestone_type,
+resolution_number. `GET /search?q=` ILIKEs across them, scoped by role —
+partial matches like `PHD-CS-2024` work (v1's fulltext tokenizer didn't).
 
-## 7. Data Validation
-
-- Select fields validate against their option lists (invalid option → error on save).
-- Email/URL fields validate format (`options: "Email"` / `"URL"` on Data fields).
-- All further business validation belongs in the DocType's `validate()`.
-
-## 8. Soft Delete
-
-Yes — standard Frappe behavior. Deleted docs are trashed (renamed to
-`{name}-trash-{hash}`), restorable, and excluded from list views and exports.
-
-## 9. Auditing
-
-- `track_changes: 1` on all five DocTypes → full version history per document.
-- Automatic `creation/owner/modified/modified_by` on every record.
-- Workflow state transitions are themselves recorded (doc_status changes).
-- This audit trail IS the compliance product — never disable versioning on these
-  DocTypes.
-
-## 10. Sensitive Data
-
-- **Fields:** scholar_email, supervisor email, user link, thesis-adjacent content
-  (minutes, reports), GitHub URLs.
-- **Protection:** access only via authenticated Desk; role permissions below; export
-  restricted to Research Office Admin. No data leaves the university's instance.
-
-## 11. Migration Rules
+## 6. Migration Rules
 
 Schema changes must:
-1. Edit the DocType JSON in the repo (never via Desk UI alone — the file is the
-   source of truth).
-2. Ship a patch in `patches.txt` for any data migration (not just schema).
-3. Be verified by installing on a fresh site AND migrating an existing one.
-4. Never break existing production records (links, autonames).
+1. Ship an Alembic migration in the same change (`alembic/versions/`) —
+   never raw SQL against a live DB.
+2. Update DATABASE.md in the same commit (AGENTS.md §3).
+3. Be verified with `alembic upgrade head` against a scratch DB; CI runs the
+   full migration chain before every test suite, so a broken migration fails CI.
+4. Never break existing records (audit_log and soft-delete history are the
+   compliance trail).
 
-## 12. Seed Data
+## 7. Seed Data
 
-None yet. Before the pilot, add fixtures: 2 supervisors, 3 scholars (one per early
-stage), sample meeting/APR/milestone per scholar — doubles as the demo script and
-test fixture. Track in the roadmap.
+`DATABASE_URL=… SEED_PASSWORD=… python -m app.seed` — idempotent (re-runs
+touch nothing). Seeds: admin, 2 supervisors (Dr. Meera Krishnan, Dr. Rajesh
+Nair), 3 scholars (Arun Bhatt PHD-CS-2024-001, Priya Sharma, Vikram Rao),
+and records covering every workflow state. In production, seed runs once
+against Neon after first deploy; the password arrives by env, and the first
+thing the research office does is rotate it.
 
-## Legacy prototype notes (from the removed Spring Boot attempt)
+## Legacy notes (Frappe v1 — superseded)
 
-Ideas worth porting when the matching feature is pulled: `research_title` on
-scholar, document versioning (fileName/version/uploadedAt), notification channels
-(email/WhatsApp), `google_event_id` on meetings.
+DocType JSON schemas, `tab*` tables, bench patches, and Frappe version
+history are frozen in `phd_tracker/` for reference only. Ideas worth porting
+when the matching feature is pulled: `research_title` on scholar, document
+versioning, notification channels, `google_event_id` on meetings (from the
+removed Spring Boot prototype).

@@ -1,159 +1,130 @@
 # Architecture
 
+> v2 rewrite. The v1 Frappe architecture (bench, DocTypes, workflow engine,
+> print formats) is superseded; the Frappe app stays in `phd_tracker/` as a
+> frozen reference and is never modified.
+
 ## 1. System Overview
 
-PhD Tracker is a [Frappe framework](https://frappeframework.com) app: a monolithic,
-metadata-driven application where forms, roles, permissions, workflows, and audit
-trails are configuration (DocType JSON) plus thin Python controllers. It rides on
-MariaDB, Redis (cache/queue), and Python. Each university deployment gets its own
-bench site and database.
+PhD Tracker v2 is a cloud-native polyglot monorepo: three small services, one
+Postgres database, $0 free-tier hosting. The daily-use layer (meetings,
+progress reports, milestones) is the product; UGC compliance paperwork is
+generated as a byproduct (PDF exports).
 
-## 2. Architecture Pattern
+## 2. Services
 
-- **Pattern:** Monolith (Frappe low-code app; DocTypes are the schema, workflow
-  engine drives state, print formats produce paper).
-- **Reason:** The entire v1 is CRUD + one approval chain + PDFs. A workflow engine,
-  RBAC, and print generation already exist in the platform — building them again
-  (as the abandoned Spring Boot prototype did) is the exact cost this choice avoids.
+| Service | Stack | Deploy | Owns |
+|---|---|---|---|
+| `services/api` | Python/FastAPI | Koyeb (GHCR image) | Postgres schema `core`, auth, RBAC, workflow, search, audit |
+| `services/export` | Node/TypeScript | Render (GHCR image) | Nothing — stateless PDF/CSV rendering over the API's `/internal` endpoints |
+| `web` | Next.js App Router | Vercel | Nothing — client-only UI |
+| Database | Neon Postgres (free tier) | — | the single source of state |
+
+Hard rules (AGENTS.md): the export service holds zero auth/data logic and
+reads only via the API with the caller's token forwarded; all business rules
+live in the API's `rbac`/`workflow` modules, never in UI or scripts.
 
 ## 3. Technology Stack
 
 | Concern | Choice |
 |---|---|
-| Backend | Frappe framework v15 (Python 3.10–3.13; dev uses pyenv 3.12 — system 3.14 unsupported) |
-| Frontend | Stock Frappe Desk (v1); no custom UI |
-| Database | MariaDB 10.6+ (via bench) |
-| Cache/Queue | Redis |
-| Authentication | Frappe's built-in email/password + session; roles server-side |
-| Storage | Frappe file attachments (site-local) |
-| Hosting | Per-university bench instance (universities demand their own server/data residency) |
-| Email | Frappe email framework (site SMTP config) |
-| PDF | Frappe print formats (wkhtmltopdf) |
+| API | FastAPI, async SQLAlchemy 2 + psycopg 3, Alembic migrations |
+| Auth | HS256 access JWT (30 min) + DB-backed rotating single-use refresh tokens |
+| DB | Neon Postgres — schema `core`, trigram search indexes |
+| Export | Express + pdfkit (node:22-slim, `--max-old-space-size=384`) |
+| Web | Next.js 16 (App Router, client components behind an auth gate) |
+| CI/CD | GitHub Actions: `ci.yml` (tests) → `deploy.yml` (GHCR images); Vercel deploys `web/` itself |
 
-## 4. System Components
-
-### DocTypes (schema + forms)
-- PhD Scholar, PhD Supervisor, Meeting Record, Progress Report, PhD Milestone
-- Defined in JSON (`phd_tracker/phd_tracker/doctype/*/*.json`), synced to DB on
-  `bench migrate`.
-
-### Workflow engine
-- "Progress Report Approval" (Draft → Submitted → Approved/Rejected) defined
-  programmatically in `install.py` (states, transitions, `allow_edit` per role).
-  Server-side enforced.
-
-### Install hook
-- `install.py after_install()`: creates the three roles (PhD Scholar, PhD Supervisor,
-  Research Office Admin), the workflow, and registers our DocTypes in Global Search
-  Settings (so Desk search covers them).
-
-### Print formats and reports
-- Compliance artifacts (APR PDF, milestone register). v1 ships them as fixtures
-  synced by `bench migrate` via `hooks.py`:
-  - `fixtures/print_format.json` — "APR" custom HTML print format (`custom_format: 1`)
-    on Progress Report (scholar, supervisor, dates, summary).
-  - `fixtures/report.json` — "Milestone Register" query report (SQL join onto
-    PhD Scholar) with Scholar / Department filters; exportable to PDF/Excel.
-
-## 5. Architecture Diagram
+## 4. Architecture Diagram
 
 ```
-Browser (Frappe Desk, stock UI)
-        │  HTTPS
-        ▼
-Bench / Frappe app  ──  Workflow engine (server-side state transitions)
-   ├── DocType controllers (phd_tracker)        │
-   ├── REST API (auto-generated per DocType)    │
-   └── Print formats (PDF)                      │
-        │                                       │
-        ▼                                       ▼
-   MariaDB  ◄────────────────────────────  Redis (cache/queue)
+Browser (Vercel web)
+   │  Bearer access JWT (memory) + refresh token (localStorage)
+   ├────────────────────► services/api (Koyeb) ──► Neon Postgres, schema `core`
+   │                          ▲  /internal/*, caller's token forwarded verbatim
+   └──── PDF/CSV download ────┘  services/export (Render)
 ```
+
+## 5. Key Modules (services/api)
+
+- `auth/` — login/refresh/logout, register (admin-only), `/auth/me`. Refresh
+  tokens are sha256-hashed rows in `refresh_tokens`; each refresh rotates the
+  row (single-use, rotation on every login).
+- `rbac.py` — the permission `MATRIX` as data; route-level `require_perm` +
+  row-level `scope()`/`get_or_403` (403, never 404 — record existence is not
+  leaked). Closes the v1 Frappe gap (a scholar sees only their own records)
+  by construction, not by filtering in the UI.
+- `workflow.py` — `TRANSITIONS: (state, action) → (roles, new_state)`; the
+  single source of APR state. Illegal action/role → 422 `workflow_violation`.
+  `approved_on` is stamped on approve; approved reports are immutable for
+  every role.
+- `crud.py` — shared insert/update/soft-delete/list helpers; every mutation
+  writes an `audit_log` row (actor, action, prev/new JSONB snapshots).
+- `errors.py` — one envelope everywhere: `{"error": {code, message, details}}`;
+  Postgres constraint violations map to named 409s (`duplicate_apr`,
+  `duplicate_roll_number`, `duplicate_email`).
+- `seed.py` — idempotent `python -m app.seed` (requires `SEED_PASSWORD`):
+  admin, 2 supervisors, 3 scholars, records in every workflow state.
 
 ## 6. Data Flow — APR approval (the critical chain)
 
-1. Scholar logs in, creates Progress Report (period, summary).
-2. Desk validates field constraints (required, options).
-3. Scholar clicks **Submit Report** → workflow transition Draft→Submitted
-   (role `PhD Scholar` only; enforced server-side).
-4. Supervisor opens the report list, reads summary, writes comment.
-5. Supervisor clicks **Approve** (doc_status 0→1, submit) or **Send Back**
-   (→ Rejected, back to scholar for revision).
-6. `on_submit` sets `approved_on` automatically.
-7. Every change is versioned (`track_changes: 1`) — the audit trail.
+1. Scholar creates the report (draft) — the API enforces ownership and the
+   `uq_apr_active` partial unique index (one live APR per scholar/year/period;
+   a duplicate → 409 `duplicate_apr`).
+2. Scholar clicks Submit → `POST /reports/{id}/submit` → TRANSITIONS
+   (draft, submit, {scholar, admin}) → submitted.
+3. Supervisor reads the summary, saves `supervisor_comment` (editable only
+   while submitted), then Approve (→ approved, `approved_on` set) or Send back
+   (→ rejected). The scholar edits draft/rejected reports only; resubmit
+   returns rejected → draft.
+4. Research office admin downloads the compliance PDF via the export service,
+   which fetches `/internal/reports/{id}/export-view` with the admin's token.
+5. Every mutation above writes an `audit_log` row — the audit trail IS the
+   compliance product.
 
 ## 7. Project Structure
 
 ```
 phd-tracker/
-├── AGENTS.md               ← agent instructions (root: where tools discover them)
-├── docs/                   ← source of truth for this product
-│   ├── PRD.md  DESIGN_SYSTEM.md  ARCHITECTURE.md  DATABASE.md
-│   ├── SECURITY.md  CODE_STYLE.md  TESTING.md  UX_FLOWS.md
-├── pyproject.toml          ← flit build (bench installable)
-└── phd_tracker/            ← the Frappe app
-    ├── hooks.py  install.py  modules.txt  patches.txt
-    └── phd_tracker/doctype/
-        ├── phd_scholar/  phd_supervisor/
-        ├── meeting_record/  progress_report/  phd_milestone/
+├── AGENTS.md  README.md  docker-compose.yml
+├── .github/workflows/     ci.yml (tests), deploy.yml (GHCR images)
+├── docs/                  source of truth (this file et al.)
+├── services/api/          FastAPI app + alembic/ + tests/
+├── services/export/       Express service + src/ + tests/
+├── web/                   Next.js app (src/app, src/lib)
+└── phd_tracker/           Frappe v1 app — FROZEN reference, never modify
 ```
 
-## 8. Dependency Rules
+## 8. Deployment
 
-- Business logic lives in DocType controllers (`validate`, `on_submit`) only where
-  platform config can't express it. Prefer workflow/permission config over code.
-- No client scripts (`.js`) in v1 — stock Desk behavior only.
-- The app depends on `frappe` only. No third-party Python dependencies.
-- Custom UI, when it comes, is a Frappe web portal/page — never a parallel frontend
-  service.
+- GH Actions builds `ghcr.io/<owner>/phd-tracker-api` and `…-export` on push
+  to main; Koyeb and Render auto-deploy from those images.
+- The API runs `alembic upgrade head` before serving (single replica; move to
+  a deploy step if replicas ever exceed one).
+- All config arrives by environment and is validated loudly at startup
+  (`app/config.py`). Never secrets in the repo; never `.env` committed.
+- Services are stateless and idle-spin-down tolerant: expect a 15–60s cold
+  start; no keep-alive pinger (it burns the free tier's instance hours).
 
-## 9. Key Technical Decisions
+## 9. Failure Scenarios
 
-| Decision | Context | Alternatives | Reason |
-|---|---|---|---|
-| Frappe framework | Needed auth, RBAC, workflow, PDF, audit in one | From-scratch (Spring Boot/Django); Unity's commercial module | Platform is GPLv3/free; incumbents (Unity) prove the play; prototype proved from-scratch costs months |
-| Stock Desk UI | v1 is internal-tool-shaped | Custom React portal | Zero UI investment before pilot validation |
-| Workflow in install.py, not fixtures | Workflow must exist on every fresh install | JSON fixtures import | Programmatic insert is explicit and debuggable; fixtures import order is fragile |
-| Per-university instances | Indian universities demand own server/data residency | Shared multi-tenant cloud | Sales reality; Frappe multi-tenancy via sites exists but procurement wants ownership |
-| Fixed milestone types | UGC 2022 lifecycle is nationally standardized | Configurable workflow engine per university | v1 simplicity; configurability waits for paying demand |
-| Legacy Spring Boot prototype removed | Superseded by Frappe decision | Keep as parallel backend | Two backends = drift; domain ideas (research_title, doc versioning, notification channels) noted in DATABASE.md for later |
+- **Neon suspended/idle:** API returns 5xx; no data loss (transactions are
+  atomic). `pool_pre_ping` drops dead connections before handing them out.
+- **Export service down:** the web's export buttons surface the error
+  envelope; every daily-use flow is unaffected — it never touches the export
+  path.
+- **Cold start (Render ~15-min spin-down):** first request is slow; accepted
+  per the v2 plan.
+- **Migration-on-boot clash:** impossible at one replica; the Dockerfile CMD
+  carries the note to move migration into a deploy step if that ever changes.
 
-## 10. Performance Considerations
+## 10. Key Technical Decisions (v2 deltas)
 
-- Frappe indexes DocType link fields and `modified` by default — our access patterns
-  (list by scholar, list by status) are covered in v1 scale (a department ≈ tens of
-  scholars; a university ≈ hundreds).
-- No external API calls in any request path in v1.
-
-### Performance playbook (triaged against this stack)
-
-| Item | Verdict | Home |
-|---|---|---|
-| Compress API responses in transit | **Applies at deployment.** Enable gzip/brotli on the nginx edge in front of bench for JSON/text responses >1 KB (Desk + REST); Accept-Encoding negotiation is browser-automatic. Do not compress print-format PDFs — already compressed by wkhtmltopdf. Verify: transfer sizes drop, JSON still parses on the client. | Pilot deployment checklist (TESTING.md flow) |
-| Batch inserts/updates | **Rule for all future code.** No per-row INSERT/UPDATE loops; bulk writes, chunked ≤1000 rows, inside one transaction. First consumer: seed fixtures. | CODE_STYLE.md §10 |
-| Circuit breaker for slow dependencies | **Deferred — nothing to break yet.** v1 has zero external calls in request paths. When plagiarism/GitHub APIs arrive they run as Frappe background jobs with timeouts and fail-soft fallbacks (manual score entry), never inline middleware; a degraded dependency must not drag unrelated flows. | §12 Failure Scenarios |
-| Optimistic UI updates | **Deferred to custom UI.** v1 is stock Desk with no client JS of ours. Principle recorded for the future portal. | DESIGN_SYSTEM.md §1 |
-| Cache rendered pages/fragments | **Not applicable in v1 — would be a correctness bug.** Desk views are per-user/personalized; print-format PDFs are compliance artifacts that must reflect current data on every render. Revisit only if a public page or heavy aggregate report appears. | — |
-
-## 11. Scalability Considerations
-
-- One department → one university: add per-department `department` filtering
-  (field already on Scholar/Supervisor).
-- Multiple universities: separate sites/instances; shared app code updates via
-  `bench update`.
-
-## 12. Failure Scenarios
-
-- **Database unavailable:** Frappe returns 502/500; no data loss (transactions are
-  atomic; Redis queue retries).
-- **Email/SMTP not configured:** APR submit still works; notification silently logs.
-  Compliance chain never depends on email.
-- **Workflow missing after botched upgrade:** `install.py` is idempotent
-  (`db.exists` guards) — re-running migrate restores roles/workflow.
-- **External dependency slow or down (post-v1: plagiarism API, GitHub mirror):**
-  such calls run as background jobs with timeouts and fail-soft behavior (score
-  recorded manually; mirror lags, nothing blocks). A degraded external service must
-  never block a request path or a committee export. Circuit-breaker-style
-  fast-failing comes with the first real dependency, not before.
-- **App updated with breaking DocType change:** Frappe patches (`patches.txt`) are
-  the only sanctioned migration path — never hand-edit synced JSON in the DB.
+| Decision | Reason |
+|---|---|
+| Three tiny services over a Frappe bench | $0 cloud hosting; no server to run; the buyer (registrar/dean) never logs in — PDFs only |
+| JWT + rotating refresh over server sessions | stateless API; works across Koyeb/Render/Vercel with no session store |
+| Workflow as a dict, not an engine | four transitions; an engine would be the over-engineering the v1 already paid for |
+| Postgres CHECK constraints + partial unique index | duplicate-APR and UGC designation caps enforced by the DB, not hopeful app code |
+| Trigram search over a search engine | one DB, no extra service; covers name/roll-number/summary lookups at department scale |
+| Access token in memory, refresh in localStorage | XSS-theft risk judged low for a closed tool; upgrade path documented in SECURITY.md |

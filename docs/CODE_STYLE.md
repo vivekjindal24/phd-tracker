@@ -1,94 +1,94 @@
 # Code Style & Conventions
 
-## 1. General Principles
+> v2 rewrite: Frappe house style is superseded. Three codebases, three
+> toolchains, one set of principles. The v1 rules that survive are carried
+> over verbatim below.
 
-- Prefer readable code over clever code; keep functions focused.
-- Prefer platform configuration over code: if Frappe's workflow, permissions, or
-  field options can express it, don't write Python.
-- Reuse Frappe utilities (`frappe.utils`) before rolling your own.
-- No client scripts (`.js`) in v1 — stock Desk only.
+## 1. General Principles (all services)
 
-## 2. Naming
+- Prefer readable code over clever code; keep functions focused (<50 lines),
+  files small (200–400 typical, 800 max).
+- Reuse what's already here before writing new: the shared crud helpers,
+  `get_or_403`, the error envelope, the UI kit (`web/src/lib/ui.tsx`).
+- Platform first: DB constraint over app code, `<input type="date">` over a
+  picker library, CSS over JS.
+- **Fail loudly** — no swallowed exceptions, no silent fallbacks. This is
+  compliance software; silent failure is the worst outcome.
+- No secrets in code; config by environment, validated at startup.
+- `ponytail:` comments mark deliberate simplifications with a known ceiling
+  and their upgrade path (e.g. the count-then-insert UGC cap check in
+  `scholars.py`).
+- exFAT junk: `._*` AppleDouble and `__pycache__` are gitignored — never
+  stage or edit them; delete before running directory-scanning tools.
 
-- **DocTypes:** Title Case (`PhD Scholar`, `Meeting Record`).
-- **Fields:** snake_case (`report_year`, `action_items`).
-- **Controllers:** Frappe's rule — DocType name with spaces stripped
-  (`PhDScholar`, `ProgressReport`); file/folder = scrubbed lowercase
-  (`phd_scholar.py`).
-- **Python functions/variables:** snake_case; **constants:** UPPER_SNAKE_CASE
-  (see `ROLES` in install.py).
-- **Module:** `Phd Tracker` in modules.txt → `phd_tracker` folder.
+## 2. services/api (Python/FastAPI)
 
-## 3. Folder Structure
+- **Tools:** ruff (lint, configured in `pyproject.toml`), pytest.
+- Async routes with async SQLAlchemy sessions — never sync sessions from
+  async routes. No blocking I/O in handlers.
+- Pydantic validates every boundary; Literals mirror the DB CHECK
+  constraints exactly.
+- Routers stay thin; business rules live in `rbac.py`/`workflow.py` and the
+  crud helpers — not in UI, not in scripts, not duplicated per route.
+- Errors: raise `ApiError` (`app/errors.py`) — it maps to the uniform
+  envelope. Never `print()`; never return error strings.
+- One state machine: APR state comes only from `workflow.TRANSITIONS`.
+- Naming: snake_case functions, UPPER_SNAKE_CASE constants, PascalCase
+  classes. Type hints on every signature.
+- Migrations go through Alembic in the same change as the model; DATABASE.md
+  updates in the same commit.
 
-```
-phd_tracker/phd_tracker/doctype/<doctype>/     one folder per DocType:
-    __init__.py, <doctype>.json (schema), <doctype>.py (controller)
-```
+## 3. services/export (Node/TypeScript)
 
-Rules:
-- Nothing lives outside its DocType folder except hooks.py, install.py,
-  modules.txt, patches.txt.
-- New DocTypes are added as folders, never as loose files.
-- docs/ is documentation, never importable code.
+- **Tools:** `tsc --noEmit` strict, node:test.
+- The service stays stateless: no tables, no auth logic — it forwards the
+  caller's token and renders what the API returns. Never add a service
+  credential or a DB connection here.
+- zod validates every API response before rendering (a malformed upstream is
+  a 500 `export_failed`, never a silently blank PDF).
+- Imports use `.ts` extensions (allowed via tsconfig `allowImportingTsExtensions`
+  + noEmit; runtime is `tsx`).
 
-## 4. Imports
+## 4. web (Next.js App Router)
 
-- Standard library, then `frappe` / `frappe.utils` — nothing else (no third-party
-  dependencies; adding one requires a stated reason).
-- No wildcard imports; no imports inside functions unless breaking a cycle.
+- Client components (`"use client"`) behind the auth gate; the API is the
+  security enforcer — the UI only hides what the API already denies.
+- Design tokens and components live in `globals.css`, `(app)/app.css`, and
+  `src/lib/ui.tsx` — no Tailwind, no UI library, no new font stacks
+  (DESIGN_SYSTEM.md governs the look).
+- State conveyed text-first, color second; semantic HTML (`<dl>` for
+  key-value, real `<table>` for registers, `<form>` with labels).
+- Naming: components PascalCase, hooks `use*`, CSS classes kebab-case.
+- Env vars: only `NEXT_PUBLIC_API_URL` and `NEXT_PUBLIC_EXPORT_URL` (they
+  are public by design — the JWT is the secret, and it never ships in the
+  bundle).
+- Turbopack persistent cache is off (`next.config.ts`) — the exFAT working
+  volume breaks its cache DB; Vercel builds are unaffected.
 
-## 5. Controllers
+## 5. Git
 
-- Controllers inherit `frappe.model.document.Document` and stay thin: pass unless
-  a hook has a real job (`validate`, `on_submit`).
-- Business logic that applies to every write of a DocType goes in its `validate()`;
-  logic specific to a workflow action goes in `on_submit()` / the state transition.
-- One behavior per method; no God-methods.
+- Conventional commits: `feat:`, `fix:`, `refactor:`, `docs:`, `test:`,
+  `chore:`, `perf:`, `ci:` — subject line, body only when it adds context.
+- Never commit: `.env` files, secrets, `._*`, `__pycache__`, `.next/`,
+  `node_modules/`.
+- Keep changes to the touched sections — don't rewrite whole documents or
+  reformat untouched files.
 
-## 6. Error Handling
+## 6. Do / Don't
 
-- Use: raise `frappe.ValidationError` (or `frappe.throw` with a user-facing
-  message) — let Frappe surface it to Desk/API uniformly.
-- Do not: swallow exceptions, return error strings, or `print()`.
-- Fail loudly; this is compliance software — silent failure is the worst outcome.
+**Do**
+- Extend existing patterns: a new workflow action goes in `TRANSITIONS`; a
+  new permission in `MATRIX`; a new page composes the UI kit.
+- Write the negative test with the route (a scholar must not read another
+  scholar's record — forever).
+- Update the affected doc section in the same commit as the change that
+  makes it true.
 
-## 7. Comments
-
-- Explain why something exists, important tradeoffs, non-obvious behavior
-  (e.g. `install.py`'s idempotence guards).
-- `ponytail:` comments mark deliberate simplifications with a known ceiling and
-  their upgrade path.
-- Never comment what the code plainly says.
-
-## 8. Logging
-
-- Frappe's logger (`frappe.logger("phd_tracker")`) if app-level logging is ever
-  needed; error paths already land in Frappe's error log.
-- Never log credentials, tokens, or full document contents.
-
-## 9. Formatting
-
-- **Formatter:** tabs, one class per file, PEP 8 line length (Frappe house style).
-- **Linter:** none configured yet — run `python3 -m py_compile` on touched files
-  minimally; add flake8 at the bench setup if desired.
-- **JSON:** 1-space indent in DocType files matches Frappe exports — keep it.
-
-## 10. Do
-
-- Keep DocType JSON in the repo as the single source of truth (never Desk-only edits).
-- Make idempotent install/patch code (`db.exists` guards before inserts).
-- Extend existing patterns: new milestone types go in the Select options; new
-  roles in `ROLES`.
-- Write in batches, not loops: no per-row INSERT/UPDATE loops — use bulk writes
-  (multi-row insert / single batched statement), chunked to ≤1000 rows, inside
-  one transaction. First consumer: seed fixtures.
-
-## 11. Don't
-
-- Don't add third-party Python dependencies.
-- Don't write client scripts, print CSS tricks, or custom APIs before a feature
-  requires them.
-- Don't hand-edit data in the database — patches only.
-- Don't commit `._*` AppleDouble files (exFAT junk; gitignored) or any
-  `site_config.json`.
+**Don't**
+- Don't put business logic in the web app, the export service, or one-off
+  scripts.
+- Don't hand-edit data in the database — Alembic migrations only.
+- Don't add a dependency for what a few lines of stdlib/platform code do.
+- Don't catch an exception just to log-and-continue — surface it (uniform
+  envelope, user-visible message, or a loud log with context).
+- Don't touch `phd_tracker/` (the frozen v1 Frappe app).

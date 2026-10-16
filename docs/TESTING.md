@@ -1,94 +1,81 @@
 # Testing
 
-## 1. Testing Goals
+> v2 rewrite: bench test-site instructions are superseded. Each service owns
+> its suite; CI runs all of them on every push/PR.
 
-Critical functionality to verify before any pilot demo:
-- Progress Report approval workflow (role-gated transitions, correct doc_status)
-- Permissions matrix (a scholar cannot approve; a supervisor cannot manage the
-  directory; etc.)
-- Install correctness (fresh site → roles + workflow exist, app is re-installable)
+## 1. What to Verify
 
-## 2. Test Types
+- Workflow transitions: every legal transition per role, plus illegal ones
+  (e.g. supervisor tries `submit` → 422 `workflow_violation`).
+- Permission boundaries: scholar cannot read another scholar's records (the
+  v1-gap regression), 403-not-404 on out-of-scope ids, export restricted to
+  admin.
+- Data rules: duplicate APR → 409, UGC designation cap → 409, soft delete
+  keeps rows invisible, audit rows written on every mutation.
+- Export correctness: valid `%PDF` magic bytes, CSV escaping, empty-state
+  pages, error propagation (never a silently blank PDF).
 
-### Unit Testing
-DocType controller behavior: `on_submit` sets `approved_on`; future `validate()`
-rules (duplicate APR, supervision cap).
+## 2. Services & Suites
 
-### Integration Testing
-Frappe's test framework with a test site: create scholar + supervisor + report
-records, drive workflow transitions as different roles, assert states and
-permission denials.
-
-### End-to-End Testing
-Until a bench environment exists: manual click-through of the flows in
-UX_FLOWS.md with all three roles. After pilot deployment: Playwright against the
-instance (deferred until then).
-
-## 3. Testing Tools
-
-- Unit + Integration: Frappe's built-in `test_records`/`FrappeTestCase` (or the
-  v15 `IntegrationTestCase`) — runs via bench.
-- E2E: manual checklist now; Playwright when there's a deployed instance to click.
-
-## 4. Test File Structure
-
-Standard Frappe placement — tests live beside the controller:
-
-```
-phd_tracker/phd_tracker/doctype/progress_report/test_progress_report.py
-```
-
-(When a test needs cross-DocType setup, it still lives in the primary DocType's
-test file — no shared fixtures layer yet.)
-
-## 5. Critical User Flows
-
-### Flow A — Scholar submits APR
-1. As admin: create supervisor + scholar (linked).
-2. As scholar: create Progress Report (year, period, summary), Save.
-3. Click Submit Report.
-**Expected:** state Submitted; supervisor cannot edit summary (allow_edit).
-**Failure to verify:** workflow role gate broken.
-
-### Flow B — Supervisor approves / sends back
-1. As supervisor: open the submitted report, add comment.
-2. Approve → doc_status 1, `approved_on` set today.
-3. Repeat with Send Back → Rejected; scholar revises, resubmits.
-**Expected:** state Approved/Rejected per action; version history records both.
-
-### Flow C — Research office records RDC milestone
-1. As admin: create PhD Milestone (Proposal Approval, RDC, resolution no/date).
-2. View as scholar: read-only.
-**Expected:** milestone visible to scholar, not editable.
-
-## 6. Coverage
-
-- **Target:** every controller hook and permission boundary exercised; no
-  percentage theater — this app is mostly config, and config is tested by the
-  flows above.
-- **Prioritize:** workflow transitions (compliance correctness) > permission
-  denials > controller hooks > install idempotence.
-
-## 7. Commands
+### services/api — pytest
+- Runs against **real Postgres DDL**: `conftest.py` applies
+  `alembic upgrade head` to the scratch DB, truncates between tests.
+- Fixtures mint the three roles directly (`admin@x.edu`, supervisor
+  `meera@x.edu`, scholars `a@x.edu`/`b@x.edu`).
+- Files: `tests/test_auth.py`, `test_rbac.py` (incl. the v1-gap regression),
+  `test_workflow.py`, `test_search.py`.
+- Lint: `ruff check .` must be clean.
 
 ```bash
-# Test (on a bench with a test site):
-bench --site <test-site> run-tests --app phd_tracker
-
-# Lint / syntax (pre-bench):
-python3 -m py_compile $(git ls-files '*.py')
-python3 -m json.tool <doctype>.json   # per changed JSON
-
-# Build / install (the real smoke test):
-bench --site <site> install-app phd_tracker
-bench --site <site> migrate
+# local (venv ~/.venvs/phd-tracker-api, scratch DB phd_tracker_test)
+DATABASE_URL="postgresql+psycopg://$(whoami)@localhost:5432/phd_tracker_test" \
+  JWT_SECRET=test-secret-0123456789abcdef0123456789 \
+  pytest
+ruff check .
 ```
 
-## 8. Definition of Done
+CI: `ci.yml` job `api` uses a `postgres:16` service container (pg_trgm needs
+real Postgres), runs the migration chain, then the suite.
 
-- [ ] Tests pass (`run-tests --app phd_tracker`)
-- [ ] App installs cleanly on a fresh site; migrate is re-runnable
-- [ ] Flows A–C click-verified with all three roles
-- [ ] Permission denials checked (negative tests)
-- [ ] No unrelated files changed
-- [ ] Docs updated if behavior changed
+### services/export — node:test
+- Spins a stub `node:http` API server; verifies auth header forwarding,
+  PDF/CSV bytes, empty states, error passthrough.
+```bash
+npm ci && npm run typecheck && npm test
+```
+
+### web — build + click-through
+- `npm run build` is the type gate (Next 16 + strict TS).
+- Manual/Playwright click-through of the three seeded roles (Phase 3
+  checklist): admin full access + APR PDF download; scholar sees only own
+  rows, edits + submits own draft, cannot edit a submitted one; supervisor
+  sees only own scholars, comments + approves, approved report immutable;
+  direct-URL pages the API denies render the API's 403, not the data.
+
+## 3. Local Stack
+
+```bash
+docker compose up            # Postgres + API + export
+# web: cd web && npm run dev (see web/README.md for NEXT_PUBLIC_* vars)
+```
+
+The compose stack doubles as the smoke test: `/healthz` on :8900 and :8902,
+login with the seeded admin, and the flows in UX_FLOWS.md.
+
+## 4. Coverage
+
+- No percentage theater: the priority order is workflow transitions
+  (compliance correctness) > permission denials (negative tests) > data
+  rules > export bytes > UI build. The API suite covers the first four;
+  the click-through covers the fifth.
+- Any new non-trivial API route adds its negative test in the same change
+  (AGENTS.md §9 — the security matrix must still hold, including negatives).
+
+## 5. Definition of Done
+
+- [ ] `ruff check .` + `pytest` green (api)
+- [ ] `npm run typecheck` + `npm test` green (export)
+- [ ] `npm run build` green (web)
+- [ ] `alembic upgrade head` verified against a scratch DB when DDL changed
+- [ ] Three-role click-through passes on the local stack
+- [ ] No unrelated files changed; docs updated where behavior changed

@@ -5,9 +5,10 @@ layer (meetings, progress reports, milestone approvals) is the product; UGC
 compliance paperwork (UGC 2022 PhD Regulations, as amended March 2024) falls
 out as a byproduct.
 
-Status: **v2 — cloud-native rewrite in progress.** The original Frappe v1 app
-(`phd_tracker/`) stays in-repo as a reference implementation until the v2
-stack reaches parity; it is never modified.
+Status: **v2 — core complete (Phases 0–3).** The Frappe v1 app (`phd_tracker/`)
+stays in-repo as a frozen reference until the v2 stack reaches parity; it is
+never modified. Deploy (Phase 4) follows the runbook below — the code, CI,
+images, and docs are ready.
 
 ## Architecture (v2)
 
@@ -47,24 +48,51 @@ uvicorn app.main:app --port 8000
 # Export
 cd services/export
 npm install
-npm run dev                   # :8100
+API_URL=http://localhost:8000/api/v1 npm run dev   # :8100
 
-# Web — added in Phase 3
+# Web
+cd web
+npm install
+NEXT_PUBLIC_API_URL=http://localhost:8900/api/v1 \
+NEXT_PUBLIC_EXPORT_URL=http://localhost:8902 \
+npm run dev                 # :3000
 ```
+
+Or `docker compose up` (Postgres + API on :8900 + export on :8902); set
+`JWT_SECRET` in a gitignored `.env` beside the compose file. The three-role
+click-through checklist lives in `docs/TESTING.md`.
 
 ## CI/CD
 
-GitHub Actions (`.github/workflows/ci.yml`): ruff + pytest against a Postgres
-service container (api), typecheck + node:test (export). Images build in CI to
-GHCR and deploy via hooks (Koyeb/Render); Vercel deploys `web/` on push.
+GitHub Actions: `ci.yml` (ruff + pytest against a Postgres service container;
+typecheck + node:test) runs on every push/PR. On `main`, `deploy.yml` builds
+`ghcr.io/<owner>/phd-tracker-api` and `…-export` and pushes them to GHCR —
+Koyeb and Render auto-deploy from those images; Vercel deploys `web/` itself.
 
 ## Environment variables (never in repo)
 
 | Service | Vars |
 |---|---|
-| api | `DATABASE_URL` (Neon pooled string), `JWT_SECRET`, `CORS_ORIGINS` |
-| export | `API_URL`, `PORT` |
+| api | `DATABASE_URL` (Neon pooled string), `JWT_SECRET` (≥32 bytes), `CORS_ORIGINS` (the Vercel web origin) |
+| export | `API_URL`, `PORT`, `CORS_ORIGINS` (the Vercel web origin) |
 | web | `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_EXPORT_URL` |
+
+## Deployment runbook (free tiers)
+
+1. **Neon**: create project → copy the pooled connection string.
+2. **GHCR**: push to `main` — `deploy.yml` publishes both images.
+3. **Koyeb** (API): create service from `ghcr.io/<owner>/phd-tracker-api:latest`;
+   set `DATABASE_URL`, `JWT_SECRET`, `CORS_ORIGINS=https://<app>.vercel.app`.
+   The container runs `alembic upgrade head` before serving.
+4. **Render** (export): create web service from
+   `ghcr.io/<owner>/phd-tracker-export:latest`; set `API_URL` (the Koyeb URL +
+   `/api/v1`), `PORT`, `CORS_ORIGINS` as above. Expect ~15-min idle spin-down.
+5. **Vercel** (web): import the repo, root directory `web/`, set the two
+   `NEXT_PUBLIC_*` vars to the Koyeb/Render URLs.
+6. **Seed production once**: `DATABASE_URL='<neon>' SEED_PASSWORD='<one-time>' \
+   python -m app.seed` (idempotent; rotate the password on first login).
+7. Click through `docs/TESTING.md` against the deployed URLs; a first-request
+   cold start of 15–60s is expected on both Koyeb and Render.
 
 ## Workflow: Progress Report (APR) approval
 
