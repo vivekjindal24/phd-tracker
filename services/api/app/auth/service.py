@@ -22,7 +22,10 @@ from ..models import RefreshToken, User
 ACCESS_TTL = timedelta(minutes=30)
 REFRESH_TTL = timedelta(days=30)
 
-_hasher = PasswordHasher()
+# argon2id, RFC 9106 low-memory profile. The library defaults (64 MB, 4 lanes)
+# took ~3.5s per login on a Render free instance (512 MB, 0.1 CPU).
+# ponytail: revisit if hardware grows or a pilot demands higher cost.
+_hasher = PasswordHasher(time_cost=2, memory_cost=19456, parallelism=1)
 
 
 def hash_password(password: str) -> str:

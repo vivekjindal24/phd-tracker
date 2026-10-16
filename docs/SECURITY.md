@@ -14,7 +14,8 @@
   sha256 hash. Single-use and rotating: every refresh revokes the presented
   token and issues a new pair. Kept in localStorage; `POST /auth/logout`
   revokes it.
-- **Password hashing:** bcrypt.
+- **Password hashing:** argon2id (RFC 9106 low-memory profile, tuned for the
+  free-tier instance CPU — see `app/auth/service.py`).
 - **User registration** (`POST /auth/register`) is admin-only — explicit
   check in the route, not a matrix cell.
 

@@ -66,9 +66,12 @@ click-through checklist lives in `docs/TESTING.md`.
 ## CI/CD
 
 GitHub Actions: `ci.yml` (ruff + pytest against a Postgres service container;
-typecheck + node:test) runs on every push/PR. On `main`, `deploy.yml` builds
-`ghcr.io/<owner>/phd-tracker-api` and `…-export` and pushes them to GHCR —
+typecheck + node:test; web build) runs on every push/PR. On `main`, `deploy.yml`
+builds `ghcr.io/<owner>/phd-tracker-api` and `…-export` and pushes them to GHCR —
 Render auto-deploys from those images; Vercel deploys `web/` itself.
+`keepalive.yml` pings both healthz endpoints every 5 min so the free-tier
+services never spin down (a 20s cold start otherwise greets the first user
+after 15 idle minutes).
 
 ## Environment variables (never in repo)
 
