@@ -102,4 +102,9 @@ async def login(db: AsyncSession, email: str, password: str) -> tuple[User, str,
 	if user is None or not verify_password(password, user.password_hash):
 		# Same error for unknown email and wrong password — no user enumeration.
 		raise ApiError(401, "invalid_credentials", "Email or password is incorrect")
+	if _hasher.check_needs_rehash(user.password_hash):
+		# Hashes carry their own cost parameters: hashes minted under the old
+		# defaults stay expensive forever until re-hashed. Upgrade transparently
+		# on successful login (caller commits).
+		user.password_hash = _hasher.hash(password)
 	return user, create_access_token(user), await issue_refresh(db, user.id)

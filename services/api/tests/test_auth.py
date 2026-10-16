@@ -83,3 +83,22 @@ def test_register_is_admin_only(client, trio):
 	)
 	assert resp.status_code == 409
 	assert resp.json()["error"]["code"] == "duplicate_email"
+
+def test_login_rehashes_expensive_legacy_hash(client, db):
+	# Hashes minted under the pre-change argon2 defaults stay expensive forever
+	# (params live in the hash) — login must upgrade them transparently.
+	from argon2 import PasswordHasher
+
+	from app.auth.service import _hasher
+	from app.models import User
+
+	uid = db.user("legacy@x.edu", "scholar")
+	u = db._session.get(User, uid)
+	u.password_hash = PasswordHasher().hash("Passw0rd!")  # old defaults: expensive profile
+	db.commit()
+
+	tokens = login(client, "legacy@x.edu")
+	assert tokens["user"]["role"] == "scholar"
+
+	db._session.expire_all()
+	assert not _hasher.check_needs_rehash(db._session.get(User, uid).password_hash)
