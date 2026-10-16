@@ -14,6 +14,30 @@ const ERROR_BODY = (status: number, code: string, message: string) => ({
 export function createApp() {
 	const app = express();
 
+	// Browser PDF/CSV downloads are cross-origin (Vercel web → Render export).
+	// Explicit allowlist from env, never "*" — mirrors the API's CORS policy.
+	const origins = (process.env.CORS_ORIGINS ?? "")
+		.split(",")
+		.map((o) => o.trim())
+		.filter(Boolean);
+	if (origins.length > 0) {
+		app.use((req, res, next) => {
+			const origin = req.header("origin");
+			if (origin && origins.includes(origin)) {
+				res.setHeader("Access-Control-Allow-Origin", origin);
+				res.setHeader("Vary", "Origin");
+				if (req.method === "OPTIONS") {
+					// preflight for the forwarded Authorization header
+					res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+					res.setHeader("Access-Control-Allow-Headers", "Authorization");
+					res.status(204).end();
+					return;
+				}
+			}
+			next();
+		});
+	}
+
 	app.get("/healthz", (_req: Request, res: Response) => {
 		res.json({ status: "ok", service: "export" });
 	});
