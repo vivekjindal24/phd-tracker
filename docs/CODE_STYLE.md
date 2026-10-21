@@ -1,15 +1,14 @@
 # Code Style & Conventions
 
-> v2 rewrite: Frappe house style is superseded. Three codebases, three
-> toolchains, one set of principles. The v1 rules that survive are carried
-> over verbatim below.
+> v3 (2026-10): Anveshan — three codebases, three toolchains, one set of
+> principles.
 
 ## 1. General Principles (all services)
 
 - Prefer readable code over clever code; keep functions focused (<50 lines),
   files small (200–400 typical, 800 max).
 - Reuse what's already here before writing new: the shared crud helpers,
-  `get_or_403`, the error envelope, the UI kit (`web/src/lib/ui.tsx`).
+  `scope.py`, `get_or_403`, the approval engine, the error envelope, the UI kit (`web/src/components/ui/`).
 - Platform first: DB constraint over app code, `<input type="date">` over a
   picker library, CSS over JS.
 - **Fail loudly** — no swallowed exceptions, no silent fallbacks. This is
@@ -28,11 +27,17 @@
   async routes. No blocking I/O in handlers.
 - Pydantic validates every boundary; Literals mirror the DB CHECK
   constraints exactly.
-- Routers stay thin; business rules live in `rbac.py`/`workflow.py` and the
-  crud helpers — not in UI, not in scripts, not duplicated per route.
+- Routers stay thin; business rules live in `scope.py`/`rbac.py`/
+  `workflow.py` and the crud helpers — not in UI, not in scripts, not
+  duplicated per route. Visibility is computed only in `scope.py`.
+- Optional-module routers declare the `require_module("<key>")`
+  dependency; never check module flags inline.
 - Errors: raise `ApiError` (`app/errors.py`) — it maps to the uniform
   envelope. Never `print()`; never return error strings.
-- One state machine: APR state comes only from `workflow.TRANSITIONS`.
+- One approval engine: the state of every approvable item (APR,
+  publication, thesis submission, coursework clearance) changes only through
+  `workflow.py`. A new approvable type plugs into the engine — never its own
+  status field or transition table.
 - Naming: snake_case functions, UPPER_SNAKE_CASE constants, PascalCase
   classes. Type hints on every signature.
 - Migrations go through Alembic in the same change as the model; DATABASE.md
@@ -53,8 +58,8 @@
 
 - Client components (`"use client"`) behind the auth gate; the API is the
   security enforcer — the UI only hides what the API already denies.
-- Design tokens and components live in `globals.css`, `(app)/app.css`, and
-  `src/lib/ui.tsx` — no Tailwind, no UI library, no new font stacks
+- Design tokens live in `globals.css`, components in `src/components/ui/`
+  — no Tailwind, no UI library, no fonts beyond Fraunces + Nunito
   (DESIGN_SYSTEM.md governs the look).
 - State conveyed text-first, color second; semantic HTML (`<dl>` for
   key-value, real `<table>` for registers, `<form>` with labels).
@@ -62,6 +67,10 @@
 - Env vars: only `NEXT_PUBLIC_API_URL` and `NEXT_PUBLIC_EXPORT_URL` (they
   are public by design — the JWT is the secret, and it never ships in the
   bundle).
+- Navigation and buttons are driven by `/auth/me` (roles, modules) and the
+  item's state from the API — never by client-side role or status guesses.
+- `output: "standalone"` in `next.config.ts` so the same build runs on
+  Vercel and in the self-hosted container.
 - Turbopack persistent cache is off (`next.config.ts`) — the exFAT working
   volume breaks its cache DB; Vercel builds are unaffected.
 
@@ -77,10 +86,10 @@
 ## 6. Do / Don't
 
 **Do**
-- Extend existing patterns: a new workflow action goes in `TRANSITIONS`; a
-  new permission in `MATRIX`; a new page composes the UI kit.
-- Write the negative test with the route (a scholar must not read another
-  scholar's record — forever).
+- Extend existing patterns: a new approvable type plugs into `workflow.py`;
+  a new permission goes in `MATRIX`; a new page composes the UI kit.
+- Write the negative tests with the route (a scholar must not read another
+  scholar's record; a HoD must not read another unit's — forever).
 - Update the affected doc section in the same commit as the change that
   makes it true.
 
@@ -91,4 +100,3 @@
 - Don't add a dependency for what a few lines of stdlib/platform code do.
 - Don't catch an exception just to log-and-continue — surface it (uniform
   envelope, user-visible message, or a loud log with context).
-- Don't touch `phd_tracker/` (the frozen v1 Frappe app).

@@ -2,24 +2,27 @@
 
 ## 1. Project Context
 
-- **Project:** PhD Tracker v2 — cloud-native rewrite.
-- **Purpose:** Supervisor–scholar workspace for Indian university PhD programs.
-  The daily-use layer (meetings, progress reports, milestones) is the product;
-  UGC compliance paperwork is generated as a byproduct.
+- **Project:** Anveshan (repo: `phd-tracker`) — v3 rebuild from scratch.
+- **Purpose:** the one-stop research system of an Indian university.
+  Scholars, supervisors, unit heads (HoD, Dean), scoped admins and the
+  central offices (research office, exam office, library) work in one place;
+  UGC compliance records fall out of daily use.
 - **Stack:** polyglot monorepo, no single framework:
-  - `services/api` — Python/FastAPI: auth (JWT + rotating refresh tokens), all
-    entities, the APR workflow state machine, search, audit. Sole owner of the
-    Postgres schema `core`.
-  - `services/export` — Node/TypeScript: stateless PDF/CSV exports; holds zero
-    auth/data logic, reads only via the API's internal endpoints with the
+  - `services/api` — Python/FastAPI: auth (JWT + rotating refresh tokens),
+    org tree, scoped role assignments (`scope.py`), the permission matrix
+    (`rbac.py`), the generic approval engine (`workflow.py`), optional
+    modules, notifications, files (presigned S3), search, audit. Sole owner
+    of the Postgres schema `core`.
+  - `services/export` — Node/TypeScript: stateless PDF/CSV exports; zero
+    auth/data logic; reads only via the API's `/internal` endpoints with the
     caller's token forwarded.
-  - `web` — Next.js (App Router) on Vercel.
-  - `phd_tracker/` — Frappe v1 app, **frozen reference only, never modify**.
-- **Deployment:** everything on cloud platforms at $0 free tiers — Neon Postgres,
-  Render (API + export), Vercel (web); GitHub Actions → GHCR images.
-  Services are stateless and idle-spin-down tolerant; expect cold starts.
-- **Primary Users:** PhD scholars, PhD supervisors, research office admins.
-  The buyer (registrar/dean) gets PDF exports, never a login.
+  - `web` — Next.js (App Router), warm academic claymorphism with the owl.
+- **Deployment:** one installation per university. Dev/test on free cloud
+  tiers (Neon, Render, Vercel, Cloudflare R2); production self-hosted on a
+  server/NAS via Docker Compose (Postgres, MinIO, API, export, web, Caddy).
+  Same images everywhere; only environment differs.
+- **Primary Users:** scholar, supervisor, unit_head, admin (scoped),
+  research_office, exam_office, library — one login may hold several roles.
 
 ## 2. Source of Truth
 
@@ -41,7 +44,7 @@ the conflict and ask — do not guess.
   `__pycache__` are junk — gitignored; never stage or edit them. They break
   tools that scan directories (alembic chokes on `._*.py`): delete them
   (`find . -name '._*' -delete`) before running such tools. Python virtual
-  environments must live off this volume (e.g. `~/.venvs/phd-tracker-api`) —
+  environments must live off this volume (e.g. `~/.venvs/anveshan-api`) —
   exFAT breaks wheel RECORD verification.
 
 Standing engineering principles (owner directive, applies to every change):
@@ -54,8 +57,10 @@ Standing engineering principles (owner directive, applies to every change):
 - **Error handling everywhere:** no swallowed exceptions, no silent fallbacks —
   uniform error envelope (`app/errors.py`), every failure surfaces to the user
   or the log.
-- **One source of state:** APR lifecycle state lives in the `workflow.py` state
-  machine — never in ad-hoc status fields or client-side variables.
+- **One source of state:** the state of every approvable item lives in the
+  approval columns and changes only through the `workflow.py` engine — never
+  in ad-hoc status fields or client-side variables. Visibility is computed
+  only in `scope.py`.
 - **API surface stays structured:** all routes versioned under `/api/v1`;
   endpoints the export service consumes live under `/internal` with the same
   JWT auth, not scattered.
@@ -84,7 +89,7 @@ Before implementing a non-trivial task:
 
 After implementation (run what applies; report what was skipped):
 1. API: `ruff check .` + `pytest` (needs `DATABASE_URL` and a live Postgres;
-   venv: `~/.venvs/phd-tracker-api`).
+   venv: `~/.venvs/anveshan-api`).
 2. Export: `npm run typecheck` + `npm test`.
 3. Migration sanity: `alembic upgrade head` against a scratch DB when DDL changed.
 4. Confirm no unrelated files changed (`git status`).
@@ -108,6 +113,7 @@ A task is complete only when:
 - The PRD acceptance criteria for the touched feature hold.
 - Lint/tests pass for the touched services.
 - No unintended files changed.
-- Security matrix (SECURITY.md §2) still holds — including negative cases
-  (e.g. a scholar cannot read another scholar's records).
+- Security matrix (SECURITY.md §3) still holds — including negative cases
+  (a scholar cannot read another scholar's records; a unit head cannot read
+  outside their subtree; unshared meeting minutes stay redacted).
 - Docs updated where behavior changed.

@@ -1,132 +1,178 @@
 # Security Guidelines
 
-> v2 rewrite: Frappe sessions → JWT + rotating refresh tokens. The permission
-> matrix is unchanged in substance; enforcement moved from DocType JSON into
-> `services/api/app/rbac.py`.
+> v3 rewrite (2026-10): three fixed roles → seven roles held through scoped
+> role assignments on the org tree; per-meeting minutes sharing; files in
+> object storage via presigned URLs. **The API is the enforcer** — the UI
+> may hide what it likes, every route re-checks.
 
 ## 1. Authentication
 
-- **Method:** email + password only (university-internal tool; no OAuth until
-  a pilot asks).
+- **Method:** email + password (university-internal tool; SSO only when a
+  pilot asks).
 - **Access token:** HS256 JWT, 30-minute expiry, held in browser memory
-  (module variable — never localStorage, never a cookie).
-- **Refresh token:** 48-byte urlsafe random; the DB row stores only its
-  sha256 hash. Single-use and rotating: every refresh revokes the presented
-  token and issues a new pair. Kept in localStorage; `POST /auth/logout`
-  revokes it.
-- **Password hashing:** argon2id (RFC 9106 low-memory profile, tuned for the
-  free-tier instance CPU — see `app/auth/service.py`).
-- **User registration** (`POST /auth/register`) is admin-only — explicit
-  check in the route, not a matrix cell.
-
-## 2. Authorization
-
-Roles: **scholar**, **supervisor**, **admin** (v2 drops the "PhD"/"Research
-Office" prefixes; substance unchanged). The matrix lives as data in
-`services/api/app/rbac.py` (`MATRIX`); the UI may hide what it likes, but
-**the API is the enforcer** — every route re-checks.
-
-| Entity | scholar | supervisor | admin |
-|---|---|---|---|
-| scholars | read (own) | read (own supervisees) | full |
-| supervisors | read (directory) | read | full |
-| meetings | create, read, write (own) | create, read, write (own scholars') | full |
-| progress reports | create, read, write, submit, resubmit (own) | read, write (comment), approve, send_back | full + all actions |
-| milestones | read (own) | create, read, write (own scholars') | full |
-
-Row-level scope (`rbac.scope()`):
-- A scholar sees **only their own** records; a supervisor only their
-  supervisees' (subquery on `scholars.supervisor_id`). The supervisors
-  directory is readable by all roles (a public faculty list).
-- Cross-record access returns **403, not 404** (`get_or_403`) — a denied
-  request must not leak whether the record exists.
-- The v1 gap ("scholar can read another scholar's records") is closed by
-  construction and covered by a regression test
-  (`test_scholar_cannot_read_another_scholars_records`).
-- **Polymorphic records (comments, attachments):** they have no matrix row
-  and no `scope()` of their own — visibility is *the target record's*
-  `get_or_403`, applied on every list/create/download/delete route. A
-  scholar therefore can never comment on, attach to, or download a file
-  hanging off another scholar's record (covered by `test_comments.py`,
-  `test_attachments.py`). Deletion is author/uploader-or-admin. Attachment
-  uploads are capped at 2MB (router 413 + DB CHECK); download responses
-  sanitize the filename header (no header injection).
-- **Dashboard stats** (`/stats/dashboard`) are scoped through the same
-  `scope()` machinery — a scholar's counts are their slice, no role
-  branching. Raw audit rows (`recent_activity`) are admin-only: they are
-  polymorphic and their JSONB snapshots need redaction before any other
-  role could see them.
-  - Known follow-up: pre-existing audit `snapshot()` includes
-    `users.password_hash` in `data` when a user row is mutated; harmless
-    while recent_activity is admin-only, redact before ever widening it.
-
-## 3. Workflow Role-gating
-
-`workflow.py TRANSITIONS` additionally gates by role per state: only
-scholar/admin submit or resubmit; only supervisor/admin approve or send back.
-An illegal combination → 422 `workflow_violation`. An **approved report is
-immutable for every role** — it is the compliance record.
-
-## 4. Secrets & Environment
-
-- Never hard-code credentials; never commit production secrets; never commit
-  `.env` files. All config arrives by environment and is validated loudly at
-  startup (`app/config.py`).
-- Required: `DATABASE_URL`, `JWT_SECRET` (≥32 bytes, startup fails if
-  shorter); `SEED_PASSWORD` only for seeding.
-- Deploy-time secrets (Neon, Render, Vercel) live in each platform's
-  environment settings — never in this repo. Rotate any exposed secret
+  (never localStorage, never a cookie). Claims carry only `sub` — roles and
+  scope are loaded from the DB per request, so a revoked role takes effect
   immediately.
+- **Refresh token:** 48-byte urlsafe random; DB stores only its sha256 hash.
+  Single-use, rotating; `POST /auth/logout` revokes it.
+- **Password hashing:** argon2id (RFC 9106 low-memory profile).
+- **Accounts** are created by admins (within their unit) or by admission
+  conversion — no self-registration. Deactivated users (`is_active = false`)
+  cannot log in or refresh.
+- **Login throttling:** 5 failed attempts per email per 15 minutes → 429.
 
-## 5. API Security
+## 2. Roles & Scope
 
-- All routes versioned under `/api/v1`; endpoints the export service consumes
-  live under `/internal` with the same JWT auth (admin-only), the caller's
-  token forwarded verbatim — the export service never holds a service
-  credential of its own.
-- **Validation:** Pydantic validates every boundary (Literals mirror the DB
-  CHECK constraints); cross-row rules (duplicate APR, UGC cap) are enforced
-  by partial unique index + router checks.
-- **CORS:** explicit origin allowlist from `CORS_ORIGINS` (API) /
-  `CORS_ORIGINS` (export) — never `"*"` with credentials.
-- **Errors:** one envelope (`{"error": {code, message, details}}`); messages
-  never leak internals. Unhandled exceptions log server-side and return a
-  generic 500.
-- **Audit:** every mutation writes an `audit_log` row (actor, action,
-  prev/new snapshots). Soft-delete only; no hard deletes.
+| Role | Comes from | Scope |
+|---|---|---|
+| scholar | `scholars.user_id` | own records |
+| supervisor | `faculty.can_supervise` | own supervisees' records |
+| co-supervisor | `scholars.co_supervisor_id` (setting `co_supervision ≠ off`) | as supervisor for those scholars |
+| unit_head | role_assignments (unit) | unit subtree |
+| admin | role_assignments (unit) | unit subtree; root admin = whole university + settings |
+| research_office | role_assignments | university-wide |
+| exam_office | role_assignments | university-wide, own item types only |
+| library | role_assignments | university-wide, own item types only |
 
-## 6. Token Storage Tradeoff (known, accepted)
+A user with several roles gets the **union** of what each role allows — never
+a combination that no single role allows (e.g. a supervisor who is also the
+library cannot approve the supervisor step *and* the library step of the same
+item: see §3).
+
+Scope is computed in exactly one place, `services/api/app/scope.py`, and
+applied to every list, detail, search, dashboard, timeline and export.
+Out-of-scope access returns **403, not 404** (`get_or_403`) — a denied request
+must not reveal whether the record exists.
+
+## 3. Permission Matrix
+
+`services/api/app/rbac.py` `MATRIX` holds this table as data. C = create,
+R = read, U = update, D = soft-delete, "step" = may act on the chain step of
+that kind. "—" = no access (403). All rows are additionally limited by the
+role's scope (§2).
+
+| Entity | scholar | supervisor | unit_head | admin | research_office | exam_office | library |
+|---|---|---|---|---|---|---|---|
+| org tree, modules, chains, settings | R (own unit) | R | R | R; root admin CUD | R | R | R |
+| users & role assignments | R self | R self | R | CUD in subtree (cannot grant above own unit) | R | — | — |
+| faculty / scholars directory | R own | R supervisees + faculty list | R | CUD, assign supervisor | R | R | R |
+| meetings | CRU own | CRU supervisees, sets `shared_with` | R redacted* | R redacted* | R redacted* | — | — |
+| progress reports | CRU own draft/sent_back, submit | R, step | R, step (department) | R, step (department) | R, step | — | — |
+| milestones (RDC register) | R own | R | R | CRUD | CRUD | R | — |
+| publications | CRU own, submit | R, step | R | R | R, step | — | R, step |
+| conferences | CRUD own | R | R | R | R | — | R |
+| documents & versions | CRU own | R, comment | — | — | — | — | — |
+| thesis submissions | CRU own, submit | R, step | R, step (department) | R, step (department) | R, step | R, step | R, step |
+| courses (catalogue) | R | R | R | CRUD in subtree | R | CRUD | — |
+| enrolments & grades | R own | R | R | R | R | CRUD | — |
+| coursework clearances | R own | R | R, step (department) | R, step (department) | R, step | create, submit, step | — |
+| admissions | — | — | R | CRUD, convert | CRUD, convert | — | — |
+| fellowships | R own | R supervisees | R | CRUD | CRUD | — | — |
+| projects & members | R own membership | R own (as PI) | R | CRUD | CRUD | — | — |
+| ledger & UCs | — | R own projects, C expense on own projects | R | CRUD | CRUD | — | — |
+| comments | on any record they can R | ← | ← | ← | ← | ← | ← |
+| files | on any record they can R (upload where they can U/C) | ← | ← | ← | ← | ← | ← |
+| exports | own record | supervisees | subtree | subtree | all | coursework, thesis | publications, thesis |
+| audit log | — | — | — | R in subtree | R | — | — |
+
+\* **Meeting redaction:** a viewer in scope sees the full meeting only if
+their role group is in `meetings.shared_with` (`unit_heads`, `research_office`,
+`admins`); otherwise the API returns only `id`, `meeting_date`, scholar and
+supervisor — agenda, minutes and action items are omitted server-side (and
+from search results and exports). Only the main supervisor may change
+`shared_with`. A co-supervisor (setting `view`/`approve`) has the supervisor
+column's rights on their co-supervised scholars, except setting
+`shared_with`; acting on the Supervisor step needs `approve`.
+
+Disabled modules: every route of the module → 404 `module_disabled`
+regardless of role.
+
+## 4. Approval Engine Rules (`workflow.py`)
+
+- Only the initiator role (PRD F3) may create and submit an item; only the
+  scholar edits their own `draft`/`sent_back` item; coursework clearances
+  are created by the exam office.
+- `can_act(user, item)`: the current step's kind resolves to
+  - `supervisor` → the scholar's supervisor, or the co-supervisor when
+    `settings.co_supervision = 'approve'`;
+  - `department` → a `unit_head` or `admin` whose unit is the scholar's unit
+    or an ancestor of it (nearest-first, but any of them may act);
+  - `research_office` / `exam_office` / `library` → any holder of that role.
+- **No self-approval:** a user may not act on an item about themselves, and
+  may not act on two consecutive steps of the same item (the engine checks
+  `approval_actions`); the next eligible person must act.
+- Send back: approver chooses the initiator or any earlier step; comment
+  required. Illegal action/role/state → 422 `workflow_violation`.
+- Step-only fields (`plagiarism_score` — library; `examiners` — exam office)
+  are writable only by the actor of that step while it is current.
+- An `approved` item is immutable for every role.
+
+## 5. Secrets & Environment
+
+- Never hard-code credentials; never commit secrets or `.env` files. Config
+  arrives by environment, validated loudly at startup (`app/config.py`).
+- Required: `DATABASE_URL`, `JWT_SECRET` (≥32 bytes), `S3_*`, `SMTP_*`,
+  `CRON_SECRET`; `SEED_PASSWORD` only for seeding.
+- Dev secrets live in each platform's settings (Neon, Render, Vercel,
+  Cloudflare); production secrets in the server's compose `.env` file,
+  readable only by root, never in git. Rotate any exposed secret immediately.
+
+## 6. API Security
+
+- All routes under `/api/v1`; export-service endpoints under `/internal` with
+  the same JWT auth and the same scope; the export service never holds a
+  credential of its own. `/internal/cron/daily` additionally requires
+  `X-Cron-Secret` and no user token.
+- **Validation:** Pydantic on every boundary (Literals mirror DB CHECKs);
+  cross-row rules (duplicates, UGC cap, chain step) enforced by DB
+  constraints + the engine.
+- **Files:** presigned URLs are issued only after the owner record's
+  `get_or_403`; upload URLs bind content type and max size and expire in
+  5 minutes; download responses force `Content-Disposition: attachment` with a
+  sanitised filename. The bucket is private — no public objects.
+- **CORS:** explicit origin allowlist (`CORS_ORIGINS`) on API and export —
+  never `*`.
+- **Errors:** one envelope `{"error": {code, message, details}}`; messages
+  never leak internals; unhandled exceptions log server-side, return 500.
+- **Audit:** every mutation writes `audit_log`; password and token hashes are
+  redacted from snapshots.
+
+## 7. Token Storage Tradeoff (known, accepted)
 
 The refresh token sits in localStorage: an XSS bug could steal it. Judged
-low-risk for a closed, no-third-party-script tool. **Upgrade path:** move
-the refresh token to an httpOnly SameSite=Strict cookie behind a Next route
-handler proxy (noted in `web/src/lib/api.ts`); nothing else changes.
+low-risk for a closed tool with no third-party scripts. **Upgrade path:**
+httpOnly SameSite=Strict cookie behind a Next route-handler proxy.
 
-## 7. Data Protection
+## 8. Data Protection
 
-- **Sensitive data:** emails, meeting minutes, research summaries, GitHub
-  URLs. Transport is HTTPS (Vercel/Render endpoints are TLS by
-  default); at-rest is Neon's storage encryption.
-- **Retention:** records are permanent — they ARE the PhD's audit trail.
-  Soft-delete only. Deletion requests escalate to the owner; never
-  auto-delete compliance records.
-- **Export:** PDF/CSV generation is restricted to admin (the research
-  office); a scholar/supervisor token → 403.
+- **Sensitive data:** personal details, meeting minutes, research
+  summaries, theses before publication, grades, fellowship amounts.
+- Transport: HTTPS everywhere (platform TLS in dev; Caddy automatic HTTPS in
+  production). At rest: provider encryption in dev; full-disk encryption on
+  the production NAS is a deployment requirement.
+- **Retention:** records are permanent — they ARE the PhD trail. Soft-delete
+  only; deletion requests escalate to the root admin.
+- **Backups (production):** nightly `pg_dump` + bucket sync to a second
+  disk; restore tested before go-live.
 
-## 8. Logging
+## 9. Logging
 
-- Never log passwords, token hashes, or full record contents.
-- Log: auth events, workflow transitions, errors with context (the API logs
-  tracebacks for 500s; the export service logs render failures).
+- Never log passwords, tokens, token hashes, file contents or meeting
+  minutes.
+- Log: auth events (success/failure), role-assignment changes, workflow
+  actions, email failures, errors with context.
 
-## 9. Security Checklist
+## 10. Security Checklist
 
-- [x] Permission matrix enforced server-side (API); 403-not-404 row scope
-- [x] Workflow actions role-gated; approved reports immutable
-- [x] Rotating single-use refresh tokens; hashed at rest
-- [x] No secrets in repo; loud env validation at startup
-- [x] CORS allowlist on both services, never `*`
-- [x] Soft-delete-only retention + audit_log on every mutation
-- [x] Scholar-visibility regression test in CI
-- [ ] HTTPS verified on deployed URLs (Phase 4 checklist)
-- [ ] `pip-audit` / `npm audit` before pilot
+- [ ] Scope computed only in `scope.py`; 403-not-404 everywhere
+- [ ] Negative tests: other scholar, other unit's head/admin, office outside
+      its item types, unshared meeting minutes, disabled module
+- [ ] No self-approval / consecutive-step approval
+- [ ] Admins cannot grant roles above their own unit
+- [ ] Rotating single-use refresh tokens; login throttling
+- [ ] Private bucket; presigned URLs only after `get_or_403`
+- [ ] No secrets in repo; loud env validation
+- [ ] CORS allowlist on both services
+- [ ] Soft delete + audit on every mutation; hashes redacted
+- [ ] HTTPS verified on every deployment
+- [ ] `pip-audit` / `npm audit` clean before pilot

@@ -1,83 +1,164 @@
 # UX Flows
 
-> v2 rewrite: Frappe Desk mechanics are superseded by the Next.js web app
-> (`web/`). The API is the enforcer on every step; the UI only offers what the
-> current role/state permits. Each flow is the manual E2E checklist
-> (docs/TESTING.md) until it's automated.
+> v3 rewrite (2026-10): flows for every level of the university. The API is
+> the enforcer on every step; the UI only offers what the user's roles,
+> scope, the item's state and the enabled modules permit. Each flow is the
+> manual E2E checklist (TESTING.md) until it is automated.
 
-## Flow 0 — Login / session
+## Flow 0 — Login, session, multi-role home
 
-1. User opens `/` → redirected to `/login` (no token) or `/dashboard` (valid).
-2. Enters email + password → `POST /api/v1/auth/login` → access token in memory
-   (module variable), refresh token in localStorage.
-3. Nav renders only the role's routes (a scholar never sees Supervisors;
-   supervisors get no "New report" button — the API would 403 either way).
-4. Idle past 30 min → next call 401s → one silent refresh-and-replay; a second
-   401 → back to `/login` with a message.
+1. `/` → `/login` (no token) or `/home` (valid session).
+2. Email + password → `POST /api/v1/auth/login` → access token in memory,
+   refresh token in localStorage. `/auth/me` returns role assignments and
+   enabled modules.
+3. Navigation shows the union of the user's roles, grouped: **My work**
+   (queue, scholars/meetings/reports), **My unit** (heads/admins),
+   **Office** (offices), **Settings** (root admin). Disabled modules never
+   appear.
+4. `/home` stacks one dashboard section per role (e.g. Dr. Meera: "Your
+   queue" → "Your scholars" → "Computer Science overview" → "Department
+   admin"). A role switcher is not needed — everything is on one page.
+5. Idle past 30 min → next call 401s → one silent refresh-and-replay; a
+   second 401 → `/login` with a message.
+6. Cold start: if the API takes > 3 s, the sleeping owl shows "Waking up the
+   server…" until it answers.
 
-**Failure:** bad credentials → the API's error envelope shown inline, no
-silently empty dashboard.
+**Failure:** bad credentials → error envelope inline; 5 failures → 429
+"Too many attempts, try again in 15 minutes".
 
-## Flow 1 — Scholar submits six-monthly progress report
+## Flow 1 — Scholar submits a progress report (APR chain)
 
-1. Scholar logs in (role: scholar), opens **Reports**.
-2. Clicks **New report** (only scholar/admin see it), picks period + year,
-   writes the summary. Their own scholar record is attached automatically.
-3. Save → card appears as **Draft** with an Edit control on the detail page.
-4. Opens it → edits summary → **Submit for approval**.
-5. Detail shows the **Submitted** badge; the summary editor is gone (locked).
+1. Scholar → **Reports** → **New report**: period + year + summary.
+2. Save → **Draft**; **Submit for approval** → badge **In review ·
+   Supervisor**. The item page shows the chain as a row of clay steps with
+   the current one highlighted.
+3. Each approver sees it in **Your queue**; the scholar sees the step move
+   (**In review · Department**, **In review · Research Office**).
+4. Final approval → **Approved** badge pops, the owl cheers once, confetti
+   (reduced-motion: none). The report is locked for everyone.
 
-**Failure paths:** duplicate (scholar, year, period) → 409 `duplicate_apr`
-shown inline; supervisor attempting the same create → the button isn't
-rendered, and the API returns 403 regardless.
+**Failure paths:** duplicate period → 409 `duplicate_apr` inline; a
+non-initiator never sees the New button and the API 403s anyway.
 
-## Flow 2 — Supervisor approves or sends back
+## Flow 2 — Approver acts on any chain step
 
-1. Supervisor opens **Reports**, filters by state = Submitted.
-2. Opens a report, reads the summary, writes a supervisor comment, then either
-   **Approve** (→ Approved, `approved_on` set) or **Send back** (→ Rejected
-   with the comment as the reason).
-3. If sent back: the scholar opens the Rejected report, edits the summary,
-   **Resubmit** (→ Draft), then **Submit for approval** again.
+1. Approver opens **Your queue** (items at a step they can act on, oldest
+   first, with item type, scholar and days waiting).
+2. Opens an item: content, files, comments, full approval history.
+3. **Approve** (optional comment) → next step, or Approved if last.
+4. **Send back** → picker: "To the scholar" or any earlier step by name
+   (e.g. "Supervisor"); comment required. The receiver is notified and sees
+   the reason pinned at the top.
+5. Scholar edits a **Sent back** item → **Resubmit** → the chain restarts
+   from step 1 with the snapshot taken at the original submit.
 
-**Immutability:** once Approved, no role sees any control — the compliance
-record is frozen server-side (workflow.py) and the UI mirrors it. The
-`audit_log` carries the full cycle (draft → submitted → rejected → draft → …).
+**Rules surfaced in the UI (enforced in the API):** if the user already acted
+on the previous step, the buttons are replaced by "Another approver needs to
+act on this step"; step-only fields (Library's plagiarism score, Exam
+Office's examiners) appear only to that step's actor.
 
-## Flow 3 — Log a meeting
+## Flow 3 — Log a meeting and choose who above can read it
 
-1. Supervisor (or scholar, or admin) opens **Meetings** → **Log meeting**.
-2. The counterparty is picked from the caller's own scoped scholar list;
-   meeting_date, agenda, minutes, action items, next meeting date are filled.
-3. Save → the row is visible to both parties and the research office.
+1. Supervisor (or scholar) → **Meetings** → **Log meeting**: scholar,
+   date, agenda, minutes, action items, next date.
+2. **Share minutes with** (supervisor only): checkboxes Unit heads /
+   Research Office / Admins — all unticked by default, with the hint
+   "Unticked roles see only that the meeting happened."
+3. Save → full record visible to scholar and supervisor; a HoD in scope sees
+   "Meeting held · 21 Oct 2026" unless Unit heads was ticked.
 
-**Error:** a scholar with no supervisor assigned → the form refuses with a
-message (a meeting needs both parties); backdated dates are allowed (real
-life) but visibly timestamped.
+**Error:** scholar with no supervisor → form refuses ("a meeting needs both
+parties"). Backdated dates allowed, visibly timestamped.
 
-## Flow 4 — Research office records an RDC milestone
+## Flow 4 — Head of Department / Dean oversight
 
-1. Admin opens **Milestones** → **Add milestone**, picks the scholar, the UGC
-   lifecycle type, status, approval body, resolution number/date, notes.
-2. **Register PDF / Register CSV** download the milestone register for the
-   committee meeting (export service, admin-only; the token is forwarded).
+1. HoD opens `/home` → **Computer Science overview**: scholars by stage
+   (clay bar), overdue APRs (names), items stuck > 14 days (step + days),
+   supervisor load vs UGC cap (bars turn coral at cap), publications this
+   year.
+2. Clicking any number opens the filtered list; clicking a scholar opens the
+   timeline (meeting minutes redacted unless shared).
+3. A Dean sees the same per department, side by side, plus faculty totals.
+4. **Unit summary PDF** downloads the overview for the committee meeting.
 
-**Success:** scholars see their milestones read-only; supervisors/admin can
-create/update.
+## Flow 5 — Admin manages people (scoped)
 
-## Flow 5 — Buyer / committee (no login)
+1. Department admin → **My unit → People**: scholars and faculty of their
+   subtree.
+2. **Add scholar**: name, email, roll number, unit (subtree only), research
+   title, admission date, supervisor (only faculty with spare cap are
+   listed; over cap → 409 shown inline), and a co-supervisor (any faculty,
+   shown only when co-supervision is on). The user gets a set-password
+   email.
+3. **Add faculty**: designation sets the default cap.
+4. **Roles**: assign HoD / admin for units in their subtree only.
+5. Root admin additionally sees **Settings**: org tree editor (add / rename
+   / move units), **Approval chains** (per item type: ordered clay step chips,
+   add / remove / reorder, saved with a note "applies to new submissions
+   only"), **Modules** (switches), **Co-supervision** (Off / View /
+   View + approve).
 
-1. Registrar requests the half-yearly compliance pack.
-2. Admin opens the approved APR → **Download PDF** (export service renders it
-   from the API's `/internal` response).
-3. PDFs are emailed; no committee member ever opens the system.
+## Flow 6 — Research office keeps the RDC register
 
-**Empty state:** a scholar with no records exports as a cover page with
-"no records" — never a blank PDF (tested in the export suite).
+1. **Register → Add decision**: scholar, milestone type, status, body
+   (RDC/DPGC/DRC/RAC), resolution number/date, notes.
+2. **Register PDF / CSV** for the committee meeting.
+3. The scholar's RDC status updates on their profile and on head dashboards.
 
-## Flow 6 — Search
+## Flow 7 — Publication verified by the Library (module)
 
-1. Any role types in **Search** (trigram, partial matches like
-   `PHD-CS-2024-` work).
-2. Results group by entity; rows are scoped exactly like the lists — a
-   scholar's search never surfaces another scholar's records.
+1. Scholar → **Publications → Add**: details, indexing, DOI, PDF →
+   **Submit**.
+2. Supervisor confirms authorship → Library sees it in **Your queue**, checks
+   the journal against Scopus / WoS / UGC-CARE and approves, or sends back
+   (e.g. to the scholar: "Journal not in UGC-CARE list") → Research Office
+   approves.
+
+## Flow 8 — Thesis submission (module)
+
+Scholar uploads the final thesis → Supervisor → Department → **Library**
+enters plagiarism tool + score and approves → **Exam Office** records receipt
+and examiners → Research Office final approval → scholar stage moves to
+Thesis Submitted.
+
+## Flow 9 — Coursework (module)
+
+1. Exam Office → **Coursework**: picks a scholar, enrols courses from the
+   unit catalogue, enters grades.
+2. **Submit for clearance** → Department confirms → Exam Office marks
+   **Cleared** (CGPA computed) → Research Office notes it. Scholar stage
+   moves past Coursework.
+
+## Flow 10 — Admission to scholar (module)
+
+Admin → **Admissions → Add**: entrance route and score, interview date and
+result, admission date → **Convert to scholar** (selected candidates only)
+pre-fills Flow 5's Add scholar form; the admission links to the new scholar.
+
+## Flow 11 — Grants (modules)
+
+- **Fellowships:** admin / research office records scheme, amounts, dates;
+  JRF→SRF upgrade sets the date; scholars see their own; reminder 60 days
+  before end.
+- **Projects:** PI, agency, sanction, members; PI sees own projects.
+- **Ledger:** disbursements and expenses per project/fellowship with a
+  running balance; PI may add expenses on own projects; utilisation
+  certificates uploaded per period.
+
+## Flow 12 — Notifications
+
+Bell icon with unread count → inbox (newest first, mark read). Each item
+links to the record. **Settings → Notifications**: email on/off per
+category; in-app always on.
+
+## Flow 13 — Search
+
+Search box in the top bar; partial matches (`PHD-CS-2024-`); results grouped
+by entity, scoped exactly like the lists, only enabled modules, meeting
+minutes never matched unless shared with the viewer.
+
+## Flow 14 — Committee / external (no login)
+
+Admin or head downloads PDFs (APR, scholar record, register, unit summary)
+and emails them. Empty states export as a cover page with "No records" —
+never a blank PDF.
