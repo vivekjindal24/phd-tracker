@@ -1,0 +1,65 @@
+"""The permission matrix as data (SECURITY.md §3). Scope (which rows) lives in scope.py;
+this file only answers "may this role do this action on this entity at all"."""
+
+from fastapi import Depends
+
+from app.auth.deps import current_principal
+from app.auth.principal import Principal
+from app.errors import ApiError
+
+R, C, U, D = "read", "create", "update", "delete"
+ALL_ROLES = (
+    "scholar",
+    "supervisor",
+    "unit_head",
+    "admin",
+    "research_office",
+    "exam_office",
+    "library",
+)
+
+# entity -> role -> allowed actions. Rows are added together with their feature.
+MATRIX: dict[str, dict[str, frozenset[str]]] = {
+    "org_units": {role: frozenset({R}) for role in ALL_ROLES},
+    "faculty": {
+        **{role: frozenset({R}) for role in ALL_ROLES},
+        "admin": frozenset({R, C, U, D}),
+    },
+    "scholars": {
+        "scholar": frozenset({R}),
+        "supervisor": frozenset({R}),
+        "unit_head": frozenset({R}),
+        "admin": frozenset({R, C, U, D, "assign_supervisor"}),
+        "research_office": frozenset({R}),
+        "exam_office": frozenset({R}),
+        "library": frozenset({R}),
+    },
+    "users": {
+        "unit_head": frozenset({R}),
+        "admin": frozenset({R, C, U, D, "manage_roles"}),
+        "research_office": frozenset({R}),
+    },
+    "audit_log": {
+        "admin": frozenset({R}),
+        "research_office": frozenset({R}),
+    },
+}
+
+
+def roles_allowed(entity: str, action: str) -> frozenset[str]:
+    return frozenset(role for role, acts in MATRIX[entity].items() if action in acts)
+
+
+def can(principal: Principal, entity: str, action: str) -> bool:
+    return bool(principal.roles & roles_allowed(entity, action))
+
+
+def require_perm(entity: str, action: str):
+    """Route guard: the caller holds at least one role allowed this action on the entity."""
+
+    def guard(principal: Principal = Depends(current_principal)) -> Principal:
+        if not can(principal, entity, action):
+            raise ApiError(403, "forbidden", "You do not have permission to do this.")
+        return principal
+
+    return guard
