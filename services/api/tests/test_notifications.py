@@ -174,3 +174,26 @@ def test_database_url_rejects_other_engines():
 
     with pytest.raises(ConfigError):
         _normalize_db_url("mysql://u:p@h/db")
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("https://research.vivekjindal.in/", ("https://research.vivekjindal.in",)),
+        ('"https://a.in, https://B.in/"', ("https://a.in", "https://b.in")),
+        ("http://localhost:3000", ("http://localhost:3000",)),
+        ("", ()),
+    ],
+)
+def test_cors_origins_tidy_paste_noise(raw, expected):
+    from app.config import _parse_origins
+
+    assert _parse_origins(raw) == expected
+
+
+@pytest.mark.parametrize("raw", ["*", "https://a.in/login", "research.vivekjindal.in"])
+def test_cors_origins_reject_non_origins(raw):
+    from app.config import _parse_origins
+
+    with pytest.raises(ConfigError):
+        _parse_origins(raw)

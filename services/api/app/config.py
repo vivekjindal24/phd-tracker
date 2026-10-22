@@ -1,6 +1,7 @@
 """Environment configuration, validated loudly at import time (fail fast at startup)."""
 
 import os
+import re
 from dataclasses import dataclass
 
 MIN_JWT_SECRET_BYTES = 32
@@ -97,14 +98,31 @@ def _normalize_db_url(url: str) -> str:
     raise ConfigError("DATABASE_URL must be a postgresql:// connection string")
 
 
+_ORIGIN = re.compile(r"^https?://[a-z0-9.-]+(:\d{1,5})?$")
+
+
+def _parse_origins(raw: str) -> tuple[str, ...]:
+    """A browser Origin is exactly scheme://host[:port] — no path, no trailing slash. Tidy
+    harmless paste noise (quotes, spaces, trailing '/'); fail loudly on anything else."""
+    origins = []
+    for item in raw.split(","):
+        origin = item.strip().strip("'\"").strip().rstrip("/").lower()
+        if not origin:
+            continue
+        if origin == "*":
+            raise ConfigError("CORS_ORIGINS must be an explicit allowlist, never '*'")
+        if not _ORIGIN.match(origin):
+            raise ConfigError(f"CORS_ORIGINS entry {item.strip()!r} is not like https://host")
+        origins.append(origin)
+    return tuple(origins)
+
+
 def load_settings() -> Settings:
     database_url = _normalize_db_url(_require("DATABASE_URL"))
     jwt_secret = _require("JWT_SECRET")
     if len(jwt_secret.encode()) < MIN_JWT_SECRET_BYTES:
         raise ConfigError(f"JWT_SECRET must be at least {MIN_JWT_SECRET_BYTES} bytes")
-    origins = tuple(o.strip() for o in os.environ.get("CORS_ORIGINS", "").split(",") if o.strip())
-    if "*" in origins:
-        raise ConfigError("CORS_ORIGINS must be an explicit allowlist, never '*'")
+    origins = _parse_origins(os.environ.get("CORS_ORIGINS", ""))
     app_base_url = os.environ.get("APP_BASE_URL", "http://localhost:3000").strip().rstrip("/")
     return Settings(
         database_url=database_url,

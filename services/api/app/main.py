@@ -11,6 +11,7 @@ from app.routers import settings as settings_router
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s %(message)s")
 
 app = FastAPI(title="Anveshan API", version="0.1.0")
+logging.getLogger("anveshan").info("CORS allowed origins: %s", list(settings.cors_origins))
 app.add_middleware(
     CORSMiddleware,
     allow_origins=list(settings.cors_origins),
