@@ -7,6 +7,7 @@ from app.config import settings
 from app.errors import install_error_handlers
 from app.routers import (
     auth,
+    dashboard,
     faculty,
     files,
     grading,
@@ -55,6 +56,7 @@ for module in (
     milestones,
     seminars,
     grading,
+    dashboard,
     settings_router,
     notifications,
     files,
