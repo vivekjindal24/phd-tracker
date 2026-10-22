@@ -14,7 +14,10 @@ def _load_private_env() -> None:
     for line in path.read_text().splitlines():
         name, sep, value = line.partition("=")
         if sep and not name.lstrip().startswith("#"):
-            os.environ.setdefault(name.strip(), value.strip())
+            value = value.strip()
+            if len(value) >= 2 and value[0] == value[-1] and value[0] in "'\"":
+                value = value[1:-1]  # shell-quoted (values containing & etc.)
+            os.environ.setdefault(name.strip(), value)
 
 
 _load_private_env()

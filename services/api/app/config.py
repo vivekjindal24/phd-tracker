@@ -89,10 +89,16 @@ def _load_s3() -> S3:
     )
 
 
+def _normalize_db_url(url: str) -> str:
+    """Accept the string exactly as Neon/Render show it; the app always uses psycopg 3."""
+    for prefix in ("postgresql+psycopg://", "postgresql://", "postgres://"):
+        if url.startswith(prefix):
+            return "postgresql+psycopg://" + url.removeprefix(prefix)
+    raise ConfigError("DATABASE_URL must be a postgresql:// connection string")
+
+
 def load_settings() -> Settings:
-    database_url = _require("DATABASE_URL")
-    if not database_url.startswith("postgresql+psycopg://"):
-        raise ConfigError("DATABASE_URL must use the postgresql+psycopg:// driver")
+    database_url = _normalize_db_url(_require("DATABASE_URL"))
     jwt_secret = _require("JWT_SECRET")
     if len(jwt_secret.encode()) < MIN_JWT_SECRET_BYTES:
         raise ConfigError(f"JWT_SECRET must be at least {MIN_JWT_SECRET_BYTES} bytes")

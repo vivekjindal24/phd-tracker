@@ -1,0 +1,7 @@
+**/__pycache__
+**/._*
+.pytest_cache
+.ruff_cache
+*.egg-info
+tests
+run-dev.sh

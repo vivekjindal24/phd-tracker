@@ -153,3 +153,24 @@ def test_smtp_config_is_all_or_nothing(monkeypatch, env, ok):
     else:
         with pytest.raises(ConfigError):
             _load_smtp()
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "postgresql://u:p@h/db?sslmode=require",
+        "postgres://u:p@h/db",
+        "postgresql+psycopg://u:p@h/db",
+    ],
+)
+def test_database_url_accepts_neon_format(url):
+    from app.config import _normalize_db_url
+
+    assert _normalize_db_url(url).startswith("postgresql+psycopg://u:p@h/db")
+
+
+def test_database_url_rejects_other_engines():
+    from app.config import _normalize_db_url
+
+    with pytest.raises(ConfigError):
+        _normalize_db_url("mysql://u:p@h/db")
