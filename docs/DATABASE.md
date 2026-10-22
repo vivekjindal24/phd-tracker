@@ -105,7 +105,9 @@ Approval columns on every approvable table: `state` CHECK (`draft` /
 `in_review` / `sent_back` / `approved`, default `draft`), `current_step` int
 (NULL unless `in_review`), `chain_snapshot` jsonb (copied from
 `approval_chains.steps` at submit), `submitted_at`, `approved_at`. CHECK
-`ck_<table>_step`: `current_step IS NOT NULL` ⇔ `state = 'in_review'`. State
+`ck_<table>_step`: `current_step IS NOT NULL` ⇔ `state = 'in_review'`. `approval_actions.at`
+defaults to `clock_timestamp()` so several actions in one transaction still
+order correctly. State
 lives **only** in these columns and changes **only** through `workflow.py`.
 
 **progress_reports** (APR) — `scholar_id` (indexed), `report_year` CHECK
@@ -210,6 +212,10 @@ only by `crud.py` / `workflow.py`.
 never stored), `expires_at`, `revoked_at`. Single-use, rotating.
 
 **job_runs** — `job_name`, `run_date`; UNIQUE pair (daily job idempotency).
+
+**login_attempts** — `email`, `at` (indexed pair). One row per failed login;
+5 rows for an email inside 15 minutes → 429 (SECURITY.md §1). Rows outside
+the window are inert.
 
 ## 4. Constraints & Invariants
 

@@ -30,9 +30,7 @@ API_DIR = Path(__file__).resolve().parent.parent
 def migrated() -> None:
     for junk in API_DIR.rglob("._*"):  # exFAT AppleDouble files break alembic
         junk.unlink(missing_ok=True)
-    subprocess.run(
-        [sys.executable, "-m", "alembic", "upgrade", "head"], cwd=API_DIR, check=True
-    )
+    subprocess.run([sys.executable, "-m", "alembic", "upgrade", "head"], cwd=API_DIR, check=True)
 
 
 @pytest.fixture(scope="session", autouse=True)
