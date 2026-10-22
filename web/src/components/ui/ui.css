@@ -315,3 +315,19 @@
 .meter-full .meter-fill {
   background: var(--coral);
 }
+
+/* --- key/value list ------------------------------------------------------------- */
+.kv {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: var(--space-3) var(--space-5);
+  margin: 0;
+}
+.kv dt {
+  font-weight: 800;
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
+}
+.kv dd {
+  margin: 0;
+}

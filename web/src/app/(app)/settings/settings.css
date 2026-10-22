@@ -15,7 +15,8 @@
   display: grid;
   gap: var(--space-5);
 }
-.settings-grid .settings-chains {
+.settings-grid .settings-chains,
+.settings-grid .settings-seminars {
   grid-column: span 12;
 }
 .settings-grid h2 {
@@ -172,4 +173,40 @@
   .settings-grid .settings-side {
     grid-column: span 12;
   }
+}
+
+/* seminar rubric */
+.rubric {
+  list-style: decimal inside;
+  margin: 0 0 var(--space-4);
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+.rubric li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+.rubric input {
+  font: inherit;
+  border: 0;
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  background: var(--bg);
+  color: var(--ink);
+  box-shadow: var(--clay-shadow-pressed);
+}
+.rubric input[type="number"] {
+  width: 80px;
+}
+.rubric button {
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--bg);
+  color: var(--ink);
+  cursor: pointer;
+  font-weight: 800;
 }

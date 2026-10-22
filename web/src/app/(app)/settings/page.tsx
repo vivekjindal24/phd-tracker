@@ -9,6 +9,7 @@ import { ChainEditor } from "./ChainEditor";
 import { CoSupervision } from "./CoSupervision";
 import { Modules } from "./Modules";
 import { OrgTree } from "./OrgTree";
+import { SeminarSettings } from "./SeminarSettings";
 import "./settings.css";
 
 export default function SettingsPage() {
@@ -61,6 +62,7 @@ export default function SettingsPage() {
             <Modules modules={data.modules} save={save} />
             <CoSupervision value={data.co_supervision} save={save} />
           </div>
+          <SeminarSettings data={data} save={save} />
           <ChainEditor chains={data.chains} save={save} />
         </div>
       )}

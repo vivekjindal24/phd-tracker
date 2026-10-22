@@ -1,5 +1,6 @@
 """University-wide settings, module switches and approval chains (DATABASE.md §3.2)."""
 
+import json
 import uuid
 from typing import Any
 
@@ -7,7 +8,14 @@ from sqlalchemy import Boolean, CheckConstraint, ForeignKey, Integer, Text, text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.enums import CO_SUPERVISION, ITEM_TYPES, MODULE_KEYS, sql_in
+from app.enums import (
+    CO_SUPERVISION,
+    DEFAULT_RUBRIC,
+    ITEM_TYPES,
+    MODULE_KEYS,
+    SEMINAR_GRADERS,
+    sql_in,
+)
 from app.models.base import Base, Timestamps
 
 
@@ -18,10 +26,22 @@ class Settings(Timestamps, Base):
         CheckConstraint(
             f"co_supervision IN ({sql_in(CO_SUPERVISION)})", name="ck_settings_co_supervision"
         ),
+        CheckConstraint(
+            f"seminar_graders IN ({sql_in(SEMINAR_GRADERS)})", name="ck_settings_seminar_graders"
+        ),
+        CheckConstraint(
+            "jsonb_typeof(seminar_rubric) = 'array' AND jsonb_array_length(seminar_rubric) > 0",
+            name="ck_settings_seminar_rubric",
+        ),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     co_supervision: Mapped[str] = mapped_column(Text, server_default=text("'off'"))
+    require_hardcopy: Mapped[bool] = mapped_column(Boolean, server_default=text("false"))
+    seminar_graders: Mapped[str] = mapped_column(Text, server_default=text("'panel'"))
+    seminar_rubric: Mapped[list[dict[str, Any]]] = mapped_column(
+        JSONB, server_default=text(f"'{json.dumps(list(DEFAULT_RUBRIC))}'::jsonb")
+    )
     updated_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"))
 
 

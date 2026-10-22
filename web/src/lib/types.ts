@@ -46,6 +46,9 @@ export type OrgUnit = {
 
 export type SettingsData = {
   co_supervision: CoSupervision;
+  require_hardcopy: boolean;
+  seminar_graders: "panel" | "panel_and_attending";
+  seminar_rubric: { name: string; max: number }[];
   modules: Record<ModuleKey, boolean>;
   chains: Record<ItemType, { kind: StepKind }[]>;
 };
@@ -245,3 +248,33 @@ export type Milestone = {
   notes: string;
   updated_at: string;
 };
+
+export type SeminarRow = {
+  id: string;
+  unit: Ref;
+  title: string;
+  starts_at: string;
+  venue: string;
+  report_due: string;
+  report_year: number;
+  period: Period;
+  status: "scheduled" | "cancelled";
+  scholar_count: number;
+};
+
+export type SeminarDetail = SeminarRow & {
+  notes: string;
+  scholars: {
+    scholar: Ref;
+    roll_number: string;
+    supervisor: string | null;
+    report_state: ItemState | null;
+    hardcopy_received_on: string | null;
+    finalised_at: string | null;
+  }[];
+  panel: { faculty_id: string; name: string; kind: "panel" | "attending" }[];
+  can_manage: boolean;
+  require_hardcopy: boolean;
+};
+
+export type RubricCriterion = { name: string; max: number };

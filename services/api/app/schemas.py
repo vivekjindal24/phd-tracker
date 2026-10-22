@@ -19,7 +19,10 @@ from app.enums import (
     MilestoneType,
     ModuleKey,
     NotificationCategory,
+    PanelKind,
     Period,
+    SeminarGraders,
+    SeminarStatus,
     Stage,
     StepKind,
 )
@@ -180,14 +183,36 @@ class ChainIn(BaseModel):
     steps: list[ChainStep] = Field(min_length=1, max_length=8)
 
 
+class RubricCriterion(BaseModel):
+    name: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=60)]
+    max: int = Field(ge=1, le=100)
+
+
+Rubric = Annotated[list[RubricCriterion], Field(min_length=1, max_length=10)]
+
+
 class SettingsOut(BaseModel):
     co_supervision: CoSupervision
+    require_hardcopy: bool
+    seminar_graders: SeminarGraders
+    seminar_rubric: list[RubricCriterion]
     modules: dict[ModuleKey, bool]
     chains: dict[ItemType, list[ChainStep]]
 
 
 class SettingsUpdate(BaseModel):
-    co_supervision: CoSupervision
+    co_supervision: CoSupervision | None = None
+    require_hardcopy: bool | None = None
+    seminar_graders: SeminarGraders | None = None
+    seminar_rubric: Rubric | None = None
+
+    @model_validator(mode="after")
+    def _unique_criteria(self) -> "SettingsUpdate":
+        if self.seminar_rubric:
+            names = [c.name.lower() for c in self.seminar_rubric]
+            if len(names) != len(set(names)):
+                raise ValueError("rubric criteria must have different names")
+        return self
 
 
 class ModuleUpdate(BaseModel):
@@ -482,3 +507,74 @@ class MilestoneOut(BaseModel):
     resolution_date: date | None
     notes: str
     updated_at: datetime
+
+
+# --- progress seminars ------------------------------------------------------------------
+
+Title = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)]
+Venue = Annotated[str, StringConstraints(strip_whitespace=True, max_length=500)]
+
+
+class SeminarIn(BaseModel):
+    unit_id: uuid.UUID
+    title: Title
+    starts_at: datetime
+    venue: Venue = ""
+    report_due: date
+    report_year: int = Field(ge=2000, le=2100)
+    period: Period
+    notes: Notes = ""
+    scholar_ids: list[uuid.UUID] = Field(min_length=1, max_length=200)
+    panel_faculty_ids: list[uuid.UUID] = Field(default_factory=list, max_length=30)
+
+
+class SeminarUpdate(BaseModel):
+    title: Title | None = None
+    starts_at: datetime | None = None
+    venue: Venue | None = None
+    report_due: date | None = None
+    report_year: int | None = Field(default=None, ge=2000, le=2100)
+    period: Period | None = None
+    notes: Notes | None = None
+    scholar_ids: list[uuid.UUID] | None = Field(default=None, min_length=1, max_length=200)
+    panel_faculty_ids: list[uuid.UUID] | None = Field(default=None, max_length=30)
+
+
+class SeminarRow(BaseModel):
+    id: uuid.UUID
+    unit: Ref
+    title: str
+    starts_at: datetime
+    venue: str
+    report_due: date
+    report_year: int
+    period: Period
+    status: SeminarStatus
+    scholar_count: int
+
+
+class SeminarScholarView(BaseModel):
+    scholar: Ref
+    roll_number: str
+    supervisor: str | None
+    report_state: ItemState | None
+    hardcopy_received_on: date | None
+    finalised_at: datetime | None
+
+
+class PanelMember(BaseModel):
+    faculty_id: uuid.UUID
+    name: str
+    kind: PanelKind
+
+
+class SeminarDetail(SeminarRow):
+    notes: str
+    scholars: list[SeminarScholarView]
+    panel: list[PanelMember]
+    can_manage: bool
+    require_hardcopy: bool
+
+
+class HardcopyIn(BaseModel):
+    received_on: date | None

@@ -23,7 +23,14 @@ async def _read(session: AsyncSession) -> SettingsOut:
         (await session.execute(select(ApprovalChain.item_type, ApprovalChain.steps))).all()
     )
     return SettingsOut.model_validate(
-        {"co_supervision": settings.co_supervision, "modules": modules, "chains": chains}
+        {
+            "co_supervision": settings.co_supervision,
+            "require_hardcopy": settings.require_hardcopy,
+            "seminar_graders": settings.seminar_graders,
+            "seminar_rubric": settings.seminar_rubric,
+            "modules": modules,
+            "chains": chains,
+        }
     )
 
 
@@ -42,12 +49,8 @@ async def update_settings(
 ) -> SettingsOut:
     row = await session.get(Settings, 1)
     assert row is not None
-    await update(
-        session,
-        principal,
-        row,
-        {"co_supervision": body.co_supervision, "updated_by": principal.user_id},
-    )
+    changes = body.model_dump(exclude_unset=True, exclude_none=True)
+    await update(session, principal, row, {**changes, "updated_by": principal.user_id})
     await session.commit()
     return await _read(session)
 

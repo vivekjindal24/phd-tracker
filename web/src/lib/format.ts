@@ -5,3 +5,13 @@ export const formatDate = (iso: string) =>
     month: "short",
     year: "numeric",
   });
+
+/** "Fri, 20 Nov, 10:00" in the viewer's time zone. */
+export const formatWhen = (iso: string) =>
+  new Date(iso).toLocaleString(undefined, {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });

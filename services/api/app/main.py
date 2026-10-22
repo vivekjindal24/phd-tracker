@@ -16,6 +16,7 @@ from app.routers import (
     org_units,
     reports,
     scholars,
+    seminars,
     users,
 )
 from app.routers import settings as settings_router
@@ -51,6 +52,7 @@ for module in (
     reports,
     items,
     milestones,
+    seminars,
     settings_router,
     notifications,
     files,

@@ -4,6 +4,7 @@ from app.models.meetings import Meeting
 from app.models.milestones import Milestone
 from app.models.org import Faculty, OrgUnit, RoleAssignment, Scholar, User
 from app.models.reports import ProgressReport
+from app.models.seminars import Seminar, SeminarPanel, SeminarScholar
 from app.models.settings import ApprovalChain, Module, Settings
 from app.models.system import AuditLog, JobRun, LoginAttempt, Notification, RefreshToken
 from app.models.workflow import ApprovalActionRow
@@ -26,6 +27,9 @@ __all__ = [
     "RefreshToken",
     "RoleAssignment",
     "Scholar",
+    "Seminar",
+    "SeminarPanel",
+    "SeminarScholar",
     "Settings",
     "User",
 ]

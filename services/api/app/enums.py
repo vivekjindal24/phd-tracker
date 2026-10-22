@@ -64,6 +64,7 @@ NotificationCategory = Literal[
     "apr_due",
     "meeting_tomorrow",
     "fellowship_ending",
+    "seminar",
     "system",
 ]
 NOTIFICATION_CATEGORIES = get_args(NotificationCategory)
@@ -85,6 +86,19 @@ MilestoneStatus = Literal["Pending", "Approved", "Rejected"]
 MILESTONE_STATUSES = get_args(MilestoneStatus)
 ApprovalBody = Literal["RDC", "DPGC", "DRC", "RAC", "Other"]
 APPROVAL_BODIES = get_args(ApprovalBody)
+
+SeminarStatus = Literal["scheduled", "cancelled"]
+SEMINAR_STATUSES = get_args(SeminarStatus)
+SeminarGraders = Literal["panel", "panel_and_attending"]
+SEMINAR_GRADERS = get_args(SeminarGraders)
+PanelKind = Literal["panel", "attending"]
+PANEL_KINDS = get_args(PanelKind)
+DEFAULT_RUBRIC = (
+    {"name": "Progress", "max": 10},
+    {"name": "Presentation", "max": 10},
+    {"name": "Understanding", "max": 10},
+    {"name": "Plan", "max": 10},
+)
 
 Period = Literal["January-June", "July-December"]
 PERIODS = get_args(Period)
