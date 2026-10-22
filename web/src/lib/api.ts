@@ -8,6 +8,7 @@
  */
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
+const EXPORT_URL = process.env.NEXT_PUBLIC_EXPORT_URL ?? "";
 const REFRESH_KEY = "anveshan.refresh";
 const WAKE_AFTER_MS = 3000;
 
@@ -58,15 +59,20 @@ export function hasStoredSession(): boolean {
   return readRefresh() !== null;
 }
 
-async function send(path: string, init: RequestInit, token: string | null): Promise<Response> {
-  if (!API_URL) throw new ApiError(0, "config_error", "NEXT_PUBLIC_API_URL is not set.");
+async function send(
+  path: string,
+  init: RequestInit,
+  token: string | null,
+  base = API_URL && `${API_URL}/api/v1`,
+): Promise<Response> {
+  if (!base) throw new ApiError(0, "config_error", "The server address is not configured.");
   pending += 1;
   if (pending === 1) wakeTimer = setTimeout(() => setWaking(true), WAKE_AFTER_MS);
   try {
     const headers = new Headers(init.headers);
     if (init.body) headers.set("Content-Type", "application/json");
     if (token) headers.set("Authorization", `Bearer ${token}`);
-    return await fetch(`${API_URL}/api/v1${path}`, { ...init, headers });
+    return await fetch(`${base}${path}`, { ...init, headers });
   } catch {
     throw new ApiError(0, "network_error", "We can't reach the server. Check your connection.");
   } finally {
@@ -121,6 +127,20 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   }
   if (!res.ok) throw await toError(res);
   return (res.status === 204 ? undefined : await res.json()) as T;
+}
+
+/** Fetches a file from the export service (same token, same one-refresh retry) and saves it. */
+export async function download(path: string): Promise<void> {
+  let res = await send(path, {}, accessToken, EXPORT_URL);
+  if (res.status === 401 && (await refresh())) {
+    res = await send(path, {}, accessToken, EXPORT_URL);
+  }
+  if (!res.ok) throw await toError(res);
+  const name = /filename="([^"]+)"/.exec(res.headers.get("Content-Disposition") ?? "")?.[1] ?? "export";
+  const url = URL.createObjectURL(await res.blob());
+  const a = Object.assign(document.createElement("a"), { href: url, download: name });
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 export async function login(email: string, password: string): Promise<void> {

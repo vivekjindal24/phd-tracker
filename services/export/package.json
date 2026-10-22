@@ -1,0 +1,24 @@
+{
+  "name": "anveshan-export",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/server.ts",
+    "dev": "tsx watch src/server.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test tests/*.test.ts"
+  },
+  "dependencies": {
+    "express": "5.3.0",
+    "pdfkit": "0.20.2",
+    "tsx": "4.23.15",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/express": "5.0.6",
+    "@types/node": "^22",
+    "@types/pdfkit": "0.17.6",
+    "typescript": "^5.9"
+  }
+}

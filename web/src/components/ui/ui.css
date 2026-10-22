@@ -175,6 +175,17 @@
   gap: var(--space-4);
   margin-bottom: var(--space-6);
 }
+.header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+.download {
+  display: inline-flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
 .page-header h1 {
   font-size: var(--text-xl);
 }

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { Owl } from "@/components/brand/Owl";
+import { DownloadButton } from "@/components/DownloadButton";
 import { MilestoneStatusBadge } from "@/components/MilestoneStatusBadge";
 import { Button, ErrorText, Field, PageHeader, Table } from "@/components/ui/kit";
 import { api } from "@/lib/api";
@@ -104,7 +105,11 @@ export default function RegisterPage() {
 
   return (
     <>
-      <PageHeader eyebrow="Committee decisions" title="RDC register" />
+      <PageHeader eyebrow="Committee decisions" title="RDC register"
+        actions={<>
+          <DownloadButton path={`/register.pdf?${params}`}>Register PDF</DownloadButton>
+          <DownloadButton path={`/register.csv?${params}`}>Register CSV</DownloadButton>
+        </>} />
       <div className="register-grid">
         <div>
           <div className="toolbar">

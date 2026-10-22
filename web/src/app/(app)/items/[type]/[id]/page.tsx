@@ -3,6 +3,7 @@
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Comments } from "@/components/Comments";
+import { DownloadButton } from "@/components/DownloadButton";
 import { Celebrate } from "@/components/items/Celebrate";
 import { ChainSteps } from "@/components/items/ChainSteps";
 import { StateBadge } from "@/components/items/StateBadge";
@@ -182,7 +183,12 @@ export default function ItemPage() {
     <>
       {celebrate && <Celebrate onDone={() => setCelebrate(false)} />}
       <PageHeader eyebrow={`${item.label} · ${item.scholar.name}`} title={item.title}
-        actions={<StateBadge state={item.state} waitingOn={item.waiting_on} />} />
+        actions={<>
+          <StateBadge state={item.state} waitingOn={item.waiting_on} />
+          {item.item_type === "progress_report" && (
+            <DownloadButton path={`/reports/${item.id}.pdf`}>Download PDF</DownloadButton>
+          )}
+        </>} />
       <div className="item-grid">
         <div className="item-main">
           <Card>
