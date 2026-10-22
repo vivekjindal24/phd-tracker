@@ -135,6 +135,10 @@ API: `DATABASE_URL`, `JWT_SECRET` (≥32 bytes), `CORS_ORIGINS`,
 `S3_ENDPOINT`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`,
 `S3_REGION`, `MAX_UPLOAD_MB` (default 100), `SMTP_HOST`, `SMTP_PORT`,
 `SMTP_USER`, `SMTP_PASSWORD`, `MAIL_FROM`, `APP_BASE_URL`, `CRON_SECRET`.
+The five SMTP variables are all-or-nothing: none set = email off (each
+notification records "Email is not configured on this server"); some set =
+startup error. Dev uses Brevo's SMTP relay; production the university's
+server.
 Web: `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_EXPORT_URL`.
 
 ## 10. Scheduled Jobs

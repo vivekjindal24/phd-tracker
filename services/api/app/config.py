@@ -18,12 +18,46 @@ def _require(name: str) -> str:
 
 
 @dataclass(frozen=True)
+class Smtp:
+    host: str
+    port: int
+    user: str
+    password: str
+    mail_from: str
+
+
+SMTP_VARS = ("SMTP_HOST", "SMTP_PORT", "SMTP_USER", "SMTP_PASSWORD", "MAIL_FROM")
+
+
+@dataclass(frozen=True)
 class Settings:
     database_url: str
     jwt_secret: str
     cors_origins: tuple[str, ...]
+    app_base_url: str
+    smtp: Smtp | None
     access_token_minutes: int = 30
     refresh_token_days: int = 14
+
+
+def _load_smtp() -> Smtp | None:
+    """All-or-nothing: none set = email off (recorded per notification); some set = error."""
+    values = {name: os.environ.get(name, "").strip() for name in SMTP_VARS}
+    filled = [name for name, value in values.items() if value]
+    if not filled:
+        return None
+    missing = [name for name in SMTP_VARS if not values[name]]
+    if missing:
+        raise ConfigError("email is partly configured; also set " + ", ".join(missing))
+    if not values["SMTP_PORT"].isdigit():
+        raise ConfigError("SMTP_PORT must be a number")
+    return Smtp(
+        host=values["SMTP_HOST"],
+        port=int(values["SMTP_PORT"]),
+        user=values["SMTP_USER"],
+        password=values["SMTP_PASSWORD"],
+        mail_from=values["MAIL_FROM"],
+    )
 
 
 def load_settings() -> Settings:
@@ -36,7 +70,14 @@ def load_settings() -> Settings:
     origins = tuple(o.strip() for o in os.environ.get("CORS_ORIGINS", "").split(",") if o.strip())
     if "*" in origins:
         raise ConfigError("CORS_ORIGINS must be an explicit allowlist, never '*'")
-    return Settings(database_url=database_url, jwt_secret=jwt_secret, cors_origins=origins)
+    app_base_url = os.environ.get("APP_BASE_URL", "http://localhost:3000").strip().rstrip("/")
+    return Settings(
+        database_url=database_url,
+        jwt_secret=jwt_secret,
+        cors_origins=origins,
+        app_base_url=app_base_url,
+        smtp=_load_smtp(),
+    )
 
 
 settings = load_settings()

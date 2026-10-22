@@ -41,7 +41,9 @@
   {Dept B1}) and mint one user per role, plus a multi-role user (supervisor +
   HoD of A1 + admin of A1).
 - Object storage: tests run against a MinIO container (CI service) — no
-  mocks for the S3 API. SMTP: an in-process `aiosmtpd` sink.
+  mocks for the S3 API. SMTP: the low-level send is replaced by a capture
+  (outbox) in tests; delivery outcomes (sent / failed / muted / not
+  configured) are asserted on the notification rows.
 - Files: `tests/test_auth.py`, `test_scope.py`, `test_rbac.py`,
   `test_workflow.py` (parametrised over all four item types),
   `test_meetings_sharing.py`, `test_modules.py`, `test_files.py`,

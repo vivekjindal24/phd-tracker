@@ -111,8 +111,9 @@ regardless of role.
 
 - Never hard-code credentials; never commit secrets or `.env` files. Config
   arrives by environment, validated loudly at startup (`app/config.py`).
-- Required: `DATABASE_URL`, `JWT_SECRET` (≥32 bytes), `S3_*`, `SMTP_*`,
-  `CRON_SECRET`; `SEED_PASSWORD` only for seeding.
+- Required: `DATABASE_URL`, `JWT_SECRET` (≥32 bytes), `S3_*`, `CRON_SECRET`;
+  `SMTP_*` all-or-nothing (ARCHITECTURE.md §9); `SEED_PASSWORD` only for
+  seeding.
 - Dev secrets live in each platform's settings (Neon, Render, Vercel,
   Cloudflare); production secrets in the server's compose `.env` file,
   readable only by root, never in git. Rotate any exposed secret immediately.

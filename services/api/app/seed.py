@@ -105,8 +105,11 @@ async def demo(session: AsyncSession) -> None:
         print("already seeded: a root unit exists; nothing changed")
         return
     pw = hash_password(_password())
-    units = {"ADU": await create_unit(session, None, None, "Anveshan Demo University",
-                                      "University", "ADU")}
+    units = {
+        "ADU": await create_unit(
+            session, None, None, "Anveshan Demo University", "University", "ADU"
+        )
+    }
     for code, name, kind, parent in DEMO_UNITS:
         units[code] = await create_unit(session, None, units[parent], name, kind, code)
 
@@ -118,31 +121,45 @@ async def demo(session: AsyncSession) -> None:
     faculty: dict[str, Faculty] = {}
     for login, name, designation, unit, roles in DEMO_FACULTY:
         user = await _user(session, f"{login}@{DOMAIN}", name, pw)
-        faculty[login] = await insert(session, None, Faculty(
-            user_id=user.id, unit_id=units[unit].id, designation=designation,
-            max_scholars=UGC_CAP[designation],
-        ))
+        faculty[login] = await insert(
+            session,
+            None,
+            Faculty(
+                user_id=user.id,
+                unit_id=units[unit].id,
+                designation=designation,
+                max_scholars=UGC_CAP[designation],
+            ),
+        )
         for role, role_unit in roles:
             await _role(session, user, role, units[role_unit])
 
     for login, name, roll, unit, sup, stage in DEMO_SCHOLARS:
         user = await _user(session, f"{login}@{DOMAIN}", name, pw)
-        await insert(session, None, Scholar(
-            user_id=user.id, unit_id=units[unit].id, roll_number=roll, stage=stage,
-            supervisor_id=faculty[sup].id,
-        ))
+        await insert(
+            session,
+            None,
+            Scholar(
+                user_id=user.id,
+                unit_id=units[unit].id,
+                roll_number=roll,
+                stage=stage,
+                supervisor_id=faculty[sup].id,
+            ),
+        )
 
     await session.execute(update(Module).values(enabled=True))
     await session.commit()
-    print(f"seeded demo university: log in as admin@{DOMAIN} (or any login above) "
-          "with SEED_PASSWORD")
+    print(
+        f"seeded demo university: log in as admin@{DOMAIN} (or any login above) with SEED_PASSWORD"
+    )
 
 
 async def reset_passwords(session: AsyncSession) -> None:
     result = await session.execute(
-        update(User).where(User.email.like(f"%@{DOMAIN}")).values(
-            password_hash=hash_password(_password())
-        )
+        update(User)
+        .where(User.email.like(f"%@{DOMAIN}"))
+        .values(password_hash=hash_password(_password()))
     )
     await session.commit()
     print(f"reset {result.rowcount} demo passwords")
@@ -159,13 +176,16 @@ async def main(argv: list[str]) -> None:
     args = parser.parse_args(argv)
     async with SessionLocal() as session:
         if args.bootstrap:
-            missing = [f for f in ("university", "code", "admin_email", "admin_name")
-                       if not getattr(args, f)]
+            missing = [
+                f
+                for f in ("university", "code", "admin_email", "admin_name")
+                if not getattr(args, f)
+            ]
             if missing:
-                parser.error("--bootstrap needs " + ", ".join(f"--{m.replace('_', '-')}"
-                                                           for m in missing))
-            await bootstrap(session, args.university, args.code, args.admin_email,
-                            args.admin_name)
+                parser.error(
+                    "--bootstrap needs " + ", ".join(f"--{m.replace('_', '-')}" for m in missing)
+                )
+            await bootstrap(session, args.university, args.code, args.admin_email, args.admin_name)
         elif args.reset_passwords:
             await reset_passwords(session)
         else:
