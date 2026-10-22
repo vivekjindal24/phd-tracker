@@ -142,6 +142,9 @@ API: `DATABASE_URL`, `JWT_SECRET` (≥32 bytes), `CORS_ORIGINS`,
 `S3_ENDPOINT`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`,
 `S3_REGION`, `MAX_UPLOAD_MB` (default 100), `SMTP_HOST`, `SMTP_PORT`,
 `SMTP_USER`, `SMTP_PASSWORD`, `MAIL_FROM`, `APP_BASE_URL`, `CRON_SECRET`.
+AI (optional, all-or-nothing): `AI_BASE_URL`, `AI_API_KEY`, `AI_MODEL` — any
+OpenAI-compatible chat endpoint (Gemini in dev, Ollama in production); unset =
+supervisors write seminar to-do points by hand.
 The five SMTP variables are all-or-nothing: none set = email off (each
 notification records "Email is not configured on this server"); some set =
 startup error. Dev uses Brevo's SMTP relay; production the university's

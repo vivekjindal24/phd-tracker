@@ -192,7 +192,43 @@ entries allowed but visibly timestamped.
 
 **F8 — Six-monthly progress report (APR).** Period Jan–Jun / Jul–Dec + year +
 summary; runs the APR chain (F3). One live APR per scholar per period
-(409 `duplicate_apr`).
+(409 `duplicate_apr`). Its deadline comes from the scholar's progress seminar
+(F15): "due soon" 14 days before the seminar's report due date, "overdue" after
+it while still unsubmitted. No seminar scheduled → no deadline shown.
+
+**F15 — Progress seminars (the six-monthly review).** Decided 2026-10-22.
+- **Scheduling:** a unit head or admin schedules a seminar for their unit:
+  title, date & time, venue or online link, **report due date**, the APR
+  period it reviews (year + Jan–Jun/Jul–Dec), the **selected scholars** (from
+  their subtree) and the **panel** (faculty from any unit). Editable and
+  cancellable until it takes place.
+- **Notifications** (in-app + email) on schedule, change and cancel: the
+  selected scholars, their supervisors (and co-supervisors when on), the heads
+  of the unit and of every unit above it (HoD, Dean), and the panel.
+- **Hardcopy:** university setting `require_hardcopy`; when on, the department
+  records "hardcopy received" per scholar.
+- **Grading:** university setting `seminar_graders` = `panel` (named panel
+  only) or `panel_and_attending` (plus any faculty who marks themselves
+  attending). The **rubric** is a university setting: an ordered list of
+  criteria, each with a maximum (one criterion = a single score; default:
+  Progress, Presentation, Understanding, Plan — each out of 10). Each grader
+  gives a score per criterion and a free-text comment per scholar.
+- **Supervisor review:** once grading closes, the scholar's main supervisor
+  opens the review. **AI** drafts to-do points from all graders' comments,
+  each tagged with one standard part; the supervisor edits, accepts, rejects or
+  adds points, then **Finalises**. Without AI configured the supervisor writes
+  the points by hand — AI never blocks the flow.
+- **Release:** on Finalise the scholar sees every grader's marks (per
+  criterion, totals, average) and comments, and the accepted points join their
+  **to-do list**; scholar and panel are notified.
+- **To-do list:** per scholar, each point has its part, text, source seminar
+  and status (open / done); the scholar ticks points done, the supervisor sees
+  progress.
+- **Standard parts:** Introduction, Literature review, Methodology,
+  Experiments & results, Discussion, Writing & presentation, Other.
+- **AI service:** one OpenAI-compatible connection (`AI_BASE_URL`,
+  `AI_API_KEY`, `AI_MODEL`) — Gemini's free tier for cloud testing (demo data
+  only: Google may use free-tier inputs), a local Ollama model in production.
 
 **F9 — RDC / committee register (milestones).** Research Office (and scoped
 admins) record committee decisions: milestone type (coursework, proposal
@@ -286,7 +322,8 @@ Intentionally NOT in this version:
    modules switch, approval-chain engine and settings, audit, files,
    notifications plumbing, clay UI kit + owl.
 2. **Core daily use:** directory, meetings with sharing, APR with chain, RDC
-   register, dashboards, timeline, search, comments, APR PDF + register export.
+   register, progress seminars (scheduling, grading, AI to-dos), dashboards,
+   timeline, search, comments, APR PDF + register export.
 3. **Research record:** publications (chain), conferences, documents & thesis
    submission (chain).
 4. **Academic administration:** coursework + clearance (chain), admissions.
@@ -339,6 +376,8 @@ Each phase ends with a check-in with the owner before the next starts.
   off / view / approve (F6).
 - Does co-supervision count toward the co-supervisor's UGC cap? (Default:
   no — confirm with the pilot university's ordinance.)
+- May a supervisor grade their own scholar at the seminar? (Default: yes, as
+  any panel member — confirm with the pilot university.)
 - ~~Grant ledger: may a PI enter expenses on their own project?~~ Resolved
   2026-10-21: yes, on their own projects only (SECURITY.md §3).
 

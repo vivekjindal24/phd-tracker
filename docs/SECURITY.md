@@ -59,6 +59,9 @@ role's scope (§2).
 | meetings | CRU own | CRU supervisees, sets `shared_with` | R redacted* | R redacted* | R redacted* | — | — |
 | progress reports | CRU own draft/sent_back, submit | R, step | R, step (department) | R, step (department) | R, step | — | — |
 | milestones (RDC register) | R own | R | R | CRUD | CRUD | R | — |
+| seminars (schedule, hardcopy) | R own | R (own scholars') | CRUD in subtree | CRUD in subtree | R | — | — |
+| seminar grades | R own after finalise | R own scholars'; finalise own scholars | R | R | R | — | — |
+| to-do list | R, tick done (own) | R own scholars' | R | R | R | — | — |
 | publications | CRU own, submit | R, step | R | R | R, step | — | R, step |
 | conferences | CRUD own | R | R | R | R | — | R |
 | documents & versions | CRU own | R, comment | — | — | — | — | — |
@@ -83,6 +86,13 @@ from search results and exports). Only the main supervisor may change
 `shared_with`. A co-supervisor (setting `view`/`approve`) has the supervisor
 column's rights on their co-supervised scholars, except setting
 `shared_with`; acting on the Supervisor step needs `approve`.
+
+**Seminar grading:** any faculty on the seminar's panel (and, when
+`seminar_graders = panel_and_attending`, any faculty who marked themselves
+attending) may grade the seminar's scholars — independent of the matrix
+above. Graders read the grades of that seminar. A scholar sees grades only
+after their supervisor finalised; finalising is the main supervisor's (and the
+co-supervisor's under `co_supervision = approve`).
 
 Disabled modules: every route of the module → 404 `module_disabled`
 regardless of role.

@@ -107,6 +107,22 @@ co-supervisor (setting on) may log their own meetings but never sets sharing.
 2. **Register PDF / CSV** for the committee meeting.
 3. The scholar's RDC status updates on their profile and on head dashboards.
 
+## Flow 6b — Progress seminar (PRD F15)
+
+1. HoD / department admin → **Seminars → Schedule**: title, date & time,
+   venue/link, report due date, period, pick scholars (their unit) and panel.
+   Everyone concerned is notified.
+2. Scholars see the seminar and their report deadline on Home; the report
+   page shows "Due 30 Nov" / "Overdue".
+3. If the university requires a hardcopy, the department ticks "hardcopy
+   received" per scholar.
+4. On the day, each panel member (and attending faculty, if allowed) opens
+   the seminar → per scholar: rubric scores + comment → **Submit grades**.
+5. Supervisor → **Review**: sees all grades; **Suggest points with AI** fills
+   a draft list (part + point); edits, accepts, adds → **Finalise**.
+6. Scholar is notified, sees all marks and comments, and the points appear in
+   **My to-dos**, grouped by part; ticks them off as done.
+
 ## Flow 7 — Publication verified by the Library (module)
 
 1. Scholar → **Publications → Add**: details, indexing, DOI, PDF →

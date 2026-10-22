@@ -74,7 +74,10 @@ bool, `updated_by`, `updated_at`. Seeded with every key; core features have
 no row (always on).
 
 **settings** — single row (`id` = 1, CHECK): `co_supervision` CHECK
-(`off` / `view` / `approve`, default `off`), `updated_by`, `updated_at`.
+(`off` / `view` / `approve`, default `off`), `require_hardcopy` bool (default
+false), `seminar_graders` CHECK (`panel` / `panel_and_attending`, default
+`panel`), `seminar_rubric` jsonb (ordered `[{"name", "max"}]`, non-empty),
+`updated_by`, `updated_at`.
 University-wide switches that are not modules live here.
 
 **approval_chains** — `item_type` PK CHECK (`progress_report`,
@@ -98,6 +101,26 @@ pre_synopsis / thesis_submission / viva / degree_awarded), `status` CHECK
 (Pending / Approved / Rejected, default Pending), `approval_body` CHECK
 (RDC / DPGC / DRC / RAC / Other), `resolution_number`, `resolution_date`,
 `notes`.
+
+### 3.3b Progress seminars (PRD F15)
+
+**seminars** — `unit_id` FK (scope anchor), `title`, `starts_at`
+timestamptz, `venue`, `report_due` date, `report_year`, `period`, `notes`,
+`status` CHECK (scheduled / cancelled), `created_by`. Cancelling sets status;
+rows are never deleted.
+**seminar_scholars** — `seminar_id`, `scholar_id` (UNIQUE pair),
+`hardcopy_received_on` date, `draft_points` jsonb (supervisor's working list
+before finalising), `finalised_at`, `finalised_by`.
+**seminar_panel** — `seminar_id`, `faculty_id` (UNIQUE pair), `kind` CHECK
+(panel / attending).
+**seminar_grades** — `seminar_scholar_id`, `grader_id` FK faculty (UNIQUE
+pair), `scores` jsonb (`{criterion: score}`, validated against the rubric
+snapshot), `rubric` jsonb (snapshot at grading time), `comment`,
+`submitted_at`.
+**todos** — `scholar_id` (indexed), `part` CHECK (introduction /
+literature_review / methodology / experiments_results / discussion /
+writing_presentation / other), `text`, `status` CHECK (open / done),
+`source_seminar_scholar_id` FK (nullable), `done_at`, `created_by`.
 
 ### 3.4 Approvable items
 
