@@ -6,6 +6,7 @@ import logging
 import uuid
 from collections.abc import Iterable
 from email.message import EmailMessage
+from email.utils import formataddr
 
 import aiosmtplib
 from sqlalchemy import func, inspect, select
@@ -46,7 +47,7 @@ async def unread_count(session: AsyncSession, user_id: uuid.UUID) -> int:
 
 def _message(to: str, row: Notification, mail_from: str) -> EmailMessage:
     msg = EmailMessage()
-    msg["From"] = mail_from
+    msg["From"] = formataddr(("Anveshan", mail_from))
     msg["To"] = to
     msg["Subject"] = f"Anveshan: {row.title}"
     lines = [row.title, ""]

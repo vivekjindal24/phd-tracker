@@ -49,6 +49,7 @@ async def test_email_sent_after_commit_with_absolute_link(session, world, sent):
     assert len(sent) == 1
     msg = sent[0]
     assert msg["To"] == "meera@x.edu"
+    assert msg["From"] == "Anveshan <noreply@x.edu>"
     assert msg["Subject"] == "Anveshan: Progress report waiting for you"
     assert f"{settings.app_base_url}/items/progress_report/abc" in msg.get_content()
     assert (await _row(session, world.meera)).email_status == "sent"
