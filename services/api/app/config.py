@@ -27,6 +27,17 @@ class Smtp:
 
 
 SMTP_VARS = ("SMTP_HOST", "SMTP_PORT", "SMTP_USER", "SMTP_PASSWORD", "MAIL_FROM")
+DEFAULT_MAX_UPLOAD_MB = 100
+
+
+@dataclass(frozen=True)
+class S3:
+    endpoint: str
+    region: str
+    bucket: str
+    access_key_id: str
+    secret_access_key: str
+    max_upload_bytes: int
 
 
 @dataclass(frozen=True)
@@ -36,6 +47,7 @@ class Settings:
     cors_origins: tuple[str, ...]
     app_base_url: str
     smtp: Smtp | None
+    s3: S3
     access_token_minutes: int = 30
     refresh_token_days: int = 14
 
@@ -60,6 +72,23 @@ def _load_smtp() -> Smtp | None:
     )
 
 
+def _load_s3() -> S3:
+    max_mb = os.environ.get("MAX_UPLOAD_MB", str(DEFAULT_MAX_UPLOAD_MB)).strip()
+    if not max_mb.isdigit() or not 1 <= int(max_mb) <= 5000:
+        raise ConfigError("MAX_UPLOAD_MB must be a whole number between 1 and 5000")
+    endpoint = _require("S3_ENDPOINT").rstrip("/")
+    if not endpoint.startswith(("https://", "http://")):
+        raise ConfigError("S3_ENDPOINT must be an http(s) URL")
+    return S3(
+        endpoint=endpoint,
+        region=os.environ.get("S3_REGION", "auto").strip() or "auto",
+        bucket=_require("S3_BUCKET"),
+        access_key_id=_require("S3_ACCESS_KEY_ID"),
+        secret_access_key=_require("S3_SECRET_ACCESS_KEY"),
+        max_upload_bytes=int(max_mb) * 1024 * 1024,
+    )
+
+
 def load_settings() -> Settings:
     database_url = _require("DATABASE_URL")
     if not database_url.startswith("postgresql+psycopg://"):
@@ -77,6 +106,7 @@ def load_settings() -> Settings:
         cors_origins=origins,
         app_base_url=app_base_url,
         smtp=_load_smtp(),
+        s3=_load_s3(),
     )
 
 

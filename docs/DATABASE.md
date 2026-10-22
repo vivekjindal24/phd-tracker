@@ -187,11 +187,15 @@ consumables / travel / contingency / overhead), `amount` numeric(12,2) CHECK
 
 ### 3.7 Cross-cutting
 
-**files** — `storage_key` (UNIQUE; the object's key in the bucket),
-`file_name`, `content_type`, `size_bytes` (CHECK ≤ configured cap, enforced
-also at presign), `sha256`, `status` CHECK (pending / ready), `uploaded_by`
-FK users, owner pair `(table_name, record_id)` with a CHECK whitelist —
-visibility is the owner record's `get_or_403`.
+**files** — `storage_key` (UNIQUE; `<table>/<record>/<file id>/<safe name>`),
+`file_name`, `content_type` (allowlist in `app/files.py`: PDF, Office, images,
+text/CSV, zip), `size_bytes` (CHECK > 0; the `MAX_UPLOAD_MB` cap is checked at
+presign, and the size is signed into the upload URL), `etag` (from the bucket on
+completion), `status` CHECK (pending / ready — `ready` only after the API has
+confirmed the object exists at the declared size), `uploaded_by` FK users, owner
+pair `(table_name, record_id)` with a CHECK whitelist that each phase widens by
+migration (Phase 1: `scholars`). Visibility is the owner record's
+`get_or_403`. Soft delete keeps the object in the bucket (retention).
 
 **comments** — flat threads; `(table_name, record_id)` polymorphic pair
 (indexed, CHECK whitelist of commentable tables), `author_id`, `body`

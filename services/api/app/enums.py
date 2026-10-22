@@ -71,6 +71,12 @@ NOTIFICATION_CATEGORIES = get_args(NotificationCategory)
 EmailStatus = Literal["not_sent", "sent", "failed", "muted"]
 EMAIL_STATUSES = get_args(EmailStatus)
 
+# Tables files may hang off; each phase adds its owners (with a migration widening the CHECK).
+FileOwner = Literal["scholars"]
+FILE_OWNER_TABLES = get_args(FileOwner)
+FileStatus = Literal["pending", "ready"]
+FILE_STATUSES = get_args(FileStatus)
+
 # PRD F3 defaults: who starts an item, and the default chain.
 INITIATOR: dict[str, str] = {
     "progress_report": "scholar",

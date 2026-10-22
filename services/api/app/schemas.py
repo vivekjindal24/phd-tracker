@@ -10,6 +10,7 @@ from app.enums import (
     AssignedRole,
     CoSupervision,
     Designation,
+    FileOwner,
     ItemType,
     ModuleKey,
     NotificationCategory,
@@ -201,3 +202,39 @@ class NotificationOut(Out):
 
 class EmailMutedIn(BaseModel):
     email_muted: list[NotificationCategory] = Field(max_length=20)
+
+
+# --- files ------------------------------------------------------------------------------
+
+
+class UploadIn(BaseModel):
+    table_name: FileOwner
+    record_id: uuid.UUID
+    file_name: Annotated[
+        str, StringConstraints(strip_whitespace=True, min_length=1, max_length=255)
+    ]
+    content_type: Annotated[str, StringConstraints(max_length=200)]
+    size_bytes: int = Field(gt=0)
+
+
+class UploadOut(BaseModel):
+    file_id: uuid.UUID
+    upload_url: str
+    method: str = "PUT"
+    headers: dict[str, str]
+    expires_in: int
+
+
+class FileOut(Out):
+    id: uuid.UUID
+    file_name: str
+    content_type: str
+    size_bytes: int
+    status: str
+    uploaded_by: uuid.UUID
+    created_at: datetime
+
+
+class DownloadOut(BaseModel):
+    url: str
+    expires_in: int

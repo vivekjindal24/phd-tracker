@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.errors import install_error_handlers
-from app.routers import auth, notifications, org_units, users
+from app.routers import auth, files, notifications, org_units, users
 from app.routers import settings as settings_router
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s %(message)s")
@@ -28,6 +28,6 @@ async def healthz() -> dict[str, str]:
     return {"status": "ok"}
 
 
-for module in (auth, org_units, users, settings_router, notifications):
+for module in (auth, org_units, users, settings_router, notifications, files):
     api.include_router(module.router)
 app.include_router(api)
