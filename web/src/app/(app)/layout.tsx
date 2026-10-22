@@ -16,6 +16,17 @@ type NavItem = { href: string; label: string; show: (me: Me) => boolean };
 // Only pages that exist are listed; groups grow with each phase (UX Flow 0).
 const NAV: NavItem[] = [
   { href: "/home", label: "Home", show: () => true },
+  {
+    href: "/scholars",
+    label: "Scholars",
+    show: (me) => me.roles.some((r) => r !== "scholar"),
+  },
+  {
+    href: "/scholars", // redirects a scholar to their own profile
+    label: "My profile",
+    show: (me) => me.roles.length === 1 && me.roles[0] === "scholar",
+  },
+  { href: "/faculty", label: "Faculty", show: () => true },
   { href: "/settings", label: "Settings", show: (me) => me.is_root_admin },
 ];
 

@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Fraunces, Nunito } from "next/font/google";
+import Script from "next/script";
 import type { ReactNode } from "react";
 import { WakingOverlay } from "@/components/WakingOverlay";
 import { SessionProvider } from "@/lib/session";
@@ -31,10 +32,10 @@ const THEME_INIT = `try{var t=localStorage.getItem("anveshan.theme");if(t==="lig
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className={`${display.variable} ${body.variable}`} suppressHydrationWarning>
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: THEME_INIT }} />
-      </head>
       <body>
+        <Script id="theme-init" strategy="beforeInteractive">
+          {THEME_INIT}
+        </Script>
         <SessionProvider>
           {children}
           <WakingOverlay />

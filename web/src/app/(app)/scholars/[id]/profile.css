@@ -1,0 +1,37 @@
+.profile-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: var(--space-5);
+  align-items: start;
+}
+.profile-grid h2 {
+  font-size: var(--text-lg);
+  margin-bottom: var(--space-4);
+}
+.kv {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: var(--space-3) var(--space-5);
+  margin: 0;
+}
+.kv dt {
+  font-weight: 800;
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
+}
+.kv dd {
+  margin: 0;
+}
+.manage,
+.assign {
+  display: grid;
+  gap: var(--space-3);
+}
+.assign {
+  margin-top: var(--space-5);
+  padding-top: var(--space-5);
+  border-top: 1px dashed var(--lilac);
+}
+.back {
+  margin-top: var(--space-6);
+}

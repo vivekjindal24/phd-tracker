@@ -18,7 +18,7 @@ from app.rbac import roles_allowed
 T = TypeVar("T")
 
 
-def _subtree_unit_ids(paths: tuple[str, ...]):
+def subtree_unit_ids(paths: tuple[str, ...]):
     """Ids of every live unit at or below any of `paths`."""
     return select(OrgUnit.id).where(
         OrgUnit.deleted_at.is_(None),
@@ -45,7 +45,7 @@ def scholar_predicate(principal: Principal, entity: str) -> ColumnElement[bool]:
             clauses.append(Scholar.co_supervisor_id == principal.faculty_id)
     paths = _unit_paths(principal, roles)
     if paths:
-        clauses.append(Scholar.unit_id.in_(_subtree_unit_ids(paths)))
+        clauses.append(Scholar.unit_id.in_(subtree_unit_ids(paths)))
     return or_(*clauses) if clauses else false()
 
 
@@ -57,7 +57,7 @@ def user_predicate(principal: Principal) -> ColumnElement[bool]:
     clauses: list[ColumnElement[bool]] = [User.id == principal.user_id]
     paths = _unit_paths(principal, frozenset({"unit_head", "admin"}))
     if paths:
-        units = _subtree_unit_ids(paths)
+        units = subtree_unit_ids(paths)
         clauses += [
             User.id.in_(select(Scholar.user_id).where(Scholar.unit_id.in_(units))),
             User.id.in_(select(Faculty.user_id).where(Faculty.unit_id.in_(units))),

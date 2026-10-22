@@ -95,3 +95,38 @@ export function Switch({
     />
   );
 }
+
+/** Registers and lists: one clay card, flat readable rows inside (DESIGN_SYSTEM.md §4). */
+export function Table({
+  head,
+  children,
+  empty,
+  label,
+}: {
+  head: string[];
+  children: ReactNode;
+  empty?: ReactNode;
+  label: string;
+}) {
+  const hasRows = Array.isArray(children) ? children.length > 0 : Boolean(children);
+  return (
+    <div className="table-card clay">
+      {hasRows ? (
+        <table aria-label={label}>
+          <thead>
+            <tr>
+              {head.map((h) => (
+                <th key={h} scope="col">
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>{children}</tbody>
+        </table>
+      ) : (
+        empty
+      )}
+    </div>
+  );
+}

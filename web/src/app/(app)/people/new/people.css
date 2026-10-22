@@ -1,0 +1,31 @@
+.person-form {
+  display: grid;
+  gap: var(--space-4);
+  max-width: 560px;
+}
+.kind-picker {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  gap: var(--space-3);
+}
+.kind-picker label {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  box-shadow: var(--clay-shadow-pressed);
+  font-weight: 700;
+  cursor: pointer;
+}
+.kind-picker label.chosen {
+  background: var(--lilac);
+  box-shadow: var(--clay-shadow);
+}
+.kind-picker input {
+  accent-color: var(--accent-strong);
+}

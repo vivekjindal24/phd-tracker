@@ -14,6 +14,7 @@ from app.enums import (
     ItemType,
     ModuleKey,
     NotificationCategory,
+    Stage,
     StepKind,
 )
 
@@ -238,3 +239,64 @@ class FileOut(Out):
 class DownloadOut(BaseModel):
     url: str
     expires_in: int
+
+
+# --- directory --------------------------------------------------------------------------
+
+
+class Ref(BaseModel):
+    id: uuid.UUID
+    name: str
+
+
+class ScholarOut(BaseModel):
+    id: uuid.UUID
+    user_id: uuid.UUID
+    full_name: str
+    email: str
+    roll_number: str
+    unit: Ref
+    stage: Stage
+    research_title: str | None
+    admission_date: date | None
+    supervisor: Ref | None
+    co_supervisor: Ref | None
+
+
+class ScholarUpdate(BaseModel):
+    research_title: (
+        Annotated[str, StringConstraints(strip_whitespace=True, max_length=500)] | None
+    ) = None
+    admission_date: date | None = None
+    stage: Stage | None = None
+    unit_id: uuid.UUID | None = None
+    roll_number: (
+        Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=50)] | None
+    ) = None
+
+
+class AssignIn(BaseModel):
+    faculty_id: uuid.UUID | None
+
+
+class FacultyOut(BaseModel):
+    id: uuid.UUID
+    user_id: uuid.UUID
+    full_name: str
+    email: str
+    unit: Ref
+    designation: Designation
+    employee_id: str | None
+    can_supervise: bool
+    max_scholars: int
+    load: int
+
+
+class FacultyUpdate(BaseModel):
+    designation: Designation | None = None
+    max_scholars: int | None = Field(default=None, ge=0, le=20)
+    can_supervise: bool | None = None
+    employee_id: Annotated[str, StringConstraints(strip_whitespace=True, max_length=50)] | None = (
+        None
+    )
+    unit_id: uuid.UUID | None = None

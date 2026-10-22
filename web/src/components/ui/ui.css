@@ -228,3 +228,83 @@
   opacity: 0.6;
   cursor: progress;
 }
+
+/* --- table -------------------------------------------------------------------------- */
+.table-card {
+  padding: var(--space-2);
+  overflow-x: auto;
+}
+.table-card table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  min-width: 560px;
+}
+.table-card th {
+  text-align: left;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-soft);
+  padding: 14px 16px 10px;
+  font-weight: 800;
+}
+.table-card td {
+  padding: 14px 16px;
+  vertical-align: middle;
+}
+.table-card tbody tr:nth-child(odd) td {
+  background: var(--zebra);
+}
+.table-card tbody tr td:first-child {
+  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+}
+.table-card tbody tr td:last-child {
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+.table-card tbody tr:hover td {
+  background: var(--row-hover);
+}
+.mono {
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+  font-weight: 600;
+}
+
+/* --- toolbar (search + filters) ---------------------------------------------------- */
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: end;
+  margin-bottom: var(--space-5);
+}
+.toolbar .field {
+  min-width: 200px;
+}
+
+/* --- load meter (supervisor load vs UGC cap) --------------------------------------- */
+.meter {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: 700;
+  font-size: var(--text-sm);
+}
+.meter-track {
+  width: 96px;
+  height: 12px;
+  border-radius: var(--radius-pill);
+  background: var(--bg);
+  box-shadow: var(--clay-shadow-pressed);
+  overflow: hidden;
+}
+.meter-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--sage);
+}
+.meter-full .meter-fill {
+  background: var(--coral);
+}

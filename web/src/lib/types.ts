@@ -95,3 +95,46 @@ export const MODULE_LABELS: Record<ModuleKey, string> = {
   projects: "Research projects",
   ledger: "Grant ledger",
 };
+
+export const STAGES = [
+  "Registered",
+  "Coursework",
+  "Proposal Approved",
+  "Pre-Synopsis",
+  "Thesis Submitted",
+  "Viva",
+  "Degree Awarded",
+] as const;
+export type Stage = (typeof STAGES)[number];
+
+export const DESIGNATIONS = ["Professor", "Associate Professor", "Assistant Professor"] as const;
+export type Designation = (typeof DESIGNATIONS)[number];
+
+export type Ref = { id: string; name: string };
+
+export type Scholar = {
+  id: string;
+  user_id: string;
+  full_name: string;
+  email: string;
+  roll_number: string;
+  unit: Ref;
+  stage: Stage;
+  research_title: string | null;
+  admission_date: string | null;
+  supervisor: Ref | null;
+  co_supervisor: Ref | null;
+};
+
+export type Faculty = {
+  id: string;
+  user_id: string;
+  full_name: string;
+  email: string;
+  unit: Ref;
+  designation: Designation;
+  employee_id: string | null;
+  can_supervise: boolean;
+  max_scholars: number;
+  load: number;
+};
