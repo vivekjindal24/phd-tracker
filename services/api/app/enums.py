@@ -71,6 +71,9 @@ NOTIFICATION_CATEGORIES = get_args(NotificationCategory)
 EmailStatus = Literal["not_sent", "sent", "failed", "muted"]
 EMAIL_STATUSES = get_args(EmailStatus)
 
+Period = Literal["January-June", "July-December"]
+PERIODS = get_args(Period)
+
 # Groups a supervisor can share meeting minutes with (PRD F7); unticked groups see only the date.
 MeetingShare = Literal["unit_heads", "research_office", "admins"]
 MEETING_SHARES = get_args(MeetingShare)

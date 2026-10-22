@@ -2,7 +2,7 @@
 
 import uuid
 from datetime import date, datetime
-from typing import Annotated
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, StringConstraints, model_validator
 
@@ -11,10 +11,12 @@ from app.enums import (
     CoSupervision,
     Designation,
     FileOwner,
+    ItemState,
     ItemType,
     MeetingShare,
     ModuleKey,
     NotificationCategory,
+    Period,
     Stage,
     StepKind,
 )
@@ -343,4 +345,98 @@ class MeetingOut(BaseModel):
     can_edit: bool
     can_share: bool
     created_at: datetime
+    updated_at: datetime
+
+
+# --- approvable items -------------------------------------------------------------------
+
+Comment = Annotated[str, StringConstraints(strip_whitespace=True, max_length=4000)]
+
+
+class ChainStepView(BaseModel):
+    kind: StepKind
+    label: str
+    status: Literal["done", "current", "upcoming"]
+
+
+class SendBackTarget(BaseModel):
+    to_step: int | None
+    label: str
+
+
+class HistoryEntry(BaseModel):
+    action: str
+    actor: str
+    step: str | None
+    to: str | None
+    comment: str | None
+    at: datetime
+
+
+class ItemView(BaseModel):
+    item_type: ItemType
+    id: uuid.UUID
+    label: str
+    title: str
+    scholar: Ref
+    state: ItemState
+    current_step: int | None
+    waiting_on: str | None
+    chain: list[ChainStepView]
+    submitted_at: datetime | None
+    approved_at: datetime | None
+    content: dict[str, Any]
+    can_edit: bool
+    can_submit: bool
+    can_resubmit: bool
+    can_act: bool
+    send_back_targets: list[SendBackTarget]
+    blocked_reason: str | None
+    history: list[HistoryEntry]
+
+
+class ApproveIn(BaseModel):
+    comment: Comment | None = None
+
+
+class SendBackIn(BaseModel):
+    comment: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=4000)]
+    to_step: int | None = Field(default=None, ge=0)
+
+
+class QueueEntry(BaseModel):
+    item_type: ItemType
+    id: uuid.UUID
+    label: str
+    title: str
+    scholar: Ref
+    step: str
+    waiting_since: datetime
+    days_waiting: int
+
+
+# --- progress reports -------------------------------------------------------------------
+
+Summary = Annotated[str, StringConstraints(strip_whitespace=True, min_length=20, max_length=20000)]
+
+
+class ReportIn(BaseModel):
+    report_year: int = Field(ge=2000, le=2100)
+    period: Period
+    summary: Summary
+
+
+class ReportUpdate(BaseModel):
+    summary: Summary
+
+
+class ReportRow(BaseModel):
+    id: uuid.UUID
+    scholar: Ref
+    report_year: int
+    period: Period
+    state: ItemState
+    waiting_on: str | None
+    submitted_at: datetime | None
+    approved_at: datetime | None
     updated_at: datetime

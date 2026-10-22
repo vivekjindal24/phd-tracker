@@ -41,6 +41,13 @@ MATRIX: dict[str, dict[str, frozenset[str]]] = {
         "admin": frozenset({R}),
         "research_office": frozenset({R}),
     },
+    "progress_reports": {
+        "scholar": frozenset({R, C, U}),
+        "supervisor": frozenset({R}),
+        "unit_head": frozenset({R}),
+        "admin": frozenset({R}),
+        "research_office": frozenset({R}),
+    },
     "users": {
         "unit_head": frozenset({R}),
         "admin": frozenset({R, C, U, D, "manage_roles"}),

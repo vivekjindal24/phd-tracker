@@ -162,3 +162,57 @@ export type Meeting = {
   created_at: string;
   updated_at: string;
 };
+
+export type ItemState = "draft" | "in_review" | "sent_back" | "approved";
+export const STATE_LABELS: Record<ItemState, string> = {
+  draft: "Draft",
+  in_review: "In review",
+  sent_back: "Sent back",
+  approved: "Approved",
+};
+
+export type ItemView = {
+  item_type: ItemType;
+  id: string;
+  label: string;
+  title: string;
+  scholar: Ref;
+  state: ItemState;
+  current_step: number | null;
+  waiting_on: string | null;
+  chain: { kind: StepKind; label: string; status: "done" | "current" | "upcoming" }[];
+  submitted_at: string | null;
+  approved_at: string | null;
+  content: Record<string, unknown>;
+  can_edit: boolean;
+  can_submit: boolean;
+  can_resubmit: boolean;
+  can_act: boolean;
+  send_back_targets: { to_step: number | null; label: string }[];
+  blocked_reason: string | null;
+  history: { action: string; actor: string; step: string | null; to: string | null; comment: string | null; at: string }[];
+};
+
+export type QueueEntry = {
+  item_type: ItemType;
+  id: string;
+  label: string;
+  title: string;
+  scholar: Ref;
+  step: string;
+  waiting_since: string;
+  days_waiting: number;
+};
+
+export type Period = "January-June" | "July-December";
+export type ReportRow = {
+  id: string;
+  scholar: Ref;
+  report_year: number;
+  period: Period;
+  state: ItemState;
+  waiting_on: string | null;
+  submitted_at: string | null;
+  approved_at: string | null;
+  updated_at: string;
+};

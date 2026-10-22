@@ -31,6 +31,16 @@ const NAV: NavItem[] = [
     label: "Meetings",
     show: (me) => me.roles.some((r) => r !== "exam_office" && r !== "library"),
   },
+  {
+    href: "/reports",
+    label: "Reports",
+    show: (me) => me.roles.some((r) => r !== "exam_office" && r !== "library"),
+  },
+  {
+    href: "/queue",
+    label: "Queue",
+    show: (me) => me.roles.some((r) => r !== "scholar"),
+  },
   { href: "/faculty", label: "Faculty", show: () => true },
   { href: "/settings", label: "Settings", show: (me) => me.is_root_admin },
 ];

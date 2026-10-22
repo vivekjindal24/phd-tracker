@@ -22,6 +22,7 @@ CONSTRAINT_ERRORS: dict[str, tuple[int, str, str]] = {
         "duplicate_unit_code",
         "A sibling unit already uses an equivalent code.",
     ),
+    "uq_apr_active": (409, "duplicate_apr", "A progress report for this period already exists."),
     "uq_role_assignment_active": (409, "duplicate_role", "This role is already assigned."),
     "uq_faculty_user": (409, "duplicate_profile", "This user already has a faculty profile."),
     "uq_scholars_user": (409, "duplicate_profile", "This user already has a scholar profile."),
