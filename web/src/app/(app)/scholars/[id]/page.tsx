@@ -5,10 +5,12 @@ import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { Button, Card, ErrorText, Field, PageHeader } from "@/components/ui/kit";
+import { MilestoneStatusBadge } from "@/components/MilestoneStatusBadge";
 import { api } from "@/lib/api";
+import { formatDate } from "@/lib/format";
 import { useSession } from "@/lib/session";
-import { STAGES } from "@/lib/types";
-import type { Faculty, Scholar, Stage } from "@/lib/types";
+import { MILESTONE_LABELS, STAGES } from "@/lib/types";
+import type { Faculty, Milestone, Scholar, Stage } from "@/lib/types";
 import { errorText, useFetch } from "@/lib/useFetch";
 import "./profile.css";
 
@@ -66,6 +68,30 @@ function AssignCard({
         Save {kind}
       </Button>
     </div>
+  );
+}
+
+function Decisions({ scholarId }: { scholarId: string }) {
+  const { data } = useFetch<Milestone[]>(`/milestones?scholar_id=${scholarId}`);
+  if (!data) return null;
+  return (
+    <Card className="decisions">
+      <h2>Committee decisions</h2>
+      {data.length === 0 ? (
+        <p className="muted">No decisions recorded yet.</p>
+      ) : (
+        <ul className="decision-list">
+          {data.map((m) => (
+            <li key={m.id}>
+              <strong>{MILESTONE_LABELS[m.milestone_type]}</strong> · {m.approval_body}
+              {m.resolution_number && ` · ${m.resolution_number}`}
+              {m.resolution_date && ` · ${formatDate(m.resolution_date)}`}
+              <MilestoneStatusBadge status={m.status} />
+            </li>
+          ))}
+        </ul>
+      )}
+    </Card>
   );
 }
 
@@ -153,6 +179,7 @@ export default function ScholarProfile() {
           </Card>
         )}
       </div>
+      <Decisions scholarId={scholar.id} />
       <p className="back"><Link href="/scholars">← All scholars</Link></p>
     </>
   );

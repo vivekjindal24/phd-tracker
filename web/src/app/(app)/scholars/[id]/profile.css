@@ -35,3 +35,19 @@
 .back {
   margin-top: var(--space-6);
 }
+.decisions {
+  margin-top: var(--space-5);
+}
+.decision-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-3);
+}
+.decision-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}

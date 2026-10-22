@@ -71,6 +71,21 @@ NOTIFICATION_CATEGORIES = get_args(NotificationCategory)
 EmailStatus = Literal["not_sent", "sent", "failed", "muted"]
 EMAIL_STATUSES = get_args(EmailStatus)
 
+MilestoneType = Literal[
+    "coursework",
+    "proposal_approval",
+    "rac_review",
+    "pre_synopsis",
+    "thesis_submission",
+    "viva",
+    "degree_awarded",
+]
+MILESTONE_TYPES = get_args(MilestoneType)
+MilestoneStatus = Literal["Pending", "Approved", "Rejected"]
+MILESTONE_STATUSES = get_args(MilestoneStatus)
+ApprovalBody = Literal["RDC", "DPGC", "DRC", "RAC", "Other"]
+APPROVAL_BODIES = get_args(ApprovalBody)
+
 Period = Literal["January-June", "July-December"]
 PERIODS = get_args(Period)
 

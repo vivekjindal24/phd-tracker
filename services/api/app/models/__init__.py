@@ -1,6 +1,7 @@
 from app.models.base import Base
 from app.models.files import FileRow
 from app.models.meetings import Meeting
+from app.models.milestones import Milestone
 from app.models.org import Faculty, OrgUnit, RoleAssignment, Scholar, User
 from app.models.reports import ProgressReport
 from app.models.settings import ApprovalChain, Module, Settings
@@ -17,6 +18,7 @@ __all__ = [
     "JobRun",
     "LoginAttempt",
     "Meeting",
+    "Milestone",
     "Module",
     "Notification",
     "OrgUnit",

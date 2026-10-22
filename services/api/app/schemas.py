@@ -7,6 +7,7 @@ from typing import Annotated, Any, Literal
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, StringConstraints, model_validator
 
 from app.enums import (
+    ApprovalBody,
     AssignedRole,
     CoSupervision,
     Designation,
@@ -14,6 +15,8 @@ from app.enums import (
     ItemState,
     ItemType,
     MeetingShare,
+    MilestoneStatus,
+    MilestoneType,
     ModuleKey,
     NotificationCategory,
     Period,
@@ -439,4 +442,43 @@ class ReportRow(BaseModel):
     waiting_on: str | None
     submitted_at: datetime | None
     approved_at: datetime | None
+    updated_at: datetime
+
+
+# --- RDC register -----------------------------------------------------------------------
+
+Resolution = Annotated[str, StringConstraints(strip_whitespace=True, max_length=100)]
+Notes = Annotated[str, StringConstraints(strip_whitespace=True, max_length=4000)]
+
+
+class MilestoneIn(BaseModel):
+    scholar_id: uuid.UUID
+    milestone_type: MilestoneType
+    status: MilestoneStatus = "Pending"
+    approval_body: ApprovalBody
+    resolution_number: Resolution | None = None
+    resolution_date: date | None = None
+    notes: Notes = ""
+
+
+class MilestoneUpdate(BaseModel):
+    milestone_type: MilestoneType | None = None
+    status: MilestoneStatus | None = None
+    approval_body: ApprovalBody | None = None
+    resolution_number: Resolution | None = None
+    resolution_date: date | None = None
+    notes: Notes | None = None
+
+
+class MilestoneOut(BaseModel):
+    id: uuid.UUID
+    scholar: Ref
+    roll_number: str
+    unit: Ref
+    milestone_type: MilestoneType
+    status: MilestoneStatus
+    approval_body: ApprovalBody
+    resolution_number: str | None
+    resolution_date: date | None
+    notes: str
     updated_at: datetime

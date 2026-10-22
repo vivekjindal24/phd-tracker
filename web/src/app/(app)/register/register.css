@@ -1,0 +1,31 @@
+.register-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(320px, 1fr);
+  gap: var(--space-5);
+  align-items: start;
+}
+.register-grid > :only-child {
+  grid-column: 1 / -1;
+}
+.decision-form {
+  display: grid;
+  gap: var(--space-4);
+  position: sticky;
+  top: 110px;
+}
+.decision-form h2 {
+  font-size: var(--text-lg);
+}
+.decision-form .three {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--space-3);
+}
+@media (max-width: 1000px) {
+  .register-grid {
+    grid-template-columns: 1fr;
+  }
+  .decision-form {
+    position: static;
+  }
+}

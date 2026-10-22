@@ -216,3 +216,32 @@ export type ReportRow = {
   approved_at: string | null;
   updated_at: string;
 };
+
+export const MILESTONE_LABELS = {
+  coursework: "Coursework",
+  proposal_approval: "Proposal approval",
+  rac_review: "RAC review",
+  pre_synopsis: "Pre-synopsis",
+  thesis_submission: "Thesis submission",
+  viva: "Viva",
+  degree_awarded: "Degree awarded",
+} as const;
+export type MilestoneType = keyof typeof MILESTONE_LABELS;
+export const MILESTONE_STATUSES = ["Pending", "Approved", "Rejected"] as const;
+export type MilestoneStatus = (typeof MILESTONE_STATUSES)[number];
+export const APPROVAL_BODIES = ["RDC", "DPGC", "DRC", "RAC", "Other"] as const;
+export type ApprovalBody = (typeof APPROVAL_BODIES)[number];
+
+export type Milestone = {
+  id: string;
+  scholar: Ref;
+  roll_number: string;
+  unit: Ref;
+  milestone_type: MilestoneType;
+  status: MilestoneStatus;
+  approval_body: ApprovalBody;
+  resolution_number: string | null;
+  resolution_date: string | null;
+  notes: string;
+  updated_at: string;
+};
