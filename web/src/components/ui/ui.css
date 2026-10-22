@@ -1,0 +1,230 @@
+/* The clay UI kit (DESIGN_SYSTEM.md §4). Tokens come from app/globals.css. */
+
+.clay {
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--clay-shadow);
+}
+
+.muted {
+  color: var(--ink-soft);
+}
+
+.card {
+  padding: var(--space-5);
+}
+
+.panel {
+  padding: var(--space-5);
+  border-radius: var(--radius-lg);
+}
+
+/* --- buttons ------------------------------------------------------------------------ */
+.btn {
+  --b-bg: var(--surface);
+  --b-ink: var(--ink);
+  font: 800 var(--text-sm) / 1 var(--font-body), system-ui, sans-serif;
+  letter-spacing: 0.01em;
+  border: 0;
+  cursor: pointer;
+  padding: 13px 22px;
+  border-radius: var(--radius-pill);
+  background: var(--b-bg);
+  color: var(--b-ink);
+  box-shadow: var(--clay-shadow);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  text-decoration: none;
+  transition: transform var(--duration-hover) var(--spring), box-shadow var(--duration-hover);
+}
+.btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: var(--clay-shadow-hover);
+}
+.btn:active:not(:disabled) {
+  transform: translateY(0) scale(0.97);
+  box-shadow: var(--clay-shadow-pressed);
+  transition-duration: var(--duration-press);
+}
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+.btn-primary {
+  --b-bg: var(--accent-strong);
+  --b-ink: var(--on-accent);
+}
+.btn-secondary {
+  --b-bg: var(--sage);
+  --b-ink: var(--badge-ink);
+}
+.btn-ghost {
+  background: transparent;
+  box-shadow: none;
+  color: var(--link);
+}
+.btn-ghost:hover:not(:disabled) {
+  background: var(--row-hover);
+  box-shadow: none;
+}
+.btn-danger {
+  --b-ink: var(--danger);
+}
+.btn-icon {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  font-size: 1.15rem;
+}
+
+/* --- fields ------------------------------------------------------------------------- */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  font-weight: 700;
+  font-size: var(--text-sm);
+}
+.field input,
+.field select,
+.field textarea {
+  font: 400 var(--text-base) / 1.4 var(--font-body), system-ui, sans-serif;
+  color: var(--ink);
+  background: var(--bg);
+  border: 0;
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  box-shadow: var(--clay-shadow-pressed);
+  transition: box-shadow var(--duration-hover);
+}
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  outline: none;
+  box-shadow: var(--clay-shadow-pressed), 0 0 0 3px var(--accent);
+}
+.field-hint {
+  font-weight: 400;
+  color: var(--ink-soft);
+}
+
+.error-text {
+  color: var(--danger);
+  font-weight: 700;
+  font-size: var(--text-sm);
+  margin: 0;
+}
+
+/* --- badges & chips ----------------------------------------------------------------- */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: var(--radius-pill);
+  font-weight: 800;
+  font-size: 0.8rem;
+  color: var(--ink); /* plain chip on lilac; state badges below switch to badge-ink */
+  background: var(--lilac);
+  box-shadow: inset -2px -2px 4px rgb(0 0 0 / 0.1), inset 2px 2px 4px rgb(255 255 255 / 0.45),
+    2px 3px 6px rgb(61 44 46 / 0.12);
+  animation: pop 0.35s var(--spring);
+}
+.badge-draft,
+.badge-in_review,
+.badge-approved,
+.badge-sent_back {
+  color: var(--badge-ink);
+}
+.badge-draft {
+  background: var(--butter);
+}
+.badge-in_review {
+  background: var(--sky);
+}
+.badge-approved {
+  background: var(--sage);
+}
+.badge-sent_back {
+  background: var(--coral);
+}
+@keyframes pop {
+  from {
+    transform: scale(0.6);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+/* --- page header -------------------------------------------------------------------- */
+.page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+.page-header h1 {
+  font-size: var(--text-xl);
+}
+.page-header .eyebrow {
+  font-weight: 800;
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent-strong);
+  margin-bottom: var(--space-2);
+}
+
+/* --- empty state -------------------------------------------------------------------- */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--space-3);
+  padding: var(--space-6) var(--space-5);
+}
+.empty-state p {
+  margin: 0;
+  color: var(--ink-soft);
+}
+
+/* --- switch ------------------------------------------------------------------------- */
+.switch {
+  position: relative;
+  width: 56px;
+  height: 32px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--bg);
+  box-shadow: var(--clay-shadow-pressed);
+  cursor: pointer;
+  flex: none;
+}
+.switch::after {
+  content: "";
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: 2px 2px 5px rgb(0 0 0 / 0.2);
+  transition: transform var(--duration-hover) var(--spring);
+}
+.switch[aria-checked="true"] {
+  background: var(--accent-strong);
+}
+.switch[aria-checked="true"]::after {
+  transform: translateX(24px);
+}
+.switch:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}

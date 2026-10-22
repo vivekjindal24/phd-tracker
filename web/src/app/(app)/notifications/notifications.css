@@ -1,0 +1,40 @@
+.inbox {
+  list-style: none;
+  margin: 0;
+  padding: var(--space-2);
+}
+.inbox li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border-radius: var(--radius-sm);
+}
+.inbox li:nth-child(odd) {
+  background: var(--zebra);
+}
+.inbox li.unread strong::before {
+  content: "";
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: var(--space-2);
+  border-radius: 50%;
+  background: var(--accent-strong);
+  vertical-align: middle;
+}
+.inbox p {
+  margin: var(--space-1) 0;
+  color: var(--ink-soft);
+}
+.inbox time {
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
+}
+.inbox-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex: none;
+}

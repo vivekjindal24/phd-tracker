@@ -1,0 +1,25 @@
+.waking {
+  position: fixed;
+  left: 50%;
+  bottom: var(--space-5);
+  transform: translateX(-50%);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-lg);
+  width: min(520px, calc(100vw - 2 * var(--gutter)));
+  animation: waking-in 0.4s var(--spring);
+}
+.waking p {
+  margin: var(--space-1) 0 0;
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+}
+@keyframes waking-in {
+  from {
+    transform: translate(-50%, 120%);
+    opacity: 0;
+  }
+}

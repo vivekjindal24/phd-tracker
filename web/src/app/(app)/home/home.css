@@ -1,0 +1,39 @@
+.home-hero {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: var(--space-5);
+  margin-bottom: var(--space-6);
+}
+.home-hero .page-header {
+  margin-bottom: var(--space-4);
+}
+.home-hero .page-header h1 {
+  font-size: var(--text-hero);
+}
+.role-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.home-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: var(--space-5);
+  align-items: start;
+}
+.home-grid h2 {
+  font-size: var(--text-lg);
+  margin-bottom: var(--space-2);
+}
+@media (max-width: 640px) {
+  .home-hero {
+    grid-template-columns: 1fr;
+  }
+  .home-hero .owl {
+    display: none;
+  }
+}

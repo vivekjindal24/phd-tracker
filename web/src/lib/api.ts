@@ -1,0 +1,141 @@
+/**
+ * API client (SECURITY.md §1, UX Flow 0).
+ * - access token in memory only; refresh token in localStorage (known tradeoff, SECURITY.md §7:
+ *   upgrade path = httpOnly cookie behind a Next route-handler proxy)
+ * - a 401 triggers ONE refresh-and-replay; refresh tokens are single-use, so concurrent 401s
+ *   share one in-flight refresh
+ * - requests slower than WAKE_AFTER_MS raise the "waking up the server" signal
+ */
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
+const REFRESH_KEY = "anveshan.refresh";
+const WAKE_AFTER_MS = 3000;
+
+export class ApiError extends Error {
+  constructor(
+    public status: number,
+    public code: string,
+    message: string,
+    public details: Record<string, unknown> = {},
+  ) {
+    super(message);
+  }
+}
+
+let accessToken: string | null = null;
+let refreshInFlight: Promise<boolean> | null = null;
+let pending = 0;
+let wakeTimer: ReturnType<typeof setTimeout> | null = null;
+const wakeListeners = new Set<(waking: boolean) => void>();
+
+export function onWaking(listener: (waking: boolean) => void): () => void {
+  wakeListeners.add(listener);
+  return () => wakeListeners.delete(listener);
+}
+
+function setWaking(waking: boolean) {
+  wakeListeners.forEach((l) => l(waking));
+}
+
+function readRefresh(): string | null {
+  try {
+    return localStorage.getItem(REFRESH_KEY);
+  } catch {
+    return null; // storage blocked: the user simply logs in each visit
+  }
+}
+
+function writeRefresh(token: string | null) {
+  try {
+    if (token) localStorage.setItem(REFRESH_KEY, token);
+    else localStorage.removeItem(REFRESH_KEY);
+  } catch {
+    // storage blocked: session lasts for this tab only
+  }
+}
+
+export function hasStoredSession(): boolean {
+  return readRefresh() !== null;
+}
+
+async function send(path: string, init: RequestInit, token: string | null): Promise<Response> {
+  if (!API_URL) throw new ApiError(0, "config_error", "NEXT_PUBLIC_API_URL is not set.");
+  pending += 1;
+  if (pending === 1) wakeTimer = setTimeout(() => setWaking(true), WAKE_AFTER_MS);
+  try {
+    const headers = new Headers(init.headers);
+    if (init.body) headers.set("Content-Type", "application/json");
+    if (token) headers.set("Authorization", `Bearer ${token}`);
+    return await fetch(`${API_URL}/api/v1${path}`, { ...init, headers });
+  } catch {
+    throw new ApiError(0, "network_error", "We can't reach the server. Check your connection.");
+  } finally {
+    pending -= 1;
+    if (pending === 0) {
+      if (wakeTimer) clearTimeout(wakeTimer);
+      setWaking(false);
+    }
+  }
+}
+
+async function toError(res: Response): Promise<ApiError> {
+  try {
+    const body = await res.json();
+    const err = body?.error;
+    if (err?.code) return new ApiError(res.status, err.code, err.message, err.details ?? {});
+  } catch {
+    // non-JSON body (proxy error page): fall through to a generic message
+  }
+  return new ApiError(res.status, "http_error", `The server answered ${res.status}.`);
+}
+
+type Tokens = { access_token: string; refresh_token: string };
+
+function store(tokens: Tokens) {
+  accessToken = tokens.access_token;
+  writeRefresh(tokens.refresh_token);
+}
+
+async function refresh(): Promise<boolean> {
+  const token = readRefresh();
+  if (!token) return false;
+  refreshInFlight ??= (async () => {
+    const res = await send("/auth/refresh", { method: "POST", body: JSON.stringify({ refresh_token: token }) }, null);
+    if (!res.ok) {
+      writeRefresh(null);
+      accessToken = null;
+      return false;
+    }
+    store(await res.json());
+    return true;
+  })().finally(() => {
+    refreshInFlight = null;
+  });
+  return refreshInFlight;
+}
+
+export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
+  let res = await send(path, init, accessToken);
+  if (res.status === 401 && (await refresh())) {
+    res = await send(path, init, accessToken);
+  }
+  if (!res.ok) throw await toError(res);
+  return (res.status === 204 ? undefined : await res.json()) as T;
+}
+
+export async function login(email: string, password: string): Promise<void> {
+  const res = await send("/auth/login", { method: "POST", body: JSON.stringify({ email, password }) }, null);
+  if (!res.ok) throw await toError(res);
+  store(await res.json());
+}
+
+export async function logout(): Promise<void> {
+  const token = readRefresh();
+  accessToken = null;
+  writeRefresh(null);
+  if (token) {
+    await send("/auth/logout", { method: "POST", body: JSON.stringify({ refresh_token: token }) }, null);
+  }
+}
+
+export const json = (body: unknown): RequestInit => ({ body: JSON.stringify(body) });

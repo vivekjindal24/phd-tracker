@@ -1,0 +1,175 @@
+.settings-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: var(--space-5);
+  align-items: start;
+}
+.settings-grid > * {
+  grid-column: span 6;
+}
+.settings-grid .settings-tree {
+  grid-column: span 7;
+}
+.settings-grid .settings-side {
+  grid-column: span 5;
+  display: grid;
+  gap: var(--space-5);
+}
+.settings-grid .settings-chains {
+  grid-column: span 12;
+}
+.settings-grid h2 {
+  font-size: var(--text-lg);
+  margin-bottom: var(--space-2);
+}
+.settings-grid h3 {
+  font-size: var(--text-base);
+  margin-bottom: var(--space-3);
+}
+
+/* modules */
+.module-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.module-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-3) 0;
+  font-weight: 700;
+}
+
+/* co-supervision */
+.segmented {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-3);
+}
+.segmented legend {
+  padding: 0;
+}
+.segmented label {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  box-shadow: var(--clay-shadow-pressed);
+  cursor: pointer;
+}
+.segmented label.chosen {
+  background: var(--lilac);
+  box-shadow: var(--clay-shadow);
+}
+.segmented input {
+  grid-row: span 2;
+  accent-color: var(--accent-strong);
+}
+.segmented span {
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+}
+
+/* chains */
+.chain-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: var(--space-5);
+}
+.chain {
+  padding: var(--space-4);
+  border-radius: var(--radius);
+  background: var(--zebra);
+}
+.chain-steps {
+  list-style: none;
+  margin: 0 0 var(--space-3);
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.chain-step {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 6px 6px 6px 14px;
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  box-shadow: var(--clay-shadow);
+  font-weight: 700;
+  font-size: var(--text-sm);
+}
+.chain-step-actions button {
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--bg);
+  color: var(--ink);
+  cursor: pointer;
+  font-weight: 800;
+}
+.chain-step-actions button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.chain-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+}
+.chain-controls select {
+  font: inherit;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--ink);
+  box-shadow: var(--clay-shadow-pressed);
+}
+
+/* org tree */
+.tree {
+  list-style: none;
+  margin: 0 0 var(--space-5);
+  padding: 0;
+}
+.tree li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+}
+.tree-name {
+  font-weight: 700;
+}
+.tree code {
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+}
+.tree li .btn-ghost {
+  margin-left: auto;
+  padding: 6px 12px;
+}
+.tree-form {
+  display: grid;
+  gap: var(--space-3);
+}
+
+@media (max-width: 960px) {
+  .settings-grid > *,
+  .settings-grid .settings-tree,
+  .settings-grid .settings-side {
+    grid-column: span 12;
+  }
+}

@@ -1,0 +1,178 @@
+/* Design tokens — the source of truth for the look (DESIGN_SYSTEM.md §3).
+   Change tokens here, never per page. */
+
+:root {
+  --bg: #f6efe6;
+  --surface: #fff8f0;
+  --ink: #3d2c2e;
+  --ink-soft: #6b5457;
+  --lilac: #d9ccf2;
+  --accent: #a78bda;
+  --accent-strong: #6d4bc3;
+  --on-accent: #ffffff;
+  --link: #6d4bc3;
+  --sage: #81b29a;
+  --butter: #f2cc8f;
+  --sky: #a8cce8;
+  --coral: #f4a28c;
+  --danger: #b3261e;
+  --badge-ink: #3d2c2e;
+  --zebra: rgb(61 44 46 / 0.035);
+  --row-hover: rgb(109 75 195 / 0.09);
+  --owl-body: #d9a07e;
+  --owl-belly: #f7ddb0;
+  --owl-cap: #3d2c2e;
+  --owl-beak: #e9a85c;
+
+  --clay-shadow: 8px 8px 18px rgb(61 44 46 / 0.16), inset -5px -5px 10px rgb(61 44 46 / 0.1),
+    inset 5px 5px 10px rgb(255 255 255 / 0.85);
+  --clay-shadow-hover: 12px 14px 24px rgb(61 44 46 / 0.18),
+    inset -5px -5px 10px rgb(61 44 46 / 0.1), inset 5px 5px 10px rgb(255 255 255 / 0.85);
+  --clay-shadow-pressed: 2px 2px 6px rgb(61 44 46 / 0.14), inset 4px 4px 8px rgb(61 44 46 / 0.14),
+    inset -4px -4px 8px rgb(255 255 255 / 0.6);
+
+  --radius-sm: 12px;
+  --radius: 20px;
+  --radius-lg: 32px;
+  --radius-pill: 999px;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+  --gutter: clamp(16px, 3vw, 48px);
+  --page-max: 1600px;
+
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.25rem;
+  --text-xl: 1.75rem;
+  --text-hero: clamp(2rem, 1.4rem + 2.5vw, 3rem);
+
+  --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --duration-press: 120ms;
+  --duration-hover: 180ms;
+
+  color-scheme: light;
+}
+
+/* Plum clay — follows the device unless the toggle chose light. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #221a2e;
+    --surface: #30263f;
+    --ink: #f1eaf7;
+    --ink-soft: #c4b8d4;
+    --lilac: #4a3d63;
+    --accent: #9f88d6;
+    --accent-strong: #b49deb;
+    --on-accent: #221a2e;
+    --link: #c7b4f3;
+    --sage: #6e9a85;
+    --butter: #d4b07a;
+    --sky: #8db2cf;
+    --coral: #d98a75;
+    --danger: #ff8a80;
+    --badge-ink: #221a2e;
+    --zebra: rgb(230 215 255 / 0.04);
+    --row-hover: rgb(180 157 235 / 0.12);
+    --owl-body: #c48a68;
+    --owl-belly: #e8c99a;
+    --owl-cap: #17111f;
+    --clay-shadow: 8px 8px 18px rgb(0 0 0 / 0.38), inset -5px -5px 10px rgb(0 0 0 / 0.28),
+      inset 5px 5px 10px rgb(230 215 255 / 0.08);
+    --clay-shadow-hover: 12px 14px 24px rgb(0 0 0 / 0.42), inset -5px -5px 10px rgb(0 0 0 / 0.28),
+      inset 5px 5px 10px rgb(230 215 255 / 0.08);
+    --clay-shadow-pressed: 2px 2px 6px rgb(0 0 0 / 0.3), inset 4px 4px 8px rgb(0 0 0 / 0.32),
+      inset -4px -4px 8px rgb(230 215 255 / 0.06);
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #221a2e;
+  --surface: #30263f;
+  --ink: #f1eaf7;
+  --ink-soft: #c4b8d4;
+  --lilac: #4a3d63;
+  --accent: #9f88d6;
+  --accent-strong: #b49deb;
+  --on-accent: #221a2e;
+  --link: #c7b4f3;
+  --sage: #6e9a85;
+  --butter: #d4b07a;
+  --sky: #8db2cf;
+  --coral: #d98a75;
+  --danger: #ff8a80;
+  --badge-ink: #221a2e;
+  --zebra: rgb(230 215 255 / 0.04);
+  --row-hover: rgb(180 157 235 / 0.12);
+  --owl-body: #c48a68;
+  --owl-belly: #e8c99a;
+  --owl-cap: #17111f;
+  --clay-shadow: 8px 8px 18px rgb(0 0 0 / 0.38), inset -5px -5px 10px rgb(0 0 0 / 0.28),
+    inset 5px 5px 10px rgb(230 215 255 / 0.08);
+  --clay-shadow-hover: 12px 14px 24px rgb(0 0 0 / 0.42), inset -5px -5px 10px rgb(0 0 0 / 0.28),
+    inset 5px 5px 10px rgb(230 215 255 / 0.08);
+  --clay-shadow-pressed: 2px 2px 6px rgb(0 0 0 / 0.3), inset 4px 4px 8px rgb(0 0 0 / 0.32),
+    inset -4px -4px 8px rgb(230 215 255 / 0.06);
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  background: var(--bg);
+  color: var(--ink);
+  font: 400 var(--text-base) / 1.55 var(--font-body), system-ui, sans-serif;
+  background-image: radial-gradient(circle at 15% 10%, rgb(167 139 218 / 0.16), transparent 40%),
+    radial-gradient(circle at 90% 80%, rgb(129 178 154 / 0.12), transparent 45%);
+  background-attachment: fixed;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display), Georgia, serif;
+  font-variation-settings: "SOFT" 100;
+  margin: 0;
+  line-height: 1.15;
+}
+
+a {
+  color: var(--link);
+  font-weight: 700;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent-strong);
+  outline-offset: 3px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
