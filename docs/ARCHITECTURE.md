@@ -38,14 +38,14 @@ UI or scripts; file bytes never pass through the export service.
 | Email | SMTP (`aiosmtplib`), sent after commit; failures recorded, never silent |
 | Export | Express + pdfkit (node:22-slim) |
 | Web | Next.js 16 (App Router, client components behind an auth gate), `output: "standalone"` for self-hosting |
-| CI/CD | GitHub Actions: `ci.yml` (tests) → `deploy.yml` (GHCR images) |
+| CI/CD | Render builds `services/api/Dockerfile` and Vercel builds `web/` on every push to the deploy branch; GitHub Actions `ci.yml` (tests) to be added |
 
 ## 4. Deployment Targets
 
 | | Dev / test (free cloud) | Production (per university) |
 |---|---|---|
 | Postgres | Neon (branch per environment) | `postgres:16` container, volume on the NAS |
-| API, export | Render (GHCR images) | containers from the same GHCR images |
+| API, export | Render free (Docker build from repo, region Ohio = Neon's) | containers built from the same Dockerfiles |
 | Web | Vercel | `web` standalone container |
 | Files | Cloudflare R2 | MinIO container (S3-compatible), volume on the NAS |
 | Email | free SMTP relay | university SMTP |
@@ -54,6 +54,13 @@ UI or scripts; file bytes never pass through the export service.
 
 The code never branches on the target: everything differs only by
 environment variables (§9).
+
+**Current dev/test deployment (2026-10):** branch `rewrite` →
+web `https://research.vivekjindal.in` (Vercel project `anveshan`, root
+`web/`, production branch `rewrite`), API `https://anveshan-api-5xem.onrender.com`
+(Render service `anveshan-api`, root `services/api`), database `anveshan` in
+the existing Neon project. Both redeploy on every push to `rewrite`; `main`
+still serves v2 until the cut-over merge.
 
 ## 5. Architecture Diagram
 
