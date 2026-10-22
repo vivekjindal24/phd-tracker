@@ -100,6 +100,28 @@ DEFAULT_RUBRIC = (
     {"name": "Plan", "max": 10},
 )
 
+TodoPart = Literal[
+    "introduction",
+    "literature_review",
+    "methodology",
+    "experiments_results",
+    "discussion",
+    "writing_presentation",
+    "other",
+]
+TODO_PARTS = get_args(TodoPart)
+TODO_PART_LABELS: dict[str, str] = {
+    "introduction": "Introduction",
+    "literature_review": "Literature review",
+    "methodology": "Methodology",
+    "experiments_results": "Experiments & results",
+    "discussion": "Discussion",
+    "writing_presentation": "Writing & presentation",
+    "other": "Other",
+}
+TodoStatus = Literal["open", "done"]
+TODO_STATUSES = get_args(TodoStatus)
+
 Period = Literal["January-June", "July-December"]
 PERIODS = get_args(Period)
 

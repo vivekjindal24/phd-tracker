@@ -1,0 +1,34 @@
+.todo-groups {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: var(--space-5);
+  align-items: start;
+}
+.todo-groups h2 {
+  font-size: var(--text-lg);
+  margin-bottom: var(--space-3);
+}
+.todo-checks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-3);
+}
+.todo-checks label {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+  cursor: pointer;
+}
+.todo-checks input {
+  accent-color: var(--sage);
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+  flex: none;
+}
+.todo-checks li.done span {
+  text-decoration: line-through;
+  color: var(--ink-soft);
+}

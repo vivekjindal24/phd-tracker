@@ -47,6 +47,11 @@ const NAV: NavItem[] = [
     show: (me) => me.roles.some((r) => r !== "exam_office" && r !== "library") || me.faculty_id !== null,
   },
   {
+    href: "/todos",
+    label: "My to-dos",
+    show: (me) => me.scholar_id !== null,
+  },
+  {
     href: "/register",
     label: "Register",
     show: (me) => me.roles.some((r) => r !== "library"),

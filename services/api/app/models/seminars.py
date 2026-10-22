@@ -8,7 +8,14 @@ from sqlalchemy import CheckConstraint, Date, DateTime, ForeignKey, Index, Integ
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.enums import PANEL_KINDS, PERIODS, SEMINAR_STATUSES, sql_in
+from app.enums import (
+    PANEL_KINDS,
+    PERIODS,
+    SEMINAR_STATUSES,
+    TODO_PARTS,
+    TODO_STATUSES,
+    sql_in,
+)
 from app.models.base import Base, DomainRow
 
 LIVE = text("deleted_at IS NULL")
@@ -70,3 +77,47 @@ class SeminarPanel(DomainRow, Base):
         UUID(as_uuid=True), ForeignKey("faculty.id"), index=True
     )
     kind: Mapped[str] = mapped_column(Text, server_default=text("'panel'"))
+
+
+class SeminarGrade(DomainRow, Base):
+    __tablename__ = "seminar_grades"
+    __table_args__ = (
+        Index(
+            "uq_seminar_grade",
+            "seminar_scholar_id",
+            "grader_id",
+            unique=True,
+            postgresql_where=LIVE,
+        ),
+    )
+
+    seminar_scholar_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("seminar_scholars.id"), index=True
+    )
+    grader_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("faculty.id"))
+    scores: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    rubric: Mapped[list[dict[str, Any]]] = mapped_column(JSONB)  # snapshot at grading time
+    comment: Mapped[str] = mapped_column(Text, server_default=text("''"))
+    submitted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
+class Todo(DomainRow, Base):
+    __tablename__ = "todos"
+    __table_args__ = (
+        CheckConstraint(f"part IN ({sql_in(TODO_PARTS)})", name="ck_todos_part"),
+        CheckConstraint(f"status IN ({sql_in(TODO_STATUSES)})", name="ck_todos_status"),
+        CheckConstraint("char_length(text) BETWEEN 1 AND 1000", name="ck_todos_text"),
+    )
+
+    scholar_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("scholars.id"), index=True
+    )
+    part: Mapped[str] = mapped_column(Text)
+    # Keep `status` above `text`: the `text` column shadows sqlalchemy.text in this class body.
+    status: Mapped[str] = mapped_column(Text, server_default=text("'open'"))
+    text: Mapped[str] = mapped_column(Text)
+    source_seminar_scholar_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("seminar_scholars.id")
+    )
+    done_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_by: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"))

@@ -25,6 +25,8 @@ from app.enums import (
     SeminarStatus,
     Stage,
     StepKind,
+    TodoPart,
+    TodoStatus,
 )
 
 Name = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)]
@@ -574,7 +576,71 @@ class SeminarDetail(SeminarRow):
     panel: list[PanelMember]
     can_manage: bool
     require_hardcopy: bool
+    is_grader: bool
+    can_attend: bool
 
 
 class HardcopyIn(BaseModel):
     received_on: date | None
+
+
+# --- seminar grading & to-dos -----------------------------------------------------------
+
+
+class GradeIn(BaseModel):
+    scores: dict[str, float] = Field(min_length=1, max_length=10)
+    comment: Annotated[str, StringConstraints(strip_whitespace=True, max_length=8000)] = ""
+
+
+class Point(BaseModel):
+    part: TodoPart
+    text: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=1000)]
+
+
+class DraftIn(BaseModel):
+    points: list[Point] = Field(max_length=40)
+
+
+class FinaliseIn(BaseModel):
+    points: list[Point] = Field(max_length=40)
+
+
+class GradeView(BaseModel):
+    grader: str
+    scores: dict[str, float]
+    rubric: list[RubricCriterion]
+    total: float
+    max_total: int
+    comment: str
+    submitted_at: datetime
+
+
+class TodoOut(Out):
+    id: uuid.UUID
+    scholar_id: uuid.UUID
+    part: TodoPart
+    text: str
+    status: TodoStatus
+    done_at: datetime | None
+    created_at: datetime
+
+
+class TodoUpdate(BaseModel):
+    status: TodoStatus
+
+
+class ReviewView(BaseModel):
+    seminar_id: uuid.UUID
+    seminar_title: str
+    scholar: Ref
+    rubric: list[RubricCriterion]
+    grades: list[GradeView]
+    average_percent: float | None
+    draft_points: list[Point]
+    finalised_at: datetime | None
+    todos: list[TodoOut]
+    can_grade: bool
+    my_grade: GradeView | None
+    can_finalise: bool
+    ai_available: bool
+    parts: dict[str, str]

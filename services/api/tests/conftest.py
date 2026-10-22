@@ -35,6 +35,9 @@ os.environ["S3_BUCKET"] = _TEST_BUCKET
 # Never send real email from tests; email tests capture messages explicitly.
 for _smtp in ("SMTP_HOST", "SMTP_PORT", "SMTP_USER", "SMTP_PASSWORD", "MAIL_FROM"):
     os.environ.pop(_smtp, None)
+# Never call a real AI from tests; AI tests substitute app.ai.suggest_points.
+for _ai in ("AI_BASE_URL", "AI_API_KEY", "AI_MODEL"):
+    os.environ.pop(_ai, None)
 os.environ.setdefault("JWT_SECRET", "test-secret-0123456789abcdef0123456789")
 
 import pytest  # noqa: E402

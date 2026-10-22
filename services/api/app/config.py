@@ -29,6 +29,14 @@ class Smtp:
 
 SMTP_VARS = ("SMTP_HOST", "SMTP_PORT", "SMTP_USER", "SMTP_PASSWORD", "MAIL_FROM")
 DEFAULT_MAX_UPLOAD_MB = 100
+AI_VARS = ("AI_BASE_URL", "AI_API_KEY", "AI_MODEL")
+
+
+@dataclass(frozen=True)
+class Ai:
+    base_url: str
+    api_key: str
+    model: str
 
 
 @dataclass(frozen=True)
@@ -49,6 +57,7 @@ class Settings:
     app_base_url: str
     smtp: Smtp | None
     s3: S3
+    ai: Ai | None
     access_token_minutes: int = 30
     refresh_token_days: int = 14
 
@@ -70,6 +79,23 @@ def _load_smtp() -> Smtp | None:
         user=values["SMTP_USER"],
         password=values["SMTP_PASSWORD"],
         mail_from=values["MAIL_FROM"],
+    )
+
+
+def _load_ai() -> Ai | None:
+    """All-or-nothing, like SMTP: none set = supervisors write seminar points by hand."""
+    values = {name: os.environ.get(name, "").strip() for name in AI_VARS}
+    if not any(values.values()):
+        return None
+    missing = [name for name, value in values.items() if not value]
+    if missing:
+        raise ConfigError("AI is partly configured; also set " + ", ".join(missing))
+    if not values["AI_BASE_URL"].startswith(("https://", "http://")):
+        raise ConfigError("AI_BASE_URL must be an http(s) URL")
+    return Ai(
+        base_url=values["AI_BASE_URL"].rstrip("/"),
+        api_key=values["AI_API_KEY"],
+        model=values["AI_MODEL"],
     )
 
 
@@ -131,6 +157,7 @@ def load_settings() -> Settings:
         app_base_url=app_base_url,
         smtp=_load_smtp(),
         s3=_load_s3(),
+        ai=_load_ai(),
     )
 
 

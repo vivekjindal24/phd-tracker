@@ -45,7 +45,7 @@ export default function SeminarPage() {
             </dl>
           </Card>
           <Table label="Scholars presenting"
-            head={["Scholar", "Supervisor", "Progress report", ...(s.require_hardcopy ? ["Hardcopy"] : [])]}>
+            head={["Scholar", "Supervisor", "Progress report", ...(s.require_hardcopy ? ["Hardcopy"] : []), "Feedback"]}>
             {s.scholars.map((x) => (
               <tr key={x.scholar.id}>
                 <td>
@@ -65,6 +65,12 @@ export default function SeminarPage() {
                       : <span className="muted">Not received</span>}
                   </td>
                 )}
+                <td>
+                  <Link href={`/seminars/${s.id}/review/${x.scholar.id}`}>
+                    {x.finalised_at ? "View feedback" : s.is_grader ? "Grade" : "Open"}
+                  </Link>
+                  {x.finalised_at && <span className="badge badge-approved" style={{ marginLeft: 8 }}>Finalised</span>}
+                </td>
               </tr>
             ))}
           </Table>
@@ -80,6 +86,14 @@ export default function SeminarPage() {
               </ul>
             )}
           </Card>
+          {s.can_attend && (
+            <Card>
+              <h2>Attending?</h2>
+              <p className="muted">Faculty attending this seminar may grade the scholars.</p>
+              <Button kind="secondary" onClick={() => call(`/seminars/${s.id}/attend`, "POST").then(() =>
+                api<SeminarDetail>(`/seminars/${s.id}`).then(setData))}>Join as grader</Button>
+            </Card>
+          )}
           {s.can_manage && !cancelled && (
             <Card>
               <h2>Manage</h2>

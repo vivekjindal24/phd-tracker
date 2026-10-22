@@ -9,7 +9,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
-from app import scope, seminars
+from app import grading, scope, seminars
 from app.auth.deps import current_principal
 from app.auth.principal import Principal
 from app.crud import insert, soft_delete, update
@@ -67,7 +67,10 @@ async def list_seminars(
     stmt = (
         select(Seminar, OrgUnit.name, count)
         .join(OrgUnit, OrgUnit.id == Seminar.unit_id)
-        .where(Seminar.deleted_at.is_(None), seminars.visible(principal))
+        .where(
+            Seminar.deleted_at.is_(None),
+            seminars.visible(principal, await seminars.open_to_faculty(session)),
+        )
     )
     if upcoming:
         stmt = stmt.where(Seminar.starts_at >= datetime.now(UTC), Seminar.status == "scheduled")
@@ -85,6 +88,7 @@ async def _detail(
     seminar, path = await seminars.get_seminar(session, principal, seminar_id)
     unit_name = await session.scalar(select(OrgUnit.name).where(OrgUnit.id == seminar.unit_id))
     settings = await session.get(Settings, 1)
+    is_grader = await grading.is_grader(session, principal, seminar.id)
     scholar_rows = await session.execute(
         select(SeminarScholar, Scholar, User.full_name, SupUser.full_name, ProgressReport.state)
         .join(Scholar, Scholar.id == SeminarScholar.scholar_id)
@@ -127,6 +131,14 @@ async def _detail(
         ],
         "can_manage": seminars.can_manage(principal, path),
         "require_hardcopy": settings.require_hardcopy if settings else False,
+        "is_grader": is_grader,
+        "can_attend": (
+            principal.faculty_id is not None
+            and not is_grader
+            and seminar.status == "scheduled"
+            and settings is not None
+            and settings.seminar_graders == "panel_and_attending"
+        ),
     }
 
 

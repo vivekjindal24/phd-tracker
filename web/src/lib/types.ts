@@ -275,6 +275,61 @@ export type SeminarDetail = SeminarRow & {
   panel: { faculty_id: string; name: string; kind: "panel" | "attending" }[];
   can_manage: boolean;
   require_hardcopy: boolean;
+  is_grader: boolean;
+  can_attend: boolean;
 };
 
 export type RubricCriterion = { name: string; max: number };
+
+export type TodoPart =
+  | "introduction"
+  | "literature_review"
+  | "methodology"
+  | "experiments_results"
+  | "discussion"
+  | "writing_presentation"
+  | "other";
+export type Point = { part: TodoPart; text: string };
+export type TodoItem = {
+  id: string;
+  scholar_id: string;
+  part: TodoPart;
+  text: string;
+  status: "open" | "done";
+  done_at: string | null;
+  created_at: string;
+};
+export type GradeView = {
+  grader: string;
+  scores: Record<string, number>;
+  rubric: RubricCriterion[];
+  total: number;
+  max_total: number;
+  comment: string;
+  submitted_at: string;
+};
+export type ReviewView = {
+  seminar_id: string;
+  seminar_title: string;
+  scholar: Ref;
+  rubric: RubricCriterion[];
+  grades: GradeView[];
+  average_percent: number | null;
+  draft_points: Point[];
+  finalised_at: string | null;
+  todos: TodoItem[];
+  can_grade: boolean;
+  my_grade: GradeView | null;
+  can_finalise: boolean;
+  ai_available: boolean;
+  parts: Record<TodoPart, string>;
+};
+export const PART_LABELS: Record<TodoPart, string> = {
+  introduction: "Introduction",
+  literature_review: "Literature review",
+  methodology: "Methodology",
+  experiments_results: "Experiments & results",
+  discussion: "Discussion",
+  writing_presentation: "Writing & presentation",
+  other: "Other",
+};

@@ -29,7 +29,9 @@ def _live_scholar_seminars(*conditions: ColumnElement[bool]):
     )
 
 
-def visible(principal: Principal) -> ColumnElement[bool]:
+def visible(principal: Principal, open_to_faculty: bool = False) -> ColumnElement[bool]:
+    """open_to_faculty: the university lets any faculty attend and grade
+    (seminar_graders = panel_and_attending), so every faculty member sees scheduled seminars."""
     if "research_office" in principal.office_roles or principal.is_root_admin:
         return true()
     clauses: list[ColumnElement[bool]] = []
@@ -39,6 +41,8 @@ def visible(principal: Principal) -> ColumnElement[bool]:
     if principal.scholar_id:
         clauses.append(Seminar.id.in_(_live_scholar_seminars(Scholar.id == principal.scholar_id)))
     fid = principal.faculty_id
+    if fid and open_to_faculty:
+        clauses.append(Seminar.status == "scheduled")
     if fid:
         clauses.append(
             Seminar.id.in_(
@@ -58,6 +62,10 @@ def can_manage(principal: Principal, unit_path: str) -> bool:
     return principal.covers("unit_head", unit_path) or principal.covers("admin", unit_path)
 
 
+async def open_to_faculty(session: AsyncSession) -> bool:
+    return (await session.scalar(select(Settings.seminar_graders))) == "panel_and_attending"
+
+
 async def get_seminar(
     session: AsyncSession, principal: Principal, seminar_id: uuid.UUID
 ) -> tuple[Seminar, str]:
@@ -65,7 +73,11 @@ async def get_seminar(
         await session.execute(
             select(Seminar, OrgUnit.path)
             .join(OrgUnit, OrgUnit.id == Seminar.unit_id)
-            .where(Seminar.id == seminar_id, Seminar.deleted_at.is_(None), visible(principal))
+            .where(
+                Seminar.id == seminar_id,
+                Seminar.deleted_at.is_(None),
+                visible(principal, await open_to_faculty(session)),
+            )
         )
     ).first()
     if row is None:
