@@ -6,6 +6,13 @@
   box-shadow: var(--clay-shadow);
 }
 
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+}
+
 .muted {
   color: var(--ink-soft);
 }

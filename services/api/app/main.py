@@ -5,7 +5,16 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.errors import install_error_handlers
-from app.routers import auth, faculty, files, notifications, org_units, scholars, users
+from app.routers import (
+    auth,
+    faculty,
+    files,
+    meetings,
+    notifications,
+    org_units,
+    scholars,
+    users,
+)
 from app.routers import settings as settings_router
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s %(message)s")
@@ -35,6 +44,7 @@ for module in (
     users,
     scholars,
     faculty,
+    meetings,
     settings_router,
     notifications,
     files,

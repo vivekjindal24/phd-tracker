@@ -138,3 +138,27 @@ export type Faculty = {
   max_scholars: number;
   load: number;
 };
+
+export type MeetingShare = "unit_heads" | "research_office" | "admins";
+export const SHARE_LABELS: Record<MeetingShare, string> = {
+  unit_heads: "Unit heads (HoD, Dean)",
+  research_office: "Research Office",
+  admins: "Admins",
+};
+
+export type Meeting = {
+  id: string;
+  scholar: Ref;
+  supervisor: Ref;
+  meeting_date: string;
+  redacted: boolean;
+  agenda: string | null;
+  minutes: string | null;
+  action_items: string | null;
+  next_meeting_date: string | null;
+  shared_with: MeetingShare[];
+  can_edit: boolean;
+  can_share: boolean;
+  created_at: string;
+  updated_at: string;
+};

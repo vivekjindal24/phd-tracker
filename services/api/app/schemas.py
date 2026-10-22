@@ -12,6 +12,7 @@ from app.enums import (
     Designation,
     FileOwner,
     ItemType,
+    MeetingShare,
     ModuleKey,
     NotificationCategory,
     Stage,
@@ -300,3 +301,46 @@ class FacultyUpdate(BaseModel):
         None
     )
     unit_id: uuid.UUID | None = None
+
+
+# --- meetings ---------------------------------------------------------------------------
+
+Agenda = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=2000)]
+LongText = Annotated[str, StringConstraints(strip_whitespace=True, max_length=20000)]
+
+
+class MeetingIn(BaseModel):
+    scholar_id: uuid.UUID
+    supervisor_id: uuid.UUID | None = None
+    meeting_date: date
+    agenda: Agenda
+    minutes: LongText = ""
+    action_items: LongText = ""
+    next_meeting_date: date | None = None
+    shared_with: list[MeetingShare] = Field(default_factory=list, max_length=3)
+
+
+class MeetingUpdate(BaseModel):
+    meeting_date: date | None = None
+    agenda: Agenda | None = None
+    minutes: LongText | None = None
+    action_items: LongText | None = None
+    next_meeting_date: date | None = None
+    shared_with: list[MeetingShare] | None = Field(default=None, max_length=3)
+
+
+class MeetingOut(BaseModel):
+    id: uuid.UUID
+    scholar: Ref
+    supervisor: Ref
+    meeting_date: date
+    redacted: bool
+    agenda: str | None
+    minutes: str | None
+    action_items: str | None
+    next_meeting_date: date | None
+    shared_with: list[MeetingShare]
+    can_edit: bool
+    can_share: bool
+    created_at: datetime
+    updated_at: datetime

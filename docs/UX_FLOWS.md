@@ -68,7 +68,9 @@ Office's examiners) appear only to that step's actor.
    "Meeting held · 21 Oct 2026" unless Unit heads was ticked.
 
 **Error:** scholar with no supervisor → form refuses ("a meeting needs both
-parties"). Backdated dates allowed, visibly timestamped.
+parties"). Backdated dates allowed, visibly timestamped; dates more than a
+day in the future are refused (meetings are logged after they happen). A
+co-supervisor (setting on) may log their own meetings but never sets sharing.
 
 ## Flow 4 — Head of Department / Dean oversight
 
