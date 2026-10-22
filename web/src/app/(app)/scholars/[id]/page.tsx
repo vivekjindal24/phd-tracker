@@ -5,7 +5,9 @@ import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { Button, Card, ErrorText, Field, PageHeader } from "@/components/ui/kit";
+import { Comments } from "@/components/Comments";
 import { MilestoneStatusBadge } from "@/components/MilestoneStatusBadge";
+import { Timeline } from "@/components/Timeline";
 import { api } from "@/lib/api";
 import { formatDate } from "@/lib/format";
 import { useSession } from "@/lib/session";
@@ -180,6 +182,10 @@ export default function ScholarProfile() {
         )}
       </div>
       <Decisions scholarId={scholar.id} />
+      <div className="profile-grid" style={{ marginTop: "var(--space-5)" }}>
+        <Timeline scholarId={scholar.id} />
+        <Comments target="scholars" recordId={scholar.id} />
+      </div>
       <p className="back"><Link href="/scholars">← All scholars</Link></p>
     </>
   );

@@ -9,6 +9,7 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field, StringConstraints, 
 from app.enums import (
     ApprovalBody,
     AssignedRole,
+    CommentTarget,
     CoSupervision,
     Designation,
     FileOwner,
@@ -644,3 +645,21 @@ class ReviewView(BaseModel):
     can_finalise: bool
     ai_available: bool
     parts: dict[str, str]
+
+
+# --- comments ---------------------------------------------------------------------------
+
+
+class CommentIn(BaseModel):
+    table_name: CommentTarget
+    record_id: uuid.UUID
+    body: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=4000)]
+
+
+class CommentOut(BaseModel):
+    id: uuid.UUID
+    author: str
+    author_id: uuid.UUID
+    body: str
+    created_at: datetime
+    mine: bool

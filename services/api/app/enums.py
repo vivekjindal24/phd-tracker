@@ -129,6 +129,10 @@ PERIODS = get_args(Period)
 MeetingShare = Literal["unit_heads", "research_office", "admins"]
 MEETING_SHARES = get_args(MeetingShare)
 
+# Records comments can hang off (DATABASE.md §3.7); visibility = the record's.
+CommentTarget = Literal["scholars", "meetings", "progress_reports", "milestones"]
+COMMENT_TARGETS = get_args(CommentTarget)
+
 # Tables files may hang off; each phase adds its owners (with a migration widening the CHECK).
 FileOwner = Literal["scholars"]
 FILE_OWNER_TABLES = get_args(FileOwner)

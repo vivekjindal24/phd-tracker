@@ -1,0 +1,48 @@
+.timeline-card h2 {
+  font-size: var(--text-lg);
+  margin-bottom: var(--space-4);
+}
+.timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-4);
+  position: relative;
+}
+.timeline::before {
+  content: "";
+  position: absolute;
+  left: 17px;
+  top: 6px;
+  bottom: 6px;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--lilac);
+}
+.timeline li {
+  display: grid;
+  grid-template-columns: 36px 1fr;
+  gap: var(--space-3);
+  align-items: start;
+  position: relative;
+}
+.timeline-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--surface);
+  box-shadow: var(--clay-shadow);
+  font-size: 1rem;
+}
+.timeline time {
+  display: block;
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
+  font-weight: 700;
+}
+.timeline .badge {
+  margin-left: var(--space-2);
+}

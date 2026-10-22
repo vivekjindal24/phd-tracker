@@ -2,6 +2,7 @@
 
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { Comments } from "@/components/Comments";
 import { Celebrate } from "@/components/items/Celebrate";
 import { ChainSteps } from "@/components/items/ChainSteps";
 import { StateBadge } from "@/components/items/StateBadge";
@@ -189,6 +190,7 @@ export default function ItemPage() {
             <ChainSteps chain={item.chain} />
           </Card>
           {item.item_type === "progress_report" && <ReportContent item={item} onSaved={setData} />}
+          {item.item_type === "progress_report" && <Comments target="progress_reports" recordId={item.id} />}
         </div>
         <div className="item-side">
           <ErrorText>{actError}</ErrorText>

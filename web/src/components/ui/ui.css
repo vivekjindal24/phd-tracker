@@ -331,3 +331,18 @@
 .kv dd {
   margin: 0;
 }
+
+/* --- shared lists & grids ---------------------------------------------------------- */
+.plain-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-3);
+}
+.dash-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--space-5);
+  align-items: start;
+}

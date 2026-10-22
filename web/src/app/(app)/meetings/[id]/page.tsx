@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { Comments } from "@/components/Comments";
 import { ShareChecks } from "@/components/meetings/ShareChecks";
 import { Button, Card, ErrorText, Field, PageHeader } from "@/components/ui/kit";
 import { api } from "@/lib/api";
@@ -81,6 +82,7 @@ export default function MeetingDetail() {
             ))}
           </Card>
         )}
+        {!m.redacted && <Comments target="meetings" recordId={m.id} />}
         {m.can_share && (
           <Card>
             <ShareChecks value={share} onChange={setShare} />

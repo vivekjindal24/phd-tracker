@@ -1,4 +1,5 @@
 from app.models.base import Base
+from app.models.comments import Comment
 from app.models.files import FileRow
 from app.models.meetings import Meeting
 from app.models.milestones import Milestone
@@ -20,6 +21,7 @@ __all__ = [
     "ApprovalChain",
     "AuditLog",
     "Base",
+    "Comment",
     "Faculty",
     "FileRow",
     "JobRun",

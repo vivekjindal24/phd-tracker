@@ -43,6 +43,10 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             <span>Anveshan</span>
           </Link>
           <Nav me={me} />
+          <form className="topbar-search" role="search" action="/search">
+            <label className="visually-hidden" htmlFor="topbar-q">Search</label>
+            <input id="topbar-q" name="q" type="search" placeholder="Search…" minLength={2} />
+          </form>
           <div className="topbar-actions">
             <Link href="/notifications" className="btn btn-icon bell"
               aria-label={`Notifications, ${me.unread_notifications} unread`}>

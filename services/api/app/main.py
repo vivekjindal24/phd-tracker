@@ -7,7 +7,9 @@ from app.config import settings
 from app.errors import install_error_handlers
 from app.routers import (
     auth,
+    comments,
     dashboard,
+    explore,
     faculty,
     files,
     grading,
@@ -57,6 +59,8 @@ for module in (
     seminars,
     grading,
     dashboard,
+    comments,
+    explore,
     settings_router,
     notifications,
     files,

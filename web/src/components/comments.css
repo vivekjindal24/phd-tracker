@@ -1,0 +1,65 @@
+.comments h2 {
+  font-size: var(--text-lg);
+  margin-bottom: var(--space-3);
+}
+.comment-list {
+  list-style: none;
+  margin: 0 0 var(--space-4);
+  padding: 0;
+  display: grid;
+  gap: var(--space-3);
+}
+.comment-list li {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius);
+  background: var(--zebra);
+}
+.comment-list li.mine {
+  background: color-mix(in srgb, var(--lilac) 45%, transparent);
+}
+.comment-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+.comment-head time {
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
+}
+.comment-list p {
+  margin: var(--space-1) 0 0;
+  white-space: pre-wrap;
+}
+.comment-delete {
+  margin-left: auto;
+  border: 0;
+  background: none;
+  color: var(--danger);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  cursor: pointer;
+}
+.comment-form {
+  display: grid;
+  gap: var(--space-3);
+}
+.comment-form textarea {
+  font: inherit;
+  min-height: 80px;
+  resize: vertical;
+  border: 0;
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  background: var(--bg);
+  color: var(--ink);
+  box-shadow: var(--clay-shadow-pressed);
+}
+.comment-form textarea:focus {
+  outline: none;
+  box-shadow: var(--clay-shadow-pressed), 0 0 0 3px var(--accent);
+}
+.comment-form .btn {
+  justify-self: start;
+}
