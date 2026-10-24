@@ -134,6 +134,9 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
  * same token and one-refresh retry, and saves it. */
 export async function download(path: string, from: "export" | "api" = "export"): Promise<void> {
   const base = from === "export" ? EXPORT_URL : API_URL && `${API_URL}/api/v1`;
+  if (!base && from === "export") {
+    throw new ApiError(0, "config_error", "PDF and CSV exports are not set up on this server yet.");
+  }
   let res = await send(path, {}, accessToken, base);
   if (res.status === 401 && (await refresh())) {
     res = await send(path, {}, accessToken, base);
