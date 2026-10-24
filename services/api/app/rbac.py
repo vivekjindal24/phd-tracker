@@ -92,6 +92,27 @@ MATRIX: dict[str, dict[str, frozenset[str]]] = {
         "exam_office": frozenset({R}),
         "library": frozenset({R}),
     },
+    "courses": {
+        **{role: frozenset({R}) for role in ALL_ROLES},
+        "admin": frozenset({R, C, U, D}),  # in their subtree
+        "exam_office": frozenset({R, C, U, D}),
+    },
+    "enrolments": {
+        "scholar": frozenset({R}),
+        "supervisor": frozenset({R}),
+        "unit_head": frozenset({R}),
+        "admin": frozenset({R}),
+        "research_office": frozenset({R}),
+        "exam_office": frozenset({R, C, U, D}),
+    },
+    "coursework_clearances": {
+        "scholar": frozenset({R}),
+        "supervisor": frozenset({R}),
+        "unit_head": frozenset({R}),
+        "admin": frozenset({R}),
+        "research_office": frozenset({R}),
+        "exam_office": frozenset({R, C}),
+    },
     "users": {
         "unit_head": frozenset({R}),
         "admin": frozenset({R, C, U, D, "manage_roles"}),

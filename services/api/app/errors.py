@@ -31,6 +31,13 @@ CONSTRAINT_ERRORS: dict[str, tuple[int, str, str]] = {
         "Someone added a version at the same time.",
     ),
     "uq_document_version_file": (409, "file_already_versioned", "This file is already a version."),
+    "uq_courses_unit_code": (
+        409,
+        "duplicate_course",
+        "This unit already has a course with that code.",
+    ),
+    "uq_enrolment_active": (409, "duplicate_enrolment", "The scholar is already enrolled in it."),
+    "uq_clearance_active": (409, "duplicate_clearance", "A coursework clearance already exists."),
     "uq_role_assignment_active": (409, "duplicate_role", "This role is already assigned."),
     "uq_faculty_user": (409, "duplicate_profile", "This user already has a faculty profile."),
     "uq_scholars_user": (409, "duplicate_profile", "This user already has a scholar profile."),

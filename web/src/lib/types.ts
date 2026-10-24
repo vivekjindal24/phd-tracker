@@ -49,6 +49,8 @@ export type SettingsData = {
   require_hardcopy: boolean;
   seminar_graders: "panel" | "panel_and_attending";
   seminar_rubric: { name: string; max: number }[];
+  min_coursework_credits: number;
+  min_coursework_cgpa: number;
   modules: Record<ModuleKey, boolean>;
   chains: Record<ItemType, { kind: StepKind }[]>;
 };
@@ -428,7 +430,8 @@ export type CommentTarget =
   | "publications"
   | "conferences"
   | "documents"
-  | "thesis_submissions";
+  | "thesis_submissions"
+  | "coursework_clearances";
 export type FileItem = {
   id: string;
   file_name: string;
@@ -504,3 +507,18 @@ export type DocumentItem = {
   can_edit: boolean;
   versions: { id: string; version_no: number; note: string; file_id: string; file_name: string; size_bytes: number; created_at: string }[];
 };
+
+export type Course = { id: string; unit: Ref; code: string; title: string; credits: number };
+export type CourseworkView = {
+  scholar: Ref;
+  enrolments: { id: string; course: Course; semester: string; grade: string | null; grade_points: number | null }[];
+  credits: number;
+  cgpa: number | null;
+  min_credits: number;
+  min_cgpa: number;
+  problems: string[];
+  clearance: { id: string; state: ItemState; waiting_on: string | null; cleared_on: string | null } | null;
+  can_manage: boolean;
+  locked: boolean;
+};
+export type ClearanceContent = { credits: number | null; cgpa: number | null; cleared_on: string | null };

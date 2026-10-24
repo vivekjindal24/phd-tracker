@@ -24,6 +24,7 @@ const NAV: Entry[] = [
       { href: "/meetings", label: "Meetings", show: notOnlyOffice },
       { href: "/seminars", label: "Seminars", show: (me) => notOnlyOffice(me) || me.faculty_id !== null },
       { href: "/todos", label: "My to-dos", show: (me) => me.scholar_id !== null },
+      { href: "/coursework", label: "Coursework", show: (me) => me.modules.coursework && !me.roles.every((r) => r === "library") },
     ],
   },
   {

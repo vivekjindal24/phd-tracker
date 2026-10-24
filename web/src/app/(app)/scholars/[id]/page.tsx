@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { Button, Card, ErrorText, Field, PageHeader } from "@/components/ui/kit";
 import { Comments } from "@/components/Comments";
+import { CourseworkCard } from "@/components/CourseworkCard";
 import { InviteButton } from "@/components/InviteButton";
 import { MilestoneStatusBadge } from "@/components/MilestoneStatusBadge";
 import { Timeline } from "@/components/Timeline";
@@ -184,6 +185,9 @@ export default function ScholarProfile() {
         )}
       </div>
       <Decisions scholarId={scholar.id} />
+      {me?.modules.coursework && !me.roles.every((r) => r === "library") && (
+        <div style={{ marginTop: "var(--space-5)" }}><CourseworkCard scholarId={scholar.id} /></div>
+      )}
       <div className="profile-grid" style={{ marginTop: "var(--space-5)" }}>
         <Timeline scholarId={scholar.id} />
         <Comments target="scholars" recordId={scholar.id} />

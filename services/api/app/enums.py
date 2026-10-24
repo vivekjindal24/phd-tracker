@@ -161,6 +161,7 @@ CommentTarget = Literal[
     "conferences",
     "documents",
     "thesis_submissions",
+    "coursework_clearances",
 ]
 COMMENT_TARGETS = get_args(CommentTarget)
 

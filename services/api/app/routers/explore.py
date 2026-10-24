@@ -17,6 +17,7 @@ from app.db import get_session
 from app.enums import MILESTONE_TYPES
 from app.models import (
     Conference,
+    CourseworkClearance,
     Faculty,
     Meeting,
     Milestone,
@@ -46,6 +47,7 @@ MODULE_OF = {
     "publications": "publications",
     "conferences": "conferences",
     "thesis_submissions": "documents",
+    "coursework_clearances": "coursework",
 }
 
 
@@ -168,6 +170,25 @@ async def timeline(
                     "detail": f"Waiting on {STEP_LABELS[step]}" if step else None,
                     "link": f"/items/thesis_submission/{t.id}",
                     "badge": t.state,
+                }
+            )
+    if await _visible_for(session, principal, "coursework_clearances", scholar_id):
+        for c in await session.scalars(
+            select(CourseworkClearance).where(
+                CourseworkClearance.scholar_id == scholar_id,
+                CourseworkClearance.deleted_at.is_(None),
+            )
+        ):
+            step = c.chain_snapshot[c.current_step]["kind"] if c.current_step is not None else None
+            events.append(
+                {
+                    "at": c.approved_at or c.submitted_at or c.created_at,
+                    "kind": "clearance",
+                    "title": "Coursework clearance"
+                    + (f" · CGPA {c.cgpa:.2f}" if c.cgpa is not None else ""),
+                    "detail": f"Waiting on {STEP_LABELS[step]}" if step else None,
+                    "link": f"/items/coursework_clearance/{c.id}",
+                    "badge": c.state,
                 }
             )
     open_ = await seminars.open_to_faculty(session)

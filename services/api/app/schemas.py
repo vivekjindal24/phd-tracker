@@ -220,6 +220,8 @@ class SettingsOut(BaseModel):
     require_hardcopy: bool
     seminar_graders: SeminarGraders
     seminar_rubric: list[RubricCriterion]
+    min_coursework_credits: float
+    min_coursework_cgpa: float
     modules: dict[ModuleKey, bool]
     chains: dict[ItemType, list[ChainStep]]
 
@@ -229,6 +231,8 @@ class SettingsUpdate(BaseModel):
     require_hardcopy: bool | None = None
     seminar_graders: SeminarGraders | None = None
     seminar_rubric: Rubric | None = None
+    min_coursework_credits: float | None = Field(default=None, ge=0, le=40)
+    min_coursework_cgpa: float | None = Field(default=None, ge=0, le=10)
 
     @model_validator(mode="after")
     def _unique_criteria(self) -> "SettingsUpdate":
@@ -935,3 +939,77 @@ class EvaluationView(BaseModel):
     can_record_reports: bool
     can_record_viva: bool
     can_record_deposit: bool
+
+
+# --- coursework -------------------------------------------------------------------------
+
+CourseCode = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=20)]
+Semester = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=40)]
+Grade = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=5)]
+
+
+class CourseIn(BaseModel):
+    unit_id: uuid.UUID
+    code: CourseCode
+    title: LongTitle
+    credits: float = Field(gt=0, le=20)
+
+
+class CourseUpdate(BaseModel):
+    code: CourseCode | None = None
+    title: LongTitle | None = None
+    credits: float | None = Field(default=None, gt=0, le=20)
+
+
+class CourseOut(BaseModel):
+    id: uuid.UUID
+    unit: Ref
+    code: str
+    title: str
+    credits: float
+
+
+class EnrolmentIn(BaseModel):
+    scholar_id: uuid.UUID
+    course_id: uuid.UUID
+    semester: Semester
+    grade: Grade | None = None
+    grade_points: float | None = Field(default=None, ge=0, le=10)
+
+
+class EnrolmentUpdate(BaseModel):
+    semester: Semester | None = None
+    grade: Grade | None = None
+    grade_points: float | None = Field(default=None, ge=0, le=10)
+
+
+class EnrolmentOut(BaseModel):
+    id: uuid.UUID
+    course: CourseOut
+    semester: str
+    grade: str | None
+    grade_points: float | None
+
+
+class ClearanceRef(BaseModel):
+    id: uuid.UUID
+    state: ItemState
+    waiting_on: str | None
+    cleared_on: date | None
+
+
+class CourseworkView(BaseModel):
+    scholar: Ref
+    enrolments: list[EnrolmentOut]
+    credits: float
+    cgpa: float | None
+    min_credits: float
+    min_cgpa: float
+    problems: list[str]
+    clearance: ClearanceRef | None
+    can_manage: bool
+    locked: bool
+
+
+class ClearanceIn(BaseModel):
+    scholar_id: uuid.UUID

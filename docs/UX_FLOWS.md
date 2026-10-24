@@ -156,10 +156,15 @@ the **Shodhganga deposit** (date, handle, certificate).
 ## Flow 9 — Coursework (module)
 
 1. Exam Office → **Coursework**: picks a scholar, enrols courses from the
-   unit catalogue, enters grades.
-2. **Submit for clearance** → Department confirms → Exam Office marks
-   **Cleared** (CGPA computed) → Research Office notes it. Scholar stage
-   moves past Coursework.
+   unit catalogue, enters grades. The card shows credits and CGPA against
+   the university minimums (Settings → UGC rules) and lists what still
+   blocks clearance.
+2. **Start coursework clearance** (offered once nothing blocks it) →
+   **Submit** (the API recomputes credits + CGPA and refuses a record below
+   the minimums) → Department confirms → Exam Office marks **Cleared** →
+   Research Office notes it; the cleared date shows on the profile and the
+   scholar's home. The stage itself is moved by the admin / register, as
+   before.
 
 ## Flow 10 — Admission to scholar (module)
 

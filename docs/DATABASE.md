@@ -78,7 +78,9 @@ no row (always on).
 (`off` / `view` / `approve`, default `off`), `require_hardcopy` bool (default
 false), `seminar_graders` CHECK (`panel` / `panel_and_attending`, default
 `panel`), `seminar_rubric` jsonb (ordered `[{"name", "max"}]`, non-empty),
-`updated_by`, `updated_at`.
+`min_coursework_credits` numeric(3,1) (default 12, CHECK 0–40) and
+`min_coursework_cgpa` numeric(4,2) (default 5.5, CHECK 0–10) — the UGC rule
+values the university's ordinance sets, `updated_by`, `updated_at`.
 University-wide switches that are not modules live here.
 
 **approval_chains** — `item_type` PK CHECK (`progress_report`,
@@ -166,9 +168,12 @@ CHECK (pass / redefend / fail); a pass moves the scholar to Viva.
 **shodhganga_deposits** — `thesis_id` (partial UNIQUE), `deposited_on`,
 `handle_url`. Report, viva and deposit files hang off their own rows.
 
-**coursework_clearances** (module `coursework`) — `scholar_id`, `cgpa`
-numeric(4,2) (computed from enrolments at submit), `cleared_on` date (set on
-final approval) + approval columns. Partial unique `uq_clearance_active
+**coursework_clearances** (module `coursework`) — `scholar_id`, `credits`
+numeric(4,1) and `cgpa` numeric(4,2) (computed from graded enrolments at
+submit; submit is refused below `settings.min_coursework_credits` /
+`min_coursework_cgpa`, or with an ungraded course), `cleared_on` date (set
+on final approval) + approval columns. Enrolments are frozen while a
+clearance is in review or approved. Partial unique `uq_clearance_active
 (scholar_id) WHERE deleted_at IS NULL`.
 
 **approval_actions** — history of every chain action: `item_type`,
@@ -192,7 +197,9 @@ document), `file_id` FK files (UNIQUE — one file is one version), `note`.
 Append-only: files on a document cannot be removed.
 
 **courses** (module `coursework`) — `unit_id` FK, `code`, `title`,
-`credits` numeric(3,1); UNIQUE `(unit_id, code)` among live rows.
+`credits` numeric(3,1) CHECK 0 < credits ≤ 20; UNIQUE `(unit_id, code)` among
+live rows → 409 `duplicate_course`; a course with live enrolments cannot be
+deleted.
 **course_enrolments** — `scholar_id`, `course_id`, `semester`, `grade`,
 `grade_points` numeric(4,2) CHECK 0–10; partial UNIQUE `(scholar_id,
 course_id)`.

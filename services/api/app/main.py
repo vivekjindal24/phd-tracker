@@ -9,6 +9,7 @@ from app.routers import (
     auth,
     comments,
     conferences,
+    coursework,
     dashboard,
     documents,
     explore,
@@ -76,6 +77,7 @@ for module in (
     conferences,
     documents,
     theses,
+    coursework,
 ):
     api.include_router(module.router)
 app.include_router(api)

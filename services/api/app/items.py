@@ -10,7 +10,7 @@ from typing import Any
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import scope, workflow
+from app import coursework, scope, workflow
 from app.auth.principal import Principal
 from app.crud import update
 from app.enums import STAGES
@@ -18,6 +18,7 @@ from app.errors import ApiError, forbidden
 from app.models import (
     ApprovalActionRow,
     ApprovalChain,
+    CourseworkClearance,
     FileRow,
     OrgUnit,
     ProgressReport,
@@ -99,6 +100,10 @@ async def _thesis_approved(session: AsyncSession, principal: Principal, ctx: Ite
     await advance_stage(session, principal, ctx.scholar, "Thesis Submitted")
 
 
+def _clearance_content(c: CourseworkClearance, _: Principal) -> dict[str, Any]:
+    return {"credits": c.credits, "cgpa": c.cgpa, "cleared_on": c.cleared_on}
+
+
 def _publication_content(p: Publication, _: Principal) -> dict[str, Any]:
     return {
         "title": p.title,
@@ -133,6 +138,15 @@ REGISTRY: dict[str, ItemKind] = {
         },
         before_submit=_thesis_has_file,
         on_approved=_thesis_approved,
+    ),
+    "coursework_clearance": ItemKind(
+        CourseworkClearance,
+        "coursework_clearances",
+        lambda _: "Coursework clearance",
+        _clearance_content,
+        "coursework",
+        before_submit=coursework.check_and_compute,
+        on_approved=coursework.mark_cleared,
     ),
 }
 

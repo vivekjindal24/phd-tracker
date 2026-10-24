@@ -8,7 +8,7 @@ from typing import Any
 from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import items, scope, seminars
+from app import coursework, items, scope, seminars
 from app.auth.principal import Principal
 from app.enums import STAGES
 from app.models import (
@@ -174,6 +174,9 @@ async def _scholar_section(session: AsyncSession, principal: Principal) -> dict[
         "in_progress": in_progress,
         "open_todos": open_todos or 0,
         "approved_publications": publications,
+        "coursework": await _coursework_status(session, sid)
+        if "coursework_clearance" in kinds
+        else None,
         "last_meeting": last_meeting,
         "next_meeting": next_meeting if next_meeting and next_meeting >= today else None,
         "latest_decision": (
@@ -186,6 +189,17 @@ async def _scholar_section(session: AsyncSession, principal: Principal) -> dict[
             if decision
             else None
         ),
+    }
+
+
+async def _coursework_status(session: AsyncSession, scholar_id: uuid.UUID) -> dict[str, Any]:
+    s = await coursework.summary(session, scholar_id)
+    clearance = await coursework.clearance(session, scholar_id)
+    return {
+        "credits": s["credits"],
+        "min_credits": s["min_credits"],
+        "cgpa": s["cgpa"],
+        "cleared_on": clearance.cleared_on if clearance else None,
     }
 
 

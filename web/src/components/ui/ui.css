@@ -411,3 +411,28 @@
 .verify .muted {
   margin: 0;
 }
+/* What still blocks a rule-checked step (coursework clearance, UGC limits). */
+.warn-list {
+  margin: 0;
+  padding: var(--space-3) var(--space-4) var(--space-3) var(--space-6);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--butter) 45%, var(--surface));
+  font-weight: 600;
+}
+/* A small register inside a card. */
+.mini-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+.mini-table th,
+.mini-table td {
+  text-align: left;
+  padding: var(--space-2) var(--space-2);
+  border-bottom: 1px solid color-mix(in srgb, var(--ink-soft) 18%, transparent);
+  vertical-align: middle;
+}
+.coursework {
+  display: grid;
+  gap: var(--space-4);
+}

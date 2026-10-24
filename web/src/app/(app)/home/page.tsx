@@ -40,6 +40,7 @@ type Dashboard = {
     in_progress: { item_type: string; id: string; title: string; state: ItemState; waiting_on: string | null }[];
     open_todos: number;
     approved_publications: number | null;
+    coursework: { credits: number; min_credits: number; cgpa: number | null; cleared_on: string | null } | null;
     last_meeting: string | null;
     next_meeting: string | null;
     latest_decision: { milestone_type: MilestoneType; status: string; resolution_number: string | null } | null;
@@ -221,6 +222,11 @@ export default function HomePage() {
                 ) : <Tile label="No seminar scheduled yet" value="—" />}
                 <Tile label="Open to-dos" value={sch.open_todos} href="/todos" tone={sch.open_todos ? "tile-butter" : "tile-sage"} />
                 <Tile label="Stage" value={sch.stage} tone="tile-text" />
+                {sch.coursework && (
+                  <Tile label={sch.coursework.cleared_on ? `Coursework cleared ${formatDate(sch.coursework.cleared_on)}` : `Coursework credits (of ${sch.coursework.min_credits})`}
+                    value={sch.coursework.credits} href="/coursework"
+                    tone={sch.coursework.cleared_on || sch.coursework.credits >= sch.coursework.min_credits ? "tile-sage" : "tile-butter"} />
+                )}
                 {sch.approved_publications !== null && (
                   <Tile label="Verified publications" value={sch.approved_publications} href="/publications" tone="tile-sage" />
                 )}

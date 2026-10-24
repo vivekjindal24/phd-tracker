@@ -28,6 +28,8 @@ async def _read(session: AsyncSession) -> SettingsOut:
             "require_hardcopy": settings.require_hardcopy,
             "seminar_graders": settings.seminar_graders,
             "seminar_rubric": settings.seminar_rubric,
+            "min_coursework_credits": settings.min_coursework_credits,
+            "min_coursework_cgpa": settings.min_coursework_cgpa,
             "modules": modules,
             "chains": chains,
         }
