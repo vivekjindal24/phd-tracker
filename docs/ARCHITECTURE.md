@@ -70,7 +70,9 @@ project. Files: R2 bucket `anveshan-dev`, whose CORS policy must allow the
 web origin (and `http://localhost:3000` for local dev) for GET/PUT/HEAD with
 the `content-type` header, exposing `ETag`; browsers upload and download
 straight to the bucket. Self-hosted installs need no bucket policy: Caddy
-answers CORS for Garage (`deploy/Caddyfile`). Both redeploy on every push to `rewrite`; `main`
+answers CORS for Garage (`deploy/Caddyfile`). Email: Render free services block outbound SMTP
+ports 25/465/587 (since 2025-09), so the API uses Brevo on `SMTP_PORT=2525`
+(STARTTLS). Both redeploy on every push to `rewrite`; `main`
 still serves v2 until the cut-over merge.
 
 ## 5. Architecture Diagram
