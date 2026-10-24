@@ -31,6 +31,8 @@ const NAV: Entry[] = [
     items: [
       { href: "/publications", label: "Publications", show: (me) => me.modules.publications && !me.roles.every((r) => r === "exam_office") },
       { href: "/conferences", label: "Conferences & talks", show: (me) => me.modules.conferences && !me.roles.every((r) => r === "exam_office") },
+      { href: "/documents", label: "Drafts & chapters", show: (me) => me.modules.documents && (me.scholar_id !== null || me.roles.includes("supervisor")) },
+      { href: "/thesis", label: "Thesis", show: (me) => me.modules.documents },
     ],
   },
   {

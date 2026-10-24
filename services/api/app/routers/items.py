@@ -42,7 +42,7 @@ async def submit(
     session: AsyncSession = Depends(get_session),
 ) -> dict[str, Any]:
     return await _act_and_view(
-        session, principal, item_type, item_id, lambda ctx: workflow.submit(session, principal, ctx)
+        session, principal, item_type, item_id, lambda ctx: items.submit(session, principal, ctx)
     )
 
 
@@ -58,7 +58,7 @@ async def resubmit(
         principal,
         item_type,
         item_id,
-        lambda ctx: workflow.resubmit(session, principal, ctx),
+        lambda ctx: items.resubmit(session, principal, ctx),
     )
 
 
@@ -75,7 +75,7 @@ async def approve(
         principal,
         item_type,
         item_id,
-        lambda ctx: workflow.approve(session, principal, ctx, body.comment if body else None),
+        lambda ctx: items.approve(session, principal, ctx, body.comment if body else None),
     )
 
 

@@ -10,6 +10,7 @@ from app.routers import (
     comments,
     conferences,
     dashboard,
+    documents,
     explore,
     faculty,
     files,
@@ -25,6 +26,7 @@ from app.routers import (
     reports,
     scholars,
     seminars,
+    theses,
     users,
 )
 from app.routers import settings as settings_router
@@ -72,6 +74,8 @@ for module in (
     imports,
     publications,
     conferences,
+    documents,
+    theses,
 ):
     api.include_router(module.router)
 app.include_router(api)

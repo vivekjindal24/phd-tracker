@@ -411,14 +411,24 @@ export type Conference = {
   can_edit: boolean;
 };
 
-export type FileOwner = "scholars" | "publications" | "conferences";
+export type FileOwner =
+  | "scholars"
+  | "publications"
+  | "conferences"
+  | "documents"
+  | "thesis_submissions"
+  | "examiner_reports"
+  | "vivas"
+  | "shodhganga_deposits";
 export type CommentTarget =
   | "scholars"
   | "meetings"
   | "progress_reports"
   | "milestones"
   | "publications"
-  | "conferences";
+  | "conferences"
+  | "documents"
+  | "thesis_submissions";
 export type FileItem = {
   id: string;
   file_name: string;
@@ -427,4 +437,70 @@ export type FileItem = {
   status: string;
   uploaded_by: string;
   created_at: string;
+};
+
+export type ThesisContent = {
+  title: string;
+  plagiarism_tool: string | null;
+  plagiarism_score: number | null;
+  examiners: string | null;
+  examiners_entered: boolean;
+  examiners_hidden: boolean;
+};
+export type Recommendation = "accept" | "minor_revision" | "major_revision" | "reject";
+export const RECOMMENDATION_LABELS: Record<Recommendation, string> = {
+  accept: "Accept",
+  minor_revision: "Minor revision",
+  major_revision: "Major revision",
+  reject: "Reject",
+};
+export type VivaOutcome = "pass" | "redefend" | "fail";
+export const VIVA_LABELS: Record<VivaOutcome, string> = {
+  pass: "Passed",
+  redefend: "Re-defend after revision",
+  fail: "Not passed",
+};
+export type Evaluation = {
+  thesis_id: string;
+  names_hidden: boolean;
+  reports: {
+    id: string;
+    examiner_name: string | null;
+    institution: string | null;
+    received_on: string;
+    recommendation: Recommendation;
+    notes: string;
+    released: boolean;
+  }[];
+  unreleased_count: number;
+  vivas: { id: string; held_on: string; venue: string; panel: string; outcome: VivaOutcome; notes: string }[];
+  deposit: { id: string; deposited_on: string; handle_url: string } | null;
+  can_record_reports: boolean;
+  can_record_viva: boolean;
+  can_record_deposit: boolean;
+};
+export type ThesisRow = {
+  id: string;
+  scholar: Ref;
+  title: string;
+  state: ItemState;
+  waiting_on: string | null;
+  updated_at: string;
+};
+export type DocKind = "proposal" | "chapter" | "synopsis" | "draft" | "other";
+export const DOC_KIND_LABELS: Record<DocKind, string> = {
+  proposal: "Proposal",
+  chapter: "Chapter",
+  synopsis: "Synopsis",
+  draft: "Draft",
+  other: "Other",
+};
+export type DocumentItem = {
+  id: string;
+  scholar: Ref;
+  title: string;
+  doc_kind: DocKind;
+  updated_at: string;
+  can_edit: boolean;
+  versions: { id: string; version_no: number; note: string; file_id: string; file_name: string; size_bytes: number; created_at: string }[];
 };

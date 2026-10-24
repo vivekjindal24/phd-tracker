@@ -13,6 +13,7 @@ from app.enums import (
     ConferenceType,
     CoSupervision,
     Designation,
+    DocKind,
     FileOwner,
     Indexing,
     ItemState,
@@ -26,12 +27,14 @@ from app.enums import (
     Period,
     PubStatus,
     PubType,
+    Recommendation,
     SeminarGraders,
     SeminarStatus,
     Stage,
     StepKind,
     TodoPart,
     TodoStatus,
+    VivaOutcome,
 )
 
 Name = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)]
@@ -790,3 +793,145 @@ class ConferenceOut(BaseModel):
     place: str
     title: str | None
     can_edit: bool
+
+
+# --- documents & thesis -----------------------------------------------------------------
+
+
+class DocumentIn(BaseModel):
+    title: LongTitle
+    doc_kind: DocKind
+
+
+class DocumentUpdate(BaseModel):
+    title: LongTitle | None = None
+    doc_kind: DocKind | None = None
+
+
+class VersionIn(BaseModel):
+    file_id: uuid.UUID
+    note: Annotated[str, StringConstraints(strip_whitespace=True, max_length=2000)] = ""
+
+
+class VersionOut(BaseModel):
+    id: uuid.UUID
+    version_no: int
+    note: str
+    file_id: uuid.UUID
+    file_name: str
+    size_bytes: int
+    created_at: datetime
+
+
+class DocumentOut(BaseModel):
+    id: uuid.UUID
+    scholar: Ref
+    title: str
+    doc_kind: DocKind
+    updated_at: datetime
+    can_edit: bool
+    versions: list[VersionOut]
+
+
+class ThesisIn(BaseModel):
+    title: LongTitle
+
+
+class PlagiarismIn(BaseModel):
+    plagiarism_tool: Annotated[
+        str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)
+    ]
+    plagiarism_score: float = Field(ge=0, le=100)
+
+
+class ExaminersIn(BaseModel):
+    examiners: Annotated[
+        str, StringConstraints(strip_whitespace=True, min_length=1, max_length=2000)
+    ]
+
+
+class ThesisRow(BaseModel):
+    id: uuid.UUID
+    scholar: Ref
+    title: str
+    state: ItemState
+    waiting_on: str | None
+    updated_at: datetime
+
+
+class ExaminerReportIn(BaseModel):
+    examiner_name: Name
+    institution: Annotated[str, StringConstraints(strip_whitespace=True, max_length=200)] = ""
+    received_on: date
+    recommendation: Recommendation
+    notes: Notes = ""
+
+
+class ExaminerReportUpdate(BaseModel):
+    examiner_name: Name | None = None
+    institution: Annotated[str, StringConstraints(strip_whitespace=True, max_length=200)] | None = (
+        None
+    )
+    received_on: date | None = None
+    recommendation: Recommendation | None = None
+    notes: Notes | None = None
+
+
+class VivaIn(BaseModel):
+    held_on: date
+    venue: Venue = ""
+    panel: Annotated[str, StringConstraints(strip_whitespace=True, max_length=2000)] = ""
+    outcome: VivaOutcome
+    notes: Notes = ""
+
+
+class VivaUpdate(BaseModel):
+    held_on: date | None = None
+    venue: Venue | None = None
+    panel: Annotated[str, StringConstraints(strip_whitespace=True, max_length=2000)] | None = None
+    outcome: VivaOutcome | None = None
+    notes: Notes | None = None
+
+
+class DepositIn(BaseModel):
+    deposited_on: date
+    handle_url: Annotated[
+        str, StringConstraints(strip_whitespace=True, pattern=r"^https?://\S{3,500}$")
+    ]
+
+
+class ExaminerReportView(BaseModel):
+    id: uuid.UUID
+    examiner_name: str | None
+    institution: str | None
+    received_on: date
+    recommendation: Recommendation
+    notes: str
+    released: bool
+
+
+class VivaView(BaseModel):
+    id: uuid.UUID
+    held_on: date
+    venue: str
+    panel: str
+    outcome: VivaOutcome
+    notes: str
+
+
+class DepositView(BaseModel):
+    id: uuid.UUID
+    deposited_on: date
+    handle_url: str
+
+
+class EvaluationView(BaseModel):
+    thesis_id: uuid.UUID
+    names_hidden: bool
+    reports: list[ExaminerReportView]
+    unreleased_count: int
+    vivas: list[VivaView]
+    deposit: DepositView | None
+    can_record_reports: bool
+    can_record_viva: bool
+    can_record_deposit: bool

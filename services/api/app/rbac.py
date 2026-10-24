@@ -79,6 +79,19 @@ MATRIX: dict[str, dict[str, frozenset[str]]] = {
         "research_office": frozenset({R}),
         "library": frozenset({R}),
     },
+    "documents": {  # drafts: the scholar and their supervisor(s) only (PRD M3)
+        "scholar": frozenset({R, C, U}),
+        "supervisor": frozenset({R}),
+    },
+    "thesis_submissions": {
+        "scholar": frozenset({R, C, U}),
+        "supervisor": frozenset({R}),
+        "unit_head": frozenset({R}),
+        "admin": frozenset({R}),
+        "research_office": frozenset({R}),
+        "exam_office": frozenset({R}),
+        "library": frozenset({R}),
+    },
     "users": {
         "unit_head": frozenset({R}),
         "admin": frozenset({R, C, U, D, "manage_roles"}),

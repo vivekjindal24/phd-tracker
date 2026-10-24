@@ -75,7 +75,8 @@ role's scope (§2).
 | conferences | CRUD own | R | R | R | R | — | R |
 | documents & versions | CRU own | R, comment | — | — | — | — | — |
 | thesis submissions | CRU own, submit | R, step | R, step (department) | R, step (department) | R, step | R, step | R, step |
-| examiner reports, viva | R own after release† | R after release† | R | R | R | CRU | R |
+| examiner reports | R own after release† | R after release† | R | R | R | CRU, release | R |
+| viva | R own | R | R | R | R | CRU | R |
 | Shodhganga deposit | R own | R | R | R | R | R | CRU |
 | bulk import | — | — | — | run in subtree | — | — | — |
 | courses (catalogue) | R | R | R | CRUD in subtree | R | CRUD | — |

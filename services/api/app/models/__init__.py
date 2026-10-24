@@ -23,6 +23,14 @@ from app.models.system import (
     RefreshToken,
     SsoState,
 )
+from app.models.thesis import (
+    Document,
+    DocumentVersion,
+    ExaminerReport,
+    ShodhgangaDeposit,
+    ThesisSubmission,
+    Viva,
+)
 from app.models.workflow import ApprovalActionRow
 
 __all__ = [
@@ -32,6 +40,9 @@ __all__ = [
     "Base",
     "Comment",
     "Conference",
+    "Document",
+    "DocumentVersion",
+    "ExaminerReport",
     "Faculty",
     "FileRow",
     "JobRun",
@@ -52,7 +63,10 @@ __all__ = [
     "SeminarPanel",
     "SeminarScholar",
     "Settings",
+    "ShodhgangaDeposit",
     "SsoState",
+    "ThesisSubmission",
     "Todo",
     "User",
+    "Viva",
 ]

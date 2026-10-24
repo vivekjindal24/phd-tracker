@@ -2,8 +2,8 @@
 page, actions and the approver queue then work for it with no per-type workflow code."""
 
 import uuid
-from collections.abc import Callable
-from dataclasses import dataclass
+from collections.abc import Awaitable, Callable
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
 
@@ -12,18 +12,24 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import scope, workflow
 from app.auth.principal import Principal
+from app.crud import update
+from app.enums import STAGES
 from app.errors import ApiError, forbidden
 from app.models import (
     ApprovalActionRow,
     ApprovalChain,
+    FileRow,
     OrgUnit,
     ProgressReport,
     Publication,
     Scholar,
+    ThesisSubmission,
     User,
 )
 from app.modules import module_enabled
 from app.workflow import ITEM_LABELS, STEP_LABELS, ItemContext
+
+Hook = Callable[[AsyncSession, Principal, ItemContext], Awaitable[None]]
 
 
 @dataclass(frozen=True)
@@ -31,19 +37,69 @@ class ItemKind:
     model: type
     entity: str  # rbac MATRIX row deciding who may see it at all
     title: Callable[[Any], str]
-    content: Callable[[Any], dict[str, Any]]
+    content: Callable[[Any, Principal], dict[str, Any]]  # what this viewer may see
     module: str | None = None  # optional module that must be on (PRD F4)
+    # step kind -> (column, label) that step must fill in before it may approve
+    required: dict[str, tuple[tuple[str, str], ...]] = field(default_factory=dict)
+    before_submit: Hook | None = None  # raise to refuse a submit / resubmit
+    on_approved: Hook | None = None  # side effects of the final approval
+
+
+async def advance_stage(
+    session: AsyncSession, principal: Principal, scholar: Scholar, stage: str
+) -> None:
+    """Move a scholar forward to `stage`; never backwards (an admin corrects by hand)."""
+    if STAGES.index(stage) > STAGES.index(scholar.stage):
+        await update(session, principal, scholar, {"stage": stage})
 
 
 def _report_title(r: ProgressReport) -> str:
     return f"{r.period.replace('-', '–')} {r.report_year}"  # noqa: RUF001
 
 
-def _report_content(r: ProgressReport) -> dict[str, Any]:
+def _report_content(r: ProgressReport, _: Principal) -> dict[str, Any]:
     return {"report_year": r.report_year, "period": r.period, "summary": r.summary}
 
 
-def _publication_content(p: Publication) -> dict[str, Any]:
+def sees_examiners(principal: Principal) -> bool:
+    """Examiner identities: Exam Office, Research Office, root admin (PRD M3)."""
+    return principal.is_root_admin or bool(
+        principal.office_roles & {"exam_office", "research_office"}
+    )
+
+
+def _thesis_content(t: ThesisSubmission, principal: Principal) -> dict[str, Any]:
+    names = sees_examiners(principal)
+    return {
+        "title": t.title,
+        "plagiarism_tool": t.plagiarism_tool,
+        "plagiarism_score": t.plagiarism_score,
+        "examiners": t.examiners if names else None,
+        "examiners_entered": t.examiners is not None,
+        "examiners_hidden": not names,
+    }
+
+
+async def _thesis_has_file(session: AsyncSession, _: Principal, ctx: ItemContext) -> None:
+    files = await session.scalar(
+        select(func.count())
+        .select_from(FileRow)
+        .where(
+            FileRow.table_name == "thesis_submissions",
+            FileRow.record_id == ctx.item.id,
+            FileRow.status == "ready",
+            FileRow.deleted_at.is_(None),
+        )
+    )
+    if not files:
+        raise workflow.violation("Upload the final thesis file before submitting.")
+
+
+async def _thesis_approved(session: AsyncSession, principal: Principal, ctx: ItemContext) -> None:
+    await advance_stage(session, principal, ctx.scholar, "Thesis Submitted")
+
+
+def _publication_content(p: Publication, _: Principal) -> dict[str, Any]:
     return {
         "title": p.title,
         "authors": p.authors,
@@ -62,7 +118,54 @@ REGISTRY: dict[str, ItemKind] = {
     "publication": ItemKind(
         Publication, "publications", lambda p: p.title, _publication_content, "publications"
     ),
+    "thesis_submission": ItemKind(
+        ThesisSubmission,
+        "thesis_submissions",
+        lambda t: t.title,
+        _thesis_content,
+        "documents",
+        required={
+            "library": (
+                ("plagiarism_tool", "the plagiarism tool"),
+                ("plagiarism_score", "the plagiarism score"),
+            ),
+            "exam_office": (("examiners", "the examiners"),),
+        },
+        before_submit=_thesis_has_file,
+        on_approved=_thesis_approved,
+    ),
 }
+
+
+async def submit(session: AsyncSession, principal: Principal, ctx: ItemContext) -> None:
+    kind = kind_of(ctx.item_type)
+    if kind.before_submit and workflow.is_initiator(principal, ctx):
+        await kind.before_submit(session, principal, ctx)
+    await workflow.submit(session, principal, ctx)
+
+
+async def resubmit(session: AsyncSession, principal: Principal, ctx: ItemContext) -> None:
+    kind = kind_of(ctx.item_type)
+    if kind.before_submit and workflow.is_initiator(principal, ctx):
+        await kind.before_submit(session, principal, ctx)
+    await workflow.resubmit(session, principal, ctx)
+
+
+async def approve(
+    session: AsyncSession, principal: Principal, ctx: ItemContext, comment: str | None
+) -> None:
+    kind = kind_of(ctx.item_type)
+    step = workflow.current_kind(ctx)
+    missing = [
+        label
+        for column, label in kind.required.get(step or "", ())
+        if getattr(ctx.item, column) in (None, "")
+    ]
+    if missing and await workflow.can_act(session, principal, ctx):
+        raise workflow.violation(f"Fill in {' and '.join(missing)} before approving.")
+    await workflow.approve(session, principal, ctx, comment)
+    if ctx.item.state == "approved" and kind.on_approved:
+        await kind.on_approved(session, principal, ctx)
 
 
 async def enabled_kinds(session: AsyncSession) -> dict[str, ItemKind]:
@@ -163,7 +266,7 @@ async def view(session: AsyncSession, principal: Principal, ctx: ItemContext) ->
         "chain": chain,
         "submitted_at": item.submitted_at,
         "approved_at": item.approved_at,
-        "content": kind.content(item),
+        "content": kind.content(item, principal),
         "can_edit": item.state in ("draft", "sent_back") and is_init,
         "can_submit": item.state == "draft" and is_init,
         "can_resubmit": item.state == "sent_back" and is_init,

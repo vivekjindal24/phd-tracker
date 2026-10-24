@@ -147,10 +147,24 @@ published) + approval columns. `pub_status` is a bibliographic fact entered
 by the scholar; it is **not** workflow state.
 
 **thesis_submissions** (module `documents`) — `scholar_id`, `title`,
-`file_id` FK files, `plagiarism_tool`, `plagiarism_score` numeric(5,2) CHECK
-0–100 (writable only by the Library step), `examiners` text (writable only by
-the Exam Office step) + approval columns. Partial unique
-`uq_thesis_active (scholar_id) WHERE deleted_at IS NULL`.
+`plagiarism_tool`, `plagiarism_score` numeric(5,2) CHECK 0–100 (both writable
+only by the Library step and required before it approves), `examiners` text
+(Exam Office step; required before it approves; confidential — `thesis.py`)
++ approval columns. The final thesis and the plagiarism certificate are the
+record's files (`files` owner `thesis_submissions`); submitting needs at least
+one. Partial unique `uq_thesis_active (scholar_id) WHERE deleted_at IS NULL`
+→ 409 `duplicate_thesis`. Final approval moves the scholar to Thesis
+Submitted.
+
+After approval (an approved item is immutable, so these are separate rows):
+**examiner_reports** — `thesis_id` (indexed), `examiner_name` (confidential
+until a viva is recorded), `institution`, `received_on`, `recommendation`
+CHECK (accept / minor_revision / major_revision / reject), `notes`,
+`released_at` (set when the Exam Office releases reports to the scholar and
+supervisor). **vivas** — `thesis_id`, `held_on`, `venue`, `panel`, `outcome`
+CHECK (pass / redefend / fail); a pass moves the scholar to Viva.
+**shodhganga_deposits** — `thesis_id` (partial UNIQUE), `deposited_on`,
+`handle_url`. Report, viva and deposit files hang off their own rows.
 
 **coursework_clearances** (module `coursework`) — `scholar_id`, `cgpa`
 numeric(4,2) (computed from enrolments at submit), `cleared_on` date (set on
@@ -171,9 +185,11 @@ initiator), `comment` (required for send_back — CHECK), `actor_id` FK users,
 workshop), `event_date`, `place`, `title`.
 
 **documents** (module `documents`) — `scholar_id`, `title`, `doc_kind`
-CHECK (proposal / chapter / synopsis / draft / other).
+CHECK (proposal / chapter / synopsis / draft / other). Visible to the scholar
+and their supervisor(s) only.
 **document_versions** — `document_id` FK, `version_no` (UNIQUE per
-document), `file_id` FK files, `note`. Versions are append-only.
+document), `file_id` FK files (UNIQUE — one file is one version), `note`.
+Append-only: files on a document cannot be removed.
 
 **courses** (module `coursework`) — `unit_id` FK, `code`, `title`,
 `credits` numeric(3,1); UNIQUE `(unit_id, code)` among live rows.
@@ -218,12 +234,15 @@ presign, and the size is signed into the upload URL), `etag` (from the bucket on
 completion), `status` CHECK (pending / ready — `ready` only after the API has
 confirmed the object exists at the declared size), `uploaded_by` FK users, owner
 pair `(table_name, record_id)` with a CHECK whitelist that each phase widens by
-migration (Phase 1: `scholars`; Phase 3 adds `publications`, `conferences`). Visibility is the owner record's
+migration (Phase 1: `scholars`; Phase 3 adds `publications`, `conferences`,
+`documents`, `thesis_submissions`, `examiner_reports`, `vivas`,
+`shodhganga_deposits`). Visibility is the owner record's
 `get_or_403`. Soft delete keeps the object in the bucket (retention).
 
 **comments** — flat threads; `(table_name, record_id)` polymorphic pair
 (indexed, CHECK whitelist of commentable tables — scholars, meetings,
-progress_reports, milestones, publications, conferences), `author_id`, `body`
+progress_reports, milestones, publications, conferences, documents,
+thesis_submissions), `author_id`, `body`
 (1–4000 chars). Visibility = the target record's `get_or_403`.
 
 **notifications** — `user_id` (indexed), `category` CHECK

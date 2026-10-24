@@ -97,6 +97,8 @@ async def delete_file(
     """Soft delete: the row disappears for everyone, the object stays (retention). Only while
     the owner record is still writable by the caller — an approved item's files are frozen."""
     row = await files.get_file(session, file_id)
+    if row.table_name == "documents":
+        raise ApiError(422, "versions_are_permanent", "Document versions cannot be removed.")
     await records.require_write(session, principal, row.table_name, row.record_id)
     await soft_delete(session, principal, row)
     await session.commit()

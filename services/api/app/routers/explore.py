@@ -26,6 +26,7 @@ from app.models import (
     Scholar,
     Seminar,
     SeminarScholar,
+    ThesisSubmission,
     User,
 )
 from app.modules import module_enabled
@@ -41,7 +42,11 @@ def _as_dt(value) -> datetime:
     return value if isinstance(value, datetime) else datetime.combine(value, time(), tzinfo=UTC)
 
 
-MODULE_OF = {"publications": "publications", "conferences": "conferences"}
+MODULE_OF = {
+    "publications": "publications",
+    "conferences": "conferences",
+    "thesis_submissions": "documents",
+}
 
 
 async def _visible_for(session, principal, entity: str, scholar_id: uuid.UUID) -> bool:
@@ -146,6 +151,23 @@ async def timeline(
                     "detail": c.title or c.event_type.replace("_", " ").capitalize(),
                     "link": "/conferences",
                     "badge": None,
+                }
+            )
+    if await _visible_for(session, principal, "thesis_submissions", scholar_id):
+        for t in await session.scalars(
+            select(ThesisSubmission).where(
+                ThesisSubmission.scholar_id == scholar_id, ThesisSubmission.deleted_at.is_(None)
+            )
+        ):
+            step = t.chain_snapshot[t.current_step]["kind"] if t.current_step is not None else None
+            events.append(
+                {
+                    "at": t.approved_at or t.submitted_at or t.created_at,
+                    "kind": "thesis",
+                    "title": f"Thesis · {t.title}",
+                    "detail": f"Waiting on {STEP_LABELS[step]}" if step else None,
+                    "link": f"/items/thesis_submission/{t.id}",
+                    "badge": t.state,
                 }
             )
     open_ = await seminars.open_to_faculty(session)

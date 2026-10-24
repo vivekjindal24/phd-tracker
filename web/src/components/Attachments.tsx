@@ -2,12 +2,11 @@
 
 import { useRef, useState } from "react";
 import { Button, Card, ErrorText } from "@/components/ui/kit";
-import { api, ApiError } from "@/lib/api";
+import { api } from "@/lib/api";
 import type { FileItem, FileOwner } from "@/lib/types";
+import { openFile, uploadFile } from "@/lib/upload";
 import { errorText, useFetch } from "@/lib/useFetch";
 import "./attachments.css";
-
-type Upload = { file_id: string; upload_url: string; method: string; headers: Record<string, string> };
 
 function size(bytes: number): string {
   if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
@@ -38,24 +37,7 @@ export function Attachments({
     setBusy(`Uploading ${file.name}…`);
     setActError(null);
     try {
-      const start = await api<Upload>("/files/uploads", {
-        method: "POST",
-        body: JSON.stringify({
-          table_name: table,
-          record_id: recordId,
-          file_name: file.name,
-          content_type: file.type || "application/octet-stream",
-          size_bytes: file.size,
-        }),
-      });
-      let put: Response;
-      try {
-        put = await fetch(start.upload_url, { method: start.method, headers: start.headers, body: file });
-      } catch {
-        throw new ApiError(0, "storage_unreachable", "The file store could not be reached. Please try again.");
-      }
-      if (!put.ok) throw new ApiError(put.status, "storage_rejected", `The file store refused the upload (${put.status}).`);
-      await api(`/files/${start.file_id}/complete`, { method: "POST" });
+      await uploadFile(table, recordId, file);
       await reload();
     } catch (e) {
       setActError(errorText(e));
@@ -68,8 +50,7 @@ export function Attachments({
   async function open(file: FileItem) {
     setActError(null);
     try {
-      const { url } = await api<{ url: string }>(`/files/${file.id}/download`);
-      window.location.assign(url);
+      await openFile(file.id);
     } catch (e) {
       setActError(errorText(e));
     }

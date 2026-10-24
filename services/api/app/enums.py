@@ -140,18 +140,41 @@ PUB_STATUSES = get_args(PubStatus)
 ConferenceType = Literal["paper_presented", "poster", "attended", "invited_talk", "workshop"]
 CONFERENCE_TYPES = get_args(ConferenceType)
 
+DocKind = Literal["proposal", "chapter", "synopsis", "draft", "other"]
+DOC_KINDS = get_args(DocKind)
+Recommendation = Literal["accept", "minor_revision", "major_revision", "reject"]
+RECOMMENDATIONS = get_args(Recommendation)
+VivaOutcome = Literal["pass", "redefend", "fail"]
+VIVA_OUTCOMES = get_args(VivaOutcome)
+
 # Groups a supervisor can share meeting minutes with (PRD F7); unticked groups see only the date.
 MeetingShare = Literal["unit_heads", "research_office", "admins"]
 MEETING_SHARES = get_args(MeetingShare)
 
 # Records comments can hang off (DATABASE.md §3.7); visibility = the record's.
 CommentTarget = Literal[
-    "scholars", "meetings", "progress_reports", "milestones", "publications", "conferences"
+    "scholars",
+    "meetings",
+    "progress_reports",
+    "milestones",
+    "publications",
+    "conferences",
+    "documents",
+    "thesis_submissions",
 ]
 COMMENT_TARGETS = get_args(CommentTarget)
 
 # Tables files may hang off; each phase adds its owners (with a migration widening the CHECK).
-FileOwner = Literal["scholars", "publications", "conferences"]
+FileOwner = Literal[
+    "scholars",
+    "publications",
+    "conferences",
+    "documents",
+    "thesis_submissions",
+    "examiner_reports",
+    "vivas",
+    "shodhganga_deposits",
+]
 FILE_OWNER_TABLES = get_args(FileOwner)
 FileStatus = Literal["pending", "ready"]
 FILE_STATUSES = get_args(FileStatus)
