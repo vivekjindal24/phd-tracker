@@ -4,6 +4,13 @@ from app.models.comments import Comment
 from app.models.coursework import Course, CourseworkClearance, Enrolment
 from app.models.duration import TimeAdjustment
 from app.models.files import FileRow
+from app.models.grants import (
+    Fellowship,
+    LedgerEntry,
+    Project,
+    ProjectMember,
+    UtilisationCertificate,
+)
 from app.models.meetings import Meeting
 from app.models.milestones import Milestone
 from app.models.org import Faculty, OrgUnit, RoleAssignment, Scholar, User
@@ -51,8 +58,10 @@ __all__ = [
     "Enrolment",
     "ExaminerReport",
     "Faculty",
+    "Fellowship",
     "FileRow",
     "JobRun",
+    "LedgerEntry",
     "LoginAttempt",
     "Meeting",
     "Milestone",
@@ -61,6 +70,8 @@ __all__ = [
     "OrgUnit",
     "PasswordToken",
     "ProgressReport",
+    "Project",
+    "ProjectMember",
     "Publication",
     "RefreshToken",
     "RoleAssignment",
@@ -76,5 +87,6 @@ __all__ = [
     "TimeAdjustment",
     "Todo",
     "User",
+    "UtilisationCertificate",
     "Viva",
 ]

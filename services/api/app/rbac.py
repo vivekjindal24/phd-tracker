@@ -125,6 +125,29 @@ MATRIX: dict[str, dict[str, frozenset[str]]] = {
         "admin": frozenset({R, C, D}),
         "research_office": frozenset({R, C, D}),
     },
+    # Grants (PRD M6-M8). "supervisor" here means the PI: any faculty member reads their own
+    # projects and adds expenses to them (scope.project_predicate, grants.py), even without
+    # supervision rights — so project and ledger reads are gated by scope, not this row.
+    "fellowships": {
+        "scholar": frozenset({R}),
+        "supervisor": frozenset({R}),
+        "unit_head": frozenset({R}),
+        "admin": frozenset({R, C, U, D}),  # over the scholar's unit
+        "research_office": frozenset({R, C, U, D}),
+    },
+    "projects": {
+        "scholar": frozenset({R}),  # projects they are a member of
+        "supervisor": frozenset({R}),
+        "unit_head": frozenset({R}),
+        "admin": frozenset({R, C, U, D}),  # over the project's unit
+        "research_office": frozenset({R, C, U, D}),
+    },
+    "ledger": {
+        "supervisor": frozenset({R, C}),  # expenses on their own projects only
+        "unit_head": frozenset({R}),
+        "admin": frozenset({R, C, U, D}),
+        "research_office": frozenset({R, C, U, D}),
+    },
     "leadership": {
         "unit_head": frozenset({R}),
         "admin": frozenset({R}),

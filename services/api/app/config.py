@@ -85,6 +85,7 @@ class Settings:
     s3: S3
     ai: Ai | None
     sso: Sso | None = None
+    cron_secret: str | None = None  # unset: the daily job endpoint is off
     access_token_minutes: int = 30
     refresh_token_days: int = 14
 
@@ -222,6 +223,13 @@ def _parse_origins(raw: str) -> tuple[str, ...]:
     return tuple(origins)
 
 
+def _load_cron_secret() -> str | None:
+    secret = os.environ.get("CRON_SECRET", "").strip()
+    if secret and len(secret.encode()) < MIN_JWT_SECRET_BYTES:
+        raise ConfigError(f"CRON_SECRET must be at least {MIN_JWT_SECRET_BYTES} bytes")
+    return secret or None
+
+
 def load_settings() -> Settings:
     database_url = _normalize_db_url(_require("DATABASE_URL"))
     jwt_secret = _require("JWT_SECRET")
@@ -238,6 +246,7 @@ def load_settings() -> Settings:
         s3=_load_s3(),
         ai=_load_ai(),
         sso=_load_sso(),
+        cron_secret=_load_cron_secret(),
     )
 
 

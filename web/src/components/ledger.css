@@ -1,0 +1,14 @@
+.ledger { display: grid; gap: var(--space-4); }
+.ledger-totals {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--space-3);
+  margin: 0;
+}
+.ledger-totals div { padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); background: var(--surface); }
+.ledger-totals dt { font-size: 0.8rem; color: var(--ink-soft); }
+.ledger-totals dd { margin: var(--space-1) 0 0; font-size: 1.15rem; font-weight: 600; }
+.ledger-negative dd { color: var(--danger); }
+.ledger-out { color: var(--ink-soft); }
+.ledger-empty { padding: var(--space-5); }
+.ledger-add { display: grid; gap: var(--space-3); }

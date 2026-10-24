@@ -15,3 +15,8 @@ export const formatWhen = (iso: string) =>
     hour: "2-digit",
     minute: "2-digit",
   });
+
+const INR = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", minimumFractionDigits: 0, maximumFractionDigits: 2 });
+
+/** "₹12,50,000" — Indian digit grouping, paise only when present. */
+export const formatMoney = (amount: number) => INR.format(amount);

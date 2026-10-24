@@ -152,6 +152,19 @@ ENTRANCE_ROUTES = get_args(EntranceRoute)
 InterviewResult = Literal["pending", "selected", "not_selected"]
 INTERVIEW_RESULTS = get_args(InterviewResult)
 
+FellowshipScheme = Literal["ugc_jrf", "ugc_srf", "csir", "inspire", "institute", "other"]
+FELLOWSHIP_SCHEMES = get_args(FellowshipScheme)
+FellowshipStatus = Literal["active", "completed", "terminated"]
+FELLOWSHIP_STATUSES = get_args(FellowshipStatus)
+ProjectStatus = Literal["ongoing", "completed", "closed"]
+PROJECT_STATUSES = get_args(ProjectStatus)
+LedgerKind = Literal["disbursement", "expense"]
+LEDGER_KINDS = get_args(LedgerKind)
+LedgerHead = Literal[
+    "fellowship_salary", "equipment", "consumables", "travel", "contingency", "overhead"
+]
+LEDGER_HEADS = get_args(LedgerHead)
+
 LeftReason = Literal["withdrawn", "cancelled"]
 LEFT_REASONS = get_args(LeftReason)
 # Time records against the UGC maximum duration (Phase 4): extensions and the women/PwD
@@ -187,6 +200,7 @@ FileOwner = Literal[
     "examiner_reports",
     "vivas",
     "shodhganga_deposits",
+    "utilisation_certificates",
 ]
 FILE_OWNER_TABLES = get_args(FileOwner)
 FileStatus = Literal["pending", "ready"]

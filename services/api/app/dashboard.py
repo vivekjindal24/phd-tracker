@@ -14,6 +14,7 @@ from app.enums import STAGES
 from app.models import (
     ApprovalActionRow,
     Faculty,
+    Fellowship,
     Meeting,
     Milestone,
     OrgUnit,
@@ -26,6 +27,7 @@ from app.models import (
     Todo,
     User,
 )
+from app.modules import module_enabled
 from app.workflow import STEP_LABELS
 
 DUE_SOON_DAYS = 14  # PRD F8
@@ -168,6 +170,15 @@ async def _scholar_section(session: AsyncSession, principal: Principal) -> dict[
         .order_by(Milestone.resolution_date.desc().nulls_last(), Milestone.created_at.desc())
         .limit(1)
     )
+    fellowship_ends = None
+    if await module_enabled(session, "fellowships"):
+        fellowship_ends = await session.scalar(
+            select(func.max(Fellowship.end_date)).where(
+                Fellowship.scholar_id == sid,
+                Fellowship.deleted_at.is_(None),
+                Fellowship.status == "active",
+            )
+        )
     open_todos = await session.scalar(
         select(func.count())
         .select_from(Todo)
@@ -186,6 +197,7 @@ async def _scholar_section(session: AsyncSession, principal: Principal) -> dict[
         "coursework": await _coursework_status(session, sid)
         if "coursework_clearance" in kinds
         else None,
+        "fellowship_ends": fellowship_ends,
         "last_meeting": last_meeting,
         "next_meeting": next_meeting if next_meeting and next_meeting >= today else None,
         "latest_decision": (

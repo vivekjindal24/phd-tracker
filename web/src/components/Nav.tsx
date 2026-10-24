@@ -45,6 +45,13 @@ const NAV: Entry[] = [
       { href: "/admissions", label: "Admissions", show: (me) => me.modules.admissions && me.roles.some((r) => r === "admin" || r === "unit_head" || r === "research_office") },
     ],
   },
+  {
+    label: "Grants",
+    items: [
+      { href: "/fellowships", label: "Fellowships", show: (me) => me.modules.fellowships && notOnlyOffice(me) },
+      { href: "/projects", label: "Research projects", show: (me) => me.modules.projects && (me.faculty_id !== null || notOnlyOffice(me)) },
+    ],
+  },
   { href: "/leadership", label: "Leadership", show: (me) => me.roles.some((r) => r === "unit_head" || r === "admin" || r === "research_office") },
   { href: "/register", label: "Register", show: (me) => me.roles.some((r) => r !== "library") },
   { href: "/settings", label: "Settings", show: (me) => me.is_root_admin },

@@ -193,13 +193,19 @@ new profile. Heads of the unit see the list read-only.
 
 ## Flow 11 — Grants (modules)
 
-- **Fellowships:** admin / research office records scheme, amounts, dates;
-  JRF→SRF upgrade sets the date; scholars see their own; reminder 60 days
-  before end.
-- **Projects:** PI, agency, sanction, members; PI sees own projects.
-- **Ledger:** disbursements and expenses per project/fellowship with a
-  running balance; PI may add expenses on own projects; utilisation
-  certificates uploaded per period.
+- **Fellowships** (`/fellowships`): admin / research office records scheme,
+  amounts, dates; **Record SRF upgrade** sets the date, scheme and new amount;
+  scholars see their own (and the end date on Home), supervisors their
+  scholars'; the daily job reminds the scholar and supervisor 60 days
+  before the end.
+- **Projects** (`/projects`, `/projects/<id>`): PI, agency, sanction, members
+  (scholars from any unit); the PI and members see the project, heads their
+  subtree.
+- **Ledger** (on the project page; on a fellowship for offices and heads):
+  disbursements and expenses with a running balance and received / spent /
+  balance against the sanction; the PI may add expenses on own projects;
+  utilisation certificates per period, with the signed file attached and the
+  submitted date recorded.
 
 ## Flow 12 — Notifications
 

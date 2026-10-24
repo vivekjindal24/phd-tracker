@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 import type { FormEvent } from "react";
+import { ScholarSearch } from "@/components/ScholarSearch";
 import { CourseworkCard } from "@/components/CourseworkCard";
 import { Button, Card, ErrorText, Field, PageHeader, Table } from "@/components/ui/kit";
 import { api } from "@/lib/api";
 import { useSession } from "@/lib/session";
-import type { Course, OrgUnit, Scholar } from "@/lib/types";
+import type { Course, OrgUnit } from "@/lib/types";
 import { errorText, useFetch } from "@/lib/useFetch";
 
 function AddCourse({ units, onAdded }: { units: OrgUnit[]; onAdded: () => void }) {
@@ -48,26 +49,6 @@ function AddCourse({ units, onAdded }: { units: OrgUnit[]; onAdded: () => void }
   );
 }
 
-function ScholarPicker({ onPick }: { onPick: (id: string) => void }) {
-  const [q, setQ] = useState("");
-  const { data } = useFetch<Scholar[]>(q.length >= 2 ? `/scholars?q=${encodeURIComponent(q)}&limit=10` : null);
-  return (
-    <Card>
-      <h2>Grades for a scholar</h2>
-      <Field label="Find a scholar" hint="Name or roll number">
-        <input value={q} onChange={(e) => setQ(e.target.value)} />
-      </Field>
-      {data && (
-        <ul className="plain-list">
-          {data.map((s) => (
-            <li key={s.id}><Button kind="ghost" onClick={() => onPick(s.id)}>{s.full_name} · {s.roll_number} · {s.unit.name}</Button></li>
-          ))}
-        </ul>
-      )}
-    </Card>
-  );
-}
-
 export default function CourseworkPage() {
   const { me } = useSession();
   const { data: courses, error, reload } = useFetch<Course[]>("/courses");
@@ -81,7 +62,7 @@ export default function CourseworkPage() {
     <>
       <PageHeader eyebrow="Academic administration" title="Coursework" />
       {me?.scholar_id && <CourseworkCard scholarId={me.scholar_id} />}
-      {isExam && <ScholarPicker onPick={setPicked} />}
+      {isExam && <Card><h2>Grades for a scholar</h2><ScholarSearch onPick={(s) => setPicked(s.id)} /></Card>}
       {picked && <div style={{ marginTop: "var(--space-5)" }}><CourseworkCard key={picked} scholarId={picked} /></div>}
       <h2 style={{ marginTop: "var(--space-6)" }}>Course catalogue</h2>
       <ErrorText>{error}</ErrorText>

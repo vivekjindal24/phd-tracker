@@ -114,6 +114,18 @@ Exam Office, Research Office and root admin until the viva outcome is
 recorded; reports reach the scholar and supervisor only after the Exam Office
 releases them — omitted server-side, as with meeting redaction.
 
+**Grants:** the supervisor column of the grants rows means the project's PI —
+any faculty member, with or without supervision rights, reads their own
+projects with the ledger and UCs and may add *expenses* (never
+disbursements) to them. A project member scholar sees the project and its
+members, never money. A supervisor sees their scholars' fellowships but not
+the fellowship ledger. Writes need the research office, or an admin over the
+project's unit / the scholar's unit.
+
+**Daily job:** `POST /internal/cron/daily` takes no JWT; it needs the
+`X-Cron-Secret` header (compared in constant time) and is off (404) while
+`CRON_SECRET` is unset.
+
 **Bulk import** creates records through the same service functions as the
 forms, so scope, caps and uniqueness are checked once, in one place; the
 root admin may import anywhere.

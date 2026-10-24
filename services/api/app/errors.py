@@ -38,6 +38,12 @@ CONSTRAINT_ERRORS: dict[str, tuple[int, str, str]] = {
     ),
     "uq_enrolment_active": (409, "duplicate_enrolment", "The scholar is already enrolled in it."),
     "uq_clearance_active": (409, "duplicate_clearance", "A coursework clearance already exists."),
+    "uq_projects_sanction": (
+        409,
+        "duplicate_sanction",
+        "A project with this sanction number already exists.",
+    ),
+    "uq_project_members": (409, "duplicate_member", "This scholar is already a member."),
     "uq_role_assignment_active": (409, "duplicate_role", "This role is already assigned."),
     "uq_faculty_user": (409, "duplicate_profile", "This user already has a faculty profile."),
     "uq_scholars_user": (409, "duplicate_profile", "This user already has a scholar profile."),

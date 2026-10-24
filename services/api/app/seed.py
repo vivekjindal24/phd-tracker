@@ -25,12 +25,17 @@ from app.models import (
     Course,
     Enrolment,
     Faculty,
+    Fellowship,
+    LedgerEntry,
     Module,
     OrgUnit,
+    Project,
+    ProjectMember,
     Publication,
     RoleAssignment,
     Scholar,
     User,
+    UtilisationCertificate,
 )
 from app.org import create_unit
 
@@ -195,6 +200,7 @@ async def demo(session: AsyncSession) -> None:
             ),
         )
     await _demo_records(session, units, scholars)
+    await _demo_grants(session, units, faculty, scholars)
 
     await session.execute(update(Module).values(enabled=True))
     await session.commit()
@@ -262,6 +268,91 @@ async def _demo_records(
             interview_date=date.today() - timedelta(days=14),
             interview_result="selected",
             admitted_on=date.today(),
+        ),
+    )
+
+
+async def _demo_grants(
+    session: AsyncSession,
+    units: dict[str, OrgUnit],
+    faculty: dict[str, Faculty],
+    scholars: dict[str, Scholar],
+) -> None:
+    """Fellowships (Neha's ends in 60 days, so tomorrow's daily job has a reminder to send),
+    a CSE project with members, its ledger and a utilisation certificate."""
+    today = date.today()
+    priya = await insert(
+        session,
+        None,
+        Fellowship(
+            scholar_id=scholars["priya"].id,
+            scheme="ugc_srf",
+            amount_monthly=42000,
+            hra_amount=4200,
+            start_date=date(2023, 1, 10),
+            end_date=date(2028, 1, 9),
+            srf_upgrade_on=date(2025, 1, 10),
+        ),
+    )
+    await insert(
+        session,
+        None,
+        Fellowship(
+            scholar_id=scholars["neha"].id,
+            scheme="csir",
+            amount_monthly=37000,
+            hra_amount=3700,
+            start_date=date(2024, 8, 1),
+            end_date=today + timedelta(days=60),
+        ),
+    )
+    project = await insert(
+        session,
+        None,
+        Project(
+            pi_id=faculty["meera"].id,
+            unit_id=units["CSE"].id,
+            agency="SERB",
+            title="Speech technologies for Indian languages in low-resource settings",
+            sanction_number="SERB/CRG/2024/000123",
+            amount_sanctioned=3250000,
+            start_date=date(2024, 4, 1),
+            end_date=date(2027, 3, 31),
+        ),
+    )
+    for login, role in (("priya", "SRF"), ("arun", "Project assistant")):
+        await insert(
+            session,
+            None,
+            ProjectMember(project_id=project.id, scholar_id=scholars[login].id, member_role=role),
+        )
+    for owner, kind, head, amount, when, ref in (
+        (project, "disbursement", "equipment", 1500000, date(2024, 4, 20), "SERB first instalment"),
+        (project, "expense", "equipment", 845000, date(2024, 6, 5), "GPU workstation"),
+        (project, "expense", "travel", 38500, date(2025, 2, 12), "Interspeech 2025"),
+        (priya, "disbursement", "fellowship_salary", 46200, date(2025, 2, 1), "Jan 2025"),
+    ):
+        await insert(
+            session,
+            None,
+            LedgerEntry(
+                project_id=owner.id if owner is project else None,
+                fellowship_id=owner.id if owner is priya else None,
+                entry_kind=kind,
+                head=head,
+                amount=amount,
+                entry_date=when,
+                reference=ref,
+            ),
+        )
+    await insert(
+        session,
+        None,
+        UtilisationCertificate(
+            project_id=project.id,
+            period_start=date(2024, 4, 1),
+            period_end=date(2025, 3, 31),
+            submitted_on=date(2025, 4, 28),
         ),
     )
 

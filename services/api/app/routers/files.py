@@ -59,7 +59,7 @@ async def list_files(
     principal: Principal = Depends(current_principal),
     session: AsyncSession = Depends(get_session),
 ) -> list[FileRow]:
-    await records.require_read(session, principal, table_name, record_id)
+    await records.require_file_read(session, principal, table_name, record_id)
     rows = await session.scalars(
         select(FileRow)
         .where(
@@ -80,7 +80,7 @@ async def download(
     session: AsyncSession = Depends(get_session),
 ) -> DownloadOut:
     row = await files.get_file(session, file_id)
-    await records.require_read(session, principal, row.table_name, row.record_id)
+    await records.require_file_read(session, principal, row.table_name, row.record_id)
     if row.status != "ready":
         raise ApiError(409, "upload_incomplete", "This file has not finished uploading.")
     return DownloadOut(

@@ -6,7 +6,7 @@ import uuid
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import items, meetings, scope, thesis, workflow
+from app import grants, items, meetings, scope, thesis, workflow
 from app.auth.principal import Principal
 from app.errors import ApiError, forbidden
 from app.models import (
@@ -92,6 +92,16 @@ async def require_read(
 THESIS_CHILDREN: dict[str, type] = {"vivas": Viva, "shodhganga_deposits": ShodhgangaDeposit}
 
 
+async def require_file_read(
+    session: AsyncSession, principal: Principal, table: str, record_id: uuid.UUID
+) -> None:
+    """Files may also hang off records that belong to no scholar (utilisation certificates)."""
+    if table == "utilisation_certificates":
+        await grants.uc_or_403(session, principal, record_id)
+        return
+    await require_read(session, principal, table, record_id)
+
+
 async def document_or_403(
     session: AsyncSession, principal: Principal, record_id: uuid.UUID
 ) -> tuple[Document, Scholar]:
@@ -172,6 +182,10 @@ async def require_write(
     if table == "examiner_reports":
         thesis.require_office(principal, "exam_office")
         await thesis.report_ctx(session, principal, record_id)
+        return
+    if table == "utilisation_certificates":
+        _, path = await grants.uc_or_403(session, principal, record_id)
+        grants.require_manage(principal, path)
         return
     if table in THESIS_CHILDREN:
         office = "exam_office" if table == "vivas" else "library"

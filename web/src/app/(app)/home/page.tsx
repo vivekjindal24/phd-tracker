@@ -40,6 +40,7 @@ type Dashboard = {
     in_progress: { item_type: string; id: string; title: string; state: ItemState; waiting_on: string | null }[];
     open_todos: number;
     approved_publications: number | null;
+    fellowship_ends: string | null;
     coursework: { credits: number; min_credits: number; cgpa: number | null; cleared_on: string | null } | null;
     duration: { limit_date: string | null; days_left: number | null; status: string; warnings: string[] };
     last_meeting: string | null;
@@ -233,6 +234,9 @@ export default function HomePage() {
                   <Tile label={sch.coursework.cleared_on ? `Coursework cleared ${formatDate(sch.coursework.cleared_on)}` : `Coursework credits (of ${sch.coursework.min_credits})`}
                     value={sch.coursework.credits} href="/coursework"
                     tone={sch.coursework.cleared_on || sch.coursework.credits >= sch.coursework.min_credits ? "tile-sage" : "tile-butter"} />
+                )}
+                {sch.fellowship_ends && (
+                  <Tile label="Fellowship ends" value={formatDate(sch.fellowship_ends)} href="/fellowships" tone="tile-butter" />
                 )}
                 {sch.approved_publications !== null && (
                   <Tile label="Verified publications" value={sch.approved_publications} href="/publications" tone="tile-sage" />

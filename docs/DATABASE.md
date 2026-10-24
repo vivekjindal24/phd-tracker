@@ -229,22 +229,28 @@ neither edited nor deleted.
 **fellowships** (module `fellowships`) — `scholar_id`, `scheme` CHECK
 (ugc_jrf / ugc_srf / csir / inspire / institute / other), `amount_monthly`
 numeric(10,2), `hra_amount` numeric(10,2), `start_date`, `end_date`,
-`srf_upgrade_on`, `status` CHECK (active / completed / terminated).
+`srf_upgrade_on` (within the fellowship's dates), `status` CHECK (active /
+completed / terminated); CHECKs `end_date >= start_date`, amounts ≥ 0. Scoped
+by the scholar (`scope.scholar_predicate`).
 
 **projects** (module `projects`) — `pi_id` FK faculty, `unit_id` FK (scope
 anchor; defaults to the PI's unit), `agency`, `title`, `sanction_number`
-(UNIQUE), `amount_sanctioned` numeric(12,2), `start_date`, `end_date`,
-`status` CHECK (ongoing / completed / closed).
-**project_members** — `project_id`, `scholar_id`, `member_role`; partial
-UNIQUE `(project_id, scholar_id)`.
+(partial UNIQUE among live rows), `amount_sanctioned` numeric(12,2),
+`start_date`, `end_date`, `status` CHECK (ongoing / completed / closed).
+Scoped by `scope.project_predicate`: unit subtree, the PI, members.
+**project_members** — `project_id`, `scholar_id` (any unit), `member_role`;
+partial UNIQUE `(project_id, scholar_id)` among live rows.
 
 **ledger_entries** (module `ledger`) — `project_id` FK nullable,
 `fellowship_id` FK nullable, CHECK exactly one is set; `entry_kind` CHECK
 (disbursement / expense), `head` CHECK (fellowship_salary / equipment /
 consumables / travel / contingency / overhead), `amount` numeric(12,2) CHECK
-> 0, `entry_date`, `reference`, `note`.
-**utilisation_certificates** — `project_id`, `period_start`, `period_end`,
-`file_id` FK files, `submitted_on`.
+> 0, `entry_date`, `reference`, `note`. Running balance = disbursements −
+expenses in date order, computed on read (`grants.ledger_view`). Corrections
+are a soft delete plus a new entry.
+**utilisation_certificates** — `project_id`, `period_start`, `period_end`
+(CHECK ordered), `submitted_on`; the signed certificate is attached through
+`files` (owner `utilisation_certificates`).
 
 ### 3.7 Cross-cutting
 
@@ -257,7 +263,8 @@ confirmed the object exists at the declared size), `uploaded_by` FK users, owner
 pair `(table_name, record_id)` with a CHECK whitelist that each phase widens by
 migration (Phase 1: `scholars`; Phase 3 adds `publications`, `conferences`,
 `documents`, `thesis_submissions`, `examiner_reports`, `vivas`,
-`shodhganga_deposits`). Visibility is the owner record's
+`shodhganga_deposits`; Phase 5 adds `utilisation_certificates`). Visibility
+is the owner record's
 `get_or_403`. Soft delete keeps the object in the bucket (retention).
 
 **comments** — flat threads; `(table_name, record_id)` polymorphic pair
@@ -349,7 +356,9 @@ a supervisor); scholars across stages with admission dates (one always about
 four months from the UGC maximum, so the leadership view shows a scholar at
 risk); every module enabled; a CSE course catalogue with one scholar's grades
 (credits still short); a draft publication and a conference; a selected
-admission candidate ready to convert. Approvable items are seeded as drafts
+admission candidate ready to convert; two fellowships (one ending in 60 days,
+one upgraded to SRF), a CSE project with members, ledger entries and a
+utilisation certificate. Approvable items are seeded as drafts
 only — states move through `workflow.py`, not the seed. In production the
 seed is replaced by a `--bootstrap` mode that creates only the root unit and
 the root admin.

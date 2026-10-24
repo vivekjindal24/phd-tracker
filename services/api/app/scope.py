@@ -8,9 +8,9 @@ from sqlalchemy import ColumnElement, cast, false, literal, or_, select, true
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.principal import Principal
-from app.enums import OFFICE_ROLES
+from app.enums import OFFICE_ROLES, UNIT_ROLES
 from app.errors import forbidden
-from app.models import OrgUnit, RoleAssignment, Scholar, User
+from app.models import OrgUnit, Project, ProjectMember, RoleAssignment, Scholar, User
 from app.models.base import Ltree
 from app.models.org import Faculty
 from app.rbac import roles_allowed
@@ -57,6 +57,39 @@ def unit_predicate(principal: Principal, entity: str, unit_column) -> ColumnElem
         return true()
     paths = _unit_paths(principal, roles)
     return unit_column.in_(subtree_unit_ids(paths)) if paths else false()
+
+
+def project_predicate(principal: Principal, *, ledger: bool = False) -> ColumnElement[bool]:
+    """Projects the caller may read (SECURITY.md §3): the research office all, unit heads and
+    admins their subtree, the PI their own, a scholar the projects they belong to — but not
+    the money (`ledger=True` drops members)."""
+    if "research_office" in principal.office_roles:
+        return true()
+    clauses: list[ColumnElement[bool]] = []
+    if principal.faculty_id:
+        clauses.append(Project.pi_id == principal.faculty_id)
+    if principal.scholar_id and not ledger:
+        clauses.append(
+            Project.id.in_(
+                select(ProjectMember.project_id).where(
+                    ProjectMember.scholar_id == principal.scholar_id,
+                    ProjectMember.deleted_at.is_(None),
+                )
+            )
+        )
+    paths = _unit_paths(principal, frozenset(UNIT_ROLES))
+    if paths:
+        clauses.append(Project.unit_id.in_(subtree_unit_ids(paths)))
+    return or_(*clauses) if clauses else false()
+
+
+def fellowship_ledger_predicate(principal: Principal) -> ColumnElement[bool]:
+    """Whose fellowship money the caller may read: the research office all, unit heads and
+    admins their subtree. Scholars and supervisors see the fellowship, not its ledger."""
+    if "research_office" in principal.office_roles:
+        return true()
+    paths = _unit_paths(principal, frozenset(UNIT_ROLES))
+    return Scholar.unit_id.in_(subtree_unit_ids(paths)) if paths else false()
 
 
 def user_predicate(principal: Principal) -> ColumnElement[bool]:

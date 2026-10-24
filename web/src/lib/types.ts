@@ -430,7 +430,8 @@ export type FileOwner =
   | "thesis_submissions"
   | "examiner_reports"
   | "vivas"
-  | "shodhganga_deposits";
+  | "shodhganga_deposits"
+  | "utilisation_certificates";
 export type CommentTarget =
   | "scholars"
   | "meetings"
@@ -603,3 +604,67 @@ export type LeadershipView = {
   at_risk: { scholar: Ref; stage: Stage; limit_date: string | null; reasons: string[] }[];
   as_of: string;
 };
+
+// --- grants (PRD M6-M8) ---
+export type FellowshipScheme = "ugc_jrf" | "ugc_srf" | "csir" | "inspire" | "institute" | "other";
+export const SCHEME_LABELS: Record<FellowshipScheme, string> = {
+  ugc_jrf: "UGC JRF",
+  ugc_srf: "UGC SRF",
+  csir: "CSIR",
+  inspire: "DST INSPIRE",
+  institute: "Institute",
+  other: "Other",
+};
+export type FellowshipStatus = "active" | "completed" | "terminated";
+export type Fellowship = {
+  id: string;
+  scholar: Ref;
+  roll_number: string;
+  unit: Ref;
+  scheme: FellowshipScheme;
+  amount_monthly: number;
+  hra_amount: number;
+  start_date: string;
+  end_date: string;
+  srf_upgrade_on: string | null;
+  status: FellowshipStatus;
+  can_manage: boolean;
+  sees_ledger: boolean;
+};
+export type ProjectStatus = "ongoing" | "completed" | "closed";
+export const PROJECT_STATUS_LABELS: Record<ProjectStatus, string> = { ongoing: "Ongoing", completed: "Completed", closed: "Closed" };
+export type Project = {
+  id: string;
+  title: string;
+  agency: string;
+  sanction_number: string;
+  amount_sanctioned: number;
+  start_date: string;
+  end_date: string;
+  status: ProjectStatus;
+  pi: Ref;
+  unit: Ref;
+  members: { id: string; scholar: Ref; roll_number: string; member_role: string }[];
+  can_manage: boolean;
+  sees_ledger: boolean;
+};
+export type LedgerKind = "disbursement" | "expense";
+export type LedgerHead = "fellowship_salary" | "equipment" | "consumables" | "travel" | "contingency" | "overhead";
+export const HEAD_LABELS: Record<LedgerHead, string> = {
+  fellowship_salary: "Fellowship / salary",
+  equipment: "Equipment",
+  consumables: "Consumables",
+  travel: "Travel",
+  contingency: "Contingency",
+  overhead: "Overhead",
+};
+export type LedgerView = {
+  entries: { id: string; entry_kind: LedgerKind; head: LedgerHead; amount: number; entry_date: string; reference: string | null; note: string; balance: number }[];
+  received: number;
+  spent: number;
+  balance: number;
+  sanctioned: number | null;
+  can_manage: boolean;
+  can_add_expense: boolean;
+};
+export type UtilisationCertificate = { id: string; period_start: string; period_end: string; submitted_on: string | null };
