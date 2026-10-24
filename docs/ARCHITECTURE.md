@@ -63,8 +63,10 @@ install, backup and restore steps are in `deploy/README.md`.
 **Current dev/test deployment (2026-10):** branch `rewrite` →
 web `https://research.vivekjindal.in` (Vercel project `anveshan`, root
 `web/`, production branch `rewrite`), API `https://anveshan-api-5xem.onrender.com`
-(Render service `anveshan-api`, root `services/api`), database `anveshan` in
-the existing Neon project. Both redeploy on every push to `rewrite`; `main`
+(Render service `anveshan-api`, root `services/api`), export
+`https://phd-tracker-ik19.onrender.com` (Render, root `services/export`;
+Vercel `NEXT_PUBLIC_EXPORT_URL`), database `anveshan` in the existing Neon
+project. Both redeploy on every push to `rewrite`; `main`
 still serves v2 until the cut-over merge.
 
 ## 5. Architecture Diagram
