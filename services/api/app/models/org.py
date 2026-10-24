@@ -77,10 +77,15 @@ class User(DomainRow, Base):
     )
 
     email: Mapped[str] = mapped_column(CITEXT)
-    password_hash: Mapped[str] = mapped_column(Text)
+    # NULL until the person sets one (invited users, SSO-only users): password login fails.
+    password_hash: Mapped[str | None] = mapped_column(Text)
     full_name: Mapped[str] = mapped_column(Text)
     is_active: Mapped[bool] = mapped_column(Boolean, server_default=text("true"))
     email_muted: Mapped[list[str]] = mapped_column(ARRAY(Text), server_default=text("'{}'::text[]"))
+
+    @property
+    def has_password(self) -> bool:
+        return self.password_hash is not None
 
 
 class RoleAssignment(DomainRow, Base):

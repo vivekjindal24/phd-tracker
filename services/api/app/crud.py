@@ -73,7 +73,7 @@ async def insert[M: Base](session: AsyncSession, principal: Principal | None, ob
 
 
 async def update[M: Base](
-    session: AsyncSession, principal: Principal, obj: M, changes: dict[str, Any]
+    session: AsyncSession, principal: Principal | None, obj: M, changes: dict[str, Any]
 ) -> M:
     if not changes:
         return obj

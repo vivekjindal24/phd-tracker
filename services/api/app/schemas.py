@@ -64,6 +64,19 @@ class ChangePasswordIn(BaseModel):
     new_password: Password
 
 
+class ForgotPasswordIn(BaseModel):
+    email: EmailStr
+
+
+class SetPasswordIn(BaseModel):
+    token: str = Field(min_length=1, max_length=200)
+    password: Password
+
+
+class SsoExchangeIn(BaseModel):
+    code: str = Field(min_length=1, max_length=200)
+
+
 class UnitRoleOut(BaseModel):
     role: AssignedRole
     unit_id: uuid.UUID
@@ -138,7 +151,7 @@ class ScholarProfileIn(BaseModel):
 class UserCreate(BaseModel):
     email: EmailStr
     full_name: Name
-    password: Password
+    password: Password | None = None  # omitted: the person gets a set-password email
     faculty: FacultyProfileIn | None = None
     scholar: ScholarProfileIn | None = None
 
@@ -159,6 +172,7 @@ class UserOut(Out):
     email: str
     full_name: str
     is_active: bool
+    has_password: bool
     created_at: datetime
 
 

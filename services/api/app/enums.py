@@ -54,6 +54,12 @@ ITEM_STATES = get_args(ItemState)
 ApprovalAction = Literal["submit", "approve", "send_back", "resubmit"]
 APPROVAL_ACTIONS = get_args(ApprovalAction)
 
+PasswordTokenPurpose = Literal["invite", "reset"]
+PASSWORD_TOKEN_PURPOSES = get_args(PasswordTokenPurpose)
+
+SsoProvider = Literal["google", "microsoft"]
+SSO_PROVIDERS = get_args(SsoProvider)
+
 AuditAction = Literal["insert", "update", "soft_delete", "restore", "transition"]
 AUDIT_ACTIONS = get_args(AuditAction)
 

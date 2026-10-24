@@ -18,7 +18,14 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.enums import AUDIT_ACTIONS, EMAIL_STATUSES, NOTIFICATION_CATEGORIES, sql_in
+from app.enums import (
+    AUDIT_ACTIONS,
+    EMAIL_STATUSES,
+    NOTIFICATION_CATEGORIES,
+    PASSWORD_TOKEN_PURPOSES,
+    SSO_PROVIDERS,
+    sql_in,
+)
 from app.models.base import Base
 
 
@@ -58,6 +65,49 @@ class RefreshToken(Base):
     token_hash: Mapped[str] = mapped_column(Text, unique=True)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class PasswordToken(Base):
+    """Single-use set-password links (invite / forgot password). Only the sha256 is stored."""
+
+    __tablename__ = "password_tokens"
+    __table_args__ = (
+        CheckConstraint(
+            f"purpose IN ({sql_in(PASSWORD_TOKEN_PURPOSES)})", name="ck_password_tokens_purpose"
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id"), index=True
+    )
+    token_hash: Mapped[str] = mapped_column(Text, unique=True)
+    purpose: Mapped[str] = mapped_column(Text)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class SsoState(Base):
+    """One single sign-on attempt: the OIDC state/nonce/PKCE verifier while the user is at the
+    provider, then the single-use code the browser trades for tokens (SECURITY.md §1)."""
+
+    __tablename__ = "sso_states"
+    __table_args__ = (
+        CheckConstraint(f"provider IN ({sql_in(SSO_PROVIDERS)})", name="ck_sso_states_provider"),
+    )
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    provider: Mapped[str] = mapped_column(Text)
+    state_hash: Mapped[str] = mapped_column(Text, unique=True)
+    nonce: Mapped[str] = mapped_column(Text)
+    code_verifier: Mapped[str] = mapped_column(Text)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    callback_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    user_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"))
+    exchange_hash: Mapped[str | None] = mapped_column(Text, unique=True)
+    exchanged_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 

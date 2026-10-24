@@ -1,21 +1,26 @@
 from fastapi import APIRouter, Depends
+from fastapi.responses import RedirectResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth import service
+from app.auth import service, sso
 from app.auth.deps import current_principal
 from app.auth.principal import Principal
 from app.crud import update
 from app.db import get_session
+from app.enums import SsoProvider
 from app.errors import ApiError
 from app.models import Module, OrgUnit, User
 from app.notify import unread_count
 from app.schemas import (
     ChangePasswordIn,
     EmailMutedIn,
+    ForgotPasswordIn,
     LoginIn,
     MeOut,
     RefreshIn,
+    SetPasswordIn,
+    SsoExchangeIn,
     TokenPair,
     UnitRoleOut,
 )
@@ -38,6 +43,57 @@ async def refresh(body: RefreshIn, session: AsyncSession = Depends(get_session))
 @router.post("/logout", status_code=204)
 async def logout(body: RefreshIn, session: AsyncSession = Depends(get_session)) -> None:
     await service.revoke_refresh(session, body.refresh_token)
+
+
+@router.post("/forgot-password", status_code=204)
+async def forgot_password(
+    body: ForgotPasswordIn, session: AsyncSession = Depends(get_session)
+) -> None:
+    await service.forgot_password(session, body.email)
+
+
+@router.post("/set-password", response_model=TokenPair)
+async def set_password(
+    body: SetPasswordIn, session: AsyncSession = Depends(get_session)
+) -> TokenPair:
+    """Consumes an invite / reset link and logs the person straight in."""
+    user_id = await service.set_password_with_link(session, body.token, body.password)
+    access, refresh = await service.issue_tokens(session, user_id)
+    return TokenPair(access_token=access, refresh_token=refresh)
+
+
+@router.get("/sso/providers", response_model=list[SsoProvider])
+async def sso_providers() -> list[str]:
+    return sso.configured_providers()
+
+
+@router.get("/sso/{provider}/start")
+async def sso_start(
+    provider: SsoProvider, session: AsyncSession = Depends(get_session)
+) -> RedirectResponse:
+    return RedirectResponse(await sso.start(session, provider), status_code=302)
+
+
+@router.get("/sso/{provider}/callback")
+async def sso_callback(
+    provider: SsoProvider,
+    code: str | None = None,
+    state: str | None = None,
+    error: str | None = None,
+    session: AsyncSession = Depends(get_session),
+) -> RedirectResponse:
+    return RedirectResponse(
+        await sso.callback(session, provider, code, state, error), status_code=302
+    )
+
+
+@router.post("/sso/exchange", response_model=TokenPair)
+async def sso_exchange(
+    body: SsoExchangeIn, session: AsyncSession = Depends(get_session)
+) -> TokenPair:
+    user_id = await sso.exchange(session, body.code)
+    access, refresh = await service.issue_tokens(session, user_id)
+    return TokenPair(access_token=access, refresh_token=refresh)
 
 
 @router.get("/me", response_model=MeOut)

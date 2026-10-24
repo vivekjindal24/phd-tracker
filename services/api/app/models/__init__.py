@@ -13,7 +13,15 @@ from app.models.seminars import (
     Todo,
 )
 from app.models.settings import ApprovalChain, Module, Settings
-from app.models.system import AuditLog, JobRun, LoginAttempt, Notification, RefreshToken
+from app.models.system import (
+    AuditLog,
+    JobRun,
+    LoginAttempt,
+    Notification,
+    PasswordToken,
+    RefreshToken,
+    SsoState,
+)
 from app.models.workflow import ApprovalActionRow
 
 __all__ = [
@@ -31,6 +39,7 @@ __all__ = [
     "Module",
     "Notification",
     "OrgUnit",
+    "PasswordToken",
     "ProgressReport",
     "RefreshToken",
     "RoleAssignment",
@@ -40,6 +49,7 @@ __all__ = [
     "SeminarPanel",
     "SeminarScholar",
     "Settings",
+    "SsoState",
     "Todo",
     "User",
 ]

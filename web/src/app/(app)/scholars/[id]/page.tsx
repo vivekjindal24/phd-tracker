@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { Button, Card, ErrorText, Field, PageHeader } from "@/components/ui/kit";
 import { Comments } from "@/components/Comments";
+import { InviteButton } from "@/components/InviteButton";
 import { MilestoneStatusBadge } from "@/components/MilestoneStatusBadge";
 import { Timeline } from "@/components/Timeline";
 import { api } from "@/lib/api";
@@ -178,6 +179,7 @@ export default function ScholarProfile() {
             {me?.co_supervision !== "off" && (
               <AssignCard scholar={scholar} kind="co-supervisor" onSaved={setData} />
             )}
+            <InviteButton userId={scholar.user_id} />
           </Card>
         )}
       </div>

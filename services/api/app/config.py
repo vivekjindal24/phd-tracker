@@ -49,6 +49,32 @@ class S3:
     max_upload_bytes: int
 
 
+GOOGLE_VARS = ("GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET")
+MICROSOFT_VARS = ("MICROSOFT_CLIENT_ID", "MICROSOFT_CLIENT_SECRET", "MICROSOFT_TENANT_ID")
+_GUID = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
+_DOMAIN = re.compile(r"^[a-z0-9-]+(\.[a-z0-9-]+)+$")
+
+
+@dataclass(frozen=True)
+class OidcProvider:
+    name: str
+    client_id: str
+    client_secret: str
+    issuer: str
+    tenant_id: str | None = None  # Microsoft only: tokens from other tenants are refused
+
+    @property
+    def discovery_url(self) -> str:
+        return f"{self.issuer}/.well-known/openid-configuration"
+
+
+@dataclass(frozen=True)
+class Sso:
+    providers: dict[str, OidcProvider]
+    allowed_domains: tuple[str, ...]
+    api_public_url: str
+
+
 @dataclass(frozen=True)
 class Settings:
     database_url: str
@@ -58,6 +84,7 @@ class Settings:
     smtp: Smtp | None
     s3: S3
     ai: Ai | None
+    sso: Sso | None = None
     access_token_minutes: int = 30
     refresh_token_days: int = 14
 
@@ -97,6 +124,58 @@ def _load_ai() -> Ai | None:
         api_key=values["AI_API_KEY"],
         model=values["AI_MODEL"],
     )
+
+
+def _all_or_none(names: tuple[str, ...], what: str) -> dict[str, str] | None:
+    values = {name: os.environ.get(name, "").strip() for name in names}
+    if not any(values.values()):
+        return None
+    missing = [name for name, value in values.items() if not value]
+    if missing:
+        raise ConfigError(f"{what} is partly configured; also set " + ", ".join(missing))
+    return values
+
+
+def _load_sso() -> Sso | None:
+    """University-email login (SECURITY.md §1). Each provider all-or-nothing; any provider
+    needs the allowed email domains and the API's public URL (the OIDC redirect target)."""
+    providers: dict[str, OidcProvider] = {}
+    google = _all_or_none(GOOGLE_VARS, "Google sign-in")
+    if google:
+        providers["google"] = OidcProvider(
+            "google",
+            google["GOOGLE_CLIENT_ID"],
+            google["GOOGLE_CLIENT_SECRET"],
+            "https://accounts.google.com",
+        )
+    microsoft = _all_or_none(MICROSOFT_VARS, "Microsoft sign-in")
+    if microsoft:
+        tenant = microsoft["MICROSOFT_TENANT_ID"].lower()
+        if not _GUID.match(tenant):
+            raise ConfigError("MICROSOFT_TENANT_ID must be the university's tenant GUID")
+        providers["microsoft"] = OidcProvider(
+            "microsoft",
+            microsoft["MICROSOFT_CLIENT_ID"],
+            microsoft["MICROSOFT_CLIENT_SECRET"],
+            f"https://login.microsoftonline.com/{tenant}/v2.0",
+            tenant,
+        )
+    if not providers:
+        return None
+    domains = tuple(
+        d.strip().lower().lstrip("@")
+        for d in os.environ.get("SSO_ALLOWED_DOMAINS", "").split(",")
+        if d.strip()
+    )
+    if not domains:
+        raise ConfigError("single sign-on needs SSO_ALLOWED_DOMAINS (e.g. univ.ac.in)")
+    bad = [d for d in domains if not _DOMAIN.match(d)]
+    if bad:
+        raise ConfigError(f"SSO_ALLOWED_DOMAINS has invalid entries: {', '.join(bad)}")
+    api_url = _require("API_PUBLIC_URL").rstrip("/")
+    if not api_url.startswith(("https://", "http://")):
+        raise ConfigError("API_PUBLIC_URL must be an http(s) URL")
+    return Sso(providers=providers, allowed_domains=domains, api_public_url=api_url)
 
 
 def _load_s3() -> S3:
@@ -158,6 +237,7 @@ def load_settings() -> Settings:
         smtp=_load_smtp(),
         s3=_load_s3(),
         ai=_load_ai(),
+        sso=_load_sso(),
     )
 
 

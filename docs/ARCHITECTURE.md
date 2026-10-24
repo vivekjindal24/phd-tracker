@@ -78,7 +78,10 @@ Browser (web)
 
 - `auth/` — login/refresh/logout, `/auth/me` (returns the user's role
   assignments and enabled modules). Refresh tokens are sha256-hashed rows,
-  rotated on every use.
+  rotated on every use. Set-password links (invite / forgot password) in
+  `service.py`; university-email login in `sso.py` (OpenID Connect code flow
+  + PKCE against Google or Microsoft, id_token verified against the
+  provider's JWKS; matches existing accounts only).
 - `org.py` — org-unit tree on `ltree` paths; subtree queries are one indexed
   `path <@ :unit_path` predicate.
 - `scope.py` — the single place visibility is computed: turns a user's role
@@ -149,6 +152,13 @@ The five SMTP variables are all-or-nothing: none set = email off (each
 notification records "Email is not configured on this server"); some set =
 startup error. Dev uses Brevo's SMTP relay; production the university's
 server.
+University-email login (optional): `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET`
+and/or `MICROSOFT_CLIENT_ID` + `MICROSOFT_CLIENT_SECRET` +
+`MICROSOFT_TENANT_ID` (the university's tenant GUID) — each provider
+all-or-nothing; with any provider also `SSO_ALLOWED_DOMAINS` (comma-separated)
+and `API_PUBLIC_URL` (the provider redirects to
+`<API_PUBLIC_URL>/api/v1/auth/sso/<provider>/callback` — register that URL
+with the provider).
 Web: `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_EXPORT_URL`.
 
 ## 10. Scheduled Jobs

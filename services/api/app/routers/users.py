@@ -7,6 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import scope
+from app.auth import service as auth_service
 from app.auth.deps import current_principal
 from app.auth.principal import Principal
 from app.auth.service import hash_password
@@ -15,6 +16,7 @@ from app.db import get_session
 from app.enums import UGC_CAP, UNIT_ROLES
 from app.errors import ApiError, forbidden
 from app.models import Faculty, OrgUnit, RoleAssignment, Scholar, User
+from app.notify import email_configured
 from app.rbac import require_perm
 from app.schemas import (
     RoleAssignmentIn,
@@ -95,6 +97,8 @@ async def create_user(
             raise forbidden()
     else:
         scope.require_admin_over(principal, await scope.unit_path(session, profile.unit_id))
+    if body.password is None and not email_configured():
+        raise auth_service.EMAIL_NOT_CONFIGURED
 
     user = await insert(
         session,
@@ -102,7 +106,7 @@ async def create_user(
         User(
             email=body.email,
             full_name=body.full_name,
-            password_hash=hash_password(body.password),
+            password_hash=hash_password(body.password) if body.password else None,
         ),
     )
     if body.faculty:
@@ -130,8 +134,40 @@ async def create_user(
                 admission_date=body.scholar.admission_date,
             ),
         )
-    await session.commit()
+    if body.password is None:
+        await _send_invite(session, user)
+    else:
+        await session.commit()
     return user
+
+
+async def _send_invite(session: AsyncSession, user: User) -> None:
+    """Commits the new link first, then emails it; a failed email is shown to the admin,
+    who can simply send the invitation again (a new link replaces the old)."""
+    raw = await auth_service.issue_password_link(session, user.id, "invite")
+    await session.commit()
+    try:
+        await auth_service.email_password_link(user, raw, "invite")
+    except Exception as exc:
+        raise ApiError(
+            502, "email_failed", f"The invitation email could not be sent: {exc}"
+        ) from exc
+
+
+@router.post("/users/{user_id}/invite", status_code=204)
+async def invite_user(
+    user_id: uuid.UUID,
+    principal: Principal = Depends(require_perm("users", "update")),
+    session: AsyncSession = Depends(get_session),
+) -> None:
+    """(Re)send a set-password email (PRD F2)."""
+    user = await scope.get_user_or_403(session, principal, user_id)
+    await _require_admin_over_user(session, principal, user_id)
+    if not user.is_active:
+        raise ApiError(422, "user_inactive", "This account is deactivated.")
+    if not email_configured():
+        raise auth_service.EMAIL_NOT_CONFIGURED
+    await _send_invite(session, user)
 
 
 @router.patch("/users/{user_id}", response_model=UserOut)

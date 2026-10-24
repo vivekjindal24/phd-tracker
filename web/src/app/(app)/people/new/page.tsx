@@ -20,6 +20,7 @@ export default function AddPersonPage() {
   const [kind, setKind] = useState<Kind>("scholar");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [invite, setInvite] = useState(true);
   const [password, setPassword] = useState("");
   const [unitId, setUnitId] = useState("");
   const [roll, setRoll] = useState("");
@@ -43,7 +44,7 @@ export default function AddPersonPage() {
     try {
       await api("/users", {
         method: "POST",
-        body: JSON.stringify({ email, full_name: name, password, ...profile }),
+        body: JSON.stringify({ email, full_name: name, password: invite ? null : password, ...profile }),
       });
       router.push(kind === "scholar" ? "/scholars" : "/faculty");
     } catch (err) {
@@ -72,10 +73,16 @@ export default function AddPersonPage() {
         <Field label="Email">
           <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
         </Field>
-        <Field label="Initial password" hint="At least 10 characters. Share it with them privately; they can change it after logging in.">
-          <input type="text" required minLength={10} value={password}
-            onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" />
-        </Field>
+        <label className="check">
+          <input type="checkbox" checked={invite} onChange={(e) => setInvite(e.target.checked)} />
+          Email them a link to set their own password
+        </label>
+        {!invite && (
+          <Field label="Initial password" hint="At least 10 characters. Share it with them privately; they can change it after logging in.">
+            <input type="text" required minLength={10} value={password}
+              onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" />
+          </Field>
+        )}
         <Field label="Department / unit">
           <select required value={unitId} onChange={(e) => setUnitId(e.target.value)}>
             <option value="" disabled>Choose…</option>

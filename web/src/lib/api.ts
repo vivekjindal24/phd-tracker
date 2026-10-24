@@ -143,10 +143,21 @@ export async function download(path: string): Promise<void> {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-export async function login(email: string, password: string): Promise<void> {
-  const res = await send("/auth/login", { method: "POST", body: JSON.stringify({ email, password }) }, null);
+/** Any endpoint that answers with a token pair: password login, SSO code, set-password link. */
+async function obtainTokens(path: string, body: object): Promise<void> {
+  const res = await send(path, { method: "POST", body: JSON.stringify(body) }, null);
   if (!res.ok) throw await toError(res);
   store(await res.json());
+}
+
+export const login = (email: string, password: string) => obtainTokens("/auth/login", { email, password });
+export const exchangeSsoCode = (code: string) => obtainTokens("/auth/sso/exchange", { code });
+export const setPasswordWithLink = (token: string, password: string) =>
+  obtainTokens("/auth/set-password", { token, password });
+
+/** SSO starts with a full-page navigation to the API, which redirects to the provider. */
+export function ssoStartUrl(provider: string): string {
+  return `${API_URL}/api/v1/auth/sso/${provider}/start`;
 }
 
 export async function logout(): Promise<void> {

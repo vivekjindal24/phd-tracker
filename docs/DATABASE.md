@@ -39,8 +39,9 @@ root; partial unique index `uq_org_root` guarantees exactly one root),
 on insert/move). A unit can be soft-deleted only when it has no live child
 units, scholars or faculty.
 
-**users** — login identity: `email` (citext, UNIQUE), `password_hash`,
-`full_name`, `is_active`, `email_muted` text[] (notification categories the
+**users** — login identity: `email` (citext, UNIQUE), `password_hash`
+(NULL until the person sets one — invited or SSO-only accounts cannot log in
+by password), `full_name`, `is_active`, `email_muted` text[] (notification categories the
 user muted for email; CHECK ⊆ categories in §3.7).
 
 **role_assignments** — `user_id` FK, `role` CHECK (`unit_head` / `admin` /
@@ -237,6 +238,16 @@ only by `crud.py` / `workflow.py`.
 
 **refresh_tokens** — `user_id` (indexed), `token_hash` (sha256; raw tokens
 never stored), `expires_at`, `revoked_at`. Single-use, rotating.
+
+**password_tokens** — set-password links: `user_id` (indexed), `token_hash`
+(sha256, UNIQUE), `purpose` CHECK (invite / reset), `expires_at` (72 h),
+`used_at`. Issuing a link marks every older unused link of that user used.
+
+**sso_states** — one single sign-on attempt: `provider` CHECK (google /
+microsoft), `state_hash` (UNIQUE), `nonce`, `code_verifier` (PKCE),
+`expires_at` (10 min at start, then 60 s for the exchange), `callback_at`
+(state spent), `user_id`, `exchange_hash` (UNIQUE; the one-time code handed to
+the browser), `exchanged_at`.
 
 **job_runs** — `job_name`, `run_date`; UNIQUE pair (daily job idempotency).
 

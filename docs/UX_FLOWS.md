@@ -96,7 +96,8 @@ co-supervisor (setting on) may log their own meetings but never sets sharing.
    title, admission date, supervisor (only faculty with spare cap are
    listed; over cap → 409 shown inline), and a co-supervisor (any faculty,
    shown only when co-supervision is on). The user gets a set-password
-   email.
+   email (or, unticked, the admin sets an initial password); **Email a
+   set-password link** on the profile re-sends it.
 3. **Add faculty**: designation sets the default cap.
 3b. **Import** (PRD F16): download the template → fill in Excel → upload →
    dry-run table (rows to create, rows already present, row errors with row

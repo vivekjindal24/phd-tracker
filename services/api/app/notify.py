@@ -60,6 +60,24 @@ def _message(to: str, row: Notification, mail_from: str) -> EmailMessage:
     return msg
 
 
+def email_configured() -> bool:
+    return settings.smtp is not None
+
+
+async def send_email(to: str, subject: str, body: str) -> None:
+    """A direct email that is not an inbox notification (set-password links). Raises on
+    failure — the caller decides whether the failure may be shown (SECURITY.md §1)."""
+    smtp = settings.smtp
+    if smtp is None:
+        raise RuntimeError(NOT_CONFIGURED)
+    msg = EmailMessage()
+    msg["From"] = formataddr(("Anveshan", smtp.mail_from))
+    msg["To"] = to
+    msg["Subject"] = f"Anveshan: {subject}"
+    msg.set_content(body)
+    await _send(msg)
+
+
 async def _send(msg: EmailMessage) -> None:
     smtp = settings.smtp
     assert smtp is not None
