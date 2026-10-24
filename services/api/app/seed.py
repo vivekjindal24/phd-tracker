@@ -10,6 +10,7 @@ import argparse
 import asyncio
 import os
 import sys
+from datetime import date, timedelta
 
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -18,7 +19,19 @@ from app.auth.service import hash_password
 from app.crud import insert
 from app.db import SessionLocal, engine
 from app.enums import UGC_CAP
-from app.models import Faculty, Module, OrgUnit, RoleAssignment, Scholar, User
+from app.models import (
+    Admission,
+    Conference,
+    Course,
+    Enrolment,
+    Faculty,
+    Module,
+    OrgUnit,
+    Publication,
+    RoleAssignment,
+    Scholar,
+    User,
+)
 from app.org import create_unit
 
 DOMAIN = "demo.edu"
@@ -51,14 +64,46 @@ DEMO_FACULTY = [
     ("farhan", "Dr. Farhan Ali", "Professor", "PHY", [("unit_head", "PHY")]),
     ("deepa", "Dr. Deepa Joshi", "Associate Professor", "CHE", [("unit_head", "CHE")]),
 ]
-# (login, full name, roll, unit, supervisor login, stage)
+# Vikram is always ~4 months from the 6-year limit, so the leadership view has someone at risk.
+NEAR_LIMIT = date.today().replace(year=date.today().year - 6) + timedelta(days=120)
+# (login, full name, roll, unit, supervisor login, stage, admitted)
 DEMO_SCHOLARS = [
-    ("arun", "Arun Bhatt", "PHD-CSE-2024-001", "CSE", "meera", "Coursework"),
-    ("priya", "Priya Sharma", "PHD-CSE-2023-004", "CSE", "meera", "Proposal Approved"),
-    ("vikram", "Vikram Rao", "PHD-CSE-2022-011", "CSE", "rajesh", "Pre-Synopsis"),
-    ("neha", "Neha Iyer", "PHD-ECE-2024-002", "ECE", "sunita", "Registered"),
-    ("kabir", "Kabir Malhotra", "PHD-PHY-2021-003", "PHY", "farhan", "Thesis Submitted"),
-    ("zoya", "Zoya Khan", "PHD-CHE-2023-006", "CHE", "deepa", "Coursework"),
+    ("arun", "Arun Bhatt", "PHD-CSE-2024-001", "CSE", "meera", "Coursework", date(2024, 7, 15)),
+    (
+        "priya",
+        "Priya Sharma",
+        "PHD-CSE-2023-004",
+        "CSE",
+        "meera",
+        "Proposal Approved",
+        date(2023, 1, 10),
+    ),
+    (
+        "vikram",
+        "Vikram Rao",
+        f"PHD-CSE-{NEAR_LIMIT.year}-011",
+        "CSE",
+        "rajesh",
+        "Pre-Synopsis",
+        NEAR_LIMIT,
+    ),
+    ("neha", "Neha Iyer", "PHD-ECE-2024-002", "ECE", "sunita", "Registered", date(2024, 8, 1)),
+    (
+        "kabir",
+        "Kabir Malhotra",
+        "PHD-PHY-2021-003",
+        "PHY",
+        "farhan",
+        "Thesis Submitted",
+        date(2021, 7, 1),
+    ),
+    ("zoya", "Zoya Khan", "PHD-CHE-2023-006", "CHE", "deepa", "Coursework", date(2023, 7, 20)),
+]
+# CSE catalogue (code, title, credits); Arun's grades leave one course ungraded and credits short.
+DEMO_COURSES = [
+    ("CS801", "Research Methodology", 4, ("A", 8)),
+    ("CS802", "Advanced Algorithms", 4, ("B+", 7)),
+    ("CS803", "Research and Publication Ethics", 2, None),
 ]
 
 
@@ -134,9 +179,10 @@ async def demo(session: AsyncSession) -> None:
         for role, role_unit in roles:
             await _role(session, user, role, units[role_unit])
 
-    for login, name, roll, unit, sup, stage in DEMO_SCHOLARS:
+    scholars: dict[str, Scholar] = {}
+    for login, name, roll, unit, sup, stage, admitted in DEMO_SCHOLARS:
         user = await _user(session, f"{login}@{DOMAIN}", name, pw)
-        await insert(
+        scholars[login] = await insert(
             session,
             None,
             Scholar(
@@ -145,13 +191,78 @@ async def demo(session: AsyncSession) -> None:
                 roll_number=roll,
                 stage=stage,
                 supervisor_id=faculty[sup].id,
+                admission_date=admitted,
             ),
         )
+    await _demo_records(session, units, scholars)
 
     await session.execute(update(Module).values(enabled=True))
     await session.commit()
     print(
         f"seeded demo university: log in as admin@{DOMAIN} (or any login above) with SEED_PASSWORD"
+    )
+
+
+async def _demo_records(
+    session: AsyncSession, units: dict[str, OrgUnit], scholars: dict[str, Scholar]
+) -> None:
+    """One example in each Phase 3/4 module; approvable items stay drafts (workflow.py moves
+    state, not the seed)."""
+    for code, title, credits, grade in DEMO_COURSES:
+        course = await insert(
+            session, None, Course(unit_id=units["CSE"].id, code=code, title=title, credits=credits)
+        )
+        await insert(
+            session,
+            None,
+            Enrolment(
+                scholar_id=scholars["arun"].id,
+                course_id=course.id,
+                semester="2024-25 Odd",
+                grade=grade[0] if grade else None,
+                grade_points=grade[1] if grade else None,
+            ),
+        )
+    priya = scholars["priya"].id
+    await insert(
+        session,
+        None,
+        Publication(
+            scholar_id=priya,
+            title="Federated learning for low-resource Indic speech recognition",
+            authors="Priya Sharma, Meera Krishnan",
+            pub_type="journal",
+            venue="IEEE Access",
+            indexing=["scopus", "wos"],
+            pub_year=date.today().year,
+            pub_status="accepted",
+        ),
+    )
+    await insert(
+        session,
+        None,
+        Conference(
+            scholar_id=priya,
+            event_name="International Conference on Speech and Language Technologies",
+            event_type="paper_presented",
+            event_date=date(2025, 12, 12),
+            place="IIT Madras, Chennai",
+            title="Adapter tuning for Indic ASR",
+        ),
+    )
+    await insert(
+        session,
+        None,
+        Admission(
+            candidate_name="Ishaan Kapoor",
+            email=f"ishaan@{DOMAIN}",
+            unit_id=units["CSE"].id,
+            entrance_route="gate",
+            entrance_score=712,
+            interview_date=date.today() - timedelta(days=14),
+            interview_result="selected",
+            admitted_on=date.today(),
+        ),
     )
 
 

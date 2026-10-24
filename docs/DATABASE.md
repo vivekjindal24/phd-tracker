@@ -345,7 +345,11 @@ modules only, filtered by `scope.py`.
 Electronics}, School of Sciences {Physics, Chemistry}); root admin; research
 office, exam office and library users; a HoD per department, a Dean per
 school, a department admin; supervisors across designations (one HoD is also
-a supervisor); scholars across stages; every module enabled; items in every
-workflow state including one sent back to an earlier step. In production the
+a supervisor); scholars across stages with admission dates (one always about
+four months from the UGC maximum, so the leadership view shows a scholar at
+risk); every module enabled; a CSE course catalogue with one scholar's grades
+(credits still short); a draft publication and a conference; a selected
+admission candidate ready to convert. Approvable items are seeded as drafts
+only — states move through `workflow.py`, not the seed. In production the
 seed is replaced by a `--bootstrap` mode that creates only the root unit and
 the root admin.
