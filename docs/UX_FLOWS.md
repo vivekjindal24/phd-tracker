@@ -88,6 +88,22 @@ co-supervisor (setting on) may log their own meetings but never sets sharing.
 3. A Dean sees the same per department, side by side, plus faculty totals.
 4. **Unit summary PDF** downloads the overview for the committee meeting.
 
+## Flow 4b — Leadership view and UGC time limit (PRD Phase 4)
+
+1. Head / admin / Research Office → **Leadership** (or *Leadership view →*
+   on a unit's home section): current scholars, completions with median
+   years to complete, drop-outs and rate, supervisors at the UGC cap — for
+   the unit and per child unit (click to drill down).
+2. **Scholars at risk**: overdue progress report, nearing (180 days) or past
+   the maximum duration, no supervision meeting in 120 days, extensions or
+   leave beyond their limits — each with its reason.
+3. On a profile, **Time limit** shows the must-submit-by date (admission +
+   6 years + extensions + relaxation); an admin or the Research Office
+   records extensions / leave with the resolution number; the scholar's home
+   warns when the limit is near or past.
+4. **Mark as left** (withdrew / registration cancelled) on the profile frees
+   the supervisor's slot and counts as a drop-out; *Undo* re-checks the cap.
+
 ## Flow 5 — Admin manages people (scoped)
 
 1. Department admin → **My unit → People**: scholars and faculty of their

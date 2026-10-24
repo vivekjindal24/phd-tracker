@@ -63,9 +63,19 @@ role.
 Proposal Approved / Pre-Synopsis / Thesis Submitted / Viva / Degree Awarded,
 default Registered), `supervisor_id` FK faculty (indexed, nullable),
 `co_supervisor_id` FK faculty (indexed, nullable; CHECK ≠ `supervisor_id`;
-honoured only while `settings.co_supervision ≠ 'off'`), `admission_id` FK
-admissions (nullable). Over-cap supervisor assignment →
-409 `supervisor_cap_exceeded` (router check, see SECURITY.md).
+honoured only while `settings.co_supervision ≠ 'off'`), `left_on` date +
+`left_reason` CHECK (withdrawn / cancelled) — both set or both NULL
+(`ck_scholars_left`). The admission a scholar came from is
+`admissions.scholar_id`. Only **current** scholars (not left, not Degree
+Awarded — `directory.is_current()`) count toward a supervisor's UGC cap;
+over-cap assignment, or bringing a scholar back over the cap →
+409 `supervisor_cap_exceeded` (`directory.py`, see SECURITY.md).
+
+**time_adjustments** — `scholar_id` (indexed), `kind` CHECK (extension /
+relaxation / maternity_leave / medical_leave / other_leave), `start_date`,
+`end_date` (CHECK ≥ start), `resolution_number`, `notes`. Extensions and the
+relaxation move the scholar's maximum-duration date; leave is checked
+against its own limit (`app/duration.py`).
 
 ### 3.2 Settings
 
@@ -79,7 +89,9 @@ no row (always on).
 false), `seminar_graders` CHECK (`panel` / `panel_and_attending`, default
 `panel`), `seminar_rubric` jsonb (ordered `[{"name", "max"}]`, non-empty),
 `min_coursework_credits` numeric(3,1) (default 12, CHECK 0–40) and
-`min_coursework_cgpa` numeric(4,2) (default 5.5, CHECK 0–10) — the UGC rule
+`min_coursework_cgpa` numeric(4,2) (default 5.5, CHECK 0–10),
+`max_duration_years` (default 6, CHECK 3–12), `max_extension_days` (730),
+`max_relaxation_days` (730), `max_maternity_leave_days` (240) — the UGC rule
 values the university's ordinance sets, `updated_by`, `updated_at`.
 University-wide switches that are not modules live here.
 

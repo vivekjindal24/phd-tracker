@@ -30,6 +30,10 @@ async def _read(session: AsyncSession) -> SettingsOut:
             "seminar_rubric": settings.seminar_rubric,
             "min_coursework_credits": settings.min_coursework_credits,
             "min_coursework_cgpa": settings.min_coursework_cgpa,
+            "max_duration_years": settings.max_duration_years,
+            "max_extension_days": settings.max_extension_days,
+            "max_relaxation_days": settings.max_relaxation_days,
+            "max_maternity_leave_days": settings.max_maternity_leave_days,
             "modules": modules,
             "chains": chains,
         }

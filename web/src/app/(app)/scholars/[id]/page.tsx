@@ -7,14 +7,15 @@ import type { FormEvent } from "react";
 import { Button, Card, ErrorText, Field, PageHeader } from "@/components/ui/kit";
 import { Comments } from "@/components/Comments";
 import { CourseworkCard } from "@/components/CourseworkCard";
+import { DurationCard } from "@/components/DurationCard";
 import { InviteButton } from "@/components/InviteButton";
 import { MilestoneStatusBadge } from "@/components/MilestoneStatusBadge";
 import { Timeline } from "@/components/Timeline";
 import { api } from "@/lib/api";
 import { formatDate } from "@/lib/format";
 import { useSession } from "@/lib/session";
-import { MILESTONE_LABELS, STAGES } from "@/lib/types";
-import type { Faculty, Milestone, Scholar, Stage } from "@/lib/types";
+import { LEFT_LABELS, MILESTONE_LABELS, STAGES } from "@/lib/types";
+import type { Faculty, LeftReason, Milestone, Scholar, Stage } from "@/lib/types";
 import { errorText, useFetch } from "@/lib/useFetch";
 import "./profile.css";
 
@@ -71,6 +72,45 @@ function AssignCard({
       <Button kind="secondary" disabled={busy || choice === (current?.id ?? "")} onClick={save}>
         Save {kind}
       </Button>
+    </div>
+  );
+}
+
+/** Withdrawn / registration cancelled: the scholar stops counting toward caps and workloads
+ *  and is reported as a drop-out (PRD Phase 4). Undo by clearing it. */
+function LeftCard({ scholar, onSaved }: { scholar: Scholar; onSaved: (s: Scholar) => void }) {
+  const [on, setOn] = useState(scholar.left_on ?? "");
+  const [reason, setReason] = useState<LeftReason>(scholar.left_reason ?? "withdrawn");
+  const [error, setError] = useState<string | null>(null);
+
+  async function save(body: object) {
+    setError(null);
+    try {
+      onSaved(await api<Scholar>(`/scholars/${scholar.id}`, { method: "PATCH", body: JSON.stringify(body) }));
+    } catch (e) {
+      setError(errorText(e));
+    }
+  }
+
+  return (
+    <div className="assign">
+      {scholar.left_on ? (
+        <>
+          <p><strong>{scholar.left_reason ? LEFT_LABELS[scholar.left_reason] : "Left"}</strong> on {formatDate(scholar.left_on)}</p>
+          <Button kind="ghost" onClick={() => save({ left_on: null, left_reason: null })}>Undo — back in the programme</Button>
+        </>
+      ) : (
+        <div className="row">
+          <Field label="Left the programme on"><input type="date" value={on} onChange={(e) => setOn(e.target.value)} /></Field>
+          <Field label="Why">
+            <select value={reason} onChange={(e) => setReason(e.target.value as LeftReason)}>
+              {(Object.keys(LEFT_LABELS) as LeftReason[]).map((k) => <option key={k} value={k}>{LEFT_LABELS[k]}</option>)}
+            </select>
+          </Field>
+          <Button kind="danger" disabled={!on} onClick={() => save({ left_on: on, left_reason: reason })}>Mark as left</Button>
+        </div>
+      )}
+      <ErrorText>{error}</ErrorText>
     </div>
   );
 }
@@ -137,7 +177,10 @@ export default function ScholarProfile() {
   return (
     <>
       <PageHeader eyebrow={scholar.roll_number} title={scholar.full_name}
-        actions={<span className="badge">{scholar.stage}</span>} />
+        actions={<>
+          <span className="badge">{scholar.stage}</span>
+          {scholar.left_reason && <span className="badge badge-sent_back">{LEFT_LABELS[scholar.left_reason]}</span>}
+        </>} />
       <div className="profile-grid">
         <Card>
           <h2>Details</h2>
@@ -180,11 +223,15 @@ export default function ScholarProfile() {
             {me?.co_supervision !== "off" && (
               <AssignCard scholar={scholar} kind="co-supervisor" onSaved={setData} />
             )}
+            <LeftCard scholar={scholar} onSaved={setData} />
             <InviteButton userId={scholar.user_id} />
           </Card>
         )}
       </div>
       <Decisions scholarId={scholar.id} />
+      {me?.roles.some((r) => r !== "exam_office" && r !== "library") && (
+        <div style={{ marginTop: "var(--space-5)" }}><DurationCard scholarId={scholar.id} /></div>
+      )}
       {me?.modules.coursework && !me.roles.every((r) => r === "library") && (
         <div style={{ marginTop: "var(--space-5)" }}><CourseworkCard scholarId={scholar.id} /></div>
       )}

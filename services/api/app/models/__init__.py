@@ -2,6 +2,7 @@ from app.models.admissions import Admission
 from app.models.base import Base
 from app.models.comments import Comment
 from app.models.coursework import Course, CourseworkClearance, Enrolment
+from app.models.duration import TimeAdjustment
 from app.models.files import FileRow
 from app.models.meetings import Meeting
 from app.models.milestones import Milestone
@@ -72,6 +73,7 @@ __all__ = [
     "ShodhgangaDeposit",
     "SsoState",
     "ThesisSubmission",
+    "TimeAdjustment",
     "Todo",
     "User",
     "Viva",

@@ -4,7 +4,7 @@ inside it. Edits need an admin over the faculty member's unit."""
 import uuid
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import Select, func, select
+from sqlalchemy import Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import directory, scope
@@ -14,19 +14,13 @@ from app.crud import update
 from app.db import get_session
 from app.enums import UGC_CAP
 from app.errors import forbidden
-from app.models import Faculty, OrgUnit, Scholar, User
+from app.models import Faculty, OrgUnit, User
 from app.rbac import require_perm
 from app.schemas import FacultyOut, FacultyUpdate, Ref
 
 router = APIRouter(prefix="/faculty", tags=["directory"])
 
-_load = (
-    select(func.count())
-    .select_from(Scholar)
-    .where(Scholar.supervisor_id == Faculty.id, Scholar.deleted_at.is_(None))
-    .correlate(Faculty)
-    .scalar_subquery()
-)
+_load = directory.load_of_faculty()
 
 
 def _query() -> Select:

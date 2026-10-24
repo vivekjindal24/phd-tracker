@@ -152,6 +152,13 @@ ENTRANCE_ROUTES = get_args(EntranceRoute)
 InterviewResult = Literal["pending", "selected", "not_selected"]
 INTERVIEW_RESULTS = get_args(InterviewResult)
 
+LeftReason = Literal["withdrawn", "cancelled"]
+LEFT_REASONS = get_args(LeftReason)
+# Time records against the UGC maximum duration (Phase 4): extensions and the women/PwD
+# relaxation move the limit; leave is recorded and checked against its own limit.
+TimeKind = Literal["extension", "relaxation", "maternity_leave", "medical_leave", "other_leave"]
+TIME_KINDS = get_args(TimeKind)
+
 # Groups a supervisor can share meeting minutes with (PRD F7); unticked groups see only the date.
 MeetingShare = Literal["unit_heads", "research_office", "admins"]
 MEETING_SHARES = get_args(MeetingShare)

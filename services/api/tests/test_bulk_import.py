@@ -264,3 +264,16 @@ async def test_unusable_files(client, world, content, code):
 async def test_oversized_file_is_refused(client, world):
     res = await upload(client, world.admin_a1, "faculty", b"x" * (5 * 1024 * 1024 + 1))
     assert res.status_code == 413
+
+
+async def test_completed_scholars_import_without_using_a_cap_slot(client, session, world):
+    world.meera_faculty.max_scholars = 1  # already full with scholar_a1
+    session.add(world.meera_faculty)
+    await session.commit()
+    content = csv_bytes(
+        "Roll number,Name,Email,Unit,Supervisor email,Stage",
+        "OLD-1,Old One,old1@x.edu,A1,meera@x.edu,Degree Awarded",
+        "OLD-2,Old Two,old2@x.edu,A1,meera@x.edu,degree awarded",
+    )
+    res = await upload(client, world.admin_a1, "scholars", content)
+    assert res.json()["errors"] == [] and res.json()["created"] == 2

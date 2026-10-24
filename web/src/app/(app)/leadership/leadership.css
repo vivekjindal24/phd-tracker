@@ -1,0 +1,26 @@
+.lead-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-4);
+}
+.lead-tile {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-5);
+}
+.lead-num {
+  font: 700 var(--text-hero) / 1 var(--font-display), Georgia, serif;
+}
+.lead-label {
+  font-weight: 700;
+}
+.lead-section {
+  margin-top: var(--space-6);
+}
+.lead-section h2 {
+  margin-bottom: var(--space-4);
+}
+.reason-list {
+  margin: 0;
+  padding-left: var(--space-4);
+}

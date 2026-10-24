@@ -51,6 +51,10 @@ export type SettingsData = {
   seminar_rubric: { name: string; max: number }[];
   min_coursework_credits: number;
   min_coursework_cgpa: number;
+  max_duration_years: number;
+  max_extension_days: number;
+  max_relaxation_days: number;
+  max_maternity_leave_days: number;
   modules: Record<ModuleKey, boolean>;
   chains: Record<ItemType, { kind: StepKind }[]>;
 };
@@ -129,7 +133,11 @@ export type Scholar = {
   admission_date: string | null;
   supervisor: Ref | null;
   co_supervisor: Ref | null;
+  left_on: string | null;
+  left_reason: LeftReason | null;
 };
+export type LeftReason = "withdrawn" | "cancelled";
+export const LEFT_LABELS: Record<LeftReason, string> = { withdrawn: "Withdrew", cancelled: "Registration cancelled" };
 
 export type Faculty = {
   id: string;
@@ -549,4 +557,48 @@ export type Admission = {
   admitted_on: string | null;
   scholar_id: string | null;
   can_edit: boolean;
+};
+
+export type TimeKind = "extension" | "relaxation" | "maternity_leave" | "medical_leave" | "other_leave";
+export const TIME_KIND_LABELS: Record<TimeKind, string> = {
+  extension: "Extension (re-registration)",
+  relaxation: "Relaxation (women / PwD)",
+  maternity_leave: "Maternity / child-care leave",
+  medical_leave: "Medical leave",
+  other_leave: "Other leave",
+};
+export type DurationStatus = "ok" | "near" | "over" | "done" | "left" | "unknown";
+export type DurationView = {
+  scholar: Ref;
+  admission_date: string | null;
+  limit_date: string | null;
+  days_left: number | null;
+  status: DurationStatus;
+  extension_days: number;
+  relaxation_days: number;
+  leave_days: number;
+  warnings: string[];
+  adjustments: { id: string; kind: TimeKind; start_date: string; end_date: string; days: number; resolution_number: string | null; notes: string }[];
+  max_years: number;
+  can_manage: boolean;
+};
+export type LeadershipRow = {
+  unit: Ref;
+  current: number;
+  completed: number;
+  median_years_to_complete: number | null;
+  left: number;
+  withdrawn: number;
+  cancelled: number;
+  dropout_rate: number | null;
+  supervisors: number;
+  supervisors_at_cap: number;
+  average_load: number | null;
+};
+export type LeadershipView = {
+  unit: Ref;
+  total: LeadershipRow;
+  by_unit: LeadershipRow[];
+  at_risk: { scholar: Ref; stage: Stage; limit_date: string | null; reasons: string[] }[];
+  as_of: string;
 };

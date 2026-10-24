@@ -20,6 +20,7 @@ from app.enums import (
     InterviewResult,
     ItemState,
     ItemType,
+    LeftReason,
     MeetingShare,
     MilestoneStatus,
     MilestoneType,
@@ -34,6 +35,7 @@ from app.enums import (
     SeminarStatus,
     Stage,
     StepKind,
+    TimeKind,
     TodoPart,
     TodoStatus,
     VivaOutcome,
@@ -224,6 +226,10 @@ class SettingsOut(BaseModel):
     seminar_rubric: list[RubricCriterion]
     min_coursework_credits: float
     min_coursework_cgpa: float
+    max_duration_years: int
+    max_extension_days: int
+    max_relaxation_days: int
+    max_maternity_leave_days: int
     modules: dict[ModuleKey, bool]
     chains: dict[ItemType, list[ChainStep]]
 
@@ -235,6 +241,10 @@ class SettingsUpdate(BaseModel):
     seminar_rubric: Rubric | None = None
     min_coursework_credits: float | None = Field(default=None, ge=0, le=40)
     min_coursework_cgpa: float | None = Field(default=None, ge=0, le=10)
+    max_duration_years: int | None = Field(default=None, ge=3, le=12)
+    max_extension_days: int | None = Field(default=None, ge=0, le=1825)
+    max_relaxation_days: int | None = Field(default=None, ge=0, le=1825)
+    max_maternity_leave_days: int | None = Field(default=None, ge=0, le=1825)
 
     @model_validator(mode="after")
     def _unique_criteria(self) -> "SettingsUpdate":
@@ -322,6 +332,8 @@ class ScholarOut(BaseModel):
     admission_date: date | None
     supervisor: Ref | None
     co_supervisor: Ref | None
+    left_on: date | None
+    left_reason: LeftReason | None
 
 
 class ScholarUpdate(BaseModel):
@@ -334,6 +346,16 @@ class ScholarUpdate(BaseModel):
     roll_number: (
         Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=50)] | None
     ) = None
+    # Withdrawn / cancelled: both together, or both null to undo (PRD Phase 4).
+    left_on: date | None = None
+    left_reason: LeftReason | None = None
+
+    @model_validator(mode="after")
+    def _left_together(self) -> "ScholarUpdate":
+        fields = self.model_fields_set & {"left_on", "left_reason"}
+        if fields and (len(fields) == 1 or (self.left_on is None) != (self.left_reason is None)):
+            raise ValueError("give both the date and the reason the scholar left, or neither")
+        return self
 
 
 class AssignIn(BaseModel):
@@ -1073,3 +1095,74 @@ class ConvertIn(BaseModel):
 class ConvertOut(BaseModel):
     scholar_id: uuid.UUID
     invitation_sent: bool
+
+
+# --- duration rules & leadership --------------------------------------------------------
+
+
+class TimeAdjustmentIn(BaseModel):
+    kind: TimeKind
+    start_date: date
+    end_date: date
+    resolution_number: Resolution | None = None
+    notes: Notes = ""
+
+    @model_validator(mode="after")
+    def _ordered(self) -> "TimeAdjustmentIn":
+        if self.end_date < self.start_date:
+            raise ValueError("the end date is before the start date")
+        return self
+
+
+class TimeAdjustmentOut(BaseModel):
+    id: uuid.UUID
+    kind: TimeKind
+    start_date: date
+    end_date: date
+    days: int
+    resolution_number: str | None
+    notes: str
+
+
+class DurationView(BaseModel):
+    scholar: Ref
+    admission_date: date | None
+    limit_date: date | None
+    days_left: int | None
+    status: Literal["ok", "near", "over", "done", "left", "unknown"]
+    extension_days: int
+    relaxation_days: int
+    leave_days: int
+    warnings: list[str]
+    adjustments: list[TimeAdjustmentOut]
+    max_years: int
+    can_manage: bool
+
+
+class LeadershipRow(BaseModel):
+    unit: Ref
+    current: int
+    completed: int
+    median_years_to_complete: float | None
+    left: int
+    withdrawn: int
+    cancelled: int
+    dropout_rate: float | None
+    supervisors: int
+    supervisors_at_cap: int
+    average_load: float | None
+
+
+class AtRisk(BaseModel):
+    scholar: Ref
+    stage: Stage
+    limit_date: date | None
+    reasons: list[str]
+
+
+class LeadershipView(BaseModel):
+    unit: Ref
+    total: LeadershipRow
+    by_unit: list[LeadershipRow]
+    at_risk: list[AtRisk]
+    as_of: date

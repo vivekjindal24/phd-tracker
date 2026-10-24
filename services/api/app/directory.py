@@ -3,16 +3,18 @@ scholar/faculty edits by admins over their unit."""
 
 import uuid
 
-from sqlalchemy import func, select
+from sqlalchemy import ColumnElement, and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import scope
 from app.auth.principal import Principal
 from app.crud import insert, update
-from app.enums import UGC_CAP
+from app.enums import STAGES, UGC_CAP
 from app.errors import ApiError, forbidden
 from app.models import Faculty, Scholar, Settings, User
 from app.notify import notify
+
+COMPLETED_STAGE = STAGES[-1]  # "Degree Awarded"
 
 
 async def create_person(
@@ -68,11 +70,36 @@ async def _live_faculty(session: AsyncSession, faculty_id: uuid.UUID, lock: bool
     return faculty
 
 
+def is_current() -> ColumnElement[bool]:
+    """A scholar who still counts: not deleted, not left, degree not yet awarded. Only current
+    scholars count toward a supervisor's UGC cap (PRD F6) or toward unit workloads."""
+    return and_(
+        Scholar.deleted_at.is_(None),
+        Scholar.left_on.is_(None),
+        Scholar.stage != COMPLETED_STAGE,
+    )
+
+
+def load_of_faculty():
+    """Correlated subquery: current scholars of the outer query's Faculty row."""
+    return (
+        select(func.count())
+        .select_from(Scholar)
+        .where(Scholar.supervisor_id == Faculty.id, is_current())
+        .correlate(Faculty)
+        .scalar_subquery()
+    )
+
+
+def counts_toward_cap(scholar: Scholar) -> bool:
+    return scholar.left_on is None and scholar.stage != COMPLETED_STAGE
+
+
 async def supervisor_load(session: AsyncSession, faculty_id: uuid.UUID) -> int:
     count = await session.scalar(
         select(func.count())
         .select_from(Scholar)
-        .where(Scholar.supervisor_id == faculty_id, Scholar.deleted_at.is_(None))
+        .where(Scholar.supervisor_id == faculty_id, is_current())
     )
     return count or 0
 
@@ -100,7 +127,9 @@ async def assign_supervisor(
             "already_co_supervisor",
             "This person is already the co-supervisor; remove that first.",
         )
-    if await supervisor_load(session, faculty_id) >= faculty.max_scholars:
+    if counts_toward_cap(scholar) and (
+        await supervisor_load(session, faculty_id) >= faculty.max_scholars
+    ):
         raise ApiError(
             409,
             "supervisor_cap_exceeded",
@@ -125,6 +154,21 @@ async def assign_supervisor(
         "Your supervisor has been assigned",
         link=f"/scholars/{scholar.id}",
     )
+
+
+async def recheck_cap(session: AsyncSession, scholar: Scholar) -> None:
+    """After a scholar becomes current again, their supervisor must still be within the cap
+    (this scholar now included)."""
+    if scholar.supervisor_id is None or not counts_toward_cap(scholar):
+        return
+    faculty = await _live_faculty(session, scholar.supervisor_id, lock=True)
+    if await supervisor_load(session, faculty.id) > faculty.max_scholars:
+        raise ApiError(
+            409,
+            "supervisor_cap_exceeded",
+            f"Their supervisor already guides {faculty.max_scholars} current scholars, the UGC "
+            "limit; assign another supervisor first.",
+        )
 
 
 async def assign_co_supervisor(

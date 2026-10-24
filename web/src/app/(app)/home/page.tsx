@@ -41,6 +41,7 @@ type Dashboard = {
     open_todos: number;
     approved_publications: number | null;
     coursework: { credits: number; min_credits: number; cgpa: number | null; cleared_on: string | null } | null;
+    duration: { limit_date: string | null; days_left: number | null; status: string; warnings: string[] };
     last_meeting: string | null;
     next_meeting: string | null;
     latest_decision: { milestone_type: MilestoneType; status: string; resolution_number: string | null } | null;
@@ -109,7 +110,8 @@ function UnitBlock({ u }: { u: UnitSection }) {
   const roleText = u.roles.map((r) => (r === "unit_head" ? "Head" : ROLE_LABELS[r])).join(" & ");
   return (
     <section className="dash-section" aria-labelledby={`unit-${u.unit_id}`}>
-      <h2 id={`unit-${u.unit_id}`}>{u.unit_name} <span className="badge">{roleText}</span></h2>
+      <h2 id={`unit-${u.unit_id}`}>{u.unit_name} <span className="badge">{roleText}</span>{" "}
+        <Link className="dash-more" href={`/leadership?unit=${u.unit_id}`}>Leadership view →</Link></h2>
       <div className="bento">
         <Tile label="Scholars" value={u.total_scholars} href="/scholars" tone="tile-accent" />
         <Tile label="Overdue reports" value={u.overdue_reports.length} tone={u.overdue_reports.length ? "tile-coral" : "tile-sage"} />
@@ -222,6 +224,11 @@ export default function HomePage() {
                 ) : <Tile label="No seminar scheduled yet" value="—" />}
                 <Tile label="Open to-dos" value={sch.open_todos} href="/todos" tone={sch.open_todos ? "tile-butter" : "tile-sage"} />
                 <Tile label="Stage" value={sch.stage} tone="tile-text" />
+                {(sch.duration.status === "near" || sch.duration.status === "over") && sch.duration.limit_date && (
+                  <Tile label={sch.duration.status === "over" ? "Past the maximum duration" : "Days left to submit"}
+                    value={sch.duration.status === "over" ? formatDate(sch.duration.limit_date) : (sch.duration.days_left ?? 0)}
+                    href={`/scholars/${me?.scholar_id}`} tone="tile-coral" />
+                )}
                 {sch.coursework && (
                   <Tile label={sch.coursework.cleared_on ? `Coursework cleared ${formatDate(sch.coursework.cleared_on)}` : `Coursework credits (of ${sch.coursework.min_credits})`}
                     value={sch.coursework.credits} href="/coursework"

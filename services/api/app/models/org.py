@@ -19,6 +19,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.enums import (
     ASSIGNED_ROLES,
     DESIGNATIONS,
+    LEFT_REASONS,
     NOTIFICATION_CATEGORIES,
     OFFICE_ROLES,
     STAGES,
@@ -144,6 +145,11 @@ class Scholar(DomainRow, Base):
             "co_supervisor_id IS NULL OR co_supervisor_id <> supervisor_id",
             name="ck_scholars_co_supervisor",
         ),
+        CheckConstraint(
+            f"(left_on IS NULL AND left_reason IS NULL) OR "
+            f"(left_on IS NOT NULL AND left_reason IN ({sql_in(LEFT_REASONS)}))",
+            name="ck_scholars_left",
+        ),
         Index(
             "ix_scholars_roll_number_trgm",
             "roll_number",
@@ -172,3 +178,6 @@ class Scholar(DomainRow, Base):
     co_supervisor_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("faculty.id"), index=True
     )
+    # A scholar who withdrew or whose registration was cancelled (drop-outs, Phase 4).
+    left_on: Mapped[date | None] = mapped_column(Date)
+    left_reason: Mapped[str | None] = mapped_column(Text)

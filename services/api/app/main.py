@@ -13,6 +13,7 @@ from app.routers import (
     coursework,
     dashboard,
     documents,
+    duration,
     explore,
     faculty,
     files,
@@ -20,6 +21,7 @@ from app.routers import (
     imports,
     internal,
     items,
+    leadership,
     meetings,
     milestones,
     notifications,
@@ -80,6 +82,8 @@ for module in (
     theses,
     coursework,
     admissions,
+    duration,
+    leadership,
 ):
     api.include_router(module.router)
 app.include_router(api)

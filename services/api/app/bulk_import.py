@@ -14,7 +14,7 @@ from datetime import date
 from typing import Any
 
 from email_validator import EmailNotValidError, validate_email
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import directory
@@ -305,13 +305,7 @@ async def _supervisors(ctx: _Context, emails: set[str]) -> dict[str, tuple[Facul
     """Faculty by email with their current supervision load."""
     if not emails:
         return {}
-    load = (
-        select(func.count())
-        .select_from(Scholar)
-        .where(Scholar.supervisor_id == Faculty.id, Scholar.deleted_at.is_(None))
-        .correlate(Faculty)
-        .scalar_subquery()
-    )
+    load = directory.load_of_faculty()
     rows = await ctx.session.execute(
         select(Faculty, User.email, load)
         .join(User, User.id == Faculty.user_id)
@@ -365,16 +359,17 @@ async def _plan_scholars(ctx: _Context, rows: list[Row], report: Report) -> list
             c.error("email", "appears earlier in this file")
         if row.number in repeated_roll:
             c.error("roll_number", "appears earlier in this file")
+        current = stage != directory.COMPLETED_STAGE  # a completed scholar is history: no cap
         if sup is not None:
             load = sup_load + assigned[sup.id]
             if not sup.can_supervise:
                 c.error("supervisor_email", "this faculty member is not a supervisor")
-            elif load >= sup.max_scholars:
+            elif current and load >= sup.max_scholars:
                 c.error(
                     "supervisor_email",
                     f"already guides {load} scholars — the UGC limit is {sup.max_scholars}",
                 )
-            elif c.ok:
+            elif c.ok and current:
                 assigned[sup.id] += 1
         if not c.ok:
             continue

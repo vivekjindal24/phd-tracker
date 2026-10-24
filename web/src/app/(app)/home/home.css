@@ -169,3 +169,7 @@ a.tile:hover {
 .tile .badge {
   align-self: flex-start;
 }
+.dash-more {
+  font: 700 var(--text-sm) / 1 var(--font-body), system-ui, sans-serif;
+  margin-left: var(--space-2);
+}

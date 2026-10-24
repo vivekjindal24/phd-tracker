@@ -35,6 +35,12 @@ class Settings(Timestamps, Base):
         ),
         CheckConstraint("min_coursework_credits BETWEEN 0 AND 40", name="ck_settings_min_credits"),
         CheckConstraint("min_coursework_cgpa BETWEEN 0 AND 10", name="ck_settings_min_cgpa"),
+        CheckConstraint("max_duration_years BETWEEN 3 AND 12", name="ck_settings_max_years"),
+        CheckConstraint(
+            "max_extension_days BETWEEN 0 AND 1825 AND max_relaxation_days BETWEEN 0 AND 1825 "
+            "AND max_maternity_leave_days BETWEEN 0 AND 1825",
+            name="ck_settings_time_limits",
+        ),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -51,6 +57,13 @@ class Settings(Timestamps, Base):
     min_coursework_cgpa: Mapped[float] = mapped_column(
         Numeric(4, 2, asdecimal=False), server_default=text("5.5")
     )
+    # UGC 2022 reg. 10: 6 years from admission; re-registration up to 2 more; women and
+    # persons with disabilities a further 2-year relaxation; maternity / child-care leave
+    # up to 240 days once.
+    max_duration_years: Mapped[int] = mapped_column(Integer, server_default=text("6"))
+    max_extension_days: Mapped[int] = mapped_column(Integer, server_default=text("730"))
+    max_relaxation_days: Mapped[int] = mapped_column(Integer, server_default=text("730"))
+    max_maternity_leave_days: Mapped[int] = mapped_column(Integer, server_default=text("240"))
     updated_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"))
 
 

@@ -79,6 +79,8 @@ role's scope (§2).
 | viva | R own | R | R | R | R | CRU | R |
 | Shodhganga deposit | R own | R | R | R | R | R | CRU |
 | bulk import | — | — | — | run in subtree | — | — | — |
+| time adjustments (extensions, leave) | R own | R | R | CRD in subtree | CRD | — | — |
+| leadership view | — | — | R subtree | R subtree | R all | — | — |
 | courses (catalogue) | R | R | R | CRUD in subtree | R | CRUD | — |
 | enrolments & grades | R own | R | R | R | R | CRUD | — |
 | coursework clearances | R own | R | R, step (department) | R, step (department) | R, step | create, submit, step | — |

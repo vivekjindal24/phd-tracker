@@ -8,7 +8,7 @@ from typing import Any
 from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import coursework, items, scope, seminars
+from app import coursework, directory, duration, items, scope, seminars
 from app.auth.principal import Principal
 from app.enums import STAGES
 from app.models import (
@@ -64,12 +64,18 @@ def _deadlines_query(scholar_filter):
             Seminar.status == "scheduled",
             SeminarScholar.deleted_at.is_(None),
             Scholar.deleted_at.is_(None),
+            Scholar.left_on.is_(None),
             scholar_filter,
         )
     )
 
 
 async def _overdue(session: AsyncSession, scholar_filter) -> list[dict[str, Any]]:
+    return (await overdue_reports(session, scholar_filter))[:LIST_LIMIT]
+
+
+async def overdue_reports(session: AsyncSession, scholar_filter) -> list[dict[str, Any]]:
+    """Every report past its seminar's due date and still not submitted (PRD F8)."""
     today = datetime.now(UTC).date()
     rows = await session.execute(
         _deadlines_query(scholar_filter)
@@ -86,7 +92,7 @@ async def _overdue(session: AsyncSession, scholar_filter) -> list[dict[str, Any]
                     "report_due": seminar.report_due,
                 }
             )
-    return out[:LIST_LIMIT]
+    return out
 
 
 async def _scholar_section(session: AsyncSession, principal: Principal) -> dict[str, Any]:
@@ -174,6 +180,9 @@ async def _scholar_section(session: AsyncSession, principal: Principal) -> dict[
         "in_progress": in_progress,
         "open_todos": open_todos or 0,
         "approved_publications": publications,
+        "duration": _duration_status(
+            (await duration.assess_many(session, [scholar], today))[scholar.id]
+        ),
         "coursework": await _coursework_status(session, sid)
         if "coursework_clearance" in kinds
         else None,
@@ -190,6 +199,10 @@ async def _scholar_section(session: AsyncSession, principal: Principal) -> dict[
             else None
         ),
     }
+
+
+def _duration_status(a: dict[str, Any]) -> dict[str, Any]:
+    return {k: a[k] for k in ("limit_date", "days_left", "status", "warnings")}
 
 
 async def _coursework_status(session: AsyncSession, scholar_id: uuid.UUID) -> dict[str, Any]:
@@ -210,7 +223,7 @@ async def _supervisor_section(session: AsyncSession, principal: Principal) -> di
     rows = await session.execute(
         select(Scholar.id, User.full_name, Scholar.stage)
         .join(User, User.id == Scholar.user_id)
-        .where(mine, Scholar.deleted_at.is_(None))
+        .where(mine, directory.is_current())
         .order_by(User.full_name)
     )
     scholars = [{"id": i, "name": n, "stage": s} for i, n, s in rows]
@@ -237,11 +250,7 @@ async def _unit_section(
         select(
             User.full_name,
             Faculty.max_scholars,
-            select(func.count())
-            .select_from(Scholar)
-            .where(Scholar.supervisor_id == Faculty.id, Scholar.deleted_at.is_(None))
-            .correlate(Faculty)
-            .scalar_subquery(),
+            directory.load_of_faculty(),
         )
         .join(User, User.id == Faculty.user_id)
         .where(Faculty.unit_id.in_(units), Faculty.deleted_at.is_(None), Faculty.can_supervise)

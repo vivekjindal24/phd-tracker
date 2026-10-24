@@ -102,6 +102,10 @@ Browser (web)
   event; emails are sent after commit and their outcome stored on the row.
 - `files.py` — file metadata, presigned upload/download after the target
   record's `get_or_403`; size cap from config.
+- `duration.py` — the UGC maximum-duration rule as one pure function
+  (limit date, status, warnings); `leadership.py` — the at-risk list,
+  completion times, drop-outs and supervisor load for a unit subtree;
+  `coursework.py` — credits / CGPA against the university minimums.
 - `bulk_import.py` + `spreadsheet.py` — Excel/CSV import of faculty,
   scholars and register history (PRD F16): every row checked first (same
   rules as the forms via `directory.create_person` / `assign_supervisor`),

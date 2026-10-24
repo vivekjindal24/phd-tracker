@@ -59,6 +59,8 @@ def _out(row, co_supervision: str) -> ScholarOut:
             if s.co_supervisor_id and co_supervision != "off"
             else None
         ),
+        left_on=s.left_on,
+        left_reason=s.left_reason,
     )
 
 
@@ -120,7 +122,10 @@ async def update_scholar(
     changes = body.model_dump(exclude_unset=True)
     if "unit_id" in changes:  # moving a scholar needs admin over the destination too
         scope.require_admin_over(principal, await scope.unit_path(session, changes["unit_id"]))
+    was_current = directory.counts_toward_cap(scholar)
     await update(session, principal, scholar, changes)
+    if not was_current:  # back from "left" / "Degree Awarded": the cap applies again
+        await directory.recheck_cap(session, scholar)
     await session.commit()
     return await _one(session, principal, scholar_id)
 
