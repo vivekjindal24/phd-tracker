@@ -147,6 +147,11 @@ RECOMMENDATIONS = get_args(Recommendation)
 VivaOutcome = Literal["pass", "redefend", "fail"]
 VIVA_OUTCOMES = get_args(VivaOutcome)
 
+EntranceRoute = Literal["net_jrf", "gate", "university_test", "other"]
+ENTRANCE_ROUTES = get_args(EntranceRoute)
+InterviewResult = Literal["pending", "selected", "not_selected"]
+INTERVIEW_RESULTS = get_args(InterviewResult)
+
 # Groups a supervisor can share meeting minutes with (PRD F7); unticked groups see only the date.
 MeetingShare = Literal["unit_heads", "research_office", "admins"]
 MEETING_SHARES = get_args(MeetingShare)

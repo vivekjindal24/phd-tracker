@@ -14,8 +14,10 @@ from app.enums import (
     CoSupervision,
     Designation,
     DocKind,
+    EntranceRoute,
     FileOwner,
     Indexing,
+    InterviewResult,
     ItemState,
     ItemType,
     MeetingShare,
@@ -1013,3 +1015,61 @@ class CourseworkView(BaseModel):
 
 class ClearanceIn(BaseModel):
     scholar_id: uuid.UUID
+
+
+# --- admissions -------------------------------------------------------------------------
+
+Phone = Annotated[str, StringConstraints(strip_whitespace=True, max_length=20)]
+
+
+class AdmissionIn(BaseModel):
+    candidate_name: Name
+    email: EmailStr
+    phone: Phone | None = None
+    unit_id: uuid.UUID
+    entrance_route: EntranceRoute
+    entrance_score: float | None = Field(default=None, ge=0, le=9999)
+    interview_date: date | None = None
+    interview_result: InterviewResult = "pending"
+    admitted_on: date | None = None
+
+
+class AdmissionUpdate(BaseModel):
+    candidate_name: Name | None = None
+    email: EmailStr | None = None
+    phone: Phone | None = None
+    entrance_route: EntranceRoute | None = None
+    entrance_score: float | None = Field(default=None, ge=0, le=9999)
+    interview_date: date | None = None
+    interview_result: InterviewResult | None = None
+    admitted_on: date | None = None
+
+
+class AdmissionOut(BaseModel):
+    id: uuid.UUID
+    candidate_name: str
+    email: str
+    phone: str | None
+    unit: Ref
+    entrance_route: EntranceRoute
+    entrance_score: float | None
+    interview_date: date | None
+    interview_result: InterviewResult
+    admitted_on: date | None
+    scholar_id: uuid.UUID | None
+    can_edit: bool
+
+
+class ConvertIn(BaseModel):
+    roll_number: Annotated[
+        str, StringConstraints(strip_whitespace=True, min_length=1, max_length=50)
+    ]
+    research_title: (
+        Annotated[str, StringConstraints(strip_whitespace=True, max_length=500)] | None
+    ) = None
+    password: Password | None = None  # omitted: a set-password email goes out
+
+
+class ConvertOut(BaseModel):
+    scholar_id: uuid.UUID
+    invitation_sent: bool

@@ -49,6 +49,16 @@ def scholar_predicate(principal: Principal, entity: str) -> ColumnElement[bool]:
     return or_(*clauses) if clauses else false()
 
 
+def unit_predicate(principal: Principal, entity: str, unit_column) -> ColumnElement[bool]:
+    """Records anchored on a unit rather than a scholar (admissions): offices see all, unit
+    heads/admins their subtree (DATABASE.md §5)."""
+    roles = principal.roles & roles_allowed(entity, "read")
+    if roles & set(OFFICE_ROLES):
+        return true()
+    paths = _unit_paths(principal, roles)
+    return unit_column.in_(subtree_unit_ids(paths)) if paths else false()
+
+
 def user_predicate(principal: Principal) -> ColumnElement[bool]:
     """Users the caller may read: self, everyone for root admin / research office, and for
     scoped heads/admins the users whose profile or role assignment sits in their subtree."""

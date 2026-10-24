@@ -24,16 +24,14 @@ async def create_person(
     password_hash: str | None,
     faculty: Faculty | None = None,
     scholar: Scholar | None = None,
+    authorised_by_admission: bool = False,
 ) -> User:
-    """One way to add a person — the Add-person form and bulk import both come here (PRD F6,
-    F16). `faculty` / `scholar` are unsaved profiles; their unit decides which admin may."""
+    """One way to add a person — the Add-person form, bulk import and admission conversion all
+    come here (PRD F6, F16, M5). `faculty` / `scholar` are unsaved profiles; their unit decides
+    which admin may — except a conversion, which the admissions rules already authorised."""
     profile = faculty or scholar
-    if profile is None:
-        # Bare accounts (office staff) belong to no unit: only the root admin creates them.
-        if not principal.is_root_admin:
-            raise forbidden()
-    else:
-        scope.require_admin_over(principal, await scope.unit_path(session, profile.unit_id))
+    if not authorised_by_admission:
+        await _require_may_add(session, principal, profile)
     user = await insert(
         session, principal, User(email=email, full_name=full_name, password_hash=password_hash)
     )
@@ -41,6 +39,17 @@ async def create_person(
         profile.user_id = user.id
         await insert(session, principal, profile)
     return user
+
+
+async def _require_may_add(
+    session: AsyncSession, principal: Principal, profile: Faculty | Scholar | None
+) -> None:
+    if profile is None:
+        # Bare accounts (office staff) belong to no unit: only the root admin creates them.
+        if not principal.is_root_admin:
+            raise forbidden()
+        return
+    scope.require_admin_over(principal, await scope.unit_path(session, profile.unit_id))
 
 
 async def require_admin_over_scholar(

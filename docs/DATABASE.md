@@ -210,7 +210,9 @@ course_id)`.
 `phone`, `unit_id` FK, `entrance_route` CHECK (net_jrf / gate /
 university_test / other), `entrance_score`, `interview_date`,
 `interview_result` CHECK (pending / selected / not_selected), `admitted_on`,
-`scholar_id` FK (set when converted; UNIQUE).
+`scholar_id` FK (set when converted; UNIQUE; CHECK only when selected).
+Scoped by `unit_id` (`scope.unit_predicate`). A converted admission can be
+neither edited nor deleted.
 
 **fellowships** (module `fellowships`) — `scholar_id`, `scheme` CHECK
 (ugc_jrf / ugc_srf / csir / inspire / institute / other), `amount_monthly`

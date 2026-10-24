@@ -522,3 +522,31 @@ export type CourseworkView = {
   locked: boolean;
 };
 export type ClearanceContent = { credits: number | null; cgpa: number | null; cleared_on: string | null };
+
+export type EntranceRoute = "net_jrf" | "gate" | "university_test" | "other";
+export const ENTRANCE_LABELS: Record<EntranceRoute, string> = {
+  net_jrf: "UGC-NET / JRF (exempt)",
+  gate: "GATE",
+  university_test: "University entrance test",
+  other: "Other",
+};
+export type InterviewResult = "pending" | "selected" | "not_selected";
+export const RESULT_LABELS: Record<InterviewResult, string> = {
+  pending: "Pending",
+  selected: "Selected",
+  not_selected: "Not selected",
+};
+export type Admission = {
+  id: string;
+  candidate_name: string;
+  email: string;
+  phone: string | null;
+  unit: Ref;
+  entrance_route: EntranceRoute;
+  entrance_score: number | null;
+  interview_date: string | null;
+  interview_result: InterviewResult;
+  admitted_on: string | null;
+  scholar_id: string | null;
+  can_edit: boolean;
+};

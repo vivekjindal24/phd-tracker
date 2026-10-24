@@ -168,9 +168,12 @@ the **Shodhganga deposit** (date, handle, certificate).
 
 ## Flow 10 — Admission to scholar (module)
 
-Admin → **Admissions → Add**: entrance route and score, interview date and
-result, admission date → **Convert to scholar** (selected candidates only)
-pre-fills Flow 5's Add scholar form; the admission links to the new scholar.
+Admin (their units) or Research Office (any) → **Admissions → Record a
+candidate**: entrance route and score, interview date, admission date; set
+the result in the list. For a **Selected** candidate, type the roll number →
+**Make scholar**: the scholar profile and login are created (same rules as
+Flow 5), the candidate gets a set-password email, and the row links to the
+new profile. Heads of the unit see the list read-only.
 
 ## Flow 11 — Grants (modules)
 

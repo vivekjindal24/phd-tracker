@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.errors import install_error_handlers
 from app.routers import (
+    admissions,
     auth,
     comments,
     conferences,
@@ -78,6 +79,7 @@ for module in (
     documents,
     theses,
     coursework,
+    admissions,
 ):
     api.include_router(module.router)
 app.include_router(api)

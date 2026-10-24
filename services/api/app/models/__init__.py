@@ -1,3 +1,4 @@
+from app.models.admissions import Admission
 from app.models.base import Base
 from app.models.comments import Comment
 from app.models.coursework import Course, CourseworkClearance, Enrolment
@@ -35,6 +36,7 @@ from app.models.thesis import (
 from app.models.workflow import ApprovalActionRow
 
 __all__ = [
+    "Admission",
     "ApprovalActionRow",
     "ApprovalChain",
     "AuditLog",
