@@ -17,7 +17,8 @@ from app.errors import ApiError, forbidden
 from app.models import Course, CourseworkClearance, Enrolment, OrgUnit, Scholar, User
 from app.modules import require_module
 from app.rbac import require_perm
-from app.schemas import (
+from app.schemas import ItemView
+from app.schemas.administration import (
     ClearanceIn,
     CourseIn,
     CourseOut,
@@ -25,7 +26,6 @@ from app.schemas import (
     CourseworkView,
     EnrolmentIn,
     EnrolmentUpdate,
-    ItemView,
 )
 
 router = APIRouter(tags=["coursework"], dependencies=[Depends(require_module("coursework"))])

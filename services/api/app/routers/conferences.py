@@ -14,7 +14,8 @@ from app.errors import ApiError, forbidden
 from app.models import Conference, Scholar, User
 from app.modules import require_module
 from app.rbac import require_perm
-from app.schemas import ConferenceIn, ConferenceOut, ConferenceUpdate, Ref
+from app.schemas import Ref
+from app.schemas.research import ConferenceIn, ConferenceOut, ConferenceUpdate
 
 router = APIRouter(
     prefix="/conferences",

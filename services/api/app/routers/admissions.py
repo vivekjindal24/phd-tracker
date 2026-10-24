@@ -19,7 +19,14 @@ from app.models import Admission, OrgUnit, Scholar
 from app.modules import require_module
 from app.notify import email_configured
 from app.rbac import require_perm
-from app.schemas import AdmissionIn, AdmissionOut, AdmissionUpdate, ConvertIn, ConvertOut, Ref
+from app.schemas import Ref
+from app.schemas.administration import (
+    AdmissionIn,
+    AdmissionOut,
+    AdmissionUpdate,
+    ConvertIn,
+    ConvertOut,
+)
 
 router = APIRouter(
     prefix="/admissions", tags=["admissions"], dependencies=[Depends(require_module("admissions"))]

@@ -1,4 +1,4 @@
-/** Mirrors of the API's response models (services/api/app/schemas.py). */
+/** Mirrors of the API's response models (services/api/app/schemas/). */
 
 export type AssignedRole = "unit_head" | "admin" | "research_office" | "exam_office" | "library";
 export type Role = "scholar" | "supervisor" | AssignedRole;

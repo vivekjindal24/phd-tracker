@@ -28,13 +28,13 @@ from app.models import Scholar as ScholarRow
 from app.modules import require_module
 from app.notify import notify
 from app.rbac import require_perm
-from app.schemas import (
+from app.schemas import ItemView
+from app.schemas.research import (
     DepositIn,
     EvaluationView,
     ExaminerReportIn,
     ExaminerReportUpdate,
     ExaminersIn,
-    ItemView,
     PlagiarismIn,
     ThesisIn,
     ThesisRow,

@@ -17,7 +17,8 @@ from app.errors import ApiError
 from app.models import Publication, Scholar, User
 from app.modules import require_module
 from app.rbac import require_perm
-from app.schemas import ItemView, PublicationIn, PublicationRow, PublicationUpdate, VerificationIn
+from app.schemas import ItemView
+from app.schemas.research import PublicationIn, PublicationRow, PublicationUpdate, VerificationIn
 
 router = APIRouter(
     prefix="/publications",

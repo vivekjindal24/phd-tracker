@@ -17,7 +17,7 @@ from app.db import get_session
 from app.errors import forbidden
 from app.models import Scholar, TimeAdjustment, User
 from app.rbac import require_perm
-from app.schemas import DurationView, TimeAdjustmentIn
+from app.schemas.administration import DurationView, TimeAdjustmentIn
 
 router = APIRouter(tags=["duration"])
 

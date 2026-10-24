@@ -16,7 +16,7 @@ from app.errors import ApiError, forbidden
 from app.models import Document, DocumentVersion, FileRow, Scholar, User
 from app.modules import require_module
 from app.rbac import require_perm
-from app.schemas import DocumentIn, DocumentOut, DocumentUpdate, VersionIn
+from app.schemas.research import DocumentIn, DocumentOut, DocumentUpdate, VersionIn
 
 router = APIRouter(
     prefix="/documents", tags=["documents"], dependencies=[Depends(require_module("documents"))]

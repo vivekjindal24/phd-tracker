@@ -14,7 +14,7 @@ from app.db import get_session
 from app.errors import ApiError, forbidden
 from app.models import OrgUnit
 from app.rbac import require_perm
-from app.schemas import LeadershipView
+from app.schemas.administration import LeadershipView
 
 router = APIRouter(tags=["leadership"])
 

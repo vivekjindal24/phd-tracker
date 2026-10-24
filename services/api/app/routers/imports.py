@@ -12,7 +12,7 @@ from app.auth.principal import Principal
 from app.db import get_session
 from app.errors import ApiError
 from app.rbac import require_perm
-from app.schemas import ImportReport
+from app.schemas.administration import ImportReport
 
 router = APIRouter(prefix="/import", tags=["import"])
 
