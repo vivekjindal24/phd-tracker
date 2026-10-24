@@ -333,3 +333,17 @@ export const PART_LABELS: Record<TodoPart, string> = {
   writing_presentation: "Writing & presentation",
   other: "Other",
 };
+
+export type ImportKind = "faculty" | "scholars" | "history";
+
+export type ImportReport = {
+  kind: ImportKind;
+  dry_run: boolean;
+  total_rows: number;
+  to_create: number;
+  created: number;
+  already_present: { row: number; what: string }[];
+  errors: { row: number; column: string; message: string }[];
+  invitations_sent: number | null;
+  invitations_failed: string[];
+};

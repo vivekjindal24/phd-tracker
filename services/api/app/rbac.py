@@ -68,6 +68,7 @@ MATRIX: dict[str, dict[str, frozenset[str]]] = {
         "admin": frozenset({R, C, U, D, "manage_roles"}),
         "research_office": frozenset({R}),
     },
+    "bulk_import": {"admin": frozenset({C})},  # rows still checked against the admin's subtree
     "audit_log": {
         "admin": frozenset({R}),
         "research_office": frozenset({R}),

@@ -40,9 +40,14 @@ export default function ScholarsPage() {
         title="Scholars"
         actions={
           me?.roles.includes("admin") && (
-            <Link href="/people/new" className="btn btn-primary">
-              Add person
-            </Link>
+            <>
+              <Link href="/people/import" className="btn btn-secondary">
+                Import from Excel
+              </Link>
+              <Link href="/people/new" className="btn btn-primary">
+                Add person
+              </Link>
+            </>
           )
         }
       />

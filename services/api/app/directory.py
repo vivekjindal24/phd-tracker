@@ -8,11 +8,39 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import scope
 from app.auth.principal import Principal
-from app.crud import update
+from app.crud import insert, update
 from app.enums import UGC_CAP
-from app.errors import ApiError
+from app.errors import ApiError, forbidden
 from app.models import Faculty, Scholar, Settings, User
 from app.notify import notify
+
+
+async def create_person(
+    session: AsyncSession,
+    principal: Principal,
+    *,
+    email: str,
+    full_name: str,
+    password_hash: str | None,
+    faculty: Faculty | None = None,
+    scholar: Scholar | None = None,
+) -> User:
+    """One way to add a person — the Add-person form and bulk import both come here (PRD F6,
+    F16). `faculty` / `scholar` are unsaved profiles; their unit decides which admin may."""
+    profile = faculty or scholar
+    if profile is None:
+        # Bare accounts (office staff) belong to no unit: only the root admin creates them.
+        if not principal.is_root_admin:
+            raise forbidden()
+    else:
+        scope.require_admin_over(principal, await scope.unit_path(session, profile.unit_id))
+    user = await insert(
+        session, principal, User(email=email, full_name=full_name, password_hash=password_hash)
+    )
+    if profile is not None:
+        profile.user_id = user.id
+        await insert(session, principal, profile)
+    return user
 
 
 async def require_admin_over_scholar(
@@ -41,7 +69,12 @@ async def supervisor_load(session: AsyncSession, faculty_id: uuid.UUID) -> int:
 
 
 async def assign_supervisor(
-    session: AsyncSession, principal: Principal, scholar: Scholar, faculty_id: uuid.UUID | None
+    session: AsyncSession,
+    principal: Principal,
+    scholar: Scholar,
+    faculty_id: uuid.UUID | None,
+    *,
+    announce: bool = True,  # bulk import loads history quietly: no "now your scholar" mail
 ) -> None:
     await require_admin_over_scholar(session, principal, scholar)
     if faculty_id == scholar.supervisor_id:
@@ -66,6 +99,8 @@ async def assign_supervisor(
             "the UGC limit for their designation.",
         )
     await update(session, principal, scholar, {"supervisor_id": faculty_id})
+    if not announce:
+        return
     scholar_name = await session.scalar(select(User.full_name).where(User.id == scholar.user_id))
     notify(
         session,

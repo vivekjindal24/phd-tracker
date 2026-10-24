@@ -677,3 +677,31 @@ class CommentOut(BaseModel):
     body: str
     created_at: datetime
     mine: bool
+
+
+# --- bulk import ------------------------------------------------------------------------
+
+
+class ImportRowError(BaseModel):
+    row: int
+    column: str
+    message: str
+
+
+class ImportSkipped(BaseModel):
+    row: int
+    what: str
+
+
+class ImportReport(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    kind: Literal["faculty", "scholars", "history"]
+    dry_run: bool
+    total_rows: int
+    to_create: int
+    created: int
+    already_present: list[ImportSkipped]
+    errors: list[ImportRowError]
+    invitations_sent: int | None
+    invitations_failed: list[str]

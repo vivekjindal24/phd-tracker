@@ -5,9 +5,17 @@ import { Button, ErrorText } from "@/components/ui/kit";
 import { download } from "@/lib/api";
 import { errorText } from "@/lib/useFetch";
 
-/** One export-service download (ARCHITECTURE.md §2): busy while the PDF/CSV renders,
+/** One file download (export service, or the API for templates) (ARCHITECTURE.md §2): busy while the PDF/CSV renders,
  *  the server's own message on failure. */
-export function DownloadButton({ path, children }: { path: string; children: string }) {
+export function DownloadButton({
+  path,
+  children,
+  from = "export",
+}: {
+  path: string;
+  children: string;
+  from?: "export" | "api";
+}) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -15,7 +23,7 @@ export function DownloadButton({ path, children }: { path: string; children: str
     setBusy(true);
     setError(null);
     try {
-      await download(path);
+      await download(path, from);
     } catch (e) {
       setError(errorText(e));
     } finally {

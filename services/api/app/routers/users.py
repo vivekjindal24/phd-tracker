@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import scope
+from app import directory, scope
 from app.auth import service as auth_service
 from app.auth.deps import current_principal
 from app.auth.principal import Principal
@@ -90,50 +90,33 @@ async def create_user(
     principal: Principal = Depends(require_perm("users", "create")),
     session: AsyncSession = Depends(get_session),
 ) -> User:
-    profile = body.faculty or body.scholar
-    if profile is None:
-        # Bare accounts (office staff) belong to no unit: only the root admin creates them.
-        if not principal.is_root_admin:
-            raise forbidden()
-    else:
-        scope.require_admin_over(principal, await scope.unit_path(session, profile.unit_id))
     if body.password is None and not email_configured():
         raise auth_service.EMAIL_NOT_CONFIGURED
-
-    user = await insert(
-        session,
-        principal,
-        User(
-            email=body.email,
-            full_name=body.full_name,
-            password_hash=hash_password(body.password) if body.password else None,
-        ),
-    )
+    faculty = scholar = None
     if body.faculty:
-        await insert(
-            session,
-            principal,
-            Faculty(
-                user_id=user.id,
-                unit_id=body.faculty.unit_id,
-                designation=body.faculty.designation,
-                employee_id=body.faculty.employee_id,
-                can_supervise=body.faculty.can_supervise,
-                max_scholars=UGC_CAP[body.faculty.designation],
-            ),
+        faculty = Faculty(
+            unit_id=body.faculty.unit_id,
+            designation=body.faculty.designation,
+            employee_id=body.faculty.employee_id,
+            can_supervise=body.faculty.can_supervise,
+            max_scholars=UGC_CAP[body.faculty.designation],
         )
     if body.scholar:
-        await insert(
-            session,
-            principal,
-            Scholar(
-                user_id=user.id,
-                unit_id=body.scholar.unit_id,
-                roll_number=body.scholar.roll_number,
-                research_title=body.scholar.research_title,
-                admission_date=body.scholar.admission_date,
-            ),
+        scholar = Scholar(
+            unit_id=body.scholar.unit_id,
+            roll_number=body.scholar.roll_number,
+            research_title=body.scholar.research_title,
+            admission_date=body.scholar.admission_date,
         )
+    user = await directory.create_person(
+        session,
+        principal,
+        email=body.email,
+        full_name=body.full_name,
+        password_hash=hash_password(body.password) if body.password else None,
+        faculty=faculty,
+        scholar=scholar,
+    )
     if body.password is None:
         await _send_invite(session, user)
     else:

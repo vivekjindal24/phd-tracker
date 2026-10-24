@@ -102,6 +102,10 @@ Browser (web)
   event; emails are sent after commit and their outcome stored on the row.
 - `files.py` — file metadata, presigned upload/download after the target
   record's `get_or_403`; size cap from config.
+- `bulk_import.py` + `spreadsheet.py` — Excel/CSV import of faculty,
+  scholars and register history (PRD F16): every row checked first (same
+  rules as the forms via `directory.create_person` / `assign_supervisor`),
+  then one transaction; templates generated with openpyxl.
 - `crud.py` — shared insert/update/soft-delete/list helpers; every mutation
   writes an `audit_log` row.
 - `errors.py` — one envelope everywhere: `{"error": {code, message,

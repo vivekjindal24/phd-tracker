@@ -70,7 +70,8 @@ async function send(
   if (pending === 1) wakeTimer = setTimeout(() => setWaking(true), WAKE_AFTER_MS);
   try {
     const headers = new Headers(init.headers);
-    if (init.body) headers.set("Content-Type", "application/json");
+    // JSON for strings; a File/Blob body (bulk import) keeps the browser's content type.
+    if (typeof init.body === "string") headers.set("Content-Type", "application/json");
     if (token) headers.set("Authorization", `Bearer ${token}`);
     return await fetch(`${base}${path}`, { ...init, headers });
   } catch {
@@ -129,11 +130,13 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   return (res.status === 204 ? undefined : await res.json()) as T;
 }
 
-/** Fetches a file from the export service (same token, same one-refresh retry) and saves it. */
-export async function download(path: string): Promise<void> {
-  let res = await send(path, {}, accessToken, EXPORT_URL);
+/** Fetches a file (export service by default, or the API — e.g. import templates) with the
+ * same token and one-refresh retry, and saves it. */
+export async function download(path: string, from: "export" | "api" = "export"): Promise<void> {
+  const base = from === "export" ? EXPORT_URL : API_URL && `${API_URL}/api/v1`;
+  let res = await send(path, {}, accessToken, base);
   if (res.status === 401 && (await refresh())) {
-    res = await send(path, {}, accessToken, EXPORT_URL);
+    res = await send(path, {}, accessToken, base);
   }
   if (!res.ok) throw await toError(res);
   const name = /filename="([^"]+)"/.exec(res.headers.get("Content-Disposition") ?? "")?.[1] ?? "export";

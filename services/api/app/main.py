@@ -13,6 +13,7 @@ from app.routers import (
     faculty,
     files,
     grading,
+    imports,
     internal,
     items,
     meetings,
@@ -66,6 +67,7 @@ for module in (
     settings_router,
     notifications,
     files,
+    imports,
 ):
     api.include_router(module.router)
 app.include_router(api)
