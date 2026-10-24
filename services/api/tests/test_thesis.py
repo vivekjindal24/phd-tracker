@@ -110,6 +110,20 @@ async def test_offices_must_fill_their_fields_before_approving(
     assert early.status_code == 422
 
 
+async def test_library_removes_only_its_own_certificate(client, session, world, documents_on):
+    tid = await new_thesis(client, world)
+    thesis_file = await ready_file(session, world.scholar_a1, "thesis_submissions", tid)
+    await act(client, world.scholar_a1, tid, "submit")
+    await act(client, world.meera, tid, "approve")
+    await act(client, world.admin_a1, tid, "approve")
+    certificate = await ready_file(session, world.library, "thesis_submissions", tid)
+
+    scholars = await client.delete(f"/api/v1/files/{thesis_file}", headers=auth(world.library.id))
+    assert scholars.status_code == 403
+    own = await client.delete(f"/api/v1/files/{certificate}", headers=auth(world.library.id))
+    assert own.status_code == 204
+
+
 async def test_full_chain_moves_the_stage(client, session, world, documents_on):
     await approved_thesis(client, session, world)
     scholar = await session.scalar(select(Scholar).where(Scholar.id == world.s_a1.id))

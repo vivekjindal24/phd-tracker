@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { Button, Card, ErrorText } from "@/components/ui/kit";
 import { api } from "@/lib/api";
+import { useSession } from "@/lib/session";
 import type { FileItem, FileOwner } from "@/lib/types";
 import { openFile, uploadFile } from "@/lib/upload";
 import { errorText, useFetch } from "@/lib/useFetch";
@@ -21,13 +22,17 @@ export function Attachments({
   canUpload,
   title = "Files",
   hint,
+  removeOwnOnly = false,
 }: {
   table: FileOwner;
   recordId: string;
   canUpload: boolean;
   title?: string;
   hint?: string;
+  /** Shared records (a thesis: scholar + Library): each removes only what it uploaded. */
+  removeOwnOnly?: boolean;
 }) {
+  const { me } = useSession();
   const { data, error, reload } = useFetch<FileItem[]>(`/files?table_name=${table}&record_id=${recordId}`);
   const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -78,7 +83,9 @@ export function Attachments({
             <li key={f.id}>
               <button type="button" className="file-name" onClick={() => open(f)}>{f.file_name}</button>
               <span className="muted">{size(f.size_bytes)} · {new Date(f.created_at).toLocaleDateString()}</span>
-              {canUpload && <Button kind="ghost" onClick={() => remove(f)}>Remove</Button>}
+              {canUpload && (!removeOwnOnly || f.uploaded_by === me?.id) && (
+                <Button kind="ghost" onClick={() => remove(f)}>Remove</Button>
+              )}
             </li>
           ))}
         </ul>

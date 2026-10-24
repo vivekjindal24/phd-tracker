@@ -63,7 +63,8 @@ export default function CourseworkPage() {
       <PageHeader eyebrow="Academic administration" title="Coursework" />
       {me?.scholar_id && <CourseworkCard scholarId={me.scholar_id} />}
       {isExam && <Card><h2>Grades for a scholar</h2><ScholarSearch onPick={(s) => setPicked(s.id)} /></Card>}
-      {picked && <div style={{ marginTop: "var(--space-5)" }}><CourseworkCard key={picked} scholarId={picked} /></div>}
+      {/* Keyed on the catalogue too: a course added below must appear in the card's enrol list. */}
+      {picked && <div style={{ marginTop: "var(--space-5)" }}><CourseworkCard key={`${picked}:${courses?.length}`} scholarId={picked} /></div>}
       <h2 style={{ marginTop: "var(--space-6)" }}>Course catalogue</h2>
       <ErrorText>{error}</ErrorText>
       {courses && (

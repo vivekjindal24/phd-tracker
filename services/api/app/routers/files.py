@@ -100,5 +100,8 @@ async def delete_file(
     if row.table_name == "documents":
         raise ApiError(422, "versions_are_permanent", "Document versions cannot be removed.")
     await records.require_write(session, principal, row.table_name, row.record_id)
+    if row.table_name == "thesis_submissions" and row.uploaded_by != principal.user_id:
+        # Scholar and Library share the record: each removes only what it uploaded.
+        raise ApiError(403, "forbidden", "Only whoever uploaded this file can remove it.")
     await soft_delete(session, principal, row)
     await session.commit()

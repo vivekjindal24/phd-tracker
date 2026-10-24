@@ -142,7 +142,10 @@ regardless of role.
   - `supervisor` → the scholar's supervisor, or the co-supervisor when
     `settings.co_supervision = 'approve'`;
   - `department` → a `unit_head` or `admin` whose unit is the scholar's unit
-    or an ancestor of it (nearest-first, but any of them may act);
+    or an ancestor of it (nearest-first, but any of them may act). The
+    notification goes to the nearest unit with a head/admin *other than the
+    actor who moved the item*: a HoD who approved as supervisor hands the
+    step to the Dean;
   - `research_office` / `exam_office` / `library` → any holder of that role.
 - **No self-approval:** a user may not act on an item about themselves, and
   may not act on two consecutive steps of the same item (the engine checks
@@ -151,6 +154,10 @@ regardless of role.
   required. Illegal action/role/state → 422 `workflow_violation`.
 - Step-only fields (`plagiarism_score` — library; `examiners` — exam office)
   are writable only by the actor of that step while it is current.
+  On a thesis, scholar and Library share the files: each removes only what it
+  uploaded (the Library its certificate, never the thesis).
+- Send back to the initiator notifies the initiator: the scholar, or the
+  exam office for a coursework clearance.
 - An `approved` item is immutable for every role.
 
 ## 5. Secrets & Environment

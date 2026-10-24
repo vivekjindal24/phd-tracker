@@ -7,6 +7,7 @@ import pytest
 
 from tests.conftest import auth
 from tests.test_publications import enable
+from tests.test_workflow import notified
 
 
 @pytest.fixture
@@ -171,3 +172,24 @@ async def test_dashboard_shows_coursework_status(client, world, coursework_on):
         "cgpa": 9,
         "cleared_on": None,
     }
+
+
+async def test_send_back_to_initiator_notifies_the_exam_office_not_the_scholar(
+    client, session, world, coursework_on
+):
+    for code, points in (("N1", 8), ("N2", 7), ("N3", 6)):
+        await enrol(client, world, await course(client, world, code, 4), points, "A")
+    cid = await clearance(client, world)
+    assert (await act(client, world.exam_office, cid, "submit")).status_code == 200
+    assert (await act(client, world.meera, cid, "approve")).status_code == 200
+    assert (await act(client, world.exam_office, cid, "approve")).status_code == 200
+    back = await client.post(
+        f"/api/v1/items/coursework_clearance/{cid}/send-back",
+        headers=auth(world.research_office.id),
+        json={"comment": "Attach the grade sheet reference.", "to_step": None},
+    )
+    assert back.status_code == 200 and back.json()["state"] == "sent_back"
+
+    # The Exam Office started it and must resubmit; the scholar cannot act on it.
+    assert "sent_back" in await notified(session, world.exam_office)
+    assert "sent_back" not in await notified(session, world.scholar_a1)

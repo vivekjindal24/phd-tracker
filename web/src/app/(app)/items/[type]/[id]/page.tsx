@@ -103,6 +103,19 @@ function ReportContent({ item, onSaved }: { item: ItemView; onSaved: (v: ItemVie
   );
 }
 
+/** UX Flow 2 step 4: whoever an item was sent back to sees why, pinned above everything else. */
+function SentBackReason({ item }: { item: ItemView }) {
+  const last = item.history.at(-1);
+  if (last?.action !== "send_back") return null;
+  return (
+    <Card className="sent-back-reason">
+      <h2>Sent back to {item.can_resubmit ? "you" : last.to}</h2>
+      <p className="prose">{last.comment}</p>
+      <p className="muted">{last.actor}, at {last.step}</p>
+    </Card>
+  );
+}
+
 function Actions({ item, run }: { item: ItemView; run: (action: string, body?: object) => Promise<void> }) {
   const [comment, setComment] = useState("");
   const [target, setTarget] = useState<string>("initiator");
@@ -130,8 +143,8 @@ function Actions({ item, run }: { item: ItemView; run: (action: string, body?: o
   if (item.can_resubmit) {
     return (
       <Card>
-        <h2>Sent back to you</h2>
-        <p className="muted">Fix what was asked (see the history below), then resubmit. It starts again from the first step.</p>
+        <h2>Ready to resubmit?</h2>
+        <p className="muted">Fix what was asked (the reason is pinned above), then resubmit. It starts again from the first step.</p>
         <Button kind="primary" disabled={busy} onClick={() => go("resubmit")}>Resubmit</Button>
       </Card>
     );
@@ -214,6 +227,7 @@ export default function ItemPage() {
         </>} />
       <div className="item-grid">
         <div className="item-main">
+          <SentBackReason item={item} />
           <Card>
             <h2>Approval chain</h2>
             <ChainSteps chain={item.chain} />

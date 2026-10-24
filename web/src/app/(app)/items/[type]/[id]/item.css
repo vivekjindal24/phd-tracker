@@ -22,6 +22,12 @@
   min-height: 220px;
   resize: vertical;
 }
+.sent-back-reason {
+  border-left: 6px solid var(--coral);
+}
+.sent-back-reason .prose {
+  margin-bottom: var(--space-2);
+}
 .act {
   display: grid;
   gap: var(--space-4);

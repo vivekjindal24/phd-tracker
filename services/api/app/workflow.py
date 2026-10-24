@@ -138,8 +138,11 @@ async def assert_step_field(
         raise violation(f"Only the {STEP_LABELS[kind]} step can change this field.")
 
 
-async def step_actor_ids(session: AsyncSession, ctx: ItemContext, kind: str) -> list[uuid.UUID]:
-    """Who to notify when an item reaches a step of this kind."""
+async def step_actor_ids(
+    session: AsyncSession, ctx: ItemContext, kind: str, actor: uuid.UUID
+) -> list[uuid.UUID]:
+    """Who to notify when an item reaches a step of this kind — never the actor who sent it
+    there, who may not act on two steps in a row anyway."""
     if kind == "supervisor":
         fids = [ctx.scholar.supervisor_id]
         if await _co_supervision(session) == "approve":
@@ -147,9 +150,10 @@ async def step_actor_ids(session: AsyncSession, ctx: ItemContext, kind: str) -> 
         rows = await session.scalars(
             select(Faculty.user_id).where(Faculty.id.in_([f for f in fids if f]))
         )
-        return list(rows)
+        return [u for u in rows if u != actor]
     if kind == "department":
-        # Nearest unit at or above the scholar's that has a head or admin.
+        # Nearest unit at or above the scholar's with a head or admin other than the actor: a
+        # HoD who just approved as supervisor hands the step to the Dean, not to themselves.
         rows = (
             await session.execute(
                 select(RoleAssignment.user_id, func.nlevel(OrgUnit.path))
@@ -157,6 +161,7 @@ async def step_actor_ids(session: AsyncSession, ctx: ItemContext, kind: str) -> 
                 .where(
                     RoleAssignment.deleted_at.is_(None),
                     RoleAssignment.role.in_(("unit_head", "admin")),
+                    RoleAssignment.user_id != actor,
                     OrgUnit.path.op("@>")(cast(literal(ctx.scholar_unit_path), Ltree)),
                 )
             )
@@ -167,7 +172,9 @@ async def step_actor_ids(session: AsyncSession, ctx: ItemContext, kind: str) -> 
         return [uid for uid, level in rows if level == nearest]
     rows = await session.scalars(
         select(RoleAssignment.user_id).where(
-            RoleAssignment.role == kind, RoleAssignment.deleted_at.is_(None)
+            RoleAssignment.role == kind,
+            RoleAssignment.deleted_at.is_(None),
+            RoleAssignment.user_id != actor,
         )
     )
     return list(rows)
@@ -235,7 +242,7 @@ async def _notify_step(session: AsyncSession, principal: Principal, ctx: ItemCon
     kind = current_kind(ctx)
     if kind is None:
         return
-    ids = [u for u in await step_actor_ids(session, ctx, kind) if u != principal.user_id]
+    ids = await step_actor_ids(session, ctx, kind, principal.user_id)
     notify(
         session,
         ids,
@@ -342,9 +349,13 @@ async def send_back(
             step_index=step,
             comment=comment,
         )
-        notify(
-            session, [ctx.scholar.user_id], "sent_back", f"{ctx.label} sent back", comment, ctx.link
-        )
+        # Whoever resubmits hears about it: the scholar, or the office that started the item.
+        initiator = INITIATOR[ctx.item_type]
+        if initiator == "scholar":
+            ids = [ctx.scholar.user_id]
+        else:
+            ids = await step_actor_ids(session, ctx, initiator, principal.user_id)
+        notify(session, ids, "sent_back", f"{ctx.label} sent back", comment, ctx.link)
         return
     if not 0 <= to_step < step:
         raise violation("An item can only be sent back to an earlier step.")
@@ -359,7 +370,7 @@ async def send_back(
         comment=comment,
     )
     kind = ctx.item.chain_snapshot[to_step]["kind"]  # type: ignore[index]
-    ids = [u for u in await step_actor_ids(session, ctx, kind) if u != principal.user_id]
+    ids = await step_actor_ids(session, ctx, kind, principal.user_id)
     notify(
         session,
         ids,

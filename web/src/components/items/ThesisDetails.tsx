@@ -131,7 +131,7 @@ export function ThesisDetails({ item, onSaved }: { item: ItemView; onSaved: (v: 
         {atExam && <Examiners item={item} onSaved={onSaved} />}
       </Card>
       <Attachments table="thesis_submissions" recordId={item.id} canUpload={item.can_edit || atLibrary}
-        title="Thesis files" hint="The final thesis (and, from the Library, the plagiarism-check certificate)." />
+        removeOwnOnly title="Thesis files" hint="The final thesis (and, from the Library, the plagiarism-check certificate)." />
     </>
   );
 }

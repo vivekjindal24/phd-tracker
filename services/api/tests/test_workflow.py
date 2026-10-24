@@ -3,6 +3,7 @@ the same approval columns every real item type carries, so the engine is verifie
 first real item type (progress reports, Phase 2) exists."""
 
 import uuid
+from datetime import UTC, datetime
 
 import pytest
 from sqlalchemy import ForeignKey, select, update
@@ -86,6 +87,23 @@ async def test_apr_runs_full_default_chain(session, world):
         )
     )
     assert list(transitions) == ["in_review", "in_review", "in_review", "approved"]
+
+
+async def test_department_step_notifies_next_level_when_nearest_head_just_acted(session, world):
+    """A HoD who supervises their own scholar cannot also take the department step; with no
+    other head or admin in the department, the Dean must hear about it (SECURITY.md §4)."""
+    from app.models import RoleAssignment
+
+    await session.execute(
+        update(RoleAssignment)
+        .where(RoleAssignment.user_id == world.admin_a1.id)
+        .values(deleted_at=datetime.now(UTC))
+    )
+    ctx = await make_ctx(session, world.s_a1)  # supervised by Meera, HoD of A1
+    await workflow.submit(session, await as_(session, world.scholar_a1), ctx)
+    await workflow.approve(session, await as_(session, world.meera), ctx)
+    assert workflow.current_kind(ctx) == "department"
+    assert await notified(session, world.dean_a) == ["approval_waiting"]
 
 
 async def test_wrong_actor_is_rejected_at_every_kind_of_step(session, world):
@@ -241,4 +259,6 @@ async def test_department_step_falls_back_to_nearest_unit_with_a_head(session, w
         .values(deleted_at=RoleAssignment.created_at)
     )
     ctx = await make_ctx(session, world.s_a1b)
-    assert await workflow.step_actor_ids(session, ctx, "department") == [world.dean_a.id]
+    assert await workflow.step_actor_ids(session, ctx, "department", world.sup_a2.id) == [
+        world.dean_a.id
+    ]
