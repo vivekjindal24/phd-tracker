@@ -1,4 +1,4 @@
-"""Visibility of a polymorphic record (comments hang off these). One answer per table,
+"""Access to a polymorphic record — comments and files hang off these. One answer per table,
 always reusing the record's own rules — never a second copy of them (SECURITY.md §3)."""
 
 import uuid
@@ -6,10 +6,12 @@ import uuid
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import items, meetings, scope
+from app import items, meetings, scope, workflow
 from app.auth.principal import Principal
-from app.errors import forbidden
-from app.models import Meeting, Milestone, OrgUnit, Scholar
+from app.errors import ApiError, forbidden
+from app.models import Conference, Meeting, Milestone, OrgUnit, Scholar
+from app.modules import module_enabled
+from app.rbac import can
 
 
 async def require_read(
@@ -54,4 +56,54 @@ async def require_read(
         if row is None:
             raise forbidden()
         return row[1], f"/scholars/{row[1].id}"
+    if table == "publications":
+        ctx = await items.load_ctx(session, principal, "publication", record_id)
+        return ctx.scholar, ctx.link
+    if table == "conferences":
+        _, scholar = await _conference(session, principal, record_id)
+        return scholar, f"/scholars/{scholar.id}"
+    raise forbidden()
+
+
+async def _conference(
+    session: AsyncSession, principal: Principal, record_id: uuid.UUID
+) -> tuple[Conference, Scholar]:
+    if not await module_enabled(session, "conferences"):
+        raise ApiError(404, "module_disabled", "This feature is not enabled.")
+    row = (
+        await session.execute(
+            select(Conference, Scholar)
+            .join(Scholar, Scholar.id == Conference.scholar_id)
+            .where(
+                Conference.id == record_id,
+                Conference.deleted_at.is_(None),
+                scope.scholar_predicate(principal, "conferences"),
+            )
+        )
+    ).first()
+    if row is None:
+        raise forbidden()
+    return row[0], row[1]
+
+
+async def require_write(
+    session: AsyncSession, principal: Principal, table: str, record_id: uuid.UUID
+) -> None:
+    """403/422 unless the caller may change the record (attach or remove its files)."""
+    if table == "scholars":
+        scholar = await scope.get_scholar_or_403(session, principal, record_id)
+        # Reading a scholar is not enough: only an admin over the scholar's unit may attach.
+        if not can(principal, "scholars", "update"):
+            raise forbidden()
+        scope.require_admin_over(principal, await scope.unit_path(session, scholar.unit_id))
+        return
+    if table == "publications":
+        ctx = await items.load_ctx(session, principal, "publication", record_id)
+        workflow.assert_editable(principal, ctx)  # author, while draft or sent back
+        return
+    if table == "conferences":
+        conference, _ = await _conference(session, principal, record_id)
+        if conference.scholar_id != principal.scholar_id:
+            raise forbidden()
+        return
     raise forbidden()

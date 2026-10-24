@@ -18,6 +18,7 @@ from app.models import (
     Milestone,
     OrgUnit,
     ProgressReport,
+    Publication,
     RoleAssignment,
     Scholar,
     Seminar,
@@ -121,22 +122,35 @@ async def _scholar_section(session: AsyncSession, principal: Principal) -> dict[
             "due_status": due_status(seminar.report_due, state, today),
         }
     in_progress = []
-    for r in await session.scalars(
-        select(ProgressReport).where(
-            ProgressReport.scholar_id == sid,
-            ProgressReport.deleted_at.is_(None),
-            ProgressReport.state.in_(("draft", "in_review", "sent_back")),
-        )
-    ):
-        kind = r.chain_snapshot[r.current_step]["kind"] if r.current_step is not None else None
-        in_progress.append(
-            {
-                "item_type": "progress_report",
-                "id": r.id,
-                "title": f"{r.period} {r.report_year}",
-                "state": r.state,
-                "waiting_on": STEP_LABELS[kind] if kind else None,
-            }
+    kinds = await items.enabled_kinds(session)
+    for item_type, kind in kinds.items():
+        for r in await session.scalars(
+            select(kind.model).where(
+                kind.model.scholar_id == sid,
+                kind.model.deleted_at.is_(None),
+                kind.model.state.in_(("draft", "in_review", "sent_back")),
+            )
+        ):
+            step = r.chain_snapshot[r.current_step]["kind"] if r.current_step is not None else None
+            in_progress.append(
+                {
+                    "item_type": item_type,
+                    "id": r.id,
+                    "title": kind.title(r),
+                    "state": r.state,
+                    "waiting_on": STEP_LABELS[step] if step else None,
+                }
+            )
+    publications = None
+    if "publication" in kinds:
+        publications = await session.scalar(
+            select(func.count())
+            .select_from(Publication)
+            .where(
+                Publication.scholar_id == sid,
+                Publication.deleted_at.is_(None),
+                Publication.state == "approved",
+            )
         )
     meetings_q = select(func.max(Meeting.meeting_date), func.max(Meeting.next_meeting_date)).where(
         Meeting.scholar_id == sid, Meeting.deleted_at.is_(None)
@@ -159,6 +173,7 @@ async def _scholar_section(session: AsyncSession, principal: Principal) -> dict[
         "next_seminar": next_seminar,
         "in_progress": in_progress,
         "open_todos": open_todos or 0,
+        "approved_publications": publications,
         "last_meeting": last_meeting,
         "next_meeting": next_meeting if next_meeting and next_meeting >= today else None,
         "latest_decision": (
@@ -220,7 +235,8 @@ async def _unit_section(
     )
     now = datetime.now(UTC)
     stuck = []
-    for item_type, kind in items.REGISTRY.items():
+    kinds = await items.enabled_kinds(session)
+    for item_type, kind in kinds.items():
         q = (
             select(kind.model, User.full_name, func.max(ApprovalActionRow.at))
             .join(Scholar, Scholar.id == kind.model.scholar_id)
@@ -274,7 +290,20 @@ async def _unit_section(
         "stuck_items": sorted(stuck, key=lambda s: -s["days"])[:LIST_LIMIT],
         "supervisor_load": [{"name": n, "load": load, "max": m} for n, m, load in loads],
         "children": children,
+        "publications_this_year": None,
     }
+    if "publication" in kinds:
+        section["publications_this_year"] = await session.scalar(
+            select(func.count())
+            .select_from(Publication)
+            .join(Scholar, Scholar.id == Publication.scholar_id)
+            .where(
+                in_unit,
+                Publication.deleted_at.is_(None),
+                Publication.state == "approved",
+                Publication.pub_year == now.year,
+            )
+        )
     if "admin" in roles:
         section["without_supervisor"] = [
             {"id": i, "name": n}

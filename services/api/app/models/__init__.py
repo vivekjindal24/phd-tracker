@@ -5,6 +5,7 @@ from app.models.meetings import Meeting
 from app.models.milestones import Milestone
 from app.models.org import Faculty, OrgUnit, RoleAssignment, Scholar, User
 from app.models.reports import ProgressReport
+from app.models.research import Conference, Publication
 from app.models.seminars import (
     Seminar,
     SeminarGrade,
@@ -30,6 +31,7 @@ __all__ = [
     "AuditLog",
     "Base",
     "Comment",
+    "Conference",
     "Faculty",
     "FileRow",
     "JobRun",
@@ -41,6 +43,7 @@ __all__ = [
     "OrgUnit",
     "PasswordToken",
     "ProgressReport",
+    "Publication",
     "RefreshToken",
     "RoleAssignment",
     "Scholar",

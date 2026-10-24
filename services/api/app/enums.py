@@ -131,16 +131,27 @@ TODO_STATUSES = get_args(TodoStatus)
 Period = Literal["January-June", "July-December"]
 PERIODS = get_args(Period)
 
+PubType = Literal["journal", "conference", "book_chapter", "patent"]
+PUB_TYPES = get_args(PubType)
+Indexing = Literal["scopus", "wos", "ugc_care", "other"]
+INDEXINGS = get_args(Indexing)
+PubStatus = Literal["submitted", "accepted", "published"]
+PUB_STATUSES = get_args(PubStatus)
+ConferenceType = Literal["paper_presented", "poster", "attended", "invited_talk", "workshop"]
+CONFERENCE_TYPES = get_args(ConferenceType)
+
 # Groups a supervisor can share meeting minutes with (PRD F7); unticked groups see only the date.
 MeetingShare = Literal["unit_heads", "research_office", "admins"]
 MEETING_SHARES = get_args(MeetingShare)
 
 # Records comments can hang off (DATABASE.md §3.7); visibility = the record's.
-CommentTarget = Literal["scholars", "meetings", "progress_reports", "milestones"]
+CommentTarget = Literal[
+    "scholars", "meetings", "progress_reports", "milestones", "publications", "conferences"
+]
 COMMENT_TARGETS = get_args(CommentTarget)
 
 # Tables files may hang off; each phase adds its owners (with a migration widening the CHECK).
-FileOwner = Literal["scholars"]
+FileOwner = Literal["scholars", "publications", "conferences"]
 FILE_OWNER_TABLES = get_args(FileOwner)
 FileStatus = Literal["pending", "ready"]
 FILE_STATUSES = get_args(FileStatus)

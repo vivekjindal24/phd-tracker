@@ -371,3 +371,43 @@
   height: 18px;
   accent-color: var(--accent-strong);
 }
+
+/* A vertical form inside a card; rows of fields share the width. */
+.stack-form {
+  display: grid;
+  gap: var(--space-4);
+  max-width: 760px;
+}
+.stack-form .row > .field {
+  flex: 1 1 160px;
+}
+/* A group of checkboxes, e.g. indexing databases. */
+.check-row {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-5);
+}
+.check-row legend {
+  font-weight: 700;
+  font-size: var(--text-sm);
+  margin-bottom: var(--space-2);
+}
+/* An office's step-only fields, set apart inside the record card. */
+.verify {
+  display: grid;
+  gap: var(--space-3);
+  margin-top: var(--space-5);
+  padding: var(--space-4);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  box-shadow: var(--clay-shadow-pressed);
+}
+.verify h3 {
+  margin: 0;
+}
+.verify .muted {
+  margin: 0;
+}

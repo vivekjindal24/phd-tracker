@@ -8,6 +8,7 @@ from app.errors import install_error_handlers
 from app.routers import (
     auth,
     comments,
+    conferences,
     dashboard,
     explore,
     faculty,
@@ -20,6 +21,7 @@ from app.routers import (
     milestones,
     notifications,
     org_units,
+    publications,
     reports,
     scholars,
     seminars,
@@ -68,6 +70,8 @@ for module in (
     notifications,
     files,
     imports,
+    publications,
+    conferences,
 ):
     api.include_router(module.router)
 app.include_router(api)

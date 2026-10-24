@@ -24,6 +24,7 @@ type UnitSection = {
   stuck_items: { item_type: string; id: string; title: string; scholar: string; step: string; days: number }[];
   supervisor_load: { name: string; load: number; max: number }[];
   children: { id: string; name: string; scholars: number; overdue: number }[];
+  publications_this_year: number | null;
   without_supervisor?: Ref[];
   units_without_head?: Ref[];
 };
@@ -38,6 +39,7 @@ type Dashboard = {
     next_seminar: { id: string; title: string; starts_at: string; venue: string; report_due: string; due_status: DueStatus } | null;
     in_progress: { item_type: string; id: string; title: string; state: ItemState; waiting_on: string | null }[];
     open_todos: number;
+    approved_publications: number | null;
     last_meeting: string | null;
     next_meeting: string | null;
     latest_decision: { milestone_type: MilestoneType; status: string; resolution_number: string | null } | null;
@@ -111,6 +113,9 @@ function UnitBlock({ u }: { u: UnitSection }) {
         <Tile label="Scholars" value={u.total_scholars} href="/scholars" tone="tile-accent" />
         <Tile label="Overdue reports" value={u.overdue_reports.length} tone={u.overdue_reports.length ? "tile-coral" : "tile-sage"} />
         <Tile label="Stuck over 14 days" value={u.stuck_items.length} tone={u.stuck_items.length ? "tile-butter" : ""} />
+        {u.publications_this_year !== null && (
+          <Tile label="Publications this year" value={u.publications_this_year} href="/publications" tone="tile-sage" />
+        )}
       </div>
       <div className="dash-grid">
         <Card><h3>By stage</h3><StageBars counts={u.scholars_by_stage} /></Card>
@@ -216,6 +221,9 @@ export default function HomePage() {
                 ) : <Tile label="No seminar scheduled yet" value="—" />}
                 <Tile label="Open to-dos" value={sch.open_todos} href="/todos" tone={sch.open_todos ? "tile-butter" : "tile-sage"} />
                 <Tile label="Stage" value={sch.stage} tone="tile-text" />
+                {sch.approved_publications !== null && (
+                  <Tile label="Verified publications" value={sch.approved_publications} href="/publications" tone="tile-sage" />
+                )}
                 <Tile label={sch.next_meeting ? `Next meeting ${formatDate(sch.next_meeting)}` : "Last meeting"}
                   value={sch.last_meeting ? formatDate(sch.last_meeting) : "—"} href="/meetings" tone="tile-text" />
               </div>

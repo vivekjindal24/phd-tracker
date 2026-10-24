@@ -10,9 +10,11 @@ from app.enums import (
     ApprovalBody,
     AssignedRole,
     CommentTarget,
+    ConferenceType,
     CoSupervision,
     Designation,
     FileOwner,
+    Indexing,
     ItemState,
     ItemType,
     MeetingShare,
@@ -22,6 +24,8 @@ from app.enums import (
     NotificationCategory,
     PanelKind,
     Period,
+    PubStatus,
+    PubType,
     SeminarGraders,
     SeminarStatus,
     Stage,
@@ -705,3 +709,84 @@ class ImportReport(BaseModel):
     errors: list[ImportRowError]
     invitations_sent: int | None
     invitations_failed: list[str]
+
+
+# --- publications & conferences ---------------------------------------------------------
+
+LongTitle = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=500)]
+Doi = Annotated[str, StringConstraints(strip_whitespace=True, pattern=r"^10\.\d{4,9}/\S{1,200}$")]
+ShortText = Annotated[str, StringConstraints(strip_whitespace=True, max_length=50)]
+
+
+class PublicationIn(BaseModel):
+    title: LongTitle
+    authors: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=2000)]
+    pub_type: PubType
+    venue: LongTitle
+    issn_isbn: ShortText | None = None
+    indexing: list[Indexing] = Field(default_factory=list, max_length=4)
+    doi: Doi | None = None
+    pub_year: int = Field(ge=1950, le=2100)
+    pub_status: PubStatus
+
+
+class PublicationUpdate(BaseModel):
+    title: LongTitle | None = None
+    authors: (
+        Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=2000)]
+        | None
+    ) = None
+    pub_type: PubType | None = None
+    venue: LongTitle | None = None
+    issn_isbn: ShortText | None = None
+    indexing: list[Indexing] | None = Field(default=None, max_length=4)
+    doi: Doi | None = None
+    pub_year: int | None = Field(default=None, ge=1950, le=2100)
+    pub_status: PubStatus | None = None
+
+
+class VerificationIn(BaseModel):
+    """What the Library confirms at its step (PRD M1)."""
+
+    indexing: list[Indexing] = Field(max_length=4)
+    doi: Doi | None = None
+
+
+class PublicationRow(BaseModel):
+    id: uuid.UUID
+    scholar: Ref
+    title: str
+    venue: str
+    pub_type: PubType
+    pub_year: int
+    indexing: list[Indexing]
+    state: ItemState
+    waiting_on: str | None
+    updated_at: datetime
+
+
+class ConferenceIn(BaseModel):
+    event_name: LongTitle
+    event_type: ConferenceType
+    event_date: date
+    place: Annotated[str, StringConstraints(strip_whitespace=True, max_length=200)] = ""
+    title: LongTitle | None = None
+
+
+class ConferenceUpdate(BaseModel):
+    event_name: LongTitle | None = None
+    event_type: ConferenceType | None = None
+    event_date: date | None = None
+    place: Annotated[str, StringConstraints(strip_whitespace=True, max_length=200)] | None = None
+    title: LongTitle | None = None
+
+
+class ConferenceOut(BaseModel):
+    id: uuid.UUID
+    scholar: Ref
+    event_name: str
+    event_type: ConferenceType
+    event_date: date
+    place: str
+    title: str | None
+    can_edit: bool

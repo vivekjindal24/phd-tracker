@@ -6,9 +6,12 @@ import { useFetch } from "@/lib/useFetch";
 import { Card } from "./ui/kit";
 import "./timeline.css";
 
-type Event = { at: string; kind: "meeting" | "report" | "decision" | "seminar"; title: string; detail: string | null; link: string; badge: string | null };
+type Event = { at: string; kind: string; title: string; detail: string | null; link: string; badge: string | null };
 
-const ICON: Record<Event["kind"], string> = { meeting: "💬", report: "📝", decision: "🏛️", seminar: "🎤" };
+const ICON: Record<string, string> = {
+  meeting: "💬", report: "📝", decision: "🏛️", seminar: "🎤", publication: "📄", conference: "🗣️",
+  thesis: "📚", clearance: "🎓",
+};
 const BADGE: Record<string, string> = {
   draft: "badge-draft", in_review: "badge-in_review", sent_back: "badge-sent_back", approved: "badge-approved",
   Approved: "badge-approved", Pending: "badge-draft", Rejected: "badge-sent_back", cancelled: "badge-sent_back",
@@ -26,7 +29,7 @@ export function Timeline({ scholarId }: { scholarId: string }) {
         <ol className="timeline">
           {data.map((e, i) => (
             <li key={`${e.kind}-${e.link}-${i}`}>
-              <span className="timeline-icon" aria-hidden="true">{ICON[e.kind]}</span>
+              <span className="timeline-icon" aria-hidden="true">{ICON[e.kind] ?? "•"}</span>
               <div>
                 <time dateTime={e.at}>{formatDate(e.at.slice(0, 10))}</time>
                 <Link href={e.link}>{e.title}</Link>

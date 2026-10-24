@@ -3,15 +3,15 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { api } from "@/lib/api";
+import type { CommentTarget } from "@/lib/types";
 import { errorText, useFetch } from "@/lib/useFetch";
 import { Button, Card, ErrorText } from "./ui/kit";
 import "./comments.css";
 
-type Target = "scholars" | "meetings" | "progress_reports" | "milestones";
 type CommentItem = { id: string; author: string; author_id: string; body: string; created_at: string; mine: boolean };
 
 /** A flat thread on any record; visible exactly when the record is (the API decides). */
-export function Comments({ target, recordId }: { target: Target; recordId: string }) {
+export function Comments({ target, recordId }: { target: CommentTarget; recordId: string }) {
   const { data, error, setData } = useFetch<CommentItem[]>(`/comments?table_name=${target}&record_id=${recordId}`);
   const [body, setBody] = useState("");
   const [postError, setPostError] = useState<string | null>(null);

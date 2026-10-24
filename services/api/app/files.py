@@ -1,18 +1,17 @@
-"""Files attached to records (PRD F13). Visibility is the OWNER record's: a file is readable
-exactly when its owner is, writable where the owner is writable (SECURITY.md §3)."""
+"""Files attached to records (PRD F13). Visibility is the OWNER record's (records.py): a file
+is readable exactly when its owner is, writable where the owner is writable (SECURITY.md §3)."""
 
 import uuid
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import scope, storage
+from app import records, storage
 from app.auth.principal import Principal
 from app.config import settings
 from app.crud import insert, update
 from app.errors import ApiError, forbidden
 from app.models import FileRow
-from app.rbac import can
 
 ALLOWED_CONTENT_TYPES = frozenset(
     {
@@ -29,28 +28,6 @@ ALLOWED_CONTENT_TYPES = frozenset(
         "image/jpeg",
     }
 )
-
-
-async def require_owner_read(
-    session: AsyncSession, principal: Principal, table: str, record_id: uuid.UUID
-) -> None:
-    if table == "scholars":
-        await scope.get_scholar_or_403(session, principal, record_id)
-        return
-    raise forbidden()
-
-
-async def require_owner_write(
-    session: AsyncSession, principal: Principal, table: str, record_id: uuid.UUID
-) -> None:
-    if table == "scholars":
-        scholar = await scope.get_scholar_or_403(session, principal, record_id)
-        # Reading a scholar is not enough: only an admin over the scholar's unit may attach.
-        if not can(principal, "scholars", "update"):
-            raise forbidden()
-        scope.require_admin_over(principal, await scope.unit_path(session, scholar.unit_id))
-        return
-    raise forbidden()
 
 
 async def start_upload(
@@ -71,7 +48,7 @@ async def start_upload(
     limit = settings.s3.max_upload_bytes
     if size_bytes > limit:
         raise ApiError(413, "file_too_large", f"Files can be at most {limit // (1024 * 1024)} MB.")
-    await require_owner_write(session, principal, table, record_id)
+    await records.require_write(session, principal, table, record_id)
     file_id = uuid.uuid4()
     key = f"{table}/{record_id}/{file_id}/{storage.safe_filename(file_name)}"
     row = await insert(

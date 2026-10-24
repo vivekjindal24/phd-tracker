@@ -2,15 +2,17 @@
 
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { Attachments } from "@/components/Attachments";
 import { Comments } from "@/components/Comments";
 import { DownloadButton } from "@/components/DownloadButton";
 import { Celebrate } from "@/components/items/Celebrate";
 import { ChainSteps } from "@/components/items/ChainSteps";
+import { PublicationDetails } from "@/components/items/PublicationDetails";
 import { StateBadge } from "@/components/items/StateBadge";
 import { Button, Card, ErrorText, Field, PageHeader } from "@/components/ui/kit";
 import { api } from "@/lib/api";
 import { useSession } from "@/lib/session";
-import type { ItemView } from "@/lib/types";
+import type { CommentTarget, ItemType, ItemView } from "@/lib/types";
 import { errorText, useFetch } from "@/lib/useFetch";
 import "./item.css";
 
@@ -20,6 +22,19 @@ const ACTION_TEXT: Record<string, string> = {
   approve: "approved",
   send_back: "sent back",
 };
+
+// The comment / file owner table behind each item type.
+const RECORD_TABLE: Partial<Record<ItemType, CommentTarget>> = {
+  progress_report: "progress_reports",
+  publication: "publications",
+};
+
+/** The type-specific record card; the chain, actions and history around it are generic. */
+function ItemContent({ item, onSaved }: { item: ItemView; onSaved: (v: ItemView) => void }) {
+  if (item.item_type === "progress_report") return <ReportContent item={item} onSaved={onSaved} />;
+  if (item.item_type === "publication") return <PublicationDetails item={item} onSaved={onSaved} />;
+  return null;
+}
 
 function celebratedKey(id: string) {
   return `anveshan.celebrated.${id}`;
@@ -100,7 +115,7 @@ function Actions({ item, run }: { item: ItemView; run: (action: string, body?: o
     return (
       <Card>
         <h2>Ready?</h2>
-        <p className="muted">Once submitted, the summary is locked while it goes up the chain.</p>
+        <p className="muted">Once submitted, the details are locked while it goes up the chain.</p>
         <Button kind="primary" disabled={busy} onClick={() => go("submit")}>Submit for approval</Button>
       </Card>
     );
@@ -179,6 +194,7 @@ export default function ItemPage() {
 
   if (error) return <ErrorText>{error}</ErrorText>;
   if (!item) return null;
+  const table = RECORD_TABLE[item.item_type];
   return (
     <>
       {celebrate && <Celebrate onDone={() => setCelebrate(false)} />}
@@ -195,8 +211,12 @@ export default function ItemPage() {
             <h2>Approval chain</h2>
             <ChainSteps chain={item.chain} />
           </Card>
-          {item.item_type === "progress_report" && <ReportContent item={item} onSaved={setData} />}
-          {item.item_type === "progress_report" && <Comments target="progress_reports" recordId={item.id} />}
+          <ItemContent item={item} onSaved={setData} />
+          {item.item_type === "publication" && (
+            <Attachments table="publications" recordId={item.id} canUpload={item.can_edit}
+              hint="The paper or acceptance letter, for the Library to check." />
+          )}
+          {table && <Comments target={table} recordId={item.id} />}
         </div>
         <div className="item-side">
           <ErrorText>{actError}</ErrorText>

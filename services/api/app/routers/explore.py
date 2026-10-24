@@ -16,16 +16,19 @@ from app.auth.principal import Principal
 from app.db import get_session
 from app.enums import MILESTONE_TYPES
 from app.models import (
+    Conference,
     Faculty,
     Meeting,
     Milestone,
     OrgUnit,
     ProgressReport,
+    Publication,
     Scholar,
     Seminar,
     SeminarScholar,
     User,
 )
+from app.modules import module_enabled
 from app.rbac import can
 from app.workflow import STEP_LABELS
 
@@ -38,8 +41,13 @@ def _as_dt(value) -> datetime:
     return value if isinstance(value, datetime) else datetime.combine(value, time(), tzinfo=UTC)
 
 
+MODULE_OF = {"publications": "publications", "conferences": "conferences"}
+
+
 async def _visible_for(session, principal, entity: str, scholar_id: uuid.UUID) -> bool:
     if not can(principal, entity, "read"):
+        return False
+    if entity in MODULE_OF and not await module_enabled(session, MODULE_OF[entity]):
         return False
     return bool(
         await session.scalar(
@@ -105,6 +113,39 @@ async def timeline(
                     "detail": d.resolution_number,
                     "link": f"/scholars/{scholar_id}",
                     "badge": d.status,
+                }
+            )
+    if await _visible_for(session, principal, "publications", scholar_id):
+        for p in await session.scalars(
+            select(Publication).where(
+                Publication.scholar_id == scholar_id, Publication.deleted_at.is_(None)
+            )
+        ):
+            step = p.chain_snapshot[p.current_step]["kind"] if p.current_step is not None else None
+            events.append(
+                {
+                    "at": p.approved_at or p.submitted_at or p.created_at,
+                    "kind": "publication",
+                    "title": p.title,
+                    "detail": f"Waiting on {STEP_LABELS[step]}" if step else p.venue,
+                    "link": f"/items/publication/{p.id}",
+                    "badge": p.state,
+                }
+            )
+    if await _visible_for(session, principal, "conferences", scholar_id):
+        for c in await session.scalars(
+            select(Conference).where(
+                Conference.scholar_id == scholar_id, Conference.deleted_at.is_(None)
+            )
+        ):
+            events.append(
+                {
+                    "at": _as_dt(c.event_date),
+                    "kind": "conference",
+                    "title": c.event_name,
+                    "detail": c.title or c.event_type.replace("_", " ").capitalize(),
+                    "link": "/conferences",
+                    "badge": None,
                 }
             )
     open_ = await seminars.open_to_faculty(session)
@@ -236,6 +277,29 @@ async def search(
                 "link": f"/scholars/{sid}",
             }
             for d, n, sid in rows
+        ]
+
+    out["publications"] = []
+    if can(principal, "publications", "read") and await module_enabled(session, "publications"):
+        rows = await session.execute(
+            select(Publication, ScholarUser.full_name)
+            .join(Scholar, Scholar.id == Publication.scholar_id)
+            .join(ScholarUser, ScholarUser.id == Scholar.user_id)
+            .where(
+                Publication.deleted_at.is_(None),
+                scope.scholar_predicate(principal, "publications"),
+                or_(Publication.title.ilike(like), Publication.venue.ilike(like)),
+            )
+            .order_by(Publication.pub_year.desc())
+            .limit(GROUP_LIMIT)
+        )
+        out["publications"] = [
+            {
+                "title": p.title,
+                "detail": f"{n} · {p.venue} · {p.pub_year}",
+                "link": f"/items/publication/{p.id}",
+            }
+            for p, n in rows
         ]
 
     open_ = await seminars.open_to_faculty(session)

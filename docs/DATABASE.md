@@ -218,11 +218,12 @@ presign, and the size is signed into the upload URL), `etag` (from the bucket on
 completion), `status` CHECK (pending / ready — `ready` only after the API has
 confirmed the object exists at the declared size), `uploaded_by` FK users, owner
 pair `(table_name, record_id)` with a CHECK whitelist that each phase widens by
-migration (Phase 1: `scholars`). Visibility is the owner record's
+migration (Phase 1: `scholars`; Phase 3 adds `publications`, `conferences`). Visibility is the owner record's
 `get_or_403`. Soft delete keeps the object in the bucket (retention).
 
 **comments** — flat threads; `(table_name, record_id)` polymorphic pair
-(indexed, CHECK whitelist of commentable tables), `author_id`, `body`
+(indexed, CHECK whitelist of commentable tables — scholars, meetings,
+progress_reports, milestones, publications, conferences), `author_id`, `body`
 (1–4000 chars). Visibility = the target record's `get_or_403`.
 
 **notifications** — `user_id` (indexed), `category` CHECK

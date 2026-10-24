@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import files, storage
+from app import files, records, storage
 from app.auth.deps import current_principal
 from app.auth.principal import Principal
 from app.crud import soft_delete
@@ -59,7 +59,7 @@ async def list_files(
     principal: Principal = Depends(current_principal),
     session: AsyncSession = Depends(get_session),
 ) -> list[FileRow]:
-    await files.require_owner_read(session, principal, table_name, record_id)
+    await records.require_read(session, principal, table_name, record_id)
     rows = await session.scalars(
         select(FileRow)
         .where(
@@ -80,7 +80,7 @@ async def download(
     session: AsyncSession = Depends(get_session),
 ) -> DownloadOut:
     row = await files.get_file(session, file_id)
-    await files.require_owner_read(session, principal, row.table_name, row.record_id)
+    await records.require_read(session, principal, row.table_name, row.record_id)
     if row.status != "ready":
         raise ApiError(409, "upload_incomplete", "This file has not finished uploading.")
     return DownloadOut(
@@ -94,9 +94,9 @@ async def delete_file(
     principal: Principal = Depends(current_principal),
     session: AsyncSession = Depends(get_session),
 ) -> None:
-    """Soft delete: the row disappears for everyone, the object stays (retention)."""
+    """Soft delete: the row disappears for everyone, the object stays (retention). Only while
+    the owner record is still writable by the caller — an approved item's files are frozen."""
     row = await files.get_file(session, file_id)
-    if row.uploaded_by != principal.user_id:
-        await files.require_owner_write(session, principal, row.table_name, row.record_id)
+    await records.require_write(session, principal, row.table_name, row.record_id)
     await soft_delete(session, principal, row)
     await session.commit()

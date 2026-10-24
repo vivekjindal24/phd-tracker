@@ -2,6 +2,7 @@
 page, actions and the approver queue then work for it with no per-type workflow code."""
 
 import uuid
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
@@ -11,8 +12,17 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import scope, workflow
 from app.auth.principal import Principal
-from app.errors import forbidden
-from app.models import ApprovalActionRow, ApprovalChain, OrgUnit, ProgressReport, Scholar, User
+from app.errors import ApiError, forbidden
+from app.models import (
+    ApprovalActionRow,
+    ApprovalChain,
+    OrgUnit,
+    ProgressReport,
+    Publication,
+    Scholar,
+    User,
+)
+from app.modules import module_enabled
 from app.workflow import ITEM_LABELS, STEP_LABELS, ItemContext
 
 
@@ -20,21 +30,47 @@ from app.workflow import ITEM_LABELS, STEP_LABELS, ItemContext
 class ItemKind:
     model: type
     entity: str  # rbac MATRIX row deciding who may see it at all
+    title: Callable[[Any], str]
+    content: Callable[[Any], dict[str, Any]]
+    module: str | None = None  # optional module that must be on (PRD F4)
 
-    def title(self, item: Any) -> str:
-        if self.model is ProgressReport:
-            return f"{item.period.replace('-', '–')} {item.report_year}"  # noqa: RUF001
-        raise NotImplementedError(self.model)
 
-    def content(self, item: Any) -> dict[str, Any]:
-        if self.model is ProgressReport:
-            return {"report_year": item.report_year, "period": item.period, "summary": item.summary}
-        raise NotImplementedError(self.model)
+def _report_title(r: ProgressReport) -> str:
+    return f"{r.period.replace('-', '–')} {r.report_year}"  # noqa: RUF001
+
+
+def _report_content(r: ProgressReport) -> dict[str, Any]:
+    return {"report_year": r.report_year, "period": r.period, "summary": r.summary}
+
+
+def _publication_content(p: Publication) -> dict[str, Any]:
+    return {
+        "title": p.title,
+        "authors": p.authors,
+        "pub_type": p.pub_type,
+        "venue": p.venue,
+        "issn_isbn": p.issn_isbn,
+        "indexing": list(p.indexing),
+        "doi": p.doi,
+        "pub_year": p.pub_year,
+        "pub_status": p.pub_status,
+    }
 
 
 REGISTRY: dict[str, ItemKind] = {
-    "progress_report": ItemKind(ProgressReport, "progress_reports"),
+    "progress_report": ItemKind(ProgressReport, "progress_reports", _report_title, _report_content),
+    "publication": ItemKind(
+        Publication, "publications", lambda p: p.title, _publication_content, "publications"
+    ),
 }
+
+
+async def enabled_kinds(session: AsyncSession) -> dict[str, ItemKind]:
+    return {
+        t: k
+        for t, k in REGISTRY.items()
+        if k.module is None or await module_enabled(session, k.module)  # type: ignore[arg-type]
+    }
 
 
 def kind_of(item_type: str) -> ItemKind:
@@ -53,6 +89,8 @@ async def load_ctx(
     lock: bool = False,
 ) -> ItemContext:
     kind = kind_of(item_type)
+    if kind.module and not await module_enabled(session, kind.module):  # type: ignore[arg-type]
+        raise ApiError(404, "module_disabled", "This feature is not enabled.")
     stmt = (
         select(kind.model, Scholar, OrgUnit.path)
         .join(Scholar, Scholar.id == kind.model.scholar_id)
@@ -173,7 +211,7 @@ async def queue(session: AsyncSession, principal: Principal) -> list[dict[str, A
     # ponytail: loads every visible in-review item then filters with can_act in Python —
     # fine at university scale (hundreds); push the step resolution into SQL if it grows.
     out = []
-    for item_type, kind in REGISTRY.items():
+    for item_type, kind in (await enabled_kinds(session)).items():
         rows = await session.execute(
             select(kind.model, Scholar, OrgUnit.path, User.full_name)
             .join(Scholar, Scholar.id == kind.model.scholar_id)

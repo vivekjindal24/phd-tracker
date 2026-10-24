@@ -27,6 +27,13 @@ const NAV: Entry[] = [
     ],
   },
   {
+    label: "Research",
+    items: [
+      { href: "/publications", label: "Publications", show: (me) => me.modules.publications && !me.roles.every((r) => r === "exam_office") },
+      { href: "/conferences", label: "Conferences & talks", show: (me) => me.modules.conferences && !me.roles.every((r) => r === "exam_office") },
+    ],
+  },
+  {
     label: "People",
     items: [
       { href: "/scholars", label: "Scholars", show: (me) => !onlyScholar(me) },

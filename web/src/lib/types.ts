@@ -347,3 +347,84 @@ export type ImportReport = {
   invitations_sent: number | null;
   invitations_failed: string[];
 };
+
+export type PubType = "journal" | "conference" | "book_chapter" | "patent";
+export type Indexing = "scopus" | "wos" | "ugc_care" | "other";
+export type PubStatus = "submitted" | "accepted" | "published";
+export const PUB_TYPE_LABELS: Record<PubType, string> = {
+  journal: "Journal article",
+  conference: "Conference paper",
+  book_chapter: "Book chapter",
+  patent: "Patent",
+};
+export const INDEXING_LABELS: Record<Indexing, string> = {
+  scopus: "Scopus",
+  wos: "Web of Science",
+  ugc_care: "UGC-CARE",
+  other: "Other",
+};
+export const PUB_STATUS_LABELS: Record<PubStatus, string> = {
+  submitted: "Submitted",
+  accepted: "Accepted",
+  published: "Published",
+};
+export type PublicationContent = {
+  title: string;
+  authors: string;
+  pub_type: PubType;
+  venue: string;
+  issn_isbn: string | null;
+  indexing: Indexing[];
+  doi: string | null;
+  pub_year: number;
+  pub_status: PubStatus;
+};
+export type PublicationRow = {
+  id: string;
+  scholar: Ref;
+  title: string;
+  venue: string;
+  pub_type: PubType;
+  pub_year: number;
+  indexing: Indexing[];
+  state: ItemState;
+  waiting_on: string | null;
+  updated_at: string;
+};
+
+export type ConferenceType = "paper_presented" | "poster" | "attended" | "invited_talk" | "workshop";
+export const CONFERENCE_TYPE_LABELS: Record<ConferenceType, string> = {
+  paper_presented: "Paper presented",
+  poster: "Poster",
+  attended: "Attended",
+  invited_talk: "Invited talk",
+  workshop: "Workshop",
+};
+export type Conference = {
+  id: string;
+  scholar: Ref;
+  event_name: string;
+  event_type: ConferenceType;
+  event_date: string;
+  place: string;
+  title: string | null;
+  can_edit: boolean;
+};
+
+export type FileOwner = "scholars" | "publications" | "conferences";
+export type CommentTarget =
+  | "scholars"
+  | "meetings"
+  | "progress_reports"
+  | "milestones"
+  | "publications"
+  | "conferences";
+export type FileItem = {
+  id: string;
+  file_name: string;
+  content_type: string;
+  size_bytes: number;
+  status: string;
+  uploaded_by: string;
+  created_at: string;
+};
