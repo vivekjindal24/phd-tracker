@@ -1,0 +1,43 @@
+# One origin for the app (web, /api, /export) and one for presigned file URLs.
+# Automatic HTTPS when SCHEME=https; SCHEME=http only for a local trial.
+{$SCHEME}://{$DOMAIN} {
+	encode zstd gzip
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+		Referrer-Policy strict-origin-when-cross-origin
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		-Server
+	}
+	handle /api/* {
+		reverse_proxy api:8900
+	}
+	handle_path /export/* {
+		reverse_proxy export:8902
+	}
+	handle {
+		reverse_proxy web:3000
+	}
+}
+
+# Browsers PUT/GET file bytes here with short-lived presigned URLs (SECURITY.md §6).
+# Garage has no per-bucket CORS of its own here, so Caddy answers for it.
+{$SCHEME}://{$FILES_DOMAIN} {
+	header {
+		Access-Control-Allow-Origin "{$SCHEME}://{$DOMAIN}"
+		Access-Control-Expose-Headers ETag
+		Vary Origin
+		-Server
+	}
+	@preflight method OPTIONS
+	handle @preflight {
+		header Access-Control-Allow-Methods "GET, HEAD, PUT"
+		header Access-Control-Allow-Headers "Content-Type"
+		header Access-Control-Max-Age 3600
+		respond 204
+	}
+	handle {
+		reverse_proxy garage:3900
+	}
+}

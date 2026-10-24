@@ -21,7 +21,7 @@ university's own server/NAS (production).
 | `services/export` | Node/TypeScript | Nothing — stateless PDF/CSV rendering over the API's `/internal` endpoints, caller's token forwarded |
 | `web` | Next.js App Router | Nothing — client UI |
 | Database | Postgres 16 | the single source of state |
-| Object storage | S3-compatible (R2 / MinIO) | file bytes only; the API holds metadata and signs URLs |
+| Object storage | S3-compatible (R2 / Garage) | file bytes only; the API holds metadata and signs URLs |
 
 Hard rules (AGENTS.md): the export service holds zero auth/data logic; all
 business rules live in the API's `scope`/`rbac`/`workflow` modules, never in
@@ -47,13 +47,18 @@ UI or scripts; file bytes never pass through the export service.
 | Postgres | Neon (branch per environment) | `postgres:16` container, volume on the NAS |
 | API, export | Render free (Docker build from repo, region Ohio = Neon's) | containers built from the same Dockerfiles |
 | Web | Vercel | `web` standalone container |
-| Files | Cloudflare R2 | MinIO container (S3-compatible), volume on the NAS |
+| Files | Cloudflare R2 | Garage container (S3-compatible), volume on the NAS, served at its own `FILES_DOMAIN` through Caddy |
 | Email | free SMTP relay | university SMTP |
 | TLS / routing | platform default | Caddy reverse proxy (automatic HTTPS) |
-| Scheduled jobs | GitHub Actions cron, once daily | cron container, once daily |
+| Scheduled jobs | GitHub Actions cron, once daily | cron container: daily job + nightly backup |
 
 The code never branches on the target: everything differs only by
-environment variables (§9).
+environment variables (§9). In production Caddy serves the app on one origin
+(`/api/*` → API, `/export/*` → export, the rest → web) and the file store on
+`FILES_DOMAIN`, which inside the compose network resolves to Caddy so the API
+and browsers sign and reach the same URL. Garage replaced MinIO (Decided
+2026-10-24): MinIO stopped publishing its free server image. The operator's
+install, backup and restore steps are in `deploy/README.md`.
 
 **Current dev/test deployment (2026-10):** branch `rewrite` →
 web `https://research.vivekjindal.in` (Vercel project `anveshan`, root
@@ -71,7 +76,7 @@ Browser (web)
    │                   │   ▲  /internal/*, caller's token forwarded
    │                   │   └──────── services/export ◄── PDF/CSV download
    │                   └─ signs URLs ─┐
-   └──── file PUT/GET (presigned) ────► S3-compatible storage (R2 / MinIO)
+   └──── file PUT/GET (presigned) ────► S3-compatible storage (R2 / Garage)
 ```
 
 ## 6. Key Modules (services/api)
@@ -136,9 +141,9 @@ Browser (web)
 ```
 anveshan (repo: phd-tracker)/
 ├── AGENTS.md  README.md
-├── docker-compose.yml        dev stack (Postgres + MinIO + API + export)
-├── deploy/compose.prod.yml   self-hosted production stack (+ web, Caddy, cron)
-├── .github/workflows/        ci.yml, deploy.yml, cron.yml (daily reminders)
+├── deploy/                   self-hosted stack: compose.prod.yml, Caddyfile, garage.toml,
+│                             garage-init.sh, cron/ (daily job + backups), README.md
+├── .github/workflows/        ci.yml (tests + fresh-install stack), cron.yml (daily job, cloud)
 ├── docs/                     source of truth
 ├── services/api/             FastAPI app + alembic/ + tests/
 ├── services/export/          Express service + src/ + tests/
@@ -203,7 +208,7 @@ keep-alive: it runs once a day.
 | `ltree` for the org tree | subtree visibility is one indexed predicate, any depth |
 | One generic approval engine + chain snapshot | four item types, one state machine; chain edits never corrupt in-flight items |
 | Chains university-wide, not per unit | owner decision: simpler and consistent across departments |
-| Files in S3-compatible storage, presigned URLs | theses are 10–50 MB; same code on R2 (dev) and MinIO on a NAS (prod) |
+| Files in S3-compatible storage, presigned URLs | theses are 10–50 MB; same code on R2 (dev) and Garage on a NAS (prod) |
 | Optional modules as a settings table | not every university needs grants/admissions; disabled = invisible + 404 |
 | JWT + rotating refresh over server sessions | stateless API; works on any host |
 | Docker images for every service | one build runs on free cloud and on a NAS |

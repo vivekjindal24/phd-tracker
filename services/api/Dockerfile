@@ -13,6 +13,8 @@ RUN uv pip install --system --no-cache -r pyproject.toml
 COPY alembic.ini .
 COPY alembic ./alembic
 COPY app ./app
+# Sources checked out on exFAT (or under a strict umask) arrive owner-only: let the app user read them.
+RUN chmod -R a+rX /srv
 
 RUN useradd --system --uid 10001 anveshan
 USER anveshan

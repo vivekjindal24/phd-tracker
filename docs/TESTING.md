@@ -40,7 +40,7 @@
 - Fixtures build a small tree (Root → School A {Dept A1, Dept A2}, School B
   {Dept B1}) and mint one user per role, plus a multi-role user (supervisor +
   HoD of A1 + admin of A1).
-- Object storage: tests run against a MinIO container (CI service) — no
+- Object storage: tests run against a real bucket (R2 test bucket locally, a Garage container in CI) — no
   mocks for the S3 API. SMTP: the low-level send is replaced by a capture
   (outbox) in tests; delivery outcomes (sent / failed / muted / not
   configured) are asserted on the notification rows.
@@ -59,8 +59,11 @@ DATABASE_URL="postgresql+psycopg://$(whoami)@localhost:5432/anveshan_test" \
 ruff check .
 ```
 
-CI `api` job: `postgres:16` + `minio` service containers, migration chain,
-suite.
+CI (`.github/workflows/ci.yml`): `api` — `postgres:16` service + Garage
+container set up by `deploy/garage-init.sh`, lint, migration chain, suite;
+`export`; `web` typecheck + build; `stack` — fresh install of
+`deploy/compose.prod.yml` (build, boot, file store, bootstrap admin, health and
+login through Caddy, daily job, backup).
 
 ### services/export — node:test
 Stub `node:http` API server; auth header forwarding, PDF/CSV bytes, empty
@@ -83,8 +86,9 @@ npm ci && npm run typecheck && npm test
 ## 3. Local Stack
 
 ```bash
-docker compose up            # Postgres + MinIO + API + export
-# web: cd web && npm run dev
+services/api/run-dev.sh      # API on :8900 (local Postgres, R2 dev bucket)
+cd services/export && npm run dev   # :8902
+cd web && npm run dev        # :3000
 ```
 
 Smoke test: `/api/v1/healthz` (:8900), `/healthz` (:8902), log in as each

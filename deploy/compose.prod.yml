@@ -1,0 +1,134 @@
+# Self-hosted production stack for one university (ARCHITECTURE.md §4, deploy/README.md).
+# Run from the repo root: docker compose -f deploy/compose.prod.yml --env-file deploy/.env up -d --build
+name: anveshan
+
+x-site: &site ${SCHEME:-https}://${DOMAIN:?set DOMAIN in deploy/.env}
+
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: anveshan
+      POSTGRES_DB: anveshan
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+    volumes:
+      - ${DATA_DIR:?set DATA_DIR}/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U anveshan -d anveshan"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  garage:
+    image: dxflrs/garage:v2.5.0
+    restart: unless-stopped
+    environment:
+      GARAGE_RPC_SECRET: ${GARAGE_RPC_SECRET:?set GARAGE_RPC_SECRET}
+    volumes:
+      - ./garage.toml:/etc/garage.toml:ro
+      - ${DATA_DIR}/garage/meta:/var/lib/garage/meta
+      - ${DATA_DIR}/garage/data:/var/lib/garage/data
+
+  api:
+    build: ../services/api
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      garage:
+        condition: service_started
+    environment:
+      DATABASE_URL: postgresql://anveshan:${POSTGRES_PASSWORD}@db:5432/anveshan
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET}
+      CORS_ORIGINS: *site
+      APP_BASE_URL: *site
+      # Browsers and the API both reach the file store at its public URL; inside this
+      # network that name resolves to Caddy (see caddy.networks), so signatures match.
+      S3_ENDPOINT: ${SCHEME:-https}://${FILES_DOMAIN:?set FILES_DOMAIN}
+      S3_REGION: garage
+      S3_BUCKET: ${S3_BUCKET:-anveshan}
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:?set S3_ACCESS_KEY_ID}
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:?set S3_SECRET_ACCESS_KEY}
+      MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-100}
+      CRON_SECRET: ${CRON_SECRET:?set CRON_SECRET}
+      # Optional groups, each all-or-nothing (ARCHITECTURE.md §9); empty = off.
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      MAIL_FROM: ${MAIL_FROM:-}
+      AI_BASE_URL: ${AI_BASE_URL:-}
+      AI_API_KEY: ${AI_API_KEY:-}
+      AI_MODEL: ${AI_MODEL:-}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      MICROSOFT_CLIENT_ID: ${MICROSOFT_CLIENT_ID:-}
+      MICROSOFT_CLIENT_SECRET: ${MICROSOFT_CLIENT_SECRET:-}
+      MICROSOFT_TENANT_ID: ${MICROSOFT_TENANT_ID:-}
+      SSO_ALLOWED_DOMAINS: ${SSO_ALLOWED_DOMAINS:-}
+      API_PUBLIC_URL: *site
+
+  export:
+    build: ../services/export
+    restart: unless-stopped
+    depends_on: [api]
+    environment:
+      API_URL: http://api:8900
+      CORS_ORIGINS: *site
+      TZ: ${TZ:-Asia/Kolkata}
+
+  web:
+    build:
+      context: ../web
+      args:
+        NEXT_PUBLIC_API_URL: *site
+        NEXT_PUBLIC_EXPORT_URL: ${SCHEME:-https}://${DOMAIN}/export
+    restart: unless-stopped
+    depends_on: [api]
+
+  caddy:
+    image: caddy:2.11.7
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      SCHEME: ${SCHEME:-https}
+      DOMAIN: ${DOMAIN}
+      FILES_DOMAIN: ${FILES_DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ${DATA_DIR}/caddy:/data
+    networks:
+      default:
+        aliases:
+          - ${FILES_DOMAIN}
+    depends_on: [web, api, export, garage]
+
+  # Daily job (fellowship reminders, …) and nightly backups to a second disk.
+  cron:
+    build: ./cron
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      TZ: ${TZ:-Asia/Kolkata}
+      CRON_SECRET: ${CRON_SECRET}
+      PGHOST: db
+      PGUSER: anveshan
+      PGDATABASE: anveshan
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      BACKUP_KEEP_DAYS: ${BACKUP_KEEP_DAYS:-30}
+      S3_BUCKET: ${S3_BUCKET:-anveshan}
+      RCLONE_CONFIG_STORE_TYPE: s3
+      RCLONE_CONFIG_STORE_PROVIDER: Other
+      RCLONE_CONFIG_STORE_ENDPOINT: http://garage:3900
+      RCLONE_CONFIG_STORE_REGION: garage
+      RCLONE_CONFIG_STORE_FORCE_PATH_STYLE: "true"
+      RCLONE_CONFIG_STORE_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID}
+      RCLONE_CONFIG_STORE_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY}
+    volumes:
+      - ${BACKUP_DIR:?set BACKUP_DIR (a second disk)}:/backup

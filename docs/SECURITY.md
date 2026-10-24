@@ -199,8 +199,9 @@ httpOnly SameSite=Strict cookie behind a Next route-handler proxy.
   the production NAS is a deployment requirement.
 - **Retention:** records are permanent — they ARE the PhD trail. Soft-delete
   only; deletion requests escalate to the root admin.
-- **Backups (production):** nightly `pg_dump` + bucket sync to a second
-  disk; restore tested before go-live.
+- **Backups (production):** nightly `pg_dump` + bucket copy to a second
+  disk by the cron container (`deploy/cron/run.sh`); restore
+  (`deploy/README.md`) tested before go-live.
 
 ## 9. Logging
 
