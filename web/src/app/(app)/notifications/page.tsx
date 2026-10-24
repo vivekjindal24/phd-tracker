@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { type MouseEvent, useCallback, useEffect, useState } from "react";
 import { Owl } from "@/components/brand/Owl";
 import { Button, Card, ErrorText, PageHeader } from "@/components/ui/kit";
 import { api, ApiError } from "@/lib/api";
@@ -57,6 +58,7 @@ function EmailSettings() {
 
 export default function NotificationsPage() {
   const { reload } = useSession();
+  const router = useRouter();
   const [items, setItems] = useState<NotificationItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -78,6 +80,15 @@ export default function NotificationsPage() {
     } catch (e) {
       setError(e instanceof ApiError ? e.message : String(e));
     }
+  }
+
+  /** Opening a notification reads it: mark it first, then go to the record. A new-tab click
+   *  (cmd/ctrl/middle) keeps the browser's own behaviour and still marks it read. */
+  async function open(e: MouseEvent<HTMLAnchorElement>, n: NotificationItem) {
+    const newTab = e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0;
+    if (!newTab) e.preventDefault();
+    if (!n.read_at) await markRead(n.id);
+    if (!newTab && n.link) router.push(n.link);
   }
 
   async function markAll() {
@@ -114,7 +125,7 @@ export default function NotificationsPage() {
                 <time dateTime={n.created_at}>{new Date(n.created_at).toLocaleString()}</time>
               </div>
               <div className="inbox-actions">
-                {n.link && <Link href={n.link}>Open</Link>}
+                {n.link && <Link href={n.link} onClick={(e) => open(e, n)}>Open</Link>}
                 {!n.read_at && (
                   <Button kind="ghost" onClick={() => markRead(n.id)}>
                     Mark read
