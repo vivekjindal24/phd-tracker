@@ -219,15 +219,21 @@ httpOnly SameSite=Strict cookie behind a Next route-handler proxy.
 
 ## 10. Security Checklist
 
-- [ ] Scope computed only in `scope.py`; 403-not-404 everywhere
-- [ ] Negative tests: other scholar, other unit's head/admin, office outside
+Verified 2026-10-25 (code, tests and the approval-chain click-through):
+
+- [x] Scope computed only in `scope.py`; 403-not-404 everywhere
+- [x] Negative tests: other scholar, other unit's head/admin, office outside
       its item types, unshared meeting minutes, disabled module
-- [ ] No self-approval / consecutive-step approval
-- [ ] Admins cannot grant roles above their own unit
-- [ ] Rotating single-use refresh tokens; login throttling
-- [ ] Private bucket; presigned URLs only after `get_or_403`
-- [ ] No secrets in repo; loud env validation
-- [ ] CORS allowlist on both services
-- [ ] Soft delete + audit on every mutation; hashes redacted
-- [ ] HTTPS verified on every deployment
-- [ ] `pip-audit` / `npm audit` clean before pilot
+- [x] No self-approval / consecutive-step approval
+- [x] Admins cannot grant roles above their own unit
+- [x] Rotating single-use refresh tokens; login throttling
+- [x] Private bucket; presigned URLs only after `get_or_403`
+- [x] No secrets in repo; loud env validation
+- [x] CORS allowlist on both services
+- [x] Soft delete + audit on every mutation; hashes redacted (operational
+      tables excepted, DATABASE.md `audit_log`)
+- [ ] HTTPS verified on every deployment — cloud dev verified (Render API and
+      the Vercel web redirect to HTTPS, valid certificates); each self-hosted
+      install is checked at go-live
+- [x] `pip-audit` / `npm audit` clean before pilot — re-run before the pilot:
+      the API image installs from version ranges, not a lockfile

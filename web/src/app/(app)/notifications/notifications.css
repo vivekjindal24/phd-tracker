@@ -38,3 +38,11 @@
   gap: var(--space-3);
   flex: none;
 }
+
+.email-settings {
+  margin-top: var(--space-6);
+}
+.email-settings .check-row {
+  display: grid;
+  gap: var(--space-2);
+}

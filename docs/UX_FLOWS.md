@@ -210,8 +210,9 @@ new profile. Heads of the unit see the list read-only.
 ## Flow 12 — Notifications
 
 Bell icon with unread count → inbox (newest first, mark read). Each item
-links to the record. **Settings → Notifications**: email on/off per
-category; in-app always on.
+links to the record. Below the inbox, **Email me when…**: email on/off per
+category, saved on each tick; in-app always on. (On the inbox page, not
+Settings: Settings is the root admin's.)
 
 ## Flow 13 — Search
 

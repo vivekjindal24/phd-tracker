@@ -275,14 +275,19 @@ thesis_submissions), `author_id`, `body`
 
 **notifications** — `user_id` (indexed), `category` CHECK
 (approval_waiting / sent_back / approved / apr_due / meeting_tomorrow /
-fellowship_ending / system), `title`, `body`, `link`, `read_at`,
+fellowship_ending / seminar / system), `title`, `body`, `link`, `read_at`,
 `email_status` CHECK (not_sent / sent / failed / muted), `email_error`.
 
 **audit_log** — every mutation on every table: `table_name`, `record_id`,
 `action` CHECK (insert / update / soft_delete / restore / transition),
 `from_state` / `to_state`, `prev` / `data` jsonb snapshots (password hashes
 and token hashes redacted), `actor_id`, `actor_roles` text[], `at`. Written
-only by `crud.py` / `workflow.py`.
+only by `crud.py` / `workflow.py`. "Every mutation" means every record a person
+creates or changes; operational rows are not audited: `notifications` (and
+their read flag), `refresh_tokens`, `password_tokens`, `login_attempts`, SSO
+login attempts, `job_runs`, and `approval_actions` (itself the approval trail,
+alongside the item's `transition` row). A unit move audits the moved unit; its
+descendants' paths follow from it.
 
 **refresh_tokens** — `user_id` (indexed), `token_hash` (sha256; raw tokens
 never stored), `expires_at`, `revoked_at`. Single-use, rotating.
