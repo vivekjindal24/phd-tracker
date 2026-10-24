@@ -46,7 +46,7 @@ def due_status(report_due: date, report_state: str | None, today: date) -> str:
     return "upcoming"
 
 
-def _deadlines_query(scholar_filter):
+def deadlines_query(scholar_filter):
     """One row per (scholar, live seminar): the seminar's report deadline and the state of
     the scholar's report for that seminar's period."""
     report = and_(
@@ -80,7 +80,7 @@ async def overdue_reports(session: AsyncSession, scholar_filter) -> list[dict[st
     """Every report past its seminar's due date and still not submitted (PRD F8)."""
     today = datetime.now(UTC).date()
     rows = await session.execute(
-        _deadlines_query(scholar_filter)
+        deadlines_query(scholar_filter)
         .where(Seminar.report_due < today)
         .order_by(Seminar.report_due)
     )
@@ -111,7 +111,7 @@ async def _scholar_section(session: AsyncSession, principal: Principal) -> dict[
         )
     upcoming = (
         await session.execute(
-            _deadlines_query(Scholar.id == sid)
+            deadlines_query(Scholar.id == sid)
             .where(Seminar.starts_at >= datetime.now(UTC) - timedelta(days=1))
             .order_by(Seminar.starts_at)
             .limit(1)

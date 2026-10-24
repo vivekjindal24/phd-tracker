@@ -177,8 +177,11 @@ Web: `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_EXPORT_URL`.
 ## 10. Scheduled Jobs
 
 One daily job calls `POST /api/v1/internal/cron/daily` (header
-`X-Cron-Secret`): fellowship-ending reminders today; APR due/overdue and
-next-day meeting reminders are still to be added to it. Idempotent per day (a
+`X-Cron-Secret`): fellowship ending in 60 days; APR due in 14 days (scholar)
+and overdue the day after the seminar's report due date (scholar +
+supervisor), while unsubmitted; meeting tomorrow, from the next meeting date
+on the latest meeting logged for each scholar and supervisor. Reminders match
+the exact day, so a missed run skips that day's reminders. Idempotent per day (a
 `job_runs` row guards re-runs). Off (404) while `CRON_SECRET` is unset. Not a
 keep-alive: it runs once a day.
 

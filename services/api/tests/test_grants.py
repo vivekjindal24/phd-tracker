@@ -240,7 +240,7 @@ async def test_daily_job_reminds_once(client, world, grants_on, monkeypatch):
     ends = (datetime.now(UTC).date() + timedelta(days=60)).isoformat()
     await fellowship(client, world, start_date="2024-01-01", end_date=ends)
     first = await client.post(url, headers={"X-Cron-Secret": secret})
-    assert first.json() == {"ran": True, "fellowship_reminders": 1}
+    assert first.json()["ran"] is True and first.json()["fellowship_reminders"] == 1
     again = await client.post(url, headers={"X-Cron-Secret": secret})
     assert again.json()["ran"] is False
     for user in (world.scholar_a1, world.meera):
