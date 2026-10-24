@@ -222,6 +222,7 @@ class SettingsOut(BaseModel):
     max_maternity_leave_days: int
     modules: dict[ModuleKey, bool]
     chains: dict[ItemType, list[ChainStep]]
+    email_configured: bool  # from the server's environment; forms offer email links only if set
 
 
 class SettingsUpdate(BaseModel):

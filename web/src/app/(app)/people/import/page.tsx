@@ -6,8 +6,8 @@ import { Owl } from "@/components/brand/Owl";
 import { DownloadButton } from "@/components/DownloadButton";
 import { Button, Card, ErrorText, Field, PageHeader, Table } from "@/components/ui/kit";
 import { api } from "@/lib/api";
-import type { ImportKind, ImportReport } from "@/lib/types";
-import { errorText } from "@/lib/useFetch";
+import type { ImportKind, ImportReport, SettingsData } from "@/lib/types";
+import { errorText, useFetch } from "@/lib/useFetch";
 import "../new/people.css";
 import "./import.css";
 
@@ -55,6 +55,7 @@ export default function ImportPage() {
   const [file, setFile] = useState<File | null>(null);
   const [report, setReport] = useState<ImportReport | null>(null);
   const [invite, setInvite] = useState(true);
+  const emailOn = useFetch<SettingsData>("/settings").data?.email_configured ?? false;
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -70,7 +71,7 @@ export default function ImportPage() {
     setError(null);
     const params = new URLSearchParams({
       dry_run: String(dryRun),
-      send_invitations: String(!dryRun && invite && kind !== "history"),
+      send_invitations: String(!dryRun && emailOn && invite && kind !== "history"),
     });
     let body: ArrayBuffer;
     try {
@@ -135,12 +136,14 @@ export default function ImportPage() {
               <Problems report={report} />
               {canImport && (
                 <div className="import-go">
-                  {kind !== "history" && (
+                  {kind !== "history" && (emailOn ? (
                     <label className="check">
                       <input type="checkbox" checked={invite} onChange={(e) => setInvite(e.target.checked)} />
                       Email each new person a link to set their password
                     </label>
-                  )}
+                  ) : (
+                    <p className="muted">Email isn&apos;t set up on this server, so no set-password links go out. Send them from each profile once it is.</p>
+                  ))}
                   <Button kind="primary" disabled={busy} onClick={() => send(false)}>
                     {busy ? "Importing…" : `Import ${report.to_create} ${report.to_create === 1 ? "row" : "rows"}`}
                   </Button>

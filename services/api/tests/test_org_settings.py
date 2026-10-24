@@ -105,6 +105,7 @@ async def test_settings_readable_by_all_with_default_chains(client, world):
         "research_office",
     ]
     assert body["modules"]["ledger"] is False
+    assert body["email_configured"] is False  # conftest clears SMTP_*
 
 
 @pytest.mark.parametrize(

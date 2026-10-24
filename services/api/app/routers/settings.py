@@ -10,6 +10,7 @@ from app.crud import update
 from app.db import get_session
 from app.enums import ItemType, ModuleKey
 from app.models import ApprovalChain, Module, Settings
+from app.notify import email_configured
 from app.schemas import ChainIn, ModuleUpdate, SettingsOut, SettingsUpdate
 
 router = APIRouter(prefix="/settings", tags=["settings"])
@@ -36,6 +37,7 @@ async def _read(session: AsyncSession) -> SettingsOut:
             "max_maternity_leave_days": settings.max_maternity_leave_days,
             "modules": modules,
             "chains": chains,
+            "email_configured": email_configured(),
         }
     )
 

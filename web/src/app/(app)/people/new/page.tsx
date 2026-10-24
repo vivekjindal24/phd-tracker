@@ -7,7 +7,7 @@ import { Button, ErrorText, Field, PageHeader } from "@/components/ui/kit";
 import { api } from "@/lib/api";
 import { useSession } from "@/lib/session";
 import { DESIGNATIONS } from "@/lib/types";
-import type { Designation, OrgUnit } from "@/lib/types";
+import type { Designation, OrgUnit, SettingsData } from "@/lib/types";
 import { errorText, useFetch } from "@/lib/useFetch";
 import "./people.css";
 
@@ -21,6 +21,8 @@ export default function AddPersonPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [invite, setInvite] = useState(true);
+  const emailOn = useFetch<SettingsData>("/settings").data?.email_configured;
+  const sendLink = (emailOn ?? false) && invite;
   const [password, setPassword] = useState("");
   const [unitId, setUnitId] = useState("");
   const [roll, setRoll] = useState("");
@@ -44,7 +46,7 @@ export default function AddPersonPage() {
     try {
       await api("/users", {
         method: "POST",
-        body: JSON.stringify({ email, full_name: name, password: invite ? null : password, ...profile }),
+        body: JSON.stringify({ email, full_name: name, password: sendLink ? null : password, ...profile }),
       });
       router.push(kind === "scholar" ? "/scholars" : "/faculty");
     } catch (err) {
@@ -73,12 +75,14 @@ export default function AddPersonPage() {
         <Field label="Email">
           <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
         </Field>
-        <label className="check">
-          <input type="checkbox" checked={invite} onChange={(e) => setInvite(e.target.checked)} />
-          Email them a link to set their own password
-        </label>
-        {!invite && (
-          <Field label="Initial password" hint="At least 10 characters. Share it with them privately; they can change it after logging in.">
+        {emailOn && (
+          <label className="check">
+            <input type="checkbox" checked={invite} onChange={(e) => setInvite(e.target.checked)} />
+            Email them a link to set their own password
+          </label>
+        )}
+        {emailOn !== undefined && !sendLink && (
+          <Field label="Initial password" hint={`At least 10 characters. Share it with them privately; they can change it after logging in.${emailOn ? "" : " Email isn't set up on this server, so no link can be sent."}`}>
             <input type="text" required minLength={10} value={password}
               onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" />
           </Field>

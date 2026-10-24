@@ -9,7 +9,7 @@ import { api } from "@/lib/api";
 import { formatDate } from "@/lib/format";
 import { useSession } from "@/lib/session";
 import { ENTRANCE_LABELS, RESULT_LABELS } from "@/lib/types";
-import type { Admission, EntranceRoute, InterviewResult, OrgUnit } from "@/lib/types";
+import type { Admission, EntranceRoute, InterviewResult, OrgUnit, SettingsData } from "@/lib/types";
 import { errorText, useFetch } from "@/lib/useFetch";
 
 function AddCandidate({ units, onAdded }: { units: OrgUnit[]; onAdded: () => void }) {
@@ -72,8 +72,9 @@ function AddCandidate({ units, onAdded }: { units: OrgUnit[]; onAdded: () => voi
   );
 }
 
-function Convert({ a, onDone }: { a: Admission; onDone: () => void }) {
+function Convert({ a, emailOn, onDone }: { a: Admission; emailOn: boolean; onDone: () => void }) {
   const [roll, setRoll] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -82,7 +83,7 @@ function Convert({ a, onDone }: { a: Admission; onDone: () => void }) {
     setBusy(true);
     setError(null);
     try {
-      await api(`/admissions/${a.id}/convert`, { method: "POST", body: JSON.stringify({ roll_number: roll }) });
+      await api(`/admissions/${a.id}/convert`, { method: "POST", body: JSON.stringify({ roll_number: roll, password: emailOn ? null : password }) });
       onDone();
     } catch (err) {
       setError(errorText(err));
@@ -95,6 +96,11 @@ function Convert({ a, onDone }: { a: Admission; onDone: () => void }) {
     <form className="row" onSubmit={submit}>
       <input aria-label={`Roll number for ${a.candidate_name}`} required maxLength={50} placeholder="Roll number"
         value={roll} onChange={(e) => setRoll(e.target.value)} />
+      {!emailOn && (
+        <input aria-label={`Initial password for ${a.candidate_name}`} required minLength={10} placeholder="Initial password"
+          title="At least 10 characters. Email isn't set up, so share it with them privately."
+          value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" />
+      )}
       <Button kind="primary" type="submit" disabled={busy}>{busy ? "Creating…" : "Make scholar"}</Button>
       <ErrorText>{error}</ErrorText>
     </form>
@@ -126,6 +132,7 @@ export default function AdmissionsPage() {
   const { me } = useSession();
   const { data, error, reload } = useFetch<Admission[]>("/admissions");
   const { data: units } = useFetch<OrgUnit[]>("/org-units");
+  const emailOn = useFetch<SettingsData>("/settings").data?.email_configured ?? false;
   const isOffice = me?.office_roles.includes("research_office") ?? false;
   const adminPaths = me?.unit_roles.filter((r) => r.role === "admin").map((r) => r.unit_path) ?? [];
   const writable = (units ?? []).filter((u) => isOffice || adminPaths.some((p) => u.path === p || u.path.startsWith(`${p}.`)));
@@ -133,7 +140,7 @@ export default function AdmissionsPage() {
   return (
     <>
       <PageHeader eyebrow="Academic administration" title="Admissions" />
-      <p className="muted">An internal record of admitted candidates. A selected candidate becomes a scholar with a login; they get an email to set their password.</p>
+      <p className="muted">An internal record of admitted candidates. A selected candidate becomes a scholar with a login; {emailOn ? "they get an email to set their password." : "give them the initial password you set (email isn’t set up on this server)."}</p>
       {writable.length > 0 && <AddCandidate units={writable} onAdded={reload} />}
       <ErrorText>{error}</ErrorText>
       {data && (
@@ -148,7 +155,7 @@ export default function AdmissionsPage() {
               <td>{a.can_edit && !a.scholar_id ? <ResultSelect a={a} onSaved={reload} /> : RESULT_LABELS[a.interview_result]}</td>
               <td>
                 {a.scholar_id ? <Link href={`/scholars/${a.scholar_id}`}>Scholar profile →</Link>
-                  : a.can_edit && a.interview_result === "selected" ? <Convert a={a} onDone={reload} /> : null}
+                  : a.can_edit && a.interview_result === "selected" ? <Convert a={a} emailOn={emailOn} onDone={reload} /> : null}
               </td>
             </tr>
           ))}

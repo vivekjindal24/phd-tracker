@@ -57,6 +57,7 @@ export type SettingsData = {
   max_maternity_leave_days: number;
   modules: Record<ModuleKey, boolean>;
   chains: Record<ItemType, { kind: StepKind }[]>;
+  email_configured: boolean;
 };
 
 export type NotificationItem = {
