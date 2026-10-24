@@ -39,7 +39,8 @@ jobs:
           python-version: "3.12"
       - name: Install
         working-directory: services/api
-        run: pip install -e ".[dev]"
+        # Dependencies only, as the Dockerfile does: the API isn't an installable package.
+        run: pip install uv && uv pip install --system -r pyproject.toml --extra dev
       - name: Lint
         working-directory: services/api
         run: ruff check . && ruff format --check .
