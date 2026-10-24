@@ -66,7 +66,11 @@ web `https://research.vivekjindal.in` (Vercel project `anveshan`, root
 (Render service `anveshan-api`, root `services/api`), export
 `https://phd-tracker-ik19.onrender.com` (Render, root `services/export`;
 Vercel `NEXT_PUBLIC_EXPORT_URL`), database `anveshan` in the existing Neon
-project. Both redeploy on every push to `rewrite`; `main`
+project. Files: R2 bucket `anveshan-dev`, whose CORS policy must allow the
+web origin (and `http://localhost:3000` for local dev) for GET/PUT/HEAD with
+the `content-type` header, exposing `ETag`; browsers upload and download
+straight to the bucket. Self-hosted installs need no bucket policy: Caddy
+answers CORS for Garage (`deploy/Caddyfile`). Both redeploy on every push to `rewrite`; `main`
 still serves v2 until the cut-over merge.
 
 ## 5. Architecture Diagram
