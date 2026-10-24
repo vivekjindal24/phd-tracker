@@ -123,9 +123,15 @@ has a name, a free-text kind label ("School", "Department", …) and a parent.
 Scholars and faculty belong to a unit. Root admin edits the tree; units are
 soft-deleted only when empty.
 
-**F2 — People, roles and scope.** Users log in with email + password.
-Role assignments bind a user to a role and (for scoped roles) a unit. Scope
-rule: a unit-scoped role sees its unit's subtree; supervisor sees their
+**F2 — People, roles and scope.** Users log in with email + password, or —
+when the installation configures it — with their **university Google or
+Microsoft account** (OpenID Connect). Single sign-on only matches an existing,
+active account by verified email; it never creates accounts. So when IT
+switches off a leaver's university account, that person can no longer log in
+(an open session ends within the refresh-token lifetime). New accounts get a
+**set-password email** (single-use link, 72 h); **Forgot password** sends the
+same link. Role assignments bind a user to a role and (for scoped roles) a
+unit. Scope rule: a unit-scoped role sees its unit's subtree; supervisor sees their
 supervisees; scholar sees self; the three offices are university-wide.
 Acceptance: a HoD of Physics never sees a Chemistry scholar (403); a person
 with two roles sees the union of both scopes, never more.
@@ -263,6 +269,31 @@ storage; upload cap configurable (default 100 MB — theses are large).
 PDF, unit summary PDF (heads). Anyone may export what they can see. PDFs stay
 print-like and readable in grayscale.
 
+**F16 — Bulk import.** Decided 2026-10-24. So that a department starts with
+its real data, not an empty system. An admin uploads an Excel (.xlsx) or CSV
+file built from a downloadable template, one sheet/file per kind:
+- **Faculty:** name, email, designation, unit, UGC cap (blank = designation
+  default).
+- **Scholars:** roll number, name, email, unit, supervisor email,
+  co-supervisor email (only when co-supervision is on), stage, admission date,
+  research title.
+- **History (RDC register):** roll number, milestone type, status, approval
+  body, resolution number, resolution date, notes.
+
+Acceptance criteria:
+- **Dry run first:** every row is validated and the admin sees per-row errors
+  (row number, column, reason) and a count of what would be created. Nothing
+  is written until the admin confirms.
+- **All or nothing:** a confirmed import runs in one transaction; any error →
+  nothing is written.
+- **Same rules as the forms:** units must lie in the admin's subtree,
+  supervisor caps hold (409 `supervisor_cap_exceeded` becomes a row error),
+  roll numbers and emails stay unique.
+- **Safe to re-run:** rows whose email / roll number already exists are
+  reported as "already present" and skipped, never overwritten.
+- Each created record writes its `audit_log` row; imported people get the
+  set-password email (F2) only when the admin ticks "send invitations".
+
 ### 6.3 Optional modules
 
 **M1 — Publications** (chain). Title, authors, type (journal / conference /
@@ -277,8 +308,21 @@ Recorded by the scholar, visible upward; no chain.
 **M3 — Documents & thesis.** Drafts and chapters with versions (file + note
 per version) and supervisor feedback (comments). Drafts are visible only to
 scholar and supervisor. **Thesis submission** (chain): title, final file,
-plagiarism tool + score (entered by Library at its step), examiners (entered
-by Exam Office at its step).
+plagiarism tool + score and the plagiarism-check certificate (entered by
+Library at its step), examiners (entered by Exam Office at its step).
+**After submission** (Decided 2026-10-24), on the approved thesis:
+- **Examiner reports:** the Exam Office records each examiner's report —
+  received date, recommendation (accept / minor revision / major revision /
+  reject), report file. Examiners have no login (§7).
+- **Viva:** the Exam Office records date, venue or online link, panel and
+  outcome (pass / re-defend after revision / fail) with the report file. A
+  passed viva moves the scholar's stage to Viva.
+- **Shodhganga deposit:** the Library records the deposit date, the
+  Shodhganga handle/URL and the certificate file — a record, not a sync.
+- **Examiner confidentiality:** examiner names are visible only to the Exam
+  Office, Research Office and root admin until the viva outcome is recorded;
+  the Exam Office releases reports (without names) to the scholar and
+  supervisor.
 
 **M4 — Coursework.** Course catalogue per unit (code, title, credits);
 enrolments per scholar (semester, grade, grade points); coursework clearance
@@ -306,7 +350,8 @@ submitted date).
 
 Intentionally NOT in this version:
 - A public applicant portal (admissions is internal record only).
-- NAAC/NIRF accreditation packs, Shodhganga sync.
+- NAAC/NIRF/AISHE accreditation packs (candidate for after the pilot, §12),
+  Shodhganga sync (the deposit is recorded by hand, M3).
 - Plagiarism-check API integration (scores are entered by the Library).
 - Payroll/accounting integration (the ledger records, it does not pay).
 - Multiple universities in one installation (one installation per
@@ -324,9 +369,15 @@ Intentionally NOT in this version:
 2. **Core daily use:** directory, meetings with sharing, APR with chain, RDC
    register, progress seminars (scheduling, grading, AI to-dos), dashboards,
    timeline, search, comments, APR PDF + register export.
-3. **Research record:** publications (chain), conferences, documents & thesis
-   submission (chain).
-4. **Academic administration:** coursework + clearance (chain), admissions.
+3. **Research record & onboarding:** bulk import (F16), university-email
+   login and set-password email (F2), publications (chain), conferences,
+   documents & thesis submission (chain) through examiner reports, viva and
+   Shodhganga deposit (M3).
+4. **Academic administration & UGC rules:** coursework + clearance (chain),
+   admissions; UGC rules warned before they are broken (6-year maximum with
+   allowed extensions and leave, minimum coursework credits — supervisor caps
+   are already enforced, F6); leadership view (scholars at risk, time to
+   completion and drop-outs by unit).
 5. **Grants:** fellowships, research projects, grant ledger.
 6. **Production packaging:** self-hosted Docker Compose stack for a
    university server/NAS (ARCHITECTURE.md §8).
@@ -378,6 +429,15 @@ Each phase ends with a check-in with the owner before the next starts.
   no — confirm with the pilot university's ordinance.)
 - May a supervisor grade their own scholar at the seminar? (Default: yes, as
   any panel member — confirm with the pilot university.)
+- Bulk import: legacy scholars may already exceed today's UGC caps
+  (admitted under older rules). Default: the cap holds and the row fails —
+  confirm with the pilot whether imports may override with a recorded reason.
+- Examiner confidentiality (M3): confirm the pilot university's ordinance —
+  may the supervisor see examiner names before the viva?
+- With single sign-on configured, should password login be switchable off?
+  (Default: both stay on.)
+- NAAC / NIRF / AISHE reporting pack: a non-goal today; revisit after the
+  pilot with real data in hand.
 - ~~Grant ledger: may a PI enter expenses on their own project?~~ Resolved
   2026-10-21: yes, on their own projects only (SECURITY.md §3).
 

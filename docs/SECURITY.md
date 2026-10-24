@@ -7,8 +7,17 @@
 
 ## 1. Authentication
 
-- **Method:** email + password (university-internal tool; SSO only when a
-  pilot asks).
+- **Method:** email + password; optionally single sign-on with the
+  university's Google or Microsoft account (OpenID Connect, authorization
+  code + PKCE, run by the API). SSO logs in an existing active user whose
+  email matches the provider's **verified** email claim — no account is ever
+  created by SSO. Only domains in `SSO_ALLOWED_DOMAINS` are accepted;
+  Microsoft is pinned to the university's tenant. The API hands the browser a
+  single-use 60-second code, never tokens in a URL.
+- **Set-password / forgot-password link:** 32-byte urlsafe random,
+  single-use, 72-hour expiry, sha256-hashed in the DB; using it revokes all
+  the user's refresh tokens. Forgot-password answers the same whether or not
+  the email exists (no account enumeration) and shares the login throttle.
 - **Access token:** HS256 JWT, 30-minute expiry, held in browser memory
   (never localStorage, never a cookie). Claims carry only `sub` — roles and
   scope are loaded from the DB per request, so a revoked role takes effect
@@ -66,6 +75,9 @@ role's scope (§2).
 | conferences | CRUD own | R | R | R | R | — | R |
 | documents & versions | CRU own | R, comment | — | — | — | — | — |
 | thesis submissions | CRU own, submit | R, step | R, step (department) | R, step (department) | R, step | R, step | R, step |
+| examiner reports, viva | R own after release† | R after release† | R | R | R | CRU | R |
+| Shodhganga deposit | R own | R | R | R | R | R | CRU |
+| bulk import | — | — | — | run in subtree | — | — | — |
 | courses (catalogue) | R | R | R | CRUD in subtree | R | CRUD | — |
 | enrolments & grades | R own | R | R | R | R | CRUD | — |
 | coursework clearances | R own | R | R, step (department) | R, step (department) | R, step | create, submit, step | — |
@@ -93,6 +105,15 @@ attending) may grade the seminar's scholars — independent of the matrix
 above. Graders read the grades of that seminar. A scholar sees grades only
 after their supervisor finalised; finalising is the main supervisor's (and the
 co-supervisor's under `co_supervision = approve`).
+
+† **Examiner confidentiality:** examiner names are returned only to the
+Exam Office, Research Office and root admin until the viva outcome is
+recorded; reports reach the scholar and supervisor only after the Exam Office
+releases them — omitted server-side, as with meeting redaction.
+
+**Bulk import** creates records through the same service functions as the
+forms, so scope, caps and uniqueness are checked once, in one place; the
+root admin may import anywhere.
 
 Disabled modules: every route of the module → 404 `module_disabled`
 regardless of role.

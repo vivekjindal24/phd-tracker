@@ -9,7 +9,10 @@
 
 1. `/` → `/login` (no token) or `/home` (valid session).
 2. Email + password → `POST /api/v1/auth/login` → access token in memory,
-   refresh token in localStorage. `/auth/me` returns role assignments and
+   refresh token in localStorage. When configured, **Continue with Google /
+   Microsoft** → provider → back to `/login` with a one-time code exchanged
+   for the same token pair. **Forgot password?** emails a set-password link
+   (same message whether or not the email exists). `/auth/me` returns role assignments and
    enabled modules.
 3. Navigation shows the union of the user's roles, grouped: **My work**
    (queue, scholars/meetings/reports), **My unit** (heads/admins),
@@ -24,7 +27,9 @@
    server…" until it answers.
 
 **Failure:** bad credentials → error envelope inline; 5 failures → 429
-"Too many attempts, try again in 15 minutes".
+"Too many attempts, try again in 15 minutes". SSO with an email that has no
+active account → "No Anveshan account for this email — ask your department
+admin".
 
 ## Flow 1 — Scholar submits a progress report (APR chain)
 
@@ -93,6 +98,10 @@ co-supervisor (setting on) may log their own meetings but never sets sharing.
    shown only when co-supervision is on). The user gets a set-password
    email.
 3. **Add faculty**: designation sets the default cap.
+3b. **Import** (PRD F16): download the template → fill in Excel → upload →
+   dry-run table (rows to create, rows already present, row errors with row
+   and column) → fix and re-upload until clean → **Import** (all or nothing),
+   optionally **send invitations**.
 4. **Roles**: assign HoD / admin for units in their subtree only.
 5. Root admin additionally sees **Settings**: org tree editor (add / rename
    / move units), **Approval chains** (per item type: ordered clay step chips,
@@ -138,6 +147,10 @@ Scholar uploads the final thesis → Supervisor → Department → **Library**
 enters plagiarism tool + score and approves → **Exam Office** records receipt
 and examiners → Research Office final approval → scholar stage moves to
 Thesis Submitted.
+After approval, on the thesis page: Exam Office adds each **examiner report**
+→ **Release reports** (scholar and supervisor see them, without examiner
+names) → records the **viva** (outcome Pass → stage Viva) → Library records
+the **Shodhganga deposit** (date, handle, certificate).
 
 ## Flow 9 — Coursework (module)
 
