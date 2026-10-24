@@ -35,3 +35,6 @@
   outline: 3px solid var(--accent);
   outline-offset: 2px;
 }
+.attachments p {
+  margin: 0;
+}

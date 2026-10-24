@@ -72,8 +72,16 @@ export default function ImportPage() {
       dry_run: String(dryRun),
       send_invitations: String(!dryRun && invite && kind !== "history"),
     });
+    let body: ArrayBuffer;
     try {
-      setReport(await api<ImportReport>(`/import/${kind}?${params}`, { method: "POST", body: file }));
+      body = await file.arrayBuffer(); // a file edited after it was chosen can no longer be read
+    } catch {
+      setError(`“${file.name}” changed since you chose it. Choose the file again.`);
+      setBusy(false);
+      return;
+    }
+    try {
+      setReport(await api<ImportReport>(`/import/${kind}?${params}`, { method: "POST", body }));
     } catch (e) {
       setError(errorText(e));
     } finally {
@@ -105,7 +113,8 @@ export default function ImportPage() {
           </div>
           <Field label="Filled-in file" hint="Excel (.xlsx) or CSV, up to 2,000 rows. Only the first sheet is read.">
             <input type="file" accept=".xlsx,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-              onChange={(e) => { setFile(e.target.files?.[0] ?? null); setReport(null); }} />
+              onClick={(e) => { e.currentTarget.value = ""; }} /* re-choosing the same, edited file must fire onChange */
+              onChange={(e) => { setFile(e.target.files?.[0] ?? null); setReport(null); setError(null); }} />
           </Field>
           <Button kind={canImport ? "secondary" : "primary"} disabled={!file || busy} onClick={() => send(true)}>
             {busy && !checked ? "Checking…" : "Check file"}
