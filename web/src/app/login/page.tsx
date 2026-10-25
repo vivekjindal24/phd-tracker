@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import type { FormEvent } from "react";
@@ -149,10 +150,10 @@ export default function LoginPage() {
         <ThemeToggle />
       </div>
       <section className="login-hero" aria-labelledby="brand">
-        <div className="login-brand">
+        <Link className="login-brand" href="/">
           <OwlMark size={52} />
           <h1 id="brand">Anveshan</h1>
-        </div>
+        </Link>
         <p className="login-tagline">Your research, every step — from first meeting to degree.</p>
         <Owl pose="reading" size={220} />
       </section>

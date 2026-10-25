@@ -7,7 +7,9 @@
 
 ## Flow 0 — Login, session, multi-role home
 
-1. `/` → `/login` (no token) or `/home` (valid session).
+1. `/` → the public landing page (what Anveshan is, with **Log in** → `/login`);
+   a visitor with a valid session goes straight to `/home`. The wordmark on
+   `/login` links back to `/`.
 2. Email + password → `POST /api/v1/auth/login` → access token in memory,
    refresh token in localStorage. When configured, **Continue with Google /
    Microsoft** → provider → back to `/login` with a one-time code exchanged
