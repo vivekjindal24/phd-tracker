@@ -4,8 +4,10 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { Fragment, useEffect, useState } from "react";
 import { Owl } from "@/components/brand/Owl";
+import { Celebrate, firstTime } from "@/components/Celebrate";
 import { Button, Card, ErrorText, Field, PageHeader } from "@/components/ui/kit";
 import { api, ApiError } from "@/lib/api";
+import { useSession } from "@/lib/session";
 import { PART_LABELS } from "@/lib/types";
 import type { Point, ReviewView, TodoPart } from "@/lib/types";
 import { errorText } from "@/lib/useFetch";
@@ -125,12 +127,20 @@ export default function ReviewPage() {
   const { id, scholarId } = useParams<{ id: string; scholarId: string }>();
   const [review, setReview] = useState<ReviewView | null>(null);
   const [error, setError] = useState<ApiError | null>(null);
+  const [celebrate, setCelebrate] = useState(false);
+  const { me } = useSession();
 
   useEffect(() => {
     api<ReviewView>(`/seminars/${id}/scholars/${scholarId}/review`)
       .then(setReview)
       .catch((e) => setError(e instanceof ApiError ? e : new ApiError(0, "unknown", String(e))));
   }, [id, scholarId]);
+
+  // The scholar celebrates once, the first time they open their finalised feedback.
+  const isOwnFinalised = !!review?.finalised_at && review.scholar.id === me?.scholar_id;
+  useEffect(() => {
+    if (isOwnFinalised && firstTime(`seminar.${id}.${scholarId}`)) setCelebrate(true);
+  }, [isOwnFinalised, id, scholarId]);
 
   if (error?.status === 403) {
     return (
@@ -146,6 +156,7 @@ export default function ReviewPage() {
   if (!review) return null;
   return (
     <>
+      {celebrate && <Celebrate message="Feedback is in! 🦉" onDone={() => setCelebrate(false)} />}
       <PageHeader eyebrow={review.seminar_title} title={`Seminar feedback · ${review.scholar.name}`}
         actions={review.finalised_at ? <span className="badge badge-approved">Finalised</span> : undefined} />
       <div className="review-grid">

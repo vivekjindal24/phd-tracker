@@ -1,29 +1,47 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { Owl } from "../brand/Owl";
-import "./items.css";
+import { Owl } from "./brand/Owl";
+import "./celebrate.css";
 
 const COLORS = ["#a78bda", "#6d4bc3", "#d9ccf2", "#81b29a", "#f2cc8f", "#a8cce8"];
 const DURATION_MS = 1500;
+const FULL_PARTS = 140;
+const SMALL_PARTS = 45;
 
-/** One confetti burst + the cheering owl, only after the API confirmed an approval.
- *  Hand-rolled canvas, no dependency; nothing at all under prefers-reduced-motion. */
-export function Celebrate({ onDone }: { onDone: () => void }) {
+/** True only the first time this browser asks for `key` — a celebration fires once per event. */
+export function firstTime(key: string): boolean {
+  try {
+    if (localStorage.getItem(`anveshan.celebrated.${key}`)) return false;
+    localStorage.setItem(`anveshan.celebrated.${key}`, "1");
+    return true;
+  } catch {
+    return false; // storage blocked: skip the celebration rather than repeat it
+  }
+}
+
+/** One confetti burst, only after the API confirmed the event. With a message it is the full
+ *  burst plus the cheering owl; without, a small burst (a mid-chain approve).
+ *  Hand-rolled canvas, no dependency; no confetti under prefers-reduced-motion. */
+export function Celebrate({ message, onDone }: { message?: string; onDone: () => void }) {
   const canvas = useRef<HTMLCanvasElement>(null);
+  // A ref, so a parent re-render (a fresh onDone) does not restart the burst.
+  const done = useRef(onDone);
+  done.current = onDone;
   useEffect(() => {
+    const finish = () => done.current();
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const el = canvas.current;
     const ctx = el?.getContext("2d");
     if (reduced || !el || !ctx) {
-      const t = setTimeout(onDone, 2500);
+      const t = setTimeout(finish, 2500);
       return () => clearTimeout(t);
     }
     const dpr = window.devicePixelRatio || 1;
     el.width = window.innerWidth * dpr;
     el.height = window.innerHeight * dpr;
     ctx.scale(dpr, dpr);
-    const parts = Array.from({ length: 140 }, () => ({
+    const parts = Array.from({ length: message ? FULL_PARTS : SMALL_PARTS }, () => ({
       x: window.innerWidth / 2 + (Math.random() - 0.5) * 160,
       y: window.innerHeight * 0.55,
       vx: (Math.random() - 0.5) * 14,
@@ -57,20 +75,22 @@ export function Celebrate({ onDone }: { onDone: () => void }) {
       frame = requestAnimationFrame(draw);
     };
     frame = requestAnimationFrame(draw);
-    const t = setTimeout(onDone, 2600);
+    const t = setTimeout(finish, message ? 2600 : DURATION_MS);
     return () => {
       cancelAnimationFrame(frame);
       clearTimeout(t);
     };
-  }, [onDone]);
+  }, [message]);
 
   return (
     <>
       <canvas ref={canvas} className="confetti" aria-hidden="true" />
-      <div className="celebrate clay" role="status">
-        <Owl pose="cheering" size={72} />
-        <strong>Approved! 🎓</strong>
-      </div>
+      {message && (
+        <div className="celebrate clay" role="status">
+          <Owl pose="cheering" size={72} />
+          <strong>{message}</strong>
+        </div>
+      )}
     </>
   );
 }

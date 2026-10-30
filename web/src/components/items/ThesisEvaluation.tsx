@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import { Attachments } from "@/components/Attachments";
+import { Celebrate, firstTime } from "@/components/Celebrate";
 import { Button, Card, ErrorText, Field } from "@/components/ui/kit";
 import { api } from "@/lib/api";
 import { formatDate } from "@/lib/format";
@@ -114,11 +115,27 @@ function DepositForm({ thesisId, onSaved }: { thesisId: string; onSaved: (e: Eva
   );
 }
 
+/** The furthest milestone worth celebrating: the Shodhganga deposit, else a passed viva. */
+function milestone(ev: Evaluation): { key: string; text: string } | null {
+  if (ev.deposit) return { key: "deposit", text: "Deposited in Shodhganga! 📚" };
+  if (ev.vivas.some((v) => v.outcome === "pass")) return { key: "viva", text: "Viva passed! 🎓" };
+  return null;
+}
+
 /** Everything after the thesis is approved (PRD M3). The API hides what this viewer may not
  *  see yet — unreleased reports, examiner names before the viva. */
-export function ThesisEvaluation({ thesisId }: { thesisId: string }) {
+export function ThesisEvaluation({ thesisId, isOwn }: { thesisId: string; isOwn: boolean }) {
   const { data: ev, error, setData } = useFetch<Evaluation>(`/theses/${thesisId}/evaluation`);
   const [actError, setActError] = useState<string | null>(null);
+  const [celebrate, setCelebrate] = useState<string | null>(null);
+
+  // The scholar celebrates each milestone once, the first time they see it.
+  useEffect(() => {
+    if (!ev || !isOwn) return;
+    const msg = milestone(ev);
+    if (msg && firstTime(`${msg.key}.${thesisId}`)) setCelebrate(msg.text);
+  }, [ev, isOwn, thesisId]);
+
   if (error) return <ErrorText>{error}</ErrorText>;
   if (!ev) return null;
 
@@ -131,9 +148,18 @@ export function ThesisEvaluation({ thesisId }: { thesisId: string }) {
     }
   }
 
+  // The office recording a passed viva or the deposit celebrates once the API confirms it.
+  const recorded = (next: Evaluation) => {
+    const before = milestone(ev)?.key;
+    setData(next);
+    const msg = milestone(next);
+    if (msg && msg.key !== before) setCelebrate(msg.text);
+  };
+
   const safeUrl = (u: string) => (/^https?:\/\//.test(u) ? u : undefined);
   return (
     <Card className="evaluation">
+      {celebrate && <Celebrate message={celebrate} onDone={() => setCelebrate(null)} />}
       <h2>Evaluation</h2>
       <h3>Examiner reports</h3>
       {ev.names_hidden && <p className="muted">Examiner names stay confidential until the viva.</p>}
@@ -169,7 +195,7 @@ export function ThesisEvaluation({ thesisId }: { thesisId: string }) {
           ))}
         </ul>
       )}
-      {ev.can_record_viva && <VivaForm thesisId={thesisId} onSaved={setData} />}
+      {ev.can_record_viva && <VivaForm thesisId={thesisId} onSaved={recorded} />}
       <h3>Shodhganga deposit</h3>
       {ev.deposit ? (
         <>
@@ -178,7 +204,7 @@ export function ThesisEvaluation({ thesisId }: { thesisId: string }) {
           <Attachments table="shodhganga_deposits" recordId={ev.deposit.id} canUpload={ev.can_record_deposit} title="Deposit certificate" />
         </>
       ) : <p className="muted">Not deposited yet.</p>}
-      {ev.can_record_deposit && <DepositForm thesisId={thesisId} onSaved={setData} />}
+      {ev.can_record_deposit && <DepositForm thesisId={thesisId} onSaved={recorded} />}
       <ErrorText>{actError}</ErrorText>
     </Card>
   );

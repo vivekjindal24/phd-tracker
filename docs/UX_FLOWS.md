@@ -52,7 +52,8 @@ non-initiator never sees the New button and the API 403s anyway.
 1. Approver opens **Your queue** (items at a step they can act on, oldest
    first, with item type, scholar and days waiting).
 2. Opens an item: content, files, comments, full approval history.
-3. **Approve** (optional comment) → next step, or Approved if last.
+3. **Approve** (optional comment) → next step with a small confetti burst,
+   or Approved if last (full burst + cheering owl; reduced-motion: none).
 4. **Send back** → picker: "To the scholar" or any earlier step by name
    (e.g. "Supervisor"); comment required. The receiver is notified and sees
    the reason pinned at the top.

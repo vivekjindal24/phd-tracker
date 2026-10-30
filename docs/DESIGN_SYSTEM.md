@@ -154,10 +154,15 @@ Rules for changes:
 
 - **Tactile base:** press squish (120ms), hover lift (180ms), badge pop on
   state change (spring-like `cubic-bezier(.34,1.56,.64,1)`, 300ms).
-- **Celebration:** when the API confirms an APR approval (supervisor) or the
-  scholar first sees their newly approved report — a short confetti burst in
-  purple/palette colours plus the cheering owl. Hand-rolled (CSS/canvas, no
-  dependency), ≤ 1.5s, fires once per event.
+- **Celebration:** a short confetti burst in purple/palette colours.
+  Hand-rolled (CSS/canvas, no dependency), ≤ 1.5s, fires once per event,
+  only after the API confirms it:
+  - any approver's **Approve** at a middle chain step → a small burst;
+  - the final approval, and the scholar's first view of their approved item
+    → the full burst plus the cheering owl ("Approved!");
+  - the scholar's first view of their finalised seminar feedback;
+  - a passed viva and the Shodhganga deposit — for the office recording it,
+    and for the scholar on first view.
 - **Empty states:** the owl idles (blink, gentle bob).
 - **Cold start:** while the API wakes (Render free tier, 15–60s), the
   sleeping owl with "Waking up the server…" — intentional, not broken.

@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { Attachments } from "@/components/Attachments";
 import { Comments } from "@/components/Comments";
 import { DownloadButton } from "@/components/DownloadButton";
-import { Celebrate } from "@/components/items/Celebrate";
+import { Celebrate, firstTime } from "@/components/Celebrate";
 import { ChainSteps } from "@/components/items/ChainSteps";
 import { ClearanceDetails } from "@/components/items/ClearanceDetails";
 import { PublicationDetails } from "@/components/items/PublicationDetails";
@@ -26,6 +26,8 @@ const ACTION_TEXT: Record<string, string> = {
   send_back: "sent back",
 };
 
+const APPROVED = { message: "Approved! 🎓" };
+
 // The comment / file owner table behind each item type.
 const RECORD_TABLE: Partial<Record<ItemType, CommentTarget>> = {
   progress_report: "progress_reports",
@@ -41,22 +43,6 @@ function ItemContent({ item, onSaved }: { item: ItemView; onSaved: (v: ItemView)
   if (item.item_type === "thesis_submission") return <ThesisDetails item={item} onSaved={onSaved} />;
   if (item.item_type === "coursework_clearance") return <ClearanceDetails item={item} />;
   return null;
-}
-
-function celebratedKey(id: string) {
-  return `anveshan.celebrated.${id}`;
-}
-
-/** The scholar sees the celebration once, the first time they open an approved item. */
-function firstApprovedView(item: ItemView, myScholarId: string | null | undefined): boolean {
-  if (item.state !== "approved" || item.scholar.id !== myScholarId) return false;
-  try {
-    if (localStorage.getItem(celebratedKey(item.id))) return false;
-    localStorage.setItem(celebratedKey(item.id), "1");
-    return true;
-  } catch {
-    return false; // storage blocked: skip the celebration rather than repeat it
-  }
 }
 
 function ReportContent({ item, onSaved }: { item: ItemView; onSaved: (v: ItemView) => void }) {
@@ -191,11 +177,13 @@ export default function ItemPage() {
   const { me, reload: reloadMe } = useSession();
   const { data: item, error, setData } = useFetch<ItemView>(`/items/${type}/${id}`);
   const [actError, setActError] = useState<string | null>(null);
-  const [celebrate, setCelebrate] = useState(false);
+  const [celebrate, setCelebrate] = useState<{ message?: string } | null>(null);
+  const isOwn = !!item && item.scholar.id === me?.scholar_id;
 
+  // The scholar sees the celebration once, the first time they open their approved item.
   useEffect(() => {
-    if (item && firstApprovedView(item, me?.scholar_id)) setCelebrate(true);
-  }, [item, me?.scholar_id]);
+    if (item && isOwn && item.state === "approved" && firstTime(item.id)) setCelebrate(APPROVED);
+  }, [item, isOwn]);
 
   async function run(action: string, body?: object) {
     setActError(null);
@@ -205,7 +193,8 @@ export default function ItemPage() {
         body: JSON.stringify(body ?? {}),
       });
       setData(next);
-      if (action === "approve" && next.state === "approved") setCelebrate(true);
+      // Every approve gets a small burst; the final step gets the full one with the owl.
+      if (action === "approve") setCelebrate(next.state === "approved" ? APPROVED : {});
       reloadMe(); // queue / notification counts changed
     } catch (e) {
       setActError(errorText(e));
@@ -217,7 +206,7 @@ export default function ItemPage() {
   const table = RECORD_TABLE[item.item_type];
   return (
     <>
-      {celebrate && <Celebrate onDone={() => setCelebrate(false)} />}
+      {celebrate && <Celebrate message={celebrate.message} onDone={() => setCelebrate(null)} />}
       <PageHeader eyebrow={`${item.label} · ${item.scholar.name}`} title={item.title}
         actions={<>
           <StateBadge state={item.state} waitingOn={item.waiting_on} />
@@ -237,7 +226,9 @@ export default function ItemPage() {
             <Attachments table="publications" recordId={item.id} canUpload={item.can_edit}
               hint="The paper or acceptance letter, for the Library to check." />
           )}
-          {item.item_type === "thesis_submission" && item.state === "approved" && <ThesisEvaluation thesisId={item.id} />}
+          {item.item_type === "thesis_submission" && item.state === "approved" && (
+            <ThesisEvaluation thesisId={item.id} isOwn={isOwn} />
+          )}
           {table && <Comments target={table} recordId={item.id} />}
         </div>
         <div className="item-side">
