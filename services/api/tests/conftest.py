@@ -38,6 +38,9 @@ for _smtp in ("SMTP_HOST", "SMTP_PORT", "SMTP_USER", "SMTP_PASSWORD", "MAIL_FROM
 # Never call a real AI from tests; AI tests substitute app.ai.suggest_points.
 for _ai in ("AI_BASE_URL", "AI_API_KEY", "AI_MODEL"):
     os.environ.pop(_ai, None)
+# Never message real phones; WhatsApp tests substitute app.notify._whatsapp_client.
+for _wa in ("WHATSAPP_TOKEN", "WHATSAPP_PHONE_NUMBER_ID", "WHATSAPP_TEMPLATE"):
+    os.environ.pop(_wa, None)
 os.environ.setdefault("JWT_SECRET", "test-secret-0123456789abcdef0123456789")
 
 import pytest  # noqa: E402

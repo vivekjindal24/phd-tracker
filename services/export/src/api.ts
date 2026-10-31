@@ -61,6 +61,31 @@ export const registerView = z.object({
 });
 export type RegisterView = z.infer<typeof registerView>;
 
+const money = z.number().nonnegative();
+export const ucView = z.object({
+  university: z.string(),
+  unit: z.string().nullable(),
+  title: z.string(),
+  agency: z.string(),
+  sanction_number: z.string(),
+  amount_sanctioned: money,
+  pi: z.string().nullable(),
+  period_start: z.string(),
+  period_end: z.string(),
+  opening_balance: z.number(), // negative when spent ahead of the money received
+  grants_received: z.array(z.object({ date: z.string(), reference: z.string().nullable(), amount: money })),
+  received: money,
+  available: z.number(),
+  spent_by_head: z.record(z.string(), money),
+  spent: money,
+  closing_balance: z.number(),
+  received_to_date: money,
+  spent_to_date: money,
+  generated_at: z.string(),
+  generated_by: z.string(),
+});
+export type UcView = z.infer<typeof ucView>;
+
 export async function fetchView<T>(
   apiUrl: string,
   path: string,

@@ -42,7 +42,10 @@ units, scholars or faculty.
 **users** — login identity: `email` (citext, UNIQUE), `password_hash`
 (NULL until the person sets one — invited or SSO-only accounts cannot log in
 by password), `full_name`, `is_active`, `email_muted` text[] (notification categories the
-user muted for email; CHECK ⊆ categories in §3.7).
+user muted for email; CHECK ⊆ categories in §3.7), `whatsapp_number` (NULL =
+no WhatsApp; set only by the person themself, which is the opt-in; CHECK E.164
+`^\+[1-9][0-9]{7,14}$`), `whatsapp_muted` text[] (as `email_muted`, for
+WhatsApp).
 
 **role_assignments** — `user_id` FK, `role` CHECK (`unit_head` / `admin` /
 `research_office` / `exam_office` / `library`), `unit_id` FK org_units.
@@ -86,7 +89,8 @@ no row (always on).
 
 **settings** — single row (`id` = 1, CHECK): `co_supervision` CHECK
 (`off` / `view` / `approve`, default `off`), `require_hardcopy` bool (default
-false), `seminar_graders` CHECK (`panel` / `panel_and_attending`, default
+false), `require_no_dues` bool (default false: a thesis waits for an approved
+no-dues clearance while true), `seminar_graders` CHECK (`panel` / `panel_and_attending`, default
 `panel`), `seminar_rubric` jsonb (ordered `[{"name", "max"}]`, non-empty),
 `min_coursework_credits` numeric(3,1) (default 12, CHECK 0–40) and
 `min_coursework_cgpa` numeric(4,2) (default 5.5, CHECK 0–10),
@@ -96,7 +100,8 @@ values the university's ordinance sets, `updated_by`, `updated_at`.
 University-wide switches that are not modules live here.
 
 **approval_chains** — `item_type` PK CHECK (`progress_report`,
-`publication`, `coursework_clearance`, `thesis_submission`), `steps` jsonb:
+`publication`, `coursework_clearance`, `thesis_submission`,
+`no_dues_clearance`), `steps` jsonb:
 ordered array of `{"kind": …}` where kind ∈ `supervisor` / `department` /
 `research_office` / `exam_office` / `library`; CHECK non-empty array (kinds
 validated by Pydantic). One chain per item type, university-wide. Seeded with
@@ -179,6 +184,11 @@ supervisor). **vivas** — `thesis_id`, `held_on`, `venue`, `panel`, `outcome`
 CHECK (pass / redefend / fail); a pass moves the scholar to Viva.
 **shodhganga_deposits** — `thesis_id` (partial UNIQUE), `deposited_on`,
 `handle_url`. Report, viva and deposit files hang off their own rows.
+
+**no_dues_clearances** (module `documents`) — `scholar_id` + approval
+columns; each step's approval is that office's confirmation of no dues
+(default chain supervisor → department → library → research_office). Partial
+unique `uq_no_dues_active (scholar_id) WHERE deleted_at IS NULL`.
 
 **coursework_clearances** (module `coursework`) — `scholar_id`, `credits`
 numeric(4,1) and `cgpa` numeric(4,2) (computed from graded enrolments at
@@ -270,13 +280,14 @@ is the owner record's
 **comments** — flat threads; `(table_name, record_id)` polymorphic pair
 (indexed, CHECK whitelist of commentable tables — scholars, meetings,
 progress_reports, milestones, publications, conferences, documents,
-thesis_submissions), `author_id`, `body`
+thesis_submissions, coursework_clearances, no_dues_clearances), `author_id`, `body`
 (1–4000 chars). Visibility = the target record's `get_or_403`.
 
 **notifications** — `user_id` (indexed), `category` CHECK
 (approval_waiting / sent_back / approved / apr_due / meeting_tomorrow /
-fellowship_ending / seminar / system), `title`, `body`, `link`, `read_at`,
-`email_status` CHECK (not_sent / sent / failed / muted), `email_error`.
+fellowship_ending / grant_alert / seminar / system), `title`, `body`, `link`, `read_at`,
+`email_status` CHECK (not_sent / sent / failed / muted), `email_error`,
+`whatsapp_status` (same CHECK), `whatsapp_error`.
 
 **audit_log** — every mutation on every table: `table_name`, `record_id`,
 `action` CHECK (insert / update / soft_delete / restore / transition),

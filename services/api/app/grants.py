@@ -12,17 +12,22 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import scope
 from app.auth.principal import Principal
-from app.enums import ModuleKey
+from app.enums import LEDGER_HEADS, ModuleKey
 from app.errors import ApiError, forbidden
 from app.models import (
+    Faculty,
     Fellowship,
     LedgerEntry,
     OrgUnit,
     Project,
+    RoleAssignment,
     Scholar,
     UtilisationCertificate,
 )
 from app.modules import module_enabled
+from app.notify import notify
+
+LOW_BALANCE_SHARE = 0.10  # PRD M8: told when an expense takes the balance below 10% of received
 
 
 def may_manage(principal: Principal, unit_path: str) -> bool:
@@ -167,3 +172,80 @@ def check_dates(start: date, end: date, srf_upgrade_on: date | None = None) -> N
         raise ApiError(
             422, "invalid_dates", "The SRF upgrade date must fall within the fellowship."
         )
+
+
+async def project_entries(session: AsyncSession, project_id: uuid.UUID) -> list[LedgerEntry]:
+    return list(
+        (
+            await session.scalars(
+                select(LedgerEntry)
+                .where(LedgerEntry.project_id == project_id, LedgerEntry.deleted_at.is_(None))
+                .order_by(LedgerEntry.entry_date, LedgerEntry.created_at)
+            )
+        ).all()
+    )
+
+
+def _total(entries: list[LedgerEntry], kind: str) -> float:
+    return round(sum(e.amount for e in entries if e.entry_kind == kind), 2)
+
+
+def _by_head(entries: list[LedgerEntry]) -> dict[str, float]:
+    spent = {h: _total([e for e in entries if e.head == h], "expense") for h in LEDGER_HEADS}
+    return {h: amount for h, amount in spent.items() if amount}
+
+
+async def pi_and_office_user_ids(session: AsyncSession, project: Project) -> list[uuid.UUID]:
+    pi_user = await session.scalar(select(Faculty.user_id).where(Faculty.id == project.pi_id))
+    office = await session.scalars(
+        select(RoleAssignment.user_id).where(
+            RoleAssignment.role == "research_office", RoleAssignment.deleted_at.is_(None)
+        )
+    )
+    return [u for u in (pi_user, *office) if u]
+
+
+async def alert_if_low(session: AsyncSession, project: Project, expense: float) -> None:
+    """After an expense: tell the PI and the research office once, as it takes the unspent
+    balance below LOW_BALANCE_SHARE of the amount received (PRD M8)."""
+    entries = await project_entries(session, project.id)
+    received = _total(entries, "disbursement")
+    balance = round(received - _total(entries, "expense"), 2)
+    floor = received * LOW_BALANCE_SHARE
+    if not (received > 0 and balance < floor <= balance + expense):
+        return
+    notify(
+        session,
+        await pi_and_office_user_ids(session, project),
+        "grant_alert",
+        f"Funds running low: {project.title}",
+        f"Unspent balance is ₹{balance:,.2f} of ₹{received:,.2f} received "
+        f"(below {LOW_BALANCE_SHARE:.0%}). Ask the agency for the next instalment in time.",
+        f"/projects/{project.id}",
+    )
+
+
+async def uc_figures(session: AsyncSession, uc: UtilisationCertificate) -> dict[str, Any]:
+    """The GFR 12-A figures for one UC period, from the ledger (PRD M8)."""
+    entries = await project_entries(session, uc.project_id)
+    before = [e for e in entries if e.entry_date < uc.period_start]
+    during = [e for e in entries if uc.period_start <= e.entry_date <= uc.period_end]
+    opening = round(_total(before, "disbursement") - _total(before, "expense"), 2)
+    received = _total(during, "disbursement")
+    spent = _total(during, "expense")
+    to_date = before + during
+    return {
+        "opening_balance": opening,
+        "grants_received": [
+            {"date": e.entry_date, "reference": e.reference, "amount": e.amount}
+            for e in during
+            if e.entry_kind == "disbursement"
+        ],
+        "received": received,
+        "available": round(opening + received, 2),
+        "spent_by_head": _by_head(during),
+        "spent": spent,
+        "closing_balance": round(opening + received - spent, 2),
+        "received_to_date": _total(to_date, "disbursement"),
+        "spent_to_date": _total(to_date, "expense"),
+    }

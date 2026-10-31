@@ -128,3 +128,18 @@ class ShodhgangaDeposit(DomainRow, Base):
     )
     deposited_on: Mapped[date] = mapped_column(Date)
     handle_url: Mapped[str] = mapped_column(Text)
+
+
+class NoDuesClearance(ApprovalColumns, DomainRow, Base):
+    """No dues to the lab, department, library and accounts (PRD M3). Each step's approval is
+    that office's confirmation; a thesis waits for it while `require_no_dues` is on."""
+
+    __tablename__ = "no_dues_clearances"
+    __table_args__ = (
+        *approval_constraints("no_dues_clearances"),
+        Index("uq_no_dues_active", "scholar_id", unique=True, postgresql_where=LIVE),
+    )
+
+    scholar_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("scholars.id"), index=True
+    )

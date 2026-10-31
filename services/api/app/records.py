@@ -80,6 +80,9 @@ async def require_read(
     if table == "coursework_clearances":
         ctx = await items.load_ctx(session, principal, "coursework_clearance", record_id)
         return ctx.scholar, ctx.link
+    if table == "no_dues_clearances":
+        ctx = await items.load_ctx(session, principal, "no_dues_clearance", record_id)
+        return ctx.scholar, ctx.link
     if table == "examiner_reports":
         _, ctx = await thesis.report_ctx(session, principal, record_id)
         return ctx.scholar, ctx.link

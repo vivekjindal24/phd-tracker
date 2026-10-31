@@ -1,3 +1,4 @@
+import pytest
 from sqlalchemy import select
 
 from app.models import AuditLog
@@ -126,3 +127,36 @@ async def test_email_muted_validates_categories(client, world):
         headers=auth(world.scholar_a1.id),
     )
     assert bad.status_code == 422
+
+
+async def test_whatsapp_number_is_set_and_cleared_by_self_only(client, world):
+    headers = auth(world.scholar_a1.id)
+    ok = await client.put(
+        "/api/v1/auth/me/whatsapp",
+        json={"whatsapp_number": "+919876543210", "whatsapp_muted": ["seminar"]},
+        headers=headers,
+    )
+    assert ok.status_code == 204
+    me = (await client.get("/api/v1/auth/me", headers=headers)).json()
+    assert (me["whatsapp_number"], me["whatsapp_muted"]) == ("+919876543210", ["seminar"])
+    assert me["whatsapp_available"] is False  # tests run with WhatsApp unconfigured
+    other = (await client.get("/api/v1/auth/me", headers=auth(world.meera.id))).json()
+    assert other["whatsapp_number"] is None
+    cleared = await client.put(
+        "/api/v1/auth/me/whatsapp",
+        json={"whatsapp_number": None, "whatsapp_muted": []},
+        headers=headers,
+    )
+    assert cleared.status_code == 204
+    me = (await client.get("/api/v1/auth/me", headers=headers)).json()
+    assert me["whatsapp_number"] is None
+
+
+@pytest.mark.parametrize("number", ["9876543210", "+0123456789", "+91 98765 43210", "+1234"])
+async def test_whatsapp_number_must_be_e164(client, world, number):
+    res = await client.put(
+        "/api/v1/auth/me/whatsapp",
+        json={"whatsapp_number": number, "whatsapp_muted": []},
+        headers=auth(world.scholar_a1.id),
+    )
+    assert res.status_code == 422

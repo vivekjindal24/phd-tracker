@@ -24,6 +24,7 @@ from app.enums import (
     OFFICE_ROLES,
     STAGES,
     UNIT_ROLES,
+    WHATSAPP_NUMBER_RE,
     sql_in,
 )
 from app.models.base import Base, DomainRow, Ltree
@@ -69,6 +70,13 @@ class User(DomainRow, Base):
             f"email_muted <@ ARRAY[{sql_in(NOTIFICATION_CATEGORIES)}]::text[]",
             name="ck_users_email_muted",
         ),
+        CheckConstraint(
+            f"whatsapp_muted <@ ARRAY[{sql_in(NOTIFICATION_CATEGORIES)}]::text[]",
+            name="ck_users_whatsapp_muted",
+        ),
+        CheckConstraint(
+            f"whatsapp_number ~ '{WHATSAPP_NUMBER_RE}'", name="ck_users_whatsapp_number"
+        ),
         Index(
             "ix_users_full_name_trgm",
             "full_name",
@@ -83,6 +91,11 @@ class User(DomainRow, Base):
     full_name: Mapped[str] = mapped_column(Text)
     is_active: Mapped[bool] = mapped_column(Boolean, server_default=text("true"))
     email_muted: Mapped[list[str]] = mapped_column(ARRAY(Text), server_default=text("'{}'::text[]"))
+    # Set only by the person themself — setting it is the WhatsApp opt-in (PRD F5).
+    whatsapp_number: Mapped[str | None] = mapped_column(Text)
+    whatsapp_muted: Mapped[list[str]] = mapped_column(
+        ARRAY(Text), server_default=text("'{}'::text[]")
+    )
 
     @property
     def has_password(self) -> bool:

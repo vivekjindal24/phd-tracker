@@ -27,6 +27,7 @@ async def _read(session: AsyncSession) -> SettingsOut:
         {
             "co_supervision": settings.co_supervision,
             "require_hardcopy": settings.require_hardcopy,
+            "require_no_dues": settings.require_no_dues,
             "seminar_graders": settings.seminar_graders,
             "seminar_rubric": settings.seminar_rubric,
             "min_coursework_credits": settings.min_coursework_credits,

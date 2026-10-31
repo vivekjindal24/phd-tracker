@@ -75,6 +75,7 @@ role's scope (§2).
 | conferences | CRUD own | R | R | R | R | — | R |
 | documents & versions | CRU own | R, comment | — | — | — | — | — |
 | thesis submissions | CRU own, submit | R, step | R, step (department) | R, step (department) | R, step | R, step | R, step |
+| no-dues clearance | CR own, submit | R, step | R, step (department) | R, step (department) | R, step | R | R, step |
 | examiner reports | R own after release† | R after release† | R | R | R | CRU, release | R |
 | viva | R own | R | R | R | R | CRU | R |
 | Shodhganga deposit | R own | R | R | R | R | R | CRU |
@@ -165,7 +166,7 @@ regardless of role.
 - Never hard-code credentials; never commit secrets or `.env` files. Config
   arrives by environment, validated loudly at startup (`app/config.py`).
 - Required: `DATABASE_URL`, `JWT_SECRET` (≥32 bytes), `S3_*`, `CRON_SECRET`;
-  `SMTP_*` all-or-nothing (ARCHITECTURE.md §9); `SEED_PASSWORD` only for
+  `SMTP_*` and `WHATSAPP_*` all-or-nothing (ARCHITECTURE.md §9); `SEED_PASSWORD` only for
   seeding.
 - Dev secrets live in each platform's settings (Neon, Render, Vercel,
   Cloudflare); production secrets in the server's compose `.env` file,
@@ -204,6 +205,10 @@ httpOnly SameSite=Strict cookie behind a Next route-handler proxy.
 - Transport: HTTPS everywhere (platform TLS in dev; Caddy automatic HTTPS in
   production). At rest: provider encryption in dev; full-disk encryption on
   the production NAS is a deployment requirement.
+- **WhatsApp:** a person's number is set and cleared only by that person
+  (`PUT /auth/me/whatsapp`) and is shown only to them. Messages carry the
+  event kind and a link that needs a login — never names, titles or record
+  content — so nothing personal reaches Meta or a mistyped number.
 - **Retention:** records are permanent — they ARE the PhD trail. Soft-delete
   only; deletion requests escalate to the root admin.
 - **Backups (production):** nightly `pg_dump` + bucket copy to a second

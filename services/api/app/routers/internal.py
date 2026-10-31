@@ -11,7 +11,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
-from app import items, scope
+from app import grants, items, scope
 from app.auth.deps import current_principal
 from app.auth.principal import Principal
 from app.db import get_session
@@ -118,6 +118,36 @@ async def register_export_view(
             }
             for m, roll, name, unit in rows
         ],
+        "generated_at": datetime.now(UTC),
+        "generated_by": principal.full_name,
+    }
+
+
+@router.get("/ucs/{uc_id}/export-view")
+async def uc_export_view(
+    uc_id: uuid.UUID,
+    principal: Principal = Depends(current_principal),  # whoever sees the project's ledger
+    session: AsyncSession = Depends(get_session),
+) -> dict[str, Any]:
+    uc, _ = await grants.uc_or_403(session, principal, uc_id)
+    project, _ = await grants.project_or_403(session, principal, uc.project_id, ledger=True)
+    pi = await session.scalar(
+        select(User.full_name)
+        .join(Faculty, Faculty.user_id == User.id)
+        .where(Faculty.id == project.pi_id)
+    )
+    unit = await session.scalar(select(OrgUnit.name).where(OrgUnit.id == project.unit_id))
+    return {
+        "university": await _university(session),
+        "unit": unit,
+        "title": project.title,
+        "agency": project.agency,
+        "sanction_number": project.sanction_number,
+        "amount_sanctioned": project.amount_sanctioned,
+        "pi": pi,
+        "period_start": uc.period_start,
+        "period_end": uc.period_end,
+        **await grants.uc_figures(session, uc),
         "generated_at": datetime.now(UTC),
         "generated_by": principal.full_name,
     }

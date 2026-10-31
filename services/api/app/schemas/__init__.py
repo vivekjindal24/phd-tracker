@@ -7,6 +7,7 @@ from typing import Annotated, Any, Literal
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, StringConstraints, model_validator
 
 from app.enums import (
+    WHATSAPP_NUMBER_RE,
     ApprovalBody,
     AssignedRole,
     CommentTarget,
@@ -99,6 +100,9 @@ class MeOut(BaseModel):
     modules: dict[str, bool]
     unread_notifications: int
     email_muted: list[str]
+    whatsapp_available: bool  # the server has WhatsApp configured
+    whatsapp_number: str | None
+    whatsapp_muted: list[str]
 
 
 # --- org --------------------------------------------------------------------------------
@@ -212,6 +216,7 @@ Rubric = Annotated[list[RubricCriterion], Field(min_length=1, max_length=10)]
 class SettingsOut(BaseModel):
     co_supervision: CoSupervision
     require_hardcopy: bool
+    require_no_dues: bool
     seminar_graders: SeminarGraders
     seminar_rubric: list[RubricCriterion]
     min_coursework_credits: float
@@ -228,6 +233,7 @@ class SettingsOut(BaseModel):
 class SettingsUpdate(BaseModel):
     co_supervision: CoSupervision | None = None
     require_hardcopy: bool | None = None
+    require_no_dues: bool | None = None
     seminar_graders: SeminarGraders | None = None
     seminar_rubric: Rubric | None = None
     min_coursework_credits: float | None = Field(default=None, ge=0, le=40)
@@ -265,6 +271,13 @@ class NotificationOut(Out):
 
 class EmailMutedIn(BaseModel):
     email_muted: list[NotificationCategory] = Field(max_length=20)
+
+
+class WhatsappIn(BaseModel):
+    """Own number only; null clears it (opts out)."""
+
+    whatsapp_number: Annotated[str, StringConstraints(pattern=WHATSAPP_NUMBER_RE)] | None
+    whatsapp_muted: list[NotificationCategory] = Field(max_length=20)
 
 
 # --- files ------------------------------------------------------------------------------
@@ -464,6 +477,11 @@ class ItemView(BaseModel):
     send_back_targets: list[SendBackTarget]
     blocked_reason: str | None
     history: list[HistoryEntry]
+
+
+class NoDuesMine(BaseModel):
+    required: bool  # university setting require_no_dues: the thesis waits for it
+    item: ItemView | None
 
 
 class ApproveIn(BaseModel):

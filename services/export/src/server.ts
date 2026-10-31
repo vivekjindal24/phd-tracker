@@ -3,8 +3,8 @@
 import express from "express";
 import type { NextFunction, Request, Response } from "express";
 import { z } from "zod";
-import { fetchView, registerView, reportView, UpstreamError } from "./api.ts";
-import { registerCsv, registerPdf, reportPdf } from "./render.ts";
+import { fetchView, registerView, reportView, ucView, UpstreamError } from "./api.ts";
+import { registerCsv, registerPdf, reportPdf, ucPdf } from "./render.ts";
 
 export type Config = { apiUrl: string; corsOrigins: string[] };
 
@@ -71,6 +71,17 @@ export function createApp(config: Config) {
       const view = await fetchView(config.apiUrl, `/internal/reports/${id}/export-view`, auth(req), reportView);
       send(res, "application/pdf", `progress-report-${view.roll_number}-${view.period}-${view.report_year}.pdf`,
         await reportPdf(view));
+    } catch (e) {
+      next(e);
+    }
+  });
+
+  app.get("/ucs/:id.pdf", async (req, res, next) => {
+    try {
+      const id = input(z.string().uuid(), req.params.id);
+      const view = await fetchView(config.apiUrl, `/internal/ucs/${id}/export-view`, auth(req), ucView);
+      send(res, "application/pdf", `utilisation-certificate-${view.sanction_number}-${view.period_end}.pdf`,
+        await ucPdf(view));
     } catch (e) {
       next(e);
     }

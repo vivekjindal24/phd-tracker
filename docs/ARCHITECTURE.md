@@ -36,6 +36,7 @@ UI or scripts; file bytes never pass through the export service.
 | DB | Postgres 16 — schema `core`, `ltree` for the org tree, `pg_trgm` search |
 | Files | S3 API via `boto3`/`aioboto3`-compatible client; presigned PUT/GET (5 min) |
 | Email | SMTP (`aiosmtplib`), sent after commit; failures recorded, never silent |
+| WhatsApp | Meta WhatsApp Cloud API (`httpx`), one utility template, after commit like email; outcome recorded |
 | Export | Express + pdfkit (node:22-slim) |
 | Web | Next.js 16 (App Router, client components behind an auth gate), `output: "standalone"` for self-hosting |
 | CI/CD | Render builds `services/api/Dockerfile` and Vercel builds `web/` on every push to the deploy branch; GitHub Actions `ci.yml` (tests) to be added |
@@ -173,6 +174,13 @@ The five SMTP variables are all-or-nothing: none set = email off (each
 notification records "Email is not configured on this server"); some set =
 startup error. Dev uses Brevo's SMTP relay; production the university's
 server.
+WhatsApp (optional, all-or-nothing): `WHATSAPP_TOKEN` (a Meta system-user
+token), `WHATSAPP_PHONE_NUMBER_ID` (numeric ID of the sending number),
+`WHATSAPP_TEMPLATE` (name of the approved utility template, body
+`Anveshan: {{1}}. Open it here: {{2}}`); optional `WHATSAPP_TEMPLATE_LANG`
+(default `en`) and `WHATSAPP_API_VERSION` (default `v23.0`; raise it when Meta
+retires the version). Unset = WhatsApp off (each notification records "WhatsApp
+is not configured on this server").
 University-email login (optional): `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET`
 and/or `MICROSOFT_CLIENT_ID` + `MICROSOFT_CLIENT_SECRET` +
 `MICROSOFT_TENANT_ID` (the university's tenant GUID) — each provider
@@ -185,7 +193,8 @@ Web: `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_EXPORT_URL`.
 ## 10. Scheduled Jobs
 
 One daily job calls `POST /api/v1/internal/cron/daily` (header
-`X-Cron-Secret`): fellowship ending in 60 days; APR due in 14 days (scholar)
+`X-Cron-Secret`): fellowship ending in 60 days; project ending in 60 days (PI
++ Research Office); APR due in 14 days (scholar)
 and overdue the day after the seminar's report due date (scholar +
 supervisor), while unsubmitted; meeting tomorrow, from the next meeting date
 on the latest meeting logged for each scholar and supervisor. Reminders match
@@ -202,6 +211,8 @@ keep-alive: it runs once a day.
 - **SMTP down:** the in-app notification exists regardless; the email outcome
   is stored as `failed` with the error, and the daily job retries failed
   emails once.
+- **WhatsApp down or a message refused:** the in-app notification and the
+  email are unaffected; the outcome is stored as `failed` with Meta's reason.
 - **Export service down:** export buttons show the error envelope; daily use
   is unaffected.
 - **Cold start (Render free tier, ~15-min spin-down):** first request is slow;

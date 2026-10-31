@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
-import { Button, Card, Field } from "@/components/ui/kit";
+import { Button, Card, Field, Switch } from "@/components/ui/kit";
 import type { SettingsData } from "@/lib/types";
 import type { Save } from "./save";
 
@@ -45,6 +45,13 @@ export function RulesSettings({ data, save }: { data: SettingsData; save: Save }
         </div>
         <Button kind="secondary" type="submit">Save rules</Button>
       </form>
+      <ul className="module-list">
+        <li>
+          <span>A thesis needs an approved no-dues clearance (lab, department, library, fees)</span>
+          <Switch checked={data.require_no_dues} label="Thesis needs no-dues clearance"
+            onChange={(v) => save("/settings", "PATCH", { require_no_dues: v }).catch(() => {})} />
+        </li>
+      </ul>
     </Card>
   );
 }

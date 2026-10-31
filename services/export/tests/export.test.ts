@@ -24,6 +24,16 @@ const register = {
   generated_at: "2026-10-22T10:00:00Z", generated_by: "Research Office",
 };
 
+const uc = {
+  university: "Demo University", unit: "ECE", title: "Low-power edge inference", agency: "SERB",
+  sanction_number: "SERB/CRG/2025/001", amount_sanctioned: 2500000, pi: "Dr B",
+  period_start: "2026-04-01", period_end: "2027-03-31", opening_balance: 800000,
+  grants_received: [{ date: "2026-05-01", reference: "SERB/2nd", amount: 500000 }], received: 500000,
+  available: 1300000, spent_by_head: { travel: 50000, consumables: 25000 }, spent: 75000,
+  closing_balance: 1225000, received_to_date: 1500000, spent_to_date: 275000,
+  generated_at: "2026-10-31T10:00:00Z", generated_by: "Research Office",
+};
+
 const seen: { auth?: string; url?: string } = {};
 let stubUrl = "";
 let exportUrl = "";
@@ -35,6 +45,7 @@ before(async () => {
     seen.auth = req.headers.authorization;
     seen.url = req.url;
     if (req.headers.authorization !== "Bearer good") return res.status(403).json({ error: { code: "forbidden", message: "Not yours." } });
+    if (req.path.startsWith("/api/v1/internal/ucs/")) return res.json(uc);
     if (req.path.endsWith("/export-view")) return res.json(req.path.includes(JUNK_ID) ? { nope: 1 } : report);
     if (req.path.endsWith("/register-view")) return res.json(register);
     res.sendStatus(404);
@@ -98,6 +109,14 @@ test("register CSV is formula-safe and filters are forwarded", async () => {
 test("register PDF renders", async () => {
   const res = await get("/register.pdf");
   assert.equal(res.status, 200);
+  assert.equal((await res.text()).slice(0, 5), "%PDF-");
+});
+
+test("utilisation certificate PDF renders from the UC view", async () => {
+  const res = await get(`/ucs/${REPORT_ID}.pdf`);
+  assert.equal(res.status, 200);
+  assert.equal(seen.url, `/api/v1/internal/ucs/${REPORT_ID}/export-view`);
+  assert.match(res.headers.get("content-disposition") ?? "", /utilisation-certificate-SERB_CRG_2025_001-2027-03-31\.pdf/);
   assert.equal((await res.text()).slice(0, 5), "%PDF-");
 });
 

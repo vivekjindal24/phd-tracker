@@ -163,6 +163,11 @@ co-supervisor (setting on) may log their own meetings but never sets sharing.
 
 ## Flow 8 — Thesis submission (module)
 
+When the university requires it (Settings → UGC rules), the thesis page
+first shows **No-dues clearance**: the scholar requests it and it runs its own
+chain — Supervisor (lab) → Department → Library → Research Office (fees);
+submitting the thesis before it is approved is refused with "Get your no-dues
+clearance approved before submitting the thesis."
 Scholar uploads the final thesis → Supervisor → Department → **Library**
 enters plagiarism tool + score and approves → **Exam Office** records receipt
 and examiners → Research Office final approval → scholar stage moves to
@@ -208,14 +213,21 @@ new profile. Heads of the unit see the list read-only.
   disbursements and expenses with a running balance and received / spent /
   balance against the sanction; the PI may add expenses on own projects;
   utilisation certificates per period, with the signed file attached and the
-  submitted date recorded.
+  submitted date recorded. Each period offers **Draft certificate (GFR 12-A)**:
+  a PDF built from the ledger (balance brought forward, grants received,
+  expenditure per head, balance carried forward), marked DRAFT, for the PI and
+  finance officer to verify and sign. An expense that takes the balance below
+  10% of the money received tells the PI and the Research Office once.
 
 ## Flow 12 — Notifications
 
 Bell icon with unread count → inbox (newest first, mark read). Each item
 links to the record. Below the inbox, **Email me when…**: email on/off per
 category, saved on each tick; in-app always on. (On the inbox page, not
-Settings: Settings is the root admin's.)
+Settings: Settings is the root admin's.) When the server has WhatsApp, a
+**WhatsApp** card follows: the person types their number (10 digits = India,
+else `+<country><number>`) and saves it — that is the opt-in; then the same
+per-category ticks for WhatsApp and **Stop WhatsApp messages**.
 
 ## Flow 13 — Search
 

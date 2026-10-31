@@ -1,17 +1,27 @@
 """Notifications and email delivery (PRD F5, TESTING.md §1.6)."""
 
 import dataclasses
+import json
 
 import aiosmtplib
+import httpx
 import pytest
 from sqlalchemy import select
 
 from app import notify
-from app.config import ConfigError, Smtp, _load_smtp, settings
+from app.config import ConfigError, Smtp, Whatsapp, _load_smtp, _load_whatsapp, settings
+from app.enums import NOTIFICATION_CATEGORIES
 from app.models import Notification
 from tests.conftest import auth
 
 SMTP = Smtp(host="smtp.test", port=587, user="u", password="p", mail_from="noreply@x.edu")
+WA = Whatsapp(
+    token="tok",
+    phone_number_id="123",
+    template="anveshan_update",
+    template_lang="en",
+    api_version="v23.0",
+)
 
 
 @pytest.fixture
@@ -98,6 +108,104 @@ async def test_duplicate_recipients_get_one_notification(session, world, sent):
     await session.commit()
     await notify.deliver_pending(session)
     assert len(sent) == 1
+
+
+@pytest.fixture
+def whatsapp(monkeypatch):
+    """WhatsApp configured; Meta answers with `reply` and requests are captured."""
+    monkeypatch.setattr(notify, "settings", dataclasses.replace(settings, whatsapp=WA))
+    calls: list[httpx.Request] = []
+    state = {"reply": httpx.Response(200, json={"messages": [{"id": "wamid.1"}]})}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(request)
+        return state["reply"]
+
+    transport = httpx.MockTransport(handler)
+    monkeypatch.setattr(notify, "_whatsapp_client", lambda: httpx.AsyncClient(transport=transport))
+    return calls, state
+
+
+async def _give_number(session, user, number="+919876543210", muted=()):
+    user.whatsapp_number, user.whatsapp_muted = number, list(muted)
+    session.add(user)
+    await session.commit()
+
+
+async def test_whatsapp_carries_only_event_kind_and_link(session, world, whatsapp):
+    calls, _ = whatsapp
+    await _give_number(session, world.meera)
+    await _notify_and_deliver(session, world.meera)
+    assert len(calls) == 1
+    req = calls[0]
+    assert str(req.url) == "https://graph.facebook.com/v23.0/123/messages"
+    assert req.headers["Authorization"] == "Bearer tok"
+    body = json.loads(req.content)
+    assert body["to"] == "919876543210"
+    assert body["template"]["name"] == "anveshan_update"
+    params = [p["text"] for p in body["template"]["components"][0]["parameters"]]
+    assert params == [
+        "An item is waiting for your step",
+        f"{settings.app_base_url}/items/progress_report/abc",
+    ]
+    assert "Progress report waiting" not in req.content.decode()  # no titles, names, content
+    assert (await _row(session, world.meera)).whatsapp_status == "sent"
+
+
+async def test_whatsapp_muted_and_no_number_are_recorded(session, world, whatsapp):
+    calls, _ = whatsapp
+    await _give_number(session, world.meera, muted=["approval_waiting"])
+    await _notify_and_deliver(session, world.meera)
+    await _notify_and_deliver(session, world.scholar_a1)  # Arun has no number
+    assert calls == []
+    assert (await _row(session, world.meera)).whatsapp_status == "muted"
+    arun = await _row(session, world.scholar_a1)
+    assert (arun.whatsapp_status, arun.whatsapp_error) == ("not_sent", notify.WHATSAPP_NO_NUMBER)
+
+
+async def test_whatsapp_meta_error_is_recorded_not_raised(session, world, whatsapp):
+    _, state = whatsapp
+    state["reply"] = httpx.Response(400, json={"error": {"message": "Template does not exist"}})
+    await _give_number(session, world.meera)
+    await _notify_and_deliver(session, world.meera)
+    row = await _row(session, world.meera)
+    assert row.whatsapp_status == "failed" and "Template does not exist" in row.whatsapp_error
+    assert row.email_status == "not_sent"  # email unaffected by the WhatsApp failure
+
+
+async def test_without_whatsapp_config_the_reason_is_recorded(session, world):
+    await _give_number(session, world.meera)
+    await _notify_and_deliver(session, world.meera)
+    row = await _row(session, world.meera)
+    assert (row.whatsapp_status, row.whatsapp_error) == ("not_sent", notify.WHATSAPP_NOT_CONFIGURED)
+
+
+def test_every_category_has_whatsapp_text():
+    assert set(notify.WHATSAPP_TEXT) == set(NOTIFICATION_CATEGORIES)
+
+
+@pytest.mark.parametrize(
+    ("env", "ok"),
+    [
+        ({}, True),
+        ({"WHATSAPP_TOKEN": "t", "WHATSAPP_PHONE_NUMBER_ID": "1", "WHATSAPP_TEMPLATE": "x"}, True),
+        ({"WHATSAPP_TOKEN": "t"}, False),
+        (  # the phone-number ID is numeric, not the phone number itself
+            {"WHATSAPP_TOKEN": "t", "WHATSAPP_PHONE_NUMBER_ID": "+91", "WHATSAPP_TEMPLATE": "x"},
+            False,
+        ),
+    ],
+)
+def test_whatsapp_config_is_all_or_nothing(monkeypatch, env, ok):
+    for name in ("WHATSAPP_TOKEN", "WHATSAPP_PHONE_NUMBER_ID", "WHATSAPP_TEMPLATE"):
+        monkeypatch.delenv(name, raising=False)
+    for name, value in env.items():
+        monkeypatch.setenv(name, value)
+    if ok:
+        _load_whatsapp()
+    else:
+        with pytest.raises(ConfigError):
+            _load_whatsapp()
 
 
 async def test_inbox_lists_only_own_and_marks_read(client, session, world):

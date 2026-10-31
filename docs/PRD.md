@@ -173,6 +173,17 @@ step, item sent back to you, item approved, APR due in 14 days / overdue,
 meeting tomorrow, fellowship ending in 60 days. A user can mute email per
 category; in-app is always on.
 
+**WhatsApp** (Decided 2026-10-31; when the installation configures the Meta
+WhatsApp Cloud API): each person may add their own WhatsApp number in
+notification settings — adding it is the opt-in; only they can set or clear
+it. Every notification then also goes to WhatsApp, mutable per category like
+email. The message carries **only the kind of event and the link** (one
+pre-approved utility template, e.g. "Anveshan: An item is waiting for your
+approval. Open it: <link>") — never names, titles or content, so a mistyped
+number leaks nothing and no record data passes through Meta. The outcome is
+stored per notification (sent / failed with reason / muted / not configured),
+like email.
+
 ### 6.2 Core daily use
 
 **F6 — Directory.** Scholars (roll number unique, unit, supervisor, stage
@@ -319,6 +330,18 @@ Library at its step), examiners (entered by Exam Office at its step).
   passed viva moves the scholar's stage to Viva.
 - **Shodhganga deposit:** the Library records the deposit date, the
   Shodhganga handle/URL and the certificate file — a record, not a sync.
+- **No-dues clearance** (Decided 2026-10-31; university setting
+  `require_no_dues`, default off): a fifth item type, **no-dues**, initiated
+  by the scholar, runs its own chain (default Supervisor (lab) → Department →
+  Library → Research Office (fees)). While the setting is on, a thesis cannot
+  be submitted without the scholar's approved no-dues → 409 `no_dues_pending`.
+- **Provisional certificate** (Decided 2026-10-31): after a passed viva the
+  Research Office issues the provisional PhD certificate (UGC 2022) — serial
+  number `<university code>/PHD/<year>/<n>`, issue date, PDF with a QR code.
+  The QR opens a public verification page (`/verify/<random token>`, no login)
+  showing only name, thesis title, unit, viva date, issue date and status
+  (valid / revoked). The Research Office may revoke with a reason; nothing is
+  deleted.
 - **Examiner confidentiality:** examiner names are visible only to the Exam
   Office, Research Office and root admin until the viva outcome is recorded;
   the Exam Office releases reports (without names) to the scholar and
@@ -345,18 +368,36 @@ members (scholars and their role).
 fellowship (head: salary/fellowship, equipment, consumables, travel,
 contingency, overhead), and utilisation certificates per period (file +
 submitted date).
+- **Generated UC** (Decided 2026-10-31): for a project's UC period the system
+  drafts the certificate as a PDF in the GFR 12-A layout — sanctioned amount,
+  received to date, spent per head in the period and cumulatively, unspent
+  balance. The PI signs it outside; the signed scan is attached as today.
+- **Grant alerts** (daily job): the PI and the Research Office are told when a
+  project ends within 60 days, and when an expense takes its unspent balance
+  below 10% of the amount received (told once, at the crossing).
+
+**M9 — NAAC research data** (Decided 2026-10-31). For a range of academic
+years, the Research Office and root admin export the research data NAAC
+Criterion 3 asks for, one sheet each: funded projects and grants received per
+year; PhD scholars registered and awarded per guide per year; publications per
+year with indexing (UGC-CARE / Scopus / WoS); books and chapters. Built from
+the records already kept — no extra data entry. Metric numbering follows the
+framework in force; the sheets carry the underlying rows, not computed scores.
 
 ## 7. Non-Goals
 
 Intentionally NOT in this version:
 - A public applicant portal (admissions is internal record only).
-- NAAC/NIRF/AISHE accreditation packs (candidate for after the pilot, §12),
+- NIRF/AISHE accreditation packs (NAAC Criterion 3 research data is M9),
   Shodhganga sync (the deposit is recorded by hand, M3).
+- PFMS integration and agency-specific UC formats (the generated UC follows
+  GFR 12-A, M8).
 - Plagiarism-check API integration (scores are entered by the Library).
 - Payroll/accounting integration (the ledger records, it does not pay).
 - Multiple universities in one installation (one installation per
   university).
-- WhatsApp / Google Calendar integrations; GitHub mirroring.
+- Google Calendar integration; GitHub mirroring; two-way WhatsApp (replies,
+  chat bots) — WhatsApp is outbound notifications only (F5).
 - Committee-member (external examiner, RAC outsider) logins — they get PDFs
   and email.
 - Per-unit approval chains (chains are university-wide).
@@ -381,6 +422,14 @@ Intentionally NOT in this version:
 5. **Grants:** fellowships, research projects, grant ledger.
 6. **Production packaging:** self-hosted Docker Compose stack for a
    university server/NAS (ARCHITECTURE.md §8).
+7. **Reach & research administration** (Decided 2026-10-31): WhatsApp
+   notifications (F5); generated utilisation certificates and grant alerts
+   (M8); no-dues clearance before thesis submission (M3); provisional PhD
+   certificate with QR verification (M3); NAAC Criterion 3 research data
+   (M9).
+8. **Mobile apps:** a Flutter app (Android + iOS) in `mobile/`, on the same
+   `/api/v1`, themed from DESIGN_SYSTEM.md, reaching parity with the web
+   screen by screen; push notifications after parity of the inbox.
 
 Each phase ends with a check-in with the owner before the next starts.
 

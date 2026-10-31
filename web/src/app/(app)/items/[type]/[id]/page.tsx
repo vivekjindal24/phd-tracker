@@ -34,6 +34,7 @@ const RECORD_TABLE: Partial<Record<ItemType, CommentTarget>> = {
   publication: "publications",
   thesis_submission: "thesis_submissions",
   coursework_clearance: "coursework_clearances",
+  no_dues_clearance: "no_dues_clearances",
 };
 
 /** The type-specific record card; the chain, actions and history around it are generic. */

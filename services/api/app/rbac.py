@@ -105,6 +105,15 @@ MATRIX: dict[str, dict[str, frozenset[str]]] = {
         "research_office": frozenset({R}),
         "exam_office": frozenset({R, C, U, D}),
     },
+    "no_dues_clearances": {  # every chain office reads; the scholar starts their own
+        "scholar": frozenset({R, C}),
+        "supervisor": frozenset({R}),
+        "unit_head": frozenset({R}),
+        "admin": frozenset({R}),
+        "research_office": frozenset({R}),
+        "exam_office": frozenset({R}),
+        "library": frozenset({R}),
+    },
     "coursework_clearances": {
         "scholar": frozenset({R}),
         "supervisor": frozenset({R}),

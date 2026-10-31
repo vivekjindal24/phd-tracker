@@ -77,10 +77,14 @@ async def add_entry(
     principal: Principal = Depends(current_principal),  # the PI may add expenses
     session: AsyncSession = Depends(get_session),
 ) -> dict[str, Any]:
-    _, manage, add_expense = await _owner(session, principal, body.project_id, body.fellowship_id)
+    owner, manage, add_expense = await _owner(
+        session, principal, body.project_id, body.fellowship_id
+    )
     if not (manage or (add_expense and body.entry_kind == "expense")):
         raise forbidden()
     await insert(session, principal, LedgerEntry(**body.model_dump()))
+    if isinstance(owner, Project) and body.entry_kind == "expense":
+        await grants.alert_if_low(session, owner, body.amount)
     await session.commit()
     return await _view(session, principal, body.project_id, body.fellowship_id)
 

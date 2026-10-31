@@ -42,7 +42,13 @@ MODULE_KEYS = get_args(ModuleKey)
 CoSupervision = Literal["off", "view", "approve"]
 CO_SUPERVISION = get_args(CoSupervision)
 
-ItemType = Literal["progress_report", "publication", "coursework_clearance", "thesis_submission"]
+ItemType = Literal[
+    "progress_report",
+    "publication",
+    "coursework_clearance",
+    "thesis_submission",
+    "no_dues_clearance",
+]
 ITEM_TYPES = get_args(ItemType)
 
 StepKind = Literal["supervisor", "department", "research_office", "exam_office", "library"]
@@ -70,13 +76,16 @@ NotificationCategory = Literal[
     "apr_due",
     "meeting_tomorrow",
     "fellowship_ending",
+    "grant_alert",
     "seminar",
     "system",
 ]
 NOTIFICATION_CATEGORIES = get_args(NotificationCategory)
+# E.164: "+" then country code and number, 8-15 digits (users.whatsapp_number CHECK).
+WHATSAPP_NUMBER_RE = r"^\+[1-9][0-9]{7,14}$"
 
-EmailStatus = Literal["not_sent", "sent", "failed", "muted"]
-EMAIL_STATUSES = get_args(EmailStatus)
+DeliveryStatus = Literal["not_sent", "sent", "failed", "muted"]  # per channel: email, WhatsApp
+DELIVERY_STATUSES = get_args(DeliveryStatus)
 
 MilestoneType = Literal[
     "coursework",
@@ -187,6 +196,7 @@ CommentTarget = Literal[
     "documents",
     "thesis_submissions",
     "coursework_clearances",
+    "no_dues_clearances",
 ]
 COMMENT_TARGETS = get_args(CommentTarget)
 
@@ -212,11 +222,14 @@ INITIATOR: dict[str, str] = {
     "publication": "scholar",
     "thesis_submission": "scholar",
     "coursework_clearance": "exam_office",
+    "no_dues_clearance": "scholar",
 }
 DEFAULT_CHAINS: dict[str, tuple[str, ...]] = {
     "progress_report": ("supervisor", "department", "research_office"),
     "publication": ("supervisor", "library", "research_office"),
     "coursework_clearance": ("department", "exam_office", "research_office"),
+    # PRD M3: lab dues (supervisor), department, books (library), fees (research office)
+    "no_dues_clearance": ("supervisor", "department", "library", "research_office"),
     "thesis_submission": (
         "supervisor",
         "department",

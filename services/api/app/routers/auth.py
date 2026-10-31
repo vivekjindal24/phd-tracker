@@ -11,7 +11,7 @@ from app.db import get_session
 from app.enums import SsoProvider
 from app.errors import ApiError
 from app.models import Module, OrgUnit, User
-from app.notify import unread_count
+from app.notify import unread_count, whatsapp_configured
 from app.schemas import (
     ChangePasswordIn,
     EmailMutedIn,
@@ -23,6 +23,7 @@ from app.schemas import (
     SsoExchangeIn,
     TokenPair,
     UnitRoleOut,
+    WhatsappIn,
 )
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -135,6 +136,9 @@ async def me(
         modules=modules,
         unread_notifications=await unread_count(session, principal.user_id),
         email_muted=list(user.email_muted),
+        whatsapp_available=whatsapp_configured(),
+        whatsapp_number=user.whatsapp_number,
+        whatsapp_muted=list(user.whatsapp_muted),
     )
 
 
@@ -164,4 +168,20 @@ async def set_email_muted(
     user = await session.get(User, principal.user_id)
     assert user is not None
     await update(session, principal, user, {"email_muted": sorted(set(body.email_muted))})
+    await session.commit()
+
+
+@router.put("/me/whatsapp", status_code=204)
+async def set_whatsapp(
+    body: WhatsappIn,
+    principal: Principal = Depends(current_principal),
+    session: AsyncSession = Depends(get_session),
+) -> None:
+    user = await session.get(User, principal.user_id)
+    assert user is not None
+    changes = {
+        "whatsapp_number": body.whatsapp_number,
+        "whatsapp_muted": sorted(set(body.whatsapp_muted)),
+    }
+    await update(session, principal, user, changes)
     await session.commit()

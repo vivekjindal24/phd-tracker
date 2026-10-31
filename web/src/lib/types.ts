@@ -8,7 +8,8 @@ export type ItemType =
   | "progress_report"
   | "publication"
   | "coursework_clearance"
-  | "thesis_submission";
+  | "thesis_submission"
+  | "no_dues_clearance";
 export type ModuleKey =
   | "publications"
   | "conferences"
@@ -33,6 +34,9 @@ export type Me = {
   modules: Record<ModuleKey, boolean>;
   unread_notifications: number;
   email_muted: string[];
+  whatsapp_available: boolean;
+  whatsapp_number: string | null;
+  whatsapp_muted: string[];
 };
 
 export type OrgUnit = {
@@ -47,6 +51,7 @@ export type OrgUnit = {
 export type SettingsData = {
   co_supervision: CoSupervision;
   require_hardcopy: boolean;
+  require_no_dues: boolean;
   seminar_graders: "panel" | "panel_and_attending";
   seminar_rubric: { name: string; max: number }[];
   min_coursework_credits: number;
@@ -93,6 +98,7 @@ export const ITEM_LABELS: Record<ItemType, string> = {
   publication: "Publication",
   coursework_clearance: "Coursework clearance",
   thesis_submission: "Thesis submission",
+  no_dues_clearance: "No-dues clearance",
 };
 
 export const MODULE_LABELS: Record<ModuleKey, string> = {
@@ -441,7 +447,8 @@ export type CommentTarget =
   | "conferences"
   | "documents"
   | "thesis_submissions"
-  | "coursework_clearances";
+  | "coursework_clearances"
+  | "no_dues_clearances";
 export type FileItem = {
   id: string;
   file_name: string;
@@ -668,3 +675,6 @@ export type LedgerView = {
   can_add_expense: boolean;
 };
 export type UtilisationCertificate = { id: string; period_start: string; period_end: string; submitted_on: string | null };
+
+export type NoDuesMine = { required: boolean; item: ItemView | null };
+

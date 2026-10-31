@@ -20,7 +20,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from app.enums import (
     AUDIT_ACTIONS,
-    EMAIL_STATUSES,
+    DELIVERY_STATUSES,
     NOTIFICATION_CATEGORIES,
     PASSWORD_TOKEN_PURPOSES,
     SSO_PROVIDERS,
@@ -129,7 +129,11 @@ class Notification(Base):
             f"category IN ({sql_in(NOTIFICATION_CATEGORIES)})", name="ck_notifications_category"
         ),
         CheckConstraint(
-            f"email_status IN ({sql_in(EMAIL_STATUSES)})", name="ck_notifications_email_status"
+            f"email_status IN ({sql_in(DELIVERY_STATUSES)})", name="ck_notifications_email_status"
+        ),
+        CheckConstraint(
+            f"whatsapp_status IN ({sql_in(DELIVERY_STATUSES)})",
+            name="ck_notifications_whatsapp_status",
         ),
     )
 
@@ -144,6 +148,8 @@ class Notification(Base):
     read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     email_status: Mapped[str] = mapped_column(Text, server_default=text("'not_sent'"))
     email_error: Mapped[str | None] = mapped_column(Text)
+    whatsapp_status: Mapped[str] = mapped_column(Text, server_default=text("'not_sent'"))
+    whatsapp_error: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 

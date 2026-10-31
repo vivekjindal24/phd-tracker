@@ -246,3 +246,80 @@ async def test_daily_job_reminds_once(client, world, grants_on, monkeypatch):
     for user in (world.scholar_a1, world.meera):
         inbox = (await get(client, user, "/notifications")).json()
         assert [n["category"] for n in inbox] == ["fellowship_ending"]
+
+
+async def ledger_entry(client, world, pid, kind, amount, on, head="equipment", reference=None):
+    res = await client.post(
+        f"{API}/ledger",
+        headers=auth(world.research_office.id),
+        json={
+            "project_id": pid,
+            "entry_kind": kind,
+            "head": head,
+            "amount": amount,
+            "entry_date": on,
+            "reference": reference,
+        },
+    )
+    assert res.status_code == 201, res.text
+
+
+async def test_uc_figures_follow_the_ledger(client, world, grants_on):
+    pid = (await project(client, world)).json()["id"]
+    await ledger_entry(client, world, pid, "disbursement", 1000000, "2025-05-01")
+    await ledger_entry(client, world, pid, "expense", 200000, "2025-06-01")
+    await ledger_entry(
+        client, world, pid, "disbursement", 500000, "2026-05-01", reference="SERB/2nd"
+    )
+    await ledger_entry(client, world, pid, "expense", 50000, "2026-06-01", "travel")
+    await ledger_entry(client, world, pid, "expense", 25000, "2026-07-01", "consumables")
+    # after the period: not in this certificate
+    await ledger_entry(client, world, pid, "expense", 10000, "2027-05-01", "travel")
+    uc = await client.post(
+        f"{API}/projects/{pid}/ucs",
+        headers=auth(world.research_office.id),
+        json={"period_start": "2026-04-01", "period_end": "2027-03-31"},
+    )
+    url = f"/internal/ucs/{uc.json()['id']}/export-view"
+    view = (await get(client, world.sup_b1, url)).json()  # the PI
+    assert view["pi"] == world.sup_b1.full_name and view["sanction_number"] == "SERB/CRG/2025/001"
+    assert (view["opening_balance"], view["received"], view["available"]) == (
+        800000,
+        500000,
+        1300000,
+    )
+    assert view["grants_received"] == [
+        {"date": "2026-05-01", "reference": "SERB/2nd", "amount": 500000}
+    ]
+    assert view["spent_by_head"] == {"travel": 50000, "consumables": 25000}
+    assert (view["spent"], view["closing_balance"]) == (75000, 1225000)
+    assert (view["received_to_date"], view["spent_to_date"]) == (1500000, 275000)
+    assert (await get(client, world.hod_b1, url)).status_code == 200
+    for outsider in (world.dean_a, world.scholar_a1, world.library):
+        assert (await get(client, outsider, url)).status_code == 403
+
+
+async def test_low_balance_alert_fires_once_at_the_crossing(client, world, grants_on):
+    pid = (await project(client, world)).json()["id"]
+    await ledger_entry(client, world, pid, "disbursement", 100000, "2025-05-01")
+    await ledger_entry(client, world, pid, "expense", 85000, "2025-06-01")  # 15,000 left: above 10%
+    assert (await get(client, world.sup_b1, "/notifications")).json() == []
+    await ledger_entry(client, world, pid, "expense", 6000, "2025-07-01")  # 9,000 left: crosses
+    await ledger_entry(client, world, pid, "expense", 1000, "2025-08-01")  # still low: no repeat
+    for user in (world.sup_b1, world.research_office):
+        inbox = (await get(client, user, "/notifications")).json()
+        assert [n["category"] for n in inbox] == ["grant_alert"]
+        assert inbox[0]["link"] == f"/projects/{pid}"
+    assert (await get(client, world.scholar_a1, "/notifications")).json() == []
+
+
+async def test_daily_job_reminds_project_end(client, world, grants_on, monkeypatch):
+    secret = "s" * 40
+    monkeypatch.setattr(cron, "settings", dataclasses.replace(settings, cron_secret=secret))
+    ends = (datetime.now(UTC).date() + timedelta(days=60)).isoformat()
+    await project(client, world, end_date=ends)
+    await project(client, world, sanction_number="SERB/CRG/2025/002")  # ends later
+    res = await client.post(f"{API}/internal/cron/daily", headers={"X-Cron-Secret": secret})
+    assert res.json()["project_reminders"] == 1
+    inbox = (await get(client, world.sup_b1, "/notifications")).json()
+    assert [n["category"] for n in inbox] == ["grant_alert"]

@@ -13,12 +13,14 @@ from app.config import settings
 from app.dashboard import DUE_SOON_DAYS, SUBMITTED, deadlines_query
 from app.db import get_session
 from app.errors import ApiError
-from app.models import Faculty, Fellowship, JobRun, Meeting, Scholar, Seminar
+from app.grants import pi_and_office_user_ids
+from app.models import Faculty, Fellowship, JobRun, Meeting, Project, Scholar, Seminar
 from app.modules import module_enabled
 from app.notify import notify
 
 router = APIRouter(prefix="/internal/cron", tags=["internal"])
 FELLOWSHIP_NOTICE_DAYS = 60  # PRD F5: "fellowship ending in 60 days"
+PROJECT_NOTICE_DAYS = 60  # PRD M8: "a project ends within 60 days"
 
 
 async def _fellowships_ending(session: AsyncSession, today: date) -> int:
@@ -49,6 +51,31 @@ async def _fellowships_ending(session: AsyncSession, today: date) -> int:
             f"The fellowship ends in {FELLOWSHIP_NOTICE_DAYS} days. Speak to the research "
             "office about an extension or the next step.",
             "/fellowships",
+        )
+        count += 1
+    return count
+
+
+async def _projects_ending(session: AsyncSession, today: date) -> int:
+    # ponytail: exact-day match, as for fellowships.
+    if not await module_enabled(session, "projects"):
+        return 0
+    ends = today + timedelta(days=PROJECT_NOTICE_DAYS)
+    projects = await session.scalars(
+        select(Project).where(
+            Project.deleted_at.is_(None), Project.status == "ongoing", Project.end_date == ends
+        )
+    )
+    count = 0
+    for project in projects.all():
+        notify(
+            session,
+            await pi_and_office_user_ids(session, project),
+            "grant_alert",
+            f"Project ends on {ends:%d %b %Y}: {project.title}",
+            f"The project ends in {PROJECT_NOTICE_DAYS} days. Plan the final utilisation "
+            "certificate and any extension request with the agency.",
+            f"/projects/{project.id}",
         )
         count += 1
     return count
@@ -154,12 +181,14 @@ async def daily(
     if claimed is None:
         return {"ran": False, "reason": "already ran today"}
     fellowships = await _fellowships_ending(session, today)
+    projects = await _projects_ending(session, today)
     apr_soon, apr_late = await _apr_reminders(session, today)
     meetings = await _meetings_tomorrow(session, today)
     await session.commit()
     return {
         "ran": True,
         "fellowship_reminders": fellowships,
+        "project_reminders": projects,
         "apr_due_soon": apr_soon,
         "apr_overdue": apr_late,
         "meeting_reminders": meetings,

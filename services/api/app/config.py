@@ -49,6 +49,27 @@ class S3:
     max_upload_bytes: int
 
 
+WHATSAPP_VARS = ("WHATSAPP_TOKEN", "WHATSAPP_PHONE_NUMBER_ID", "WHATSAPP_TEMPLATE")
+# Meta retires Graph API versions about two years after release; override when it does.
+DEFAULT_WHATSAPP_API_VERSION = "v23.0"
+
+
+@dataclass(frozen=True)
+class Whatsapp:
+    """Meta WhatsApp Cloud API. The template is one approved utility template with two body
+    parameters: {{1}} what happened, {{2}} the link (PRD F5)."""
+
+    token: str
+    phone_number_id: str
+    template: str
+    template_lang: str
+    api_version: str
+
+    @property
+    def messages_url(self) -> str:
+        return f"https://graph.facebook.com/{self.api_version}/{self.phone_number_id}/messages"
+
+
 GOOGLE_VARS = ("GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET")
 MICROSOFT_VARS = ("MICROSOFT_CLIENT_ID", "MICROSOFT_CLIENT_SECRET", "MICROSOFT_TENANT_ID")
 _GUID = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
@@ -85,6 +106,7 @@ class Settings:
     s3: S3
     ai: Ai | None
     sso: Sso | None = None
+    whatsapp: Whatsapp | None = None  # unset: WhatsApp off (recorded per notification)
     cron_secret: str | None = None  # unset: the daily job endpoint is off
     access_token_minutes: int = 30
     refresh_token_days: int = 14
@@ -135,6 +157,22 @@ def _all_or_none(names: tuple[str, ...], what: str) -> dict[str, str] | None:
     if missing:
         raise ConfigError(f"{what} is partly configured; also set " + ", ".join(missing))
     return values
+
+
+def _load_whatsapp() -> Whatsapp | None:
+    values = _all_or_none(WHATSAPP_VARS, "WhatsApp")
+    if values is None:
+        return None
+    if not values["WHATSAPP_PHONE_NUMBER_ID"].isdigit():
+        raise ConfigError("WHATSAPP_PHONE_NUMBER_ID must be the numeric ID Meta shows")
+    return Whatsapp(
+        token=values["WHATSAPP_TOKEN"],
+        phone_number_id=values["WHATSAPP_PHONE_NUMBER_ID"],
+        template=values["WHATSAPP_TEMPLATE"],
+        template_lang=os.environ.get("WHATSAPP_TEMPLATE_LANG", "").strip() or "en",
+        api_version=os.environ.get("WHATSAPP_API_VERSION", "").strip()
+        or DEFAULT_WHATSAPP_API_VERSION,
+    )
 
 
 def _load_sso() -> Sso | None:
@@ -246,6 +284,7 @@ def load_settings() -> Settings:
         s3=_load_s3(),
         ai=_load_ai(),
         sso=_load_sso(),
+        whatsapp=_load_whatsapp(),
         cron_secret=_load_cron_secret(),
     )
 

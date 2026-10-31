@@ -9,7 +9,7 @@ import { StateBadge } from "@/components/items/StateBadge";
 import { Button, Card, ErrorText, Field, PageHeader, Table } from "@/components/ui/kit";
 import { api } from "@/lib/api";
 import { useSession } from "@/lib/session";
-import type { ItemView, ThesisRow } from "@/lib/types";
+import type { ItemView, NoDuesMine, ThesisRow } from "@/lib/types";
 import { errorText, useFetch } from "@/lib/useFetch";
 
 function StartThesis() {
@@ -44,6 +44,41 @@ function StartThesis() {
   );
 }
 
+/** The scholar's no-dues clearance: required before the thesis only when the university says so. */
+function NoDues() {
+  const router = useRouter();
+  const { data, error } = useFetch<NoDuesMine>("/no-dues/mine");
+  const [startError, setStartError] = useState<string | null>(null);
+
+  async function start() {
+    setStartError(null);
+    try {
+      const item = await api<ItemView>("/no-dues", { method: "POST" });
+      router.push(`/items/no_dues_clearance/${item.id}`);
+    } catch (err) {
+      setStartError(errorText(err));
+    }
+  }
+
+  if (!data) return <ErrorText>{error}</ErrorText>;
+  if (!data.required && !data.item) return null;
+  return (
+    <Card>
+      <h2>No-dues clearance</h2>
+      {data.item ? (
+        <p><Link href={`/items/no_dues_clearance/${data.item.id}`}>Your clearance</Link>{" "}
+          <StateBadge state={data.item.state} waitingOn={data.item.waiting_on} /></p>
+      ) : (
+        <>
+          <p>Your thesis can be submitted once your supervisor (lab), department, Library and Research Office (fees) confirm you owe nothing.</p>
+          <Button kind="secondary" onClick={start}>Request no-dues clearance</Button>
+        </>
+      )}
+      <ErrorText>{startError}</ErrorText>
+    </Card>
+  );
+}
+
 export default function ThesisPage() {
   const { me } = useSession();
   const { data, error } = useFetch<ThesisRow[]>("/theses");
@@ -54,6 +89,7 @@ export default function ThesisPage() {
     <>
       <PageHeader eyebrow="Documents & thesis" title="Thesis submissions" />
       <ErrorText>{error}</ErrorText>
+      {me?.scholar_id && <NoDues />}
       {data && me?.scholar_id && (mine ? (
         <Card>
           <h2>Your thesis</h2>

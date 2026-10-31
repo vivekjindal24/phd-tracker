@@ -1,7 +1,7 @@
 /** Print-like documents (DESIGN_SYSTEM.md §7): black on white, rules not shadows, readable
  *  when photocopied in grayscale. No claymorphism here. */
 import PDFDocument from "pdfkit";
-import type { RegisterView, ReportView } from "./api.ts";
+import type { RegisterView, ReportView, UcView } from "./api.ts";
 
 const MILESTONES: Record<string, string> = {
   coursework: "Coursework",
@@ -150,6 +150,73 @@ export async function registerPdf(v: RegisterView): Promise<Buffer> {
     });
     doc.y = y + height + 6;
   }
+  footer(doc, v.generated_by, v.generated_at);
+  return toBuffer(doc);
+}
+
+const HEADS: Record<string, string> = {
+  fellowship_salary: "Salaries / fellowships",
+  equipment: "Equipment",
+  consumables: "Consumables",
+  travel: "Travel",
+  contingency: "Contingency",
+  overhead: "Overheads",
+};
+const rupees = (n: number) => `Rs. ${n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+function amountRows(doc: PDFKit.PDFDocument, rows: [string, number, boolean?][]) {
+  const left = doc.page.margins.left;
+  const width = doc.page.width - left - doc.page.margins.right;
+  for (const [label, amount, bold] of rows) {
+    const y = doc.y;
+    doc.font(bold ? "Helvetica-Bold" : "Helvetica").fontSize(10).text(label, left, y, { width: width - 130 });
+    doc.text(rupees(amount), left + width - 125, y, { width: 125, align: "right" });
+    doc.moveDown(0.3);
+  }
+  doc.x = left;
+}
+
+/** GFR 12-A utilisation certificate, drafted from the ledger (PRD M8). The PI and the
+ *  finance officer sign it outside Anveshan; the signed scan is attached to the UC. */
+export async function ucPdf(v: UcView): Promise<Buffer> {
+  const doc = new PDFDocument({ size: "A4", margin: 56, bufferPages: true, info: { Title: `Utilisation certificate – ${v.sanction_number}` } });
+  header(doc, v.university, "Utilisation Certificate (GFR 12-A)", `${day(v.period_start)} to ${day(v.period_end)}`);
+  doc.font("Helvetica-Bold").fontSize(10).fillColor("#666666")
+    .text("DRAFT — to be verified and signed before submission", { align: "center" }).fillColor("black").moveDown(0.6);
+  keyValues(doc, [
+    ["Project", v.title],
+    ["Funding agency", v.agency],
+    ["Sanction number", v.sanction_number],
+    ["Amount sanctioned", rupees(v.amount_sanctioned)],
+    ["Principal investigator", v.pi ?? "—"],
+    ["Unit", v.unit ?? "—"],
+  ]);
+  doc.moveDown(0.5).font("Helvetica-Bold").fontSize(11).text("Grants position for the period").moveDown(0.3);
+  amountRows(doc, [["Unspent balance brought forward", v.opening_balance]]);
+  for (const g of v.grants_received) {
+    amountRows(doc, [[`Grant received ${day(g.date)}${g.reference ? ` (${g.reference})` : ""}`, g.amount]]);
+  }
+  if (v.grants_received.length === 0) amountRows(doc, [["Grants received in the period", 0]]);
+  amountRows(doc, [["Total funds available", v.available, true]]);
+  doc.moveDown(0.5).font("Helvetica-Bold").fontSize(11).text("Expenditure in the period").moveDown(0.3);
+  const heads = Object.entries(v.spent_by_head);
+  amountRows(doc, heads.length ? heads.map(([h, a]) => [HEADS[h] ?? h, a]) : [["No expenditure recorded", 0]]);
+  amountRows(doc, [["Total expenditure", v.spent, true], ["Unspent balance carried forward", v.closing_balance, true]]);
+  doc.moveDown(0.5).font("Helvetica-Bold").fontSize(11).text("Since sanction").moveDown(0.3);
+  amountRows(doc, [["Received to date", v.received_to_date], ["Spent to date", v.spent_to_date]]);
+  doc.moveDown(0.8).font("Helvetica").fontSize(9.5).text(
+    "Certified that I have satisfied myself that the conditions on which the grants were sanctioned have been " +
+    "duly fulfilled / are being fulfilled, and that I have exercised the following checks to see that the money " +
+    "was actually utilised for the purpose for which it was sanctioned: the expenditure above is recorded " +
+    "against the sanctioned heads, supported by vouchers held by the institution.", { align: "justify", lineGap: 2 });
+  if (doc.y + 90 > doc.page.height - doc.page.margins.bottom) doc.addPage();
+  const y = doc.y + 50; // room to sign above the lines
+  const left = doc.page.margins.left;
+  const col = (doc.page.width - left - doc.page.margins.right) / 3;
+  ["Principal Investigator", "Finance Officer / Registrar", "Head of the Institution"].forEach((who, i) => {
+    doc.moveTo(left + i * col + 8, y).lineTo(left + (i + 1) * col - 8, y).lineWidth(0.6).stroke();
+    doc.font("Helvetica").fontSize(9).text(who, left + i * col, y + 4, { width: col, align: "center" });
+  });
   footer(doc, v.generated_by, v.generated_at);
   return toBuffer(doc);
 }

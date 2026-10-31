@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { Attachments } from "@/components/Attachments";
+import { DownloadButton } from "@/components/DownloadButton";
 import { Ledger } from "@/components/Ledger";
 import { ScholarSearch } from "@/components/ScholarSearch";
 import { Button, Card, ErrorText, Field, PageHeader } from "@/components/ui/kit";
@@ -89,6 +90,7 @@ function Certificates({ p }: { p: Project }) {
                 onChange={(e) => call(`/ucs/${uc.id}`, { method: "PATCH", body: JSON.stringify({ submitted_on: e.target.value || null }) })} />
             </Field>
           ) : <p className="muted">{uc.submitted_on ? `Submitted ${formatDate(uc.submitted_on)}` : "Not submitted yet"}</p>}
+          <DownloadButton path={`/ucs/${uc.id}.pdf`}>Draft certificate (GFR 12-A)</DownloadButton>
           <Attachments table="utilisation_certificates" recordId={uc.id} canUpload={p.can_manage} title="Signed certificate" />
         </section>
       ))}

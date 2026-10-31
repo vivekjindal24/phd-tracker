@@ -19,6 +19,7 @@ from app.errors import ApiError
 from app.models import (
     ExaminerReport,
     Faculty,
+    NoDuesClearance,
     ShodhgangaDeposit,
     ThesisSubmission,
     User,
@@ -28,7 +29,7 @@ from app.models import Scholar as ScholarRow
 from app.modules import require_module
 from app.notify import notify
 from app.rbac import require_perm
-from app.schemas import ItemView
+from app.schemas import ItemView, NoDuesMine
 from app.schemas.research import (
     DepositIn,
     EvaluationView,
@@ -95,6 +96,41 @@ async def create_thesis(
     )
     await session.commit()
     ctx = await thesis.load_thesis(session, principal, row.id)
+    return await items.view(session, principal, ctx)
+
+
+@router.get("/no-dues/mine", response_model=NoDuesMine)
+async def my_no_dues(
+    principal: Principal = Depends(require_perm("no_dues_clearances", "read")),
+    session: AsyncSession = Depends(get_session),
+) -> dict[str, Any]:
+    """The scholar's own clearance (if any) and whether the thesis waits for it."""
+    if principal.scholar_id is None:
+        raise ApiError(403, "forbidden", "Only scholars have a no-dues clearance.")
+    item_id = await session.scalar(
+        select(NoDuesClearance.id).where(
+            NoDuesClearance.scholar_id == principal.scholar_id,
+            NoDuesClearance.deleted_at.is_(None),
+        )
+    )
+    item = None
+    if item_id is not None:
+        ctx = await items.load_ctx(session, principal, "no_dues_clearance", item_id)
+        item = await items.view(session, principal, ctx)
+    return {"required": await items.no_dues_required(session), "item": item}
+
+
+@router.post("/no-dues", response_model=ItemView, status_code=201)
+async def start_no_dues(
+    principal: Principal = Depends(require_perm("no_dues_clearances", "create")),
+    session: AsyncSession = Depends(get_session),
+) -> dict[str, Any]:
+    """A draft for the scholar themself; they submit it on /items like any item."""
+    if principal.scholar_id is None:
+        raise ApiError(403, "forbidden", "Scholars request their own no-dues clearance.")
+    row = await insert(session, principal, NoDuesClearance(scholar_id=principal.scholar_id))
+    await session.commit()
+    ctx = await items.load_ctx(session, principal, "no_dues_clearance", row.id)
     return await items.view(session, principal, ctx)
 
 

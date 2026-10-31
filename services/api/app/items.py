@@ -20,10 +20,12 @@ from app.models import (
     ApprovalChain,
     CourseworkClearance,
     FileRow,
+    NoDuesClearance,
     OrgUnit,
     ProgressReport,
     Publication,
     Scholar,
+    Settings,
     ThesisSubmission,
     User,
 )
@@ -96,6 +98,33 @@ async def _thesis_has_file(session: AsyncSession, _: Principal, ctx: ItemContext
         raise workflow.violation("Upload the final thesis file before submitting.")
 
 
+async def _no_dues_approved(session: AsyncSession, scholar_id: uuid.UUID) -> bool:
+    found = await session.scalar(
+        select(NoDuesClearance.id).where(
+            NoDuesClearance.scholar_id == scholar_id,
+            NoDuesClearance.state == "approved",
+            NoDuesClearance.deleted_at.is_(None),
+        )
+    )
+    return found is not None
+
+
+async def no_dues_required(session: AsyncSession) -> bool:
+    settings = await session.get(Settings, 1)
+    assert settings is not None, "settings row is seeded by migration 0001"
+    return settings.require_no_dues
+
+
+async def _thesis_ready(session: AsyncSession, principal: Principal, ctx: ItemContext) -> None:
+    await _thesis_has_file(session, principal, ctx)
+    if await no_dues_required(session) and not await _no_dues_approved(session, ctx.scholar.id):
+        raise ApiError(
+            409,
+            "no_dues_pending",
+            "Get your no-dues clearance approved before submitting the thesis.",
+        )
+
+
 async def _thesis_approved(session: AsyncSession, principal: Principal, ctx: ItemContext) -> None:
     await advance_stage(session, principal, ctx.scholar, "Thesis Submitted")
 
@@ -136,7 +165,7 @@ REGISTRY: dict[str, ItemKind] = {
             ),
             "exam_office": (("examiners", "the examiners"),),
         },
-        before_submit=_thesis_has_file,
+        before_submit=_thesis_ready,
         on_approved=_thesis_approved,
     ),
     "coursework_clearance": ItemKind(
@@ -147,6 +176,13 @@ REGISTRY: dict[str, ItemKind] = {
         "coursework",
         before_submit=coursework.check_and_compute,
         on_approved=coursework.mark_cleared,
+    ),
+    "no_dues_clearance": ItemKind(
+        NoDuesClearance,
+        "no_dues_clearances",
+        lambda _: "No-dues clearance",
+        lambda _c, _p: {},
+        "documents",
     ),
 }
 
