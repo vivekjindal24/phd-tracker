@@ -211,9 +211,7 @@ def _require_open(row: FacultyRequest) -> None:
         raise ApiError(422, "request_closed", "This request is no longer open.")
 
 
-async def _join_panel(
-    session: AsyncSession, principal: Principal, row: FacultyRequest
-) -> None:
+async def _join_panel(session: AsyncSession, principal: Principal, row: FacultyRequest) -> None:
     seminar = await session.get(Seminar, row.seminar_id)
     _check_scheduled(seminar)
     seat = await session.scalar(

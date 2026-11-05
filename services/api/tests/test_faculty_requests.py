@@ -64,9 +64,10 @@ async def test_accepted_request_adds_the_panel_member_and_nothing_else(client, s
     assert (await client.get(seminar, headers=auth(world.sup_b1.id))).status_code == 200
     detail = (await client.get(seminar, headers=auth(world.hod_a2.id))).json()
     assert [p["name"] for p in detail["panel"]] == ["Sup B1"]
-    names = {f["full_name"] for f in (await client.get(
-        "/api/v1/faculty", headers=auth(world.hod_a2.id)
-    )).json()}
+    names = {
+        f["full_name"]
+        for f in (await client.get("/api/v1/faculty", headers=auth(world.hod_a2.id))).json()
+    }
     assert names == {"Sup A2"}
     sent = (await client.get(URL, headers=auth(world.hod_a2.id))).json()["sent"]
     assert sent[0]["status"] == "accepted" and sent[0]["faculty_name"] == "Sup B1"
@@ -172,9 +173,7 @@ async def test_attending_faculty_becomes_a_panel_member(client, session, world):
     await session.execute(update(Settings).values(seminar_graders="panel_and_attending"))
     await session.commit()
     sid = await seminar_id(client, world)
-    attend = await client.post(
-        f"/api/v1/seminars/{sid}/attend", headers=auth(world.sup_b1.id)
-    )
+    attend = await client.post(f"/api/v1/seminars/{sid}/attend", headers=auth(world.sup_b1.id))
     assert attend.status_code == 204, attend.text
     rid = (await ask(client, world.hod_a2, seminar=sid)).json()["id"]
     assert (await answer(client, world.sup_b1, rid, "accept")).status_code == 200
