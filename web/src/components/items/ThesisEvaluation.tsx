@@ -84,7 +84,7 @@ function VivaForm({ thesisId, onSaved }: { thesisId: string; onSaved: (e: Evalua
       }));
     }}>
       <div className="row">
-        <Field label="Held on"><input type="date" required value={held} onChange={(e) => setHeld(e.target.value)} /></Field>
+        <Field label="Held on"><input type="date" required max={new Date().toLocaleDateString("en-CA")} value={held} onChange={(e) => setHeld(e.target.value)} /></Field>
         <Field label="Outcome">
           <select value={outcome} onChange={(e) => setOutcome(e.target.value as VivaOutcome)}>
             {(Object.keys(VIVA_LABELS) as VivaOutcome[]).map((k) => <option key={k} value={k}>{VIVA_LABELS[k]}</option>)}
@@ -195,7 +195,7 @@ export function ThesisEvaluation({ thesisId, isOwn }: { thesisId: string; isOwn:
           ))}
         </ul>
       )}
-      {ev.can_record_viva && <VivaForm thesisId={thesisId} onSaved={recorded} />}
+      {ev.can_record_viva && (ev.viva_block ? <p className="muted">{ev.viva_block}</p> : <VivaForm thesisId={thesisId} onSaved={recorded} />)}
       <h3>Shodhganga deposit</h3>
       {ev.deposit ? (
         <>

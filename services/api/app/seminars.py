@@ -21,7 +21,7 @@ from app.models import (
 from app.models.base import Ltree
 
 
-def _live_scholar_seminars(*conditions: ColumnElement[bool]):
+def live_scholar_seminars(*conditions: ColumnElement[bool]):
     return (
         select(SeminarScholar.seminar_id)
         .join(Scholar, Scholar.id == SeminarScholar.scholar_id)
@@ -39,7 +39,7 @@ def visible(principal: Principal, open_to_faculty: bool = False) -> ColumnElemen
     if paths:  # heads and admins: their unit's seminars and every unit below
         clauses.append(Seminar.unit_id.in_(scope.subtree_unit_ids(paths)))
     if principal.scholar_id:
-        clauses.append(Seminar.id.in_(_live_scholar_seminars(Scholar.id == principal.scholar_id)))
+        clauses.append(Seminar.id.in_(live_scholar_seminars(Scholar.id == principal.scholar_id)))
     fid = principal.faculty_id
     if fid and open_to_faculty:
         clauses.append(Seminar.status == "scheduled")
@@ -54,7 +54,7 @@ def visible(principal: Principal, open_to_faculty: bool = False) -> ColumnElemen
         supervised = [Scholar.supervisor_id == fid]
         if principal.co_supervision != "off":
             supervised.append(Scholar.co_supervisor_id == fid)
-        clauses.append(Seminar.id.in_(_live_scholar_seminars(or_(*supervised))))
+        clauses.append(Seminar.id.in_(live_scholar_seminars(or_(*supervised))))
     return or_(*clauses) if clauses else literal(False)
 
 
@@ -83,6 +83,18 @@ async def get_seminar(
     if row is None:
         raise forbidden()
     return row[0], row[1]
+
+
+async def may_request_panel(
+    session: AsyncSession, principal: Principal, seminar_id: uuid.UUID, unit_path: str
+) -> bool:
+    """The unit's head or admin, or the supervisor of a scholar in this seminar."""
+    if can_manage(principal, unit_path):
+        return True
+    if principal.faculty_id is None:
+        return False
+    guided = live_scholar_seminars(Scholar.supervisor_id == principal.faculty_id)
+    return seminar_id in set(await session.scalars(guided))
 
 
 def require_manager(principal: Principal, unit_path: str) -> None:

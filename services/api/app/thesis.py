@@ -3,11 +3,14 @@ confidentiality rules around them, computed here and nowhere else (SECURITY.md Â
 
 - Examiner names (and institutions) reach only the Exam Office, Research Office and root admin
   until a viva has been recorded.
-- Reports reach the scholar and their supervisor(s) only once the Exam Office releases them;
-  the other roles that can read the thesis (unit heads/admins over it, the offices) see them
-  as they arrive, still without names."""
+- Reports reach the scholar and their supervisor(s) only once the Exam Office releases them,
+  even when a supervisor also heads the unit; the other roles that can read the thesis (unit
+  heads/admins over it, the offices) see them as they arrive, still without names.
+- A viva is recorded after it happened and once the reports are released; pass and fail end
+  the record, re-defend allows another."""
 
 import uuid
+from datetime import date
 from typing import Any
 
 from sqlalchemy import select
@@ -16,15 +19,23 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app import items
 from app.auth.principal import Principal
 from app.errors import ApiError, forbidden
+from app.meetings import FUTURE_SLACK
 from app.models import ExaminerReport, ShodhgangaDeposit, ThesisSubmission, Viva
 from app.workflow import ItemContext
 
 OFFICES_SEEING_UNRELEASED = frozenset({"exam_office", "research_office", "library"})
+FINAL_VIVA_OUTCOMES = frozenset({"pass", "fail"})
 
 
 def sees_unreleased(principal: Principal, ctx: ItemContext) -> bool:
     if principal.office_roles & OFFICES_SEEING_UNRELEASED:
         return True
+    co = ctx.scholar.co_supervisor_id if principal.co_supervision != "off" else None
+    if principal.faculty_id is not None and principal.faculty_id in (
+        ctx.scholar.supervisor_id,
+        co,
+    ):
+        return False
     path = ctx.scholar_unit_path
     return principal.covers("unit_head", path) or principal.covers("admin", path)
 
@@ -55,6 +66,38 @@ async def _rows(session: AsyncSession, model: type, thesis_id: uuid.UUID) -> lis
             select(model).where(model.thesis_id == thesis_id, model.deleted_at.is_(None))
         )
     )
+
+
+def _viva_block(reports: list[Any], vivas: list[Any]) -> tuple[str, str] | None:
+    """Why no further viva can be recorded: (error code, message), or None."""
+    if any(v.outcome in FINAL_VIVA_OUTCOMES for v in vivas):
+        return "viva_concluded", "This thesis already has a final viva outcome."
+    if not reports or any(r.released_at is None for r in reports):
+        return "viva_needs_reports", "Release the examiner reports before recording the viva."
+    return None
+
+
+def _check_viva_date(held_on: date) -> None:
+    if held_on > date.today() + FUTURE_SLACK:
+        raise ApiError(422, "viva_in_future", "Record a viva after it has taken place.")
+
+
+async def check_new_viva(session: AsyncSession, thesis_id: uuid.UUID, held_on: date) -> None:
+    _check_viva_date(held_on)
+    block = _viva_block(
+        await _rows(session, ExaminerReport, thesis_id), await _rows(session, Viva, thesis_id)
+    )
+    if block:
+        raise ApiError(422, *block)
+
+
+async def check_viva_update(session: AsyncSession, viva: Viva, changes: dict[str, Any]) -> None:
+    if changes.get("held_on"):
+        _check_viva_date(changes["held_on"])
+    others = [v for v in await _rows(session, Viva, viva.thesis_id) if v.id != viva.id]
+    outcome = changes.get("outcome") or viva.outcome
+    if outcome in FINAL_VIVA_OUTCOMES and any(v.outcome in FINAL_VIVA_OUTCOMES for v in others):
+        raise ApiError(422, "viva_concluded", "This thesis already has a final viva outcome.")
 
 
 async def viva_recorded(session: AsyncSession, thesis_id: uuid.UUID) -> bool:
@@ -135,5 +178,6 @@ async def evaluation(session: AsyncSession, principal: Principal, ctx: ItemConte
         ),
         "can_record_reports": approved and "exam_office" in principal.office_roles,
         "can_record_viva": approved and "exam_office" in principal.office_roles,
+        "viva_block": block[1] if (block := _viva_block(reports, vivas)) else None,
         "can_record_deposit": approved and "library" in principal.office_roles,
     }

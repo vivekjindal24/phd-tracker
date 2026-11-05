@@ -115,6 +115,7 @@ class OrgUnitOut(Out):
     kind: str
     code: str
     path: str
+    cross_unit_directory: bool
 
 
 class OrgUnitCreate(BaseModel):
@@ -128,6 +129,44 @@ class OrgUnitUpdate(BaseModel):
     name: Name | None = None
     kind: Name | None = None
     parent_id: uuid.UUID | None = None
+    cross_unit_directory: bool = False  # exclude_unset: absent leaves it, null is a 422
+
+
+class FacultyRequestIn(BaseModel):
+    """Exactly one of seminar_id / scholar_id, matching `kind` (thesis examiners never come
+    here: the Exam Office records them)."""
+
+    kind: Literal["seminar_panel", "co_supervisor"]
+    seminar_id: uuid.UUID | None = None
+    scholar_id: uuid.UUID | None = None
+    email: EmailStr
+    note: Annotated[str, StringConstraints(strip_whitespace=True, max_length=500)] = ""
+
+    @model_validator(mode="after")
+    def _target_matches_kind(self) -> "FacultyRequestIn":
+        wanted = self.seminar_id if self.kind == "seminar_panel" else self.scholar_id
+        other = self.scholar_id if self.kind == "seminar_panel" else self.seminar_id
+        if wanted is None or other is not None:
+            raise ValueError("give the seminar or the scholar this request is for")
+        return self
+
+
+class FacultyRequestOut(BaseModel):
+    id: uuid.UUID
+    kind: str
+    target: str
+    email: str
+    status: Literal["pending", "accepted", "declined", "cancelled", "expired"]
+    note: str
+    requested_by_name: str
+    faculty_name: str | None
+    created_at: datetime
+    expires_at: datetime
+
+
+class FacultyRequestList(BaseModel):
+    incoming: list[FacultyRequestOut]
+    sent: list[FacultyRequestOut]
 
 
 # --- people -----------------------------------------------------------------------------
@@ -338,6 +377,7 @@ class ScholarOut(BaseModel):
     co_supervisor: Ref | None
     left_on: date | None
     left_reason: LeftReason | None
+    directory_only: bool = False  # an opened department reading another unit's scholar
 
 
 class ScholarUpdate(BaseModel):
@@ -634,6 +674,7 @@ class SeminarDetail(SeminarRow):
     scholars: list[SeminarScholarView]
     panel: list[PanelMember]
     can_manage: bool
+    can_request: bool
     require_hardcopy: bool
     is_grader: bool
     can_attend: bool

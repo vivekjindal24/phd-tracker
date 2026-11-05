@@ -49,6 +49,19 @@ export function OrgTree() {
     }
   }
 
+  async function setCrossUnit(unit: OrgUnit, open: boolean) {
+    setError(null);
+    try {
+      await api(`/org-units/${unit.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ cross_unit_directory: open }),
+      });
+      await load();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : String(err));
+    }
+  }
+
   async function remove(unit: OrgUnit) {
     setError(null);
     try {
@@ -68,6 +81,16 @@ export function OrgTree() {
             <span className="tree-name">{u.name}</span>
             <span className="badge">{u.kind}</span>
             <code>{u.code}</code>
+            {u.parent_id && (
+              <label className="tree-toggle">
+                <input
+                  type="checkbox"
+                  checked={u.cross_unit_directory}
+                  onChange={(e) => setCrossUnit(u, e.target.checked)}
+                />
+                Sees all departments
+              </label>
+            )}
             {u.parent_id && (
               <Button kind="ghost" onClick={() => remove(u)} aria-label={`Remove ${u.name}`}>
                 Remove

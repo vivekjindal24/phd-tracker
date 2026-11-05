@@ -64,7 +64,7 @@ role's scope (§2).
 |---|---|---|---|---|---|---|---|
 | org tree, modules, chains, settings | R (own unit) | R | R | R; root admin CUD | R | R | R |
 | users & role assignments | R self | R self | R | CUD in subtree (cannot grant above own unit) | R | — | — |
-| faculty / scholars directory | R own | R supervisees + faculty list | R | CUD, assign supervisor | R | R | R |
+| faculty / scholars directory | R own + own supervisors | R supervisees + linked faculty | R subtree‡ | CUD, assign supervisor; R subtree‡ | R | R | R |
 | meetings | CRU own | CRU supervisees, sets `shared_with` | R redacted* | R redacted* | R redacted* | — | — |
 | progress reports | CRU own draft/sent_back, submit | R, step | R, step (department) | R, step (department) | R, step | — | — |
 | milestones (RDC register) | R own | R | R | CRUD | CRUD | R | — |
@@ -89,6 +89,7 @@ role's scope (§2).
 | fellowships | R own | R supervisees | R | CRUD | CRUD | — | — |
 | projects & members | R own membership | R own (as PI) | R | CRUD | CRUD | — | — |
 | ledger & UCs | — | R own projects, C expense on own projects | R | CRUD | CRUD | — | — |
+| faculty requests | — | CR for own scholars (co-supervisor, panel), answer own | CR panel in subtree, answer own | CR in subtree, answer own | — | — | — |
 | comments | on any record they can R | ← | ← | ← | ← | ← | ← |
 | files | on any record they can R (upload where they can U/C) | ← | ← | ← | ← | ← | ← |
 | exports | own record | supervisees | subtree | subtree | all | coursework, thesis | publications, thesis |
@@ -103,6 +104,26 @@ from search results and exports). Only the main supervisor may change
 column's rights on their co-supervised scholars, except setting
 `shared_with`; acting on the Supervisor step needs `approve`.
 
+‡ **Directory visibility:** a scholar sees only their supervisor (and
+co-supervisor while co-supervision is on). A supervisor sees themselves and the
+people assigned with them to the same scholars. Heads and admins see their
+subtree, so a Dean sees their school. Offices and the root admin see everyone.
+The root admin may open a unit (`org_units.cross_unit_directory`): that unit's
+heads and admins then read the faculty and scholars directories university
+wide. It opens the directory only, never a scholar's records, and it is not
+inherited by child units. Pickers list only faculty the caller can see; a
+cross-unit co-supervisor or panel member is reached by a faculty request (below),
+the root admin or an opened unit. Assignment itself is not restricted by unit.
+
+**Faculty requests:** to reach faculty outside their view, a unit's head or
+admin, or a supervisor of a scholar in the seminar, asks for a panel seat; a
+department admin or the main supervisor asks for a co-supervisor. The sender
+types an email and the reply is the same whether or not it belongs to faculty,
+so the form cannot be used to probe the directory. Only the person asked can
+accept or decline, within 7 days; accepting grants that one seminar or scholar
+and never opens the directory. Thesis examiners never go through this: the Exam
+Office records them and they stay confidential.
+
 **Seminar grading:** any faculty on the seminar's panel (and, when
 `seminar_graders = panel_and_attending`, any faculty who marked themselves
 attending) may grade the seminar's scholars — independent of the matrix
@@ -113,7 +134,8 @@ co-supervisor's under `co_supervision = approve`).
 † **Examiner confidentiality:** examiner names are returned only to the
 Exam Office, Research Office and root admin until the viva outcome is
 recorded; reports reach the scholar and supervisor only after the Exam Office
-releases them — omitted server-side, as with meeting redaction.
+releases them — omitted server-side, as with meeting redaction. A supervisor or co-supervisor who also heads the unit
+waits for release like any other supervisor.
 
 **Grants:** the supervisor column of the grants rows means the project's PI —
 any faculty member, with or without supervision rights, reads their own

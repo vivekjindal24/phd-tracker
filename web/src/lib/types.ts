@@ -46,6 +46,7 @@ export type OrgUnit = {
   kind: string;
   code: string;
   path: string;
+  cross_unit_directory: boolean;
 };
 
 export type SettingsData = {
@@ -142,6 +143,7 @@ export type Scholar = {
   co_supervisor: Ref | null;
   left_on: string | null;
   left_reason: LeftReason | null;
+  directory_only: boolean;
 };
 export type LeftReason = "withdrawn" | "cancelled";
 export const LEFT_LABELS: Record<LeftReason, string> = { withdrawn: "Withdrew", cancelled: "Registration cancelled" };
@@ -291,6 +293,7 @@ export type SeminarDetail = SeminarRow & {
   }[];
   panel: { faculty_id: string; name: string; kind: "panel" | "attending" }[];
   can_manage: boolean;
+  can_request: boolean;
   require_hardcopy: boolean;
   is_grader: boolean;
   can_attend: boolean;
@@ -497,6 +500,7 @@ export type Evaluation = {
   deposit: { id: string; deposited_on: string; handle_url: string } | null;
   can_record_reports: boolean;
   can_record_viva: boolean;
+  viva_block: string | null;
   can_record_deposit: boolean;
 };
 export type ThesisRow = {
@@ -678,3 +682,17 @@ export type UtilisationCertificate = { id: string; period_start: string; period_
 
 export type NoDuesMine = { required: boolean; item: ItemView | null };
 
+export type FacultyRequest = {
+  id: string;
+  kind: "seminar_panel" | "co_supervisor";
+  target: string;
+  email: string;
+  status: "pending" | "accepted" | "declined" | "cancelled" | "expired";
+  note: string;
+  requested_by_name: string;
+  faculty_name: string | null;
+  created_at: string;
+  expires_at: string;
+};
+
+export type FacultyRequests = { incoming: FacultyRequest[]; sent: FacultyRequest[] };

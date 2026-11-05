@@ -56,10 +56,10 @@ async def list_faculty(
     with_capacity: bool = False,
     limit: int = Query(default=200, ge=1, le=500),
     offset: int = Query(default=0, ge=0),
-    _: Principal = Depends(current_principal),
+    principal: Principal = Depends(current_principal),
     session: AsyncSession = Depends(get_session),
 ) -> list[FacultyOut]:
-    stmt = _query()
+    stmt = _query().where(scope.faculty_predicate(principal))
     if q:
         stmt = stmt.where(User.full_name.ilike(f"%{q}%"))
     if unit_id:
@@ -76,10 +76,11 @@ async def list_faculty(
 @router.get("/{faculty_id}", response_model=FacultyOut)
 async def get_faculty(
     faculty_id: uuid.UUID,
-    _: Principal = Depends(current_principal),
+    principal: Principal = Depends(current_principal),
     session: AsyncSession = Depends(get_session),
 ) -> FacultyOut:
-    row = (await session.execute(_query().where(Faculty.id == faculty_id))).first()
+    stmt = _query().where(Faculty.id == faculty_id, scope.faculty_predicate(principal))
+    row = (await session.execute(stmt)).first()
     if row is None:
         raise forbidden()
     return _out(row)

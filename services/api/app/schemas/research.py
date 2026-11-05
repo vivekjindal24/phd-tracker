@@ -238,4 +238,5 @@ class EvaluationView(BaseModel):
     deposit: DepositView | None
     can_record_reports: bool
     can_record_viva: bool
+    viva_block: str | None
     can_record_deposit: bool

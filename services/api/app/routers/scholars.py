@@ -37,7 +37,7 @@ def _query(principal: Principal) -> Select:
         .outerjoin(SupUser, SupUser.id == SupFaculty.user_id)
         .outerjoin(CoFaculty, CoFaculty.id == Scholar.co_supervisor_id)
         .outerjoin(CoUser, CoUser.id == CoFaculty.user_id)
-        .where(Scholar.deleted_at.is_(None), scope.scholar_predicate(principal, "scholars"))
+        .where(Scholar.deleted_at.is_(None), scope.scholar_directory_predicate(principal))
     )
 
 
@@ -107,7 +107,15 @@ async def get_scholar(
     principal: Principal = Depends(current_principal),
     session: AsyncSession = Depends(get_session),
 ) -> ScholarOut:
-    return await _one(session, principal, scholar_id)
+    out = await _one(session, principal, scholar_id)
+    if principal.directory_wide:
+        records = await session.scalar(
+            select(Scholar.id).where(
+                Scholar.id == scholar_id, scope.scholar_predicate(principal, "scholars")
+            )
+        )
+        out.directory_only = records is None
+    return out
 
 
 @router.patch("/{scholar_id}", response_model=ScholarOut)

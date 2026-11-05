@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState } from "react";
 import { StateBadge } from "@/components/items/StateBadge";
+import { RequestMember } from "@/components/RequestMember";
 import { Button, Card, ErrorText, PageHeader, Table } from "@/components/ui/kit";
 import { api } from "@/lib/api";
 import { formatDate, formatWhen } from "@/lib/format";
@@ -92,6 +93,11 @@ export default function SeminarPage() {
               <p className="muted">Faculty attending this seminar may grade the scholars.</p>
               <Button kind="secondary" onClick={() => call(`/seminars/${s.id}/attend`, "POST").then(() =>
                 api<SeminarDetail>(`/seminars/${s.id}`).then(setData))}>Join as grader</Button>
+            </Card>
+          )}
+          {s.can_request && !cancelled && (
+            <Card>
+              <RequestMember kind="seminar_panel" targetId={s.id} title="Ask someone from another department" />
             </Card>
           )}
           {s.can_manage && !cancelled && (

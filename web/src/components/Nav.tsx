@@ -20,6 +20,7 @@ const NAV: Entry[] = [
     label: "Work",
     items: [
       { href: "/queue", label: "My queue", show: (me) => !onlyScholar(me) },
+      { href: "/requests", label: "Requests", show: (me) => me.faculty_id !== null || me.roles.some((r) => r === "unit_head" || r === "admin") },
       { href: "/reports", label: "Progress reports", show: notOnlyOffice },
       { href: "/meetings", label: "Meetings", show: notOnlyOffice },
       { href: "/seminars", label: "Seminars", show: (me) => notOnlyOffice(me) || me.faculty_id !== null },
@@ -41,7 +42,7 @@ const NAV: Entry[] = [
     items: [
       { href: "/scholars", label: "Scholars", show: (me) => !onlyScholar(me) },
       { href: "/scholars", label: "My profile", show: onlyScholar }, // redirects to own profile
-      { href: "/faculty", label: "Faculty", show: () => true },
+      { href: "/faculty", label: "Faculty", show: (me) => me.roles.some((r) => r !== "scholar" && r !== "supervisor") },
       { href: "/admissions", label: "Admissions", show: (me) => me.modules.admissions && me.roles.some((r) => r === "admin" || r === "unit_head" || r === "research_office") },
     ],
   },

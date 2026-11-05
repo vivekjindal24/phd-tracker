@@ -14,6 +14,7 @@ import { Timeline } from "@/components/Timeline";
 import { api } from "@/lib/api";
 import { formatDate } from "@/lib/format";
 import { useSession } from "@/lib/session";
+import { RequestMember } from "@/components/RequestMember";
 import { LEFT_LABELS, MILESTONE_LABELS, STAGES } from "@/lib/types";
 import type { Faculty, LeftReason, Milestone, Scholar, Stage } from "@/lib/types";
 import { errorText, useFetch } from "@/lib/useFetch";
@@ -155,7 +156,13 @@ export default function ScholarProfile() {
   }, [scholar]);
 
   // The UI offers edits to admins; the API decides whether this admin covers this unit.
-  const canEdit = me?.roles.includes("admin") ?? false;
+  const canEdit = (me?.roles.includes("admin") ?? false) && !scholar?.directory_only;
+  const mayRequest =
+    me?.co_supervision !== "off" &&
+    !!scholar &&
+    !scholar.co_supervisor &&
+    !scholar.directory_only &&
+    (canEdit || (!!me?.faculty_id && me.faculty_id === scholar.supervisor?.id));
 
   async function saveDetails(e: FormEvent) {
     e.preventDefault();
@@ -223,11 +230,29 @@ export default function ScholarProfile() {
             {me?.co_supervision !== "off" && (
               <AssignCard scholar={scholar} kind="co-supervisor" onSaved={setData} />
             )}
+            {mayRequest && (
+              <RequestMember kind="co_supervisor" targetId={scholar.id} title="Ask someone from another department" />
+            )}
             <LeftCard scholar={scholar} onSaved={setData} />
             <InviteButton userId={scholar.user_id} />
           </Card>
         )}
       </div>
+      {!canEdit && mayRequest && (
+        <Card>
+          <RequestMember kind="co_supervisor" targetId={scholar.id} title="Ask someone to co-supervise" />
+        </Card>
+      )}
+      {scholar.directory_only ? null : <Records scholar={scholar} />}
+      <p className="back"><Link href="/scholars">← All scholars</Link></p>
+    </>
+  );
+}
+
+function Records({ scholar }: { scholar: Scholar }) {
+  const { me } = useSession();
+  return (
+    <>
       <Decisions scholarId={scholar.id} />
       {me?.roles.some((r) => r !== "exam_office" && r !== "library") && (
         <div style={{ marginTop: "var(--space-5)" }}><DurationCard scholarId={scholar.id} /></div>
@@ -239,7 +264,6 @@ export default function ScholarProfile() {
         <Timeline scholarId={scholar.id} />
         <Comments target="scholars" recordId={scholar.id} />
       </div>
-      <p className="back"><Link href="/scholars">← All scholars</Link></p>
     </>
   );
 }

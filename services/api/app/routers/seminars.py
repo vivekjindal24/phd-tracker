@@ -130,6 +130,7 @@ async def _detail(
             {"faculty_id": p.faculty_id, "name": name, "kind": p.kind} for p, name in panel_rows
         ],
         "can_manage": seminars.can_manage(principal, path),
+        "can_request": await seminars.may_request_panel(session, principal, seminar.id, path),
         "require_hardcopy": settings.require_hardcopy if settings else False,
         "is_grader": is_grader,
         "can_attend": (

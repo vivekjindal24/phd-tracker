@@ -279,3 +279,92 @@ async def test_documents_are_private_to_scholar_and_supervisor(
     assert comment.status_code == 201
     removed = await client.delete(f"/api/v1/files/{fid}", headers=auth(world.scholar_a1.id))
     assert removed.status_code == 422
+
+
+REPORT = {"examiner_name": "Prof. X", "received_on": "2026-09-01", "recommendation": "accept"}
+
+
+async def add_report(client, world, tid, *, release: bool = True) -> str:
+    res = await client.post(
+        f"/api/v1/theses/{tid}/examiner-reports", headers=auth(world.exam_office.id), json=REPORT
+    )
+    assert res.status_code == 200, res.text
+    if release:
+        rel = await client.post(
+            f"/api/v1/theses/{tid}/release-reports", headers=auth(world.exam_office.id)
+        )
+        assert rel.status_code == 200, rel.text
+    return res.json()["reports"][-1]["id"]
+
+
+async def record_viva(client, world, tid, **body):
+    return await client.post(
+        f"/api/v1/theses/{tid}/vivas", headers=auth(world.exam_office.id), json=VIVA | body
+    )
+
+
+async def test_supervisor_who_is_also_head_waits_for_release(client, session, world, documents_on):
+    tid = await approved_thesis(client, session, world)  # Meera: supervisor + HoD + admin of A1
+    rid = await add_report(client, world, tid, release=False)
+
+    mine = (await evaluation(client, world.meera, tid)).json()
+    assert mine["reports"] == [] and mine["unreleased_count"] == 0
+    files = await client.get(
+        "/api/v1/files",
+        headers=auth(world.meera.id),
+        params={"table_name": "examiner_reports", "record_id": rid},
+    )
+    assert files.status_code == 403
+    assert len((await evaluation(client, world.admin_a1, tid)).json()["reports"]) == 1
+
+    await client.post(f"/api/v1/theses/{tid}/release-reports", headers=auth(world.exam_office.id))
+    assert len((await evaluation(client, world.meera, tid)).json()["reports"]) == 1
+
+
+async def test_viva_cannot_be_dated_in_the_future(client, session, world, documents_on):
+    tid = await approved_thesis(client, session, world)
+    await add_report(client, world, tid)
+    res = await record_viva(client, world, tid, held_on="2099-01-01")
+    assert res.status_code == 422 and res.json()["error"]["code"] == "viva_in_future"
+    scholar = await session.get(Scholar, world.s_a1.id)
+    await session.refresh(scholar)
+    assert scholar.stage != "Viva"
+
+
+async def test_viva_waits_for_released_reports(client, session, world, documents_on):
+    tid = await approved_thesis(client, session, world)
+    res = await record_viva(client, world, tid)
+    assert res.status_code == 422 and res.json()["error"]["code"] == "viva_needs_reports"
+    await add_report(client, world, tid, release=False)
+    res = await record_viva(client, world, tid)
+    assert res.status_code == 422 and res.json()["error"]["code"] == "viva_needs_reports"
+    assert (await evaluation(client, world.exam_office, tid)).json()["viva_block"]
+
+
+async def test_pass_and_fail_end_the_viva_record(client, session, world, documents_on):
+    tid = await approved_thesis(client, session, world)
+    await add_report(client, world, tid)
+    assert (await evaluation(client, world.exam_office, tid)).json()["viva_block"] is None
+    assert (await record_viva(client, world, tid, outcome="redefend")).status_code == 200
+    assert (await record_viva(client, world, tid, outcome="fail")).status_code == 200
+    res = await record_viva(client, world, tid, outcome="pass")
+    assert res.status_code == 422 and res.json()["error"]["code"] == "viva_concluded"
+
+
+async def test_viva_correction_keeps_the_rules(client, session, world, documents_on):
+    tid = await approved_thesis(client, session, world)
+    await add_report(client, world, tid)
+    await record_viva(client, world, tid, outcome="redefend")
+    second = await record_viva(client, world, tid, outcome="pass")
+    by_outcome = {v["outcome"]: v for v in second.json()["vivas"]}
+    first, last = by_outcome["redefend"], by_outcome["pass"]
+    headers = auth(world.exam_office.id)
+    url = f"/api/v1/vivas/{first['id']}"
+    res = await client.patch(url, json={"held_on": "2099-01-01"}, headers=headers)
+    assert res.status_code == 422 and res.json()["error"]["code"] == "viva_in_future"
+    res = await client.patch(url, json={"outcome": "fail"}, headers=headers)
+    assert res.status_code == 422 and res.json()["error"]["code"] == "viva_concluded"
+    res = await client.patch(
+        f"/api/v1/vivas/{last['id']}", json={"outcome": "fail"}, headers=headers
+    )
+    assert res.status_code == 200

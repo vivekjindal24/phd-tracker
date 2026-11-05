@@ -189,11 +189,18 @@ like email.
 **F6 — Directory.** Scholars (roll number unique, unit, supervisor, stage
 Registered → … → Degree Awarded, admission date, research title) and faculty
 (designation, unit, UGC cap displayed with current load). Over-cap
-assignment → 409 `supervisor_cap_exceeded`.
+assignment → 409 `supervisor_cap_exceeded`. Visibility: a scholar sees their
+supervisors, a supervisor their scholars and the faculty linked to them, heads
+and admins their subtree; the root admin may open a department's directory to
+the whole university (SECURITY.md §3). Faculty outside a sender's view are
+reached by an emailed request they accept, for one seminar panel or co-supervision
+(never thesis examiners, UX_FLOWS.md Flow 5b).
 
 **Co-supervisor** (university setting `co_supervision`, set by the root
 admin): `off` — none; `view` — a scholar may have one co-supervisor (any
-faculty record, any unit — external co-supervisors are added as faculty)
+faculty record, any unit — external co-supervisors are added as faculty; a
+department admin picks only faculty they can see, and asks one from another
+department by request)
 who sees everything the supervisor sees and can log meetings, while only the
 main supervisor acts on the Supervisor step; `approve` — as `view`, and the
 co-supervisor may also act on the Supervisor step. Only the main supervisor
@@ -327,7 +334,9 @@ Library at its step), examiners (entered by Exam Office at its step).
   reject), report file. Examiners have no login (§7).
 - **Viva:** the Exam Office records date, venue or online link, panel and
   outcome (pass / re-defend after revision / fail) with the report file. A
-  passed viva moves the scholar's stage to Viva.
+  passed viva moves the scholar's stage to Viva. A viva is recorded after it
+  happened and after the reports are released; pass and fail end the record,
+  re-defend allows another.
 - **Shodhganga deposit:** the Library records the deposit date, the
   Shodhganga handle/URL and the certificate file — a record, not a sync.
 - **No-dues clearance** (Decided 2026-10-31; university setting

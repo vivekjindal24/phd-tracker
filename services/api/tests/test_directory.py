@@ -131,8 +131,8 @@ async def test_scholar_edits_and_moves(client, world):
 
 
 async def test_faculty_directory_and_caps(client, world):
-    listed = await client.get("/api/v1/faculty", headers=auth(world.scholar_b1.id))
-    assert len(listed.json()) == 4  # readable by everyone
+    listed = await client.get("/api/v1/faculty", headers=auth(world.root_admin.id))
+    assert len(listed.json()) == 4
     above = await client.patch(
         f"/api/v1/faculty/{world.meera_faculty.id}",
         json={"max_scholars": 12},

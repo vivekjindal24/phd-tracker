@@ -15,6 +15,7 @@ class UnitRole:
     role: str  # unit_head | admin
     unit_id: uuid.UUID
     unit_path: str
+    cross_unit: bool = False  # the root admin opened this unit's directory
 
 
 @dataclass(frozen=True)
@@ -47,6 +48,11 @@ class Principal:
     def is_root_admin(self) -> bool:
         return self.root_path is not None and self.root_path in self.unit_paths("admin")
 
+    @property
+    def directory_wide(self) -> bool:
+        """A unit role in a department the root admin opened: the whole directory, read-only."""
+        return any(r.cross_unit for r in self.unit_roles)
+
     def covers(self, role: str, unit_path: str) -> bool:
         """True if one of the caller's `role` assignments is unit_path or an ancestor of it."""
         return any(unit_path == p or unit_path.startswith(p + ".") for p in self.unit_paths(role))
@@ -55,7 +61,12 @@ class Principal:
 async def load_principal(session: AsyncSession, user: User) -> Principal:
     assignments = (
         await session.execute(
-            select(RoleAssignment.role, RoleAssignment.unit_id, OrgUnit.path)
+            select(
+                RoleAssignment.role,
+                RoleAssignment.unit_id,
+                OrgUnit.path,
+                OrgUnit.cross_unit_directory,
+            )
             .outerjoin(OrgUnit, OrgUnit.id == RoleAssignment.unit_id)
             .where(RoleAssignment.user_id == user.id, RoleAssignment.deleted_at.is_(None))
         )
@@ -76,9 +87,11 @@ async def load_principal(session: AsyncSession, user: User) -> Principal:
         full_name=user.full_name,
         co_supervision=co_supervision or "off",
         unit_roles=tuple(
-            UnitRole(role, unit_id, path) for role, unit_id, path in assignments if unit_id
+            UnitRole(role, unit_id, path, bool(cross_unit))
+            for role, unit_id, path, cross_unit in assignments
+            if unit_id
         ),
-        office_roles=frozenset(role for role, unit_id, _ in assignments if unit_id is None),
+        office_roles=frozenset(role for role, unit_id, *_ in assignments if unit_id is None),
         faculty_id=faculty.id if faculty else None,
         can_supervise=bool(faculty and faculty.can_supervise),
         scholar_id=scholar_id,

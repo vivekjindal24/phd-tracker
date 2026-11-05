@@ -11,6 +11,7 @@ from sqlalchemy import (
     Index,
     Integer,
     Text,
+    false,
     text,
 )
 from sqlalchemy.dialects.postgresql import ARRAY, CITEXT, UUID
@@ -60,6 +61,7 @@ class OrgUnit(DomainRow, Base):
     kind: Mapped[str] = mapped_column(Text)
     code: Mapped[str] = mapped_column(Text)
     path: Mapped[str] = mapped_column(Ltree)
+    cross_unit_directory: Mapped[bool] = mapped_column(Boolean, server_default=false())
 
 
 class User(DomainRow, Base):

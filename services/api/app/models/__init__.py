@@ -15,6 +15,7 @@ from app.models.meetings import Meeting
 from app.models.milestones import Milestone
 from app.models.org import Faculty, OrgUnit, RoleAssignment, Scholar, User
 from app.models.reports import ProgressReport
+from app.models.requests import FacultyRequest
 from app.models.research import Conference, Publication
 from app.models.seminars import (
     Seminar,
@@ -59,6 +60,7 @@ __all__ = [
     "Enrolment",
     "ExaminerReport",
     "Faculty",
+    "FacultyRequest",
     "Fellowship",
     "FileRow",
     "JobRun",

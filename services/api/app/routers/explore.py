@@ -230,7 +230,7 @@ async def search(
         .join(User, User.id == Scholar.user_id)
         .where(
             Scholar.deleted_at.is_(None),
-            scope.scholar_predicate(principal, "scholars"),
+            scope.scholar_directory_predicate(principal),
             or_(
                 User.full_name.ilike(like),
                 Scholar.roll_number.ilike(like),
@@ -246,7 +246,11 @@ async def search(
         select(User.full_name, OrgUnit.name)
         .join(Faculty, Faculty.user_id == User.id)
         .join(OrgUnit, OrgUnit.id == Faculty.unit_id)
-        .where(Faculty.deleted_at.is_(None), User.full_name.ilike(like))
+        .where(
+            Faculty.deleted_at.is_(None),
+            scope.faculty_predicate(principal),
+            User.full_name.ilike(like),
+        )
         .order_by(User.full_name)
         .limit(GROUP_LIMIT)
     )

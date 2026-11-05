@@ -49,6 +49,39 @@ def scholar_predicate(principal: Principal, entity: str) -> ColumnElement[bool]:
     return or_(*clauses) if clauses else false()
 
 
+def scholar_directory_predicate(principal: Principal) -> ColumnElement[bool]:
+    """The scholars directory (name, unit, stage). An opened department reads it university
+    wide; the scholar's records stay under scholar_predicate."""
+    return true() if principal.directory_wide else scholar_predicate(principal, "scholars")
+
+
+def faculty_predicate(principal: Principal) -> ColumnElement[bool]:
+    """Faculty the caller may see: themselves and the people assigned to the same scholars,
+    their unit for heads and admins, everyone for offices and opened departments."""
+    if principal.directory_wide or principal.is_root_admin or principal.roles & set(OFFICE_ROLES):
+        return true()
+    co_on = principal.co_supervision != "off"
+    linked: list[ColumnElement[bool]] = []
+    if principal.scholar_id:
+        linked.append(Scholar.id == principal.scholar_id)
+    if principal.faculty_id:
+        linked.append(Scholar.supervisor_id == principal.faculty_id)
+        if co_on:
+            linked.append(Scholar.co_supervisor_id == principal.faculty_id)
+    clauses: list[ColumnElement[bool]] = []
+    if principal.faculty_id:
+        clauses.append(Faculty.id == principal.faculty_id)
+    if linked:
+        scholars = select(Scholar).where(Scholar.deleted_at.is_(None), or_(*linked)).subquery()
+        clauses.append(Faculty.id.in_(select(scholars.c.supervisor_id)))
+        if co_on:
+            clauses.append(Faculty.id.in_(select(scholars.c.co_supervisor_id)))
+    paths = _unit_paths(principal, frozenset({"unit_head", "admin"}))
+    if paths:
+        clauses.append(Faculty.unit_id.in_(subtree_unit_ids(paths)))
+    return or_(*clauses) if clauses else false()
+
+
 def unit_predicate(principal: Principal, entity: str, unit_column) -> ColumnElement[bool]:
     """Records anchored on a unit rather than a scholar (admissions): offices see all, unit
     heads/admins their subtree (DATABASE.md §5)."""

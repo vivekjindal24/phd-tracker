@@ -240,6 +240,10 @@ DEFAULT_CHAINS: dict[str, tuple[str, ...]] = {
 }
 
 
+FACULTY_REQUEST_KINDS = ("seminar_panel", "co_supervisor")
+FACULTY_REQUEST_STATUSES = ("pending", "accepted", "declined", "cancelled")
+
+
 def sql_in(values: tuple[str, ...]) -> str:
     """Render a tuple as a SQL IN-list for CHECK constraints (values are code constants)."""
     return ", ".join("'" + v.replace("'", "''") + "'" for v in values)

@@ -36,8 +36,18 @@
 root; partial unique index `uq_org_root` guarantees exactly one root),
 `name`, `kind` (free-text label: "University", "School", "Department", …),
 `code` (UNIQUE), `path` `ltree` (UNIQUE, GiST-indexed; maintained by the API
-on insert/move). A unit can be soft-deleted only when it has no live child
+on insert/move), `cross_unit_directory` bool (default false; set by the root
+admin, opens the faculty and scholars directories to that unit's heads and
+admins, SECURITY.md §3). A unit can be soft-deleted only when it has no live child
 units, scholars or faculty.
+
+**faculty_requests** — a request to faculty outside the sender's view: `kind`
+(`seminar_panel`, `co_supervisor`), `seminar_id` or `scholar_id` (exactly the one
+matching `kind`, CHECK), `email` citext as typed, `faculty_id` FK faculty (NULL
+when the address matches nobody; the sender is not told), `requested_by` FK
+users, `status` (`pending`, `accepted`, `declined`, `cancelled`), `note`,
+`expires_at` (7 days; a pending row past it reads as expired), `responded_at`.
+Not an approvable item: no chain, one answer.
 
 **users** — login identity: `email` (citext, UNIQUE), `password_hash`
 (NULL until the person sets one — invited or SSO-only accounts cannot log in

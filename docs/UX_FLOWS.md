@@ -113,8 +113,9 @@ co-supervisor (setting on) may log their own meetings but never sets sharing.
    subtree.
 2. **Add scholar**: name, email, roll number, unit (subtree only), research
    title, admission date, supervisor (only faculty with spare cap are
-   listed; over cap → 409 shown inline), and a co-supervisor (any faculty,
-   shown only when co-supervision is on). The user gets a set-password
+   listed; over cap → 409 shown inline), and a co-supervisor (faculty the
+   admin can see, shown only when co-supervision is on; from another
+   department, by request, Flow 5b). The user gets a set-password
    email (or, unticked, the admin sets an initial password); **Email a
    set-password link** on the profile re-sends it.
 3. **Add faculty**: designation sets the default cap.
@@ -128,6 +129,21 @@ co-supervisor (setting on) may log their own meetings but never sets sharing.
    add / remove / reorder, saved with a note "applies to new submissions
    only"), **Modules** (switches), **Co-supervision** (Off / View /
    View + approve).
+
+## Flow 5b — Asking someone from another department
+
+1. On a seminar, the unit's head or admin or a scholar's supervisor uses **Ask
+   someone from another department**; on a scholar's profile, the department
+   admin or main supervisor does the same for a co-supervisor. They type a
+   university email and an optional note.
+2. If the address belongs to faculty, that person gets a notification and email
+   linking to **Requests**. The sender sees the same "Request sent" either way.
+3. The person accepts or declines within 7 days. Accepting adds them to that
+   panel or sets them as co-supervisor, and tells the sender. **Requests** shows
+   each sent request as Waiting, Accepted, Declined, Cancelled or Expired, and a
+   waiting one can be cancelled.
+
+Thesis examiners are not requested here (Exam Office only, Flow 8).
 
 ## Flow 6 — Research office keeps the RDC register
 

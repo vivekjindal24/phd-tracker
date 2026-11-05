@@ -276,6 +276,7 @@ async def record_viva(
     session: AsyncSession = Depends(get_session),
 ) -> dict[str, Any]:
     ctx = await _office_ctx(session, principal, thesis_id, "exam_office")
+    await thesis.check_new_viva(session, thesis_id, body.held_on)
     await insert(session, principal, Viva(thesis_id=thesis_id, **body.model_dump()))
     if body.outcome == "pass":
         await items.advance_stage(session, principal, ctx.scholar, "Viva")
@@ -292,7 +293,9 @@ async def update_viva(
 ) -> dict[str, Any]:
     thesis.require_office(principal, "exam_office")
     viva, ctx = await thesis.child_ctx(session, principal, Viva, viva_id)
-    await update(session, principal, viva, body.model_dump(exclude_unset=True))
+    changes = body.model_dump(exclude_unset=True)
+    await thesis.check_viva_update(session, viva, changes)
+    await update(session, principal, viva, changes)
     if viva.outcome == "pass":
         await items.advance_stage(session, principal, ctx.scholar, "Viva")
     return await _done(session, principal, ctx)
