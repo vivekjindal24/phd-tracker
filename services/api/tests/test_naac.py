@@ -4,13 +4,20 @@ kept, for the Research Office and root admin only."""
 from datetime import date
 
 import pytest
+from sqlalchemy import update
 
-from app.models import LedgerEntry, Milestone, Project, Publication
+from app.models import LedgerEntry, Milestone, Module, Project, Publication
 from app.naac import academic_year
 from tests.conftest import auth
+from tests.test_publications import enable
 
 API = "/api/v1/internal/naac"
 YEARS = {"from_year": 2024, "to_year": 2025}
+
+
+@pytest.fixture(autouse=True)
+async def modules_on(session):
+    await enable(session, "projects", "publications")
 
 
 def test_the_academic_year_starts_in_july():
@@ -174,3 +181,20 @@ async def test_projects_list_each_grant_and_those_without_any(client, session, w
         ("Funded", "2024-25", 40000.0),
         ("Waiting", "2025-26", None),
     }
+
+
+@pytest.mark.parametrize(
+    ("name", "module"),
+    [("projects", "projects"), ("publications", "publications"), ("books", "publications")],
+)
+async def test_a_sheet_follows_its_module(client, session, world, name, module):
+    await session.execute(update(Module).where(Module.key == module).values(enabled=False))
+    await session.commit()
+    res = await client.get(f"{API}/{name}", headers=auth(world.research_office.id), params=YEARS)
+    assert res.status_code == 404 and res.json()["error"]["code"] == "module_disabled"
+
+
+async def test_the_scholars_sheet_needs_no_module(client, session, world):
+    await session.execute(update(Module).values(enabled=False))
+    await session.commit()
+    await sheet(client, world, "scholars")

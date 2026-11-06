@@ -129,6 +129,8 @@ async def naac_view(
         raise forbidden()
     if not 0 <= to_year - from_year < NAAC_MAX_YEARS:
         raise ApiError(422, "invalid_years", f"Choose up to {NAAC_MAX_YEARS} academic years.")
+    if sheet in naac.SHEET_MODULES:
+        await grants.require_module(session, naac.SHEET_MODULES[sheet])
     title, columns, build = naac.SHEETS[sheet]
     period = (
         date(from_year, naac.AY_START_MONTH, 1),

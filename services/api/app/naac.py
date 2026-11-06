@@ -10,6 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
+from app.enums import ModuleKey
 from app.models import (
     Faculty,
     LedgerEntry,
@@ -159,6 +160,13 @@ async def _books(session: AsyncSession, period: Period) -> Rows:
         for p, name, unit in rows
     ]
 
+
+# A sheet built from an optional module stops with it (SECURITY.md §3).
+SHEET_MODULES: dict[str, ModuleKey] = {
+    "projects": "projects",
+    "publications": "publications",
+    "books": "publications",
+}
 
 SHEETS: dict[str, tuple[str, list[str], Callable[[AsyncSession, Period], Awaitable[Rows]]]] = {
     "projects": (

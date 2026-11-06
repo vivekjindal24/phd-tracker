@@ -172,7 +172,7 @@ forms, so scope, caps and uniqueness are checked once, in one place; the
 root admin may import anywhere.
 
 Disabled modules: every route of the module → 404 `module_disabled`
-regardless of role.
+regardless of role, and so does a NAAC sheet built from that module.
 
 ## 4. Approval Engine Rules (`workflow.py`)
 

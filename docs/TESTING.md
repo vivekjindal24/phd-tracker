@@ -44,7 +44,9 @@
   mocks for the S3 API. SMTP: the low-level send is replaced by a capture
   (outbox) in tests; delivery outcomes (sent / failed / muted / not
   configured) are asserted on the notification rows.
-- Files: `tests/test_auth.py`, `test_scope.py`, `test_workflow.py` (the engine
+- Files: `tests/test_rbac.py` (walks every route: login, disabled modules, and
+  the matrix for lists and creates), `test_auth.py`, `test_scope.py`,
+  `test_workflow.py` (the engine
   rules; each item type's own flow is in `test_reports.py`,
   `test_publications.py`, `test_coursework.py`, `test_thesis.py` and
   `test_no_dues.py`), `test_meetings.py`, `test_files.py`,
