@@ -246,7 +246,12 @@ new profile. Heads of the unit see the list read-only.
   a PDF built from the ledger (balance brought forward, grants received,
   expenditure per head, balance carried forward), marked DRAFT, for the PI and
   finance officer to verify and sign. An expense that takes the balance below
-  10% of the money received tells the PI and the Research Office once.
+  10% of the money received tells the PI and the Research Office once, as does
+  a first expense with no money received. An entry beyond the balance or the
+  sanction, or dated in the future or outside the period, shows why and asks
+  **Save anyway** or **Go back and edit**. Saving it anyway tells the admin of
+  the nearest unit at or above the project's unit (the scholar's unit for a
+  fellowship), never the person who entered it.
 
 ## Flow 12 — Notifications
 

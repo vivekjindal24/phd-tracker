@@ -32,7 +32,7 @@ WHATSAPP_TEXT: dict[str, str] = {
     "apr_due": "A progress report is due",
     "meeting_tomorrow": "You have a supervision meeting tomorrow",
     "fellowship_ending": "A fellowship is ending soon",
-    "grant_alert": "A research project needs attention",
+    "grant_alert": "A research grant needs attention",
     "seminar": "There is an update on a progress seminar",
     "system": "There is a new update for you",
 }

@@ -19,7 +19,7 @@ const CATEGORIES: [string, string][] = [
   ["meeting_tomorrow", "A supervision meeting is tomorrow"],
   ["seminar", "Progress seminars and their to-dos"],
   ["fellowship_ending", "A fellowship is ending"],
-  ["grant_alert", "A project is ending or running low on funds"],
+  ["grant_alert", "A grant is ending, low on funds or has a confirmed ledger warning"],
   ["system", "Other updates (comments, meetings logged, thesis)"],
 ];
 

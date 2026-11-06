@@ -7,7 +7,14 @@ from typing import Annotated
 
 from pydantic import BaseModel, Field, StringConstraints, model_validator
 
-from app.enums import FellowshipScheme, FellowshipStatus, LedgerHead, LedgerKind, ProjectStatus
+from app.enums import (
+    FellowshipScheme,
+    FellowshipStatus,
+    LedgerHead,
+    LedgerKind,
+    LedgerWarning,
+    ProjectStatus,
+)
 from app.schemas import LongTitle, Notes, Ref, Resolution
 
 Short = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)]
@@ -140,6 +147,7 @@ class LedgerEntryIn(BaseModel):
     entry_date: date
     reference: Resolution | None = None
     note: Notes = ""
+    confirmed_warnings: list[LedgerWarning] = Field(default=[], max_length=4)
 
     @model_validator(mode="after")
     def _one_owner(self) -> "LedgerEntryIn":

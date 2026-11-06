@@ -15,7 +15,7 @@ from app.auth.deps import current_principal
 from app.auth.principal import Principal
 from app.crud import insert, soft_delete, update
 from app.db import get_session
-from app.errors import forbidden
+from app.errors import ApiError, forbidden
 from app.models import Fellowship, LedgerEntry, Project, UtilisationCertificate
 from app.modules import require_module
 from app.rbac import require_perm
@@ -29,16 +29,17 @@ async def _owner(
     principal: Principal,
     project_id: uuid.UUID | None,
     fellowship_id: uuid.UUID | None,
-) -> tuple[Project | Fellowship, bool, bool]:
-    """The entry's owner, whether the caller manages it, and whether they may add expenses."""
+) -> tuple[Project | Fellowship, str, bool, bool]:
+    """The entry's owner, its unit path, whether the caller manages it, and whether they may
+    add expenses."""
     if project_id is not None:
         project, path = await grants.project_or_403(session, principal, project_id, ledger=True)
         manage = grants.may_manage(principal, path)
-        return project, manage, manage or project.pi_id == principal.faculty_id
+        return project, path, manage, manage or project.pi_id == principal.faculty_id
     assert fellowship_id is not None
     fellowship, path = await grants.fellowship_ledger_or_403(session, principal, fellowship_id)
     manage = grants.may_manage(principal, path)
-    return fellowship, manage, manage
+    return fellowship, path, manage, manage
 
 
 async def _view(
@@ -47,7 +48,7 @@ async def _view(
     project_id: uuid.UUID | None = None,
     fellowship_id: uuid.UUID | None = None,
 ) -> dict[str, Any]:
-    owner, manage, add_expense = await _owner(session, principal, project_id, fellowship_id)
+    owner, _, manage, add_expense = await _owner(session, principal, project_id, fellowship_id)
     return await grants.ledger_view(
         session, owner=owner, can_manage=manage, can_add_expense=add_expense
     )
@@ -77,12 +78,42 @@ async def add_entry(
     principal: Principal = Depends(current_principal),  # the PI may add expenses
     session: AsyncSession = Depends(get_session),
 ) -> dict[str, Any]:
-    owner, manage, add_expense = await _owner(
+    owner, path, manage, add_expense = await _owner(
         session, principal, body.project_id, body.fellowship_id
     )
     if not (manage or (add_expense and body.entry_kind == "expense")):
         raise forbidden()
-    await insert(session, principal, LedgerEntry(**body.model_dump()))
+    warnings = grants.ledger_warnings(
+        owner,
+        await grants.owner_entries(session, owner),
+        kind=body.entry_kind,
+        amount=body.amount,
+        on=body.entry_date,
+    )
+    if warnings.keys() - set(body.confirmed_warnings):
+        raise ApiError(
+            409,
+            "ledger_confirmation_needed",
+            "Please check this entry before saving it.",
+            {"warnings": warnings},
+        )
+    await insert(
+        session,
+        principal,
+        LedgerEntry(
+            **body.model_dump(exclude={"confirmed_warnings"}), confirmed_warnings=sorted(warnings)
+        ),
+    )
+    if warnings:
+        await grants.alert_confirmed(
+            session,
+            principal,
+            owner,
+            path,
+            amount=body.amount,
+            on=body.entry_date,
+            warnings=warnings,
+        )
     if isinstance(owner, Project) and body.entry_kind == "expense":
         await grants.alert_if_low(session, owner, body.amount)
     await session.commit()
@@ -101,7 +132,7 @@ async def remove_entry(
     )
     if entry is None:
         raise forbidden()
-    _, manage, _ = await _owner(session, principal, entry.project_id, entry.fellowship_id)
+    _, _, manage, _ = await _owner(session, principal, entry.project_id, entry.fellowship_id)
     if not manage:
         raise forbidden()
     await soft_delete(session, principal, entry)

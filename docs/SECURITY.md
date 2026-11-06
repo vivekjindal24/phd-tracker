@@ -158,7 +158,9 @@ projects with the ledger and UCs and may add *expenses* (never
 disbursements) to them. A project member scholar sees the project and its
 members, never money. A supervisor sees their scholars' fellowships but not
 the fellowship ledger. Writes need the research office, or an admin over the
-project's unit / the scholar's unit.
+project's unit / the scholar's unit. An entry saved despite a warning names the
+person and amount to the nearest admin over that unit, who already reads that
+ledger; the warnings the person confirmed are checked server-side.
 
 **Daily job:** `POST /internal/cron/daily` takes no JWT; it needs the
 `X-Cron-Secret` header (compared in constant time) and is off (404) while

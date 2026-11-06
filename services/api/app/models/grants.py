@@ -5,7 +5,7 @@ import uuid
 from datetime import date
 
 from sqlalchemy import CheckConstraint, Date, ForeignKey, Index, Numeric, Text, text
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import ARRAY, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.enums import (
@@ -107,6 +107,9 @@ class LedgerEntry(DomainRow, Base):
     entry_date: Mapped[date] = mapped_column(Date)
     reference: Mapped[str | None] = mapped_column(Text)
     note: Mapped[str] = mapped_column(Text, server_default=text("''"))
+    confirmed_warnings: Mapped[list[str]] = mapped_column(
+        ARRAY(Text), server_default=text("'{}'::text[]")
+    )
 
 
 class UtilisationCertificate(DomainRow, Base):

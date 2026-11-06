@@ -277,9 +277,11 @@ partial UNIQUE `(project_id, scholar_id)` among live rows.
 `fellowship_id` FK nullable, CHECK exactly one is set; `entry_kind` CHECK
 (disbursement / expense), `head` CHECK (fellowship_salary / equipment /
 consumables / travel / contingency / overhead), `amount` numeric(12,2) CHECK
-> 0, `entry_date`, `reference`, `note`. Running balance = disbursements −
-expenses in date order, computed on read (`grants.ledger_view`). Corrections
-are a soft delete plus a new entry.
+> 0, `entry_date`, `reference`, `note`, `confirmed_warnings` text[] (what the
+person saved it despite: over_balance / over_sanction / future_date /
+outside_period; server-written, default empty). Running balance =
+disbursements − expenses in date order, computed on read
+(`grants.ledger_view`). Corrections are a soft delete plus a new entry.
 **utilisation_certificates** — `project_id`, `period_start`, `period_end`
 (CHECK ordered), `submitted_on`; the signed certificate is attached through
 `files` (owner `utilisation_certificates`).

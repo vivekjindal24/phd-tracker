@@ -4,10 +4,10 @@ module only applies it. Writes: the research office anywhere, an admin over the 
 may add expenses to their own project (SECURITY.md §3)."""
 
 import uuid
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
-from sqlalchemy import exists, select
+from sqlalchemy import ColumnElement, cast, exists, func, literal, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import scope
@@ -22,12 +22,15 @@ from app.models import (
     Project,
     RoleAssignment,
     Scholar,
+    User,
     UtilisationCertificate,
 )
+from app.models.base import Ltree
 from app.modules import module_enabled
 from app.notify import notify
 
 LOW_BALANCE_SHARE = 0.10  # PRD M8: told when an expense takes the balance below 10% of received
+IST = timezone(timedelta(hours=5, minutes=30))  # today's bill is not "future" just after midnight
 
 
 def may_manage(principal: Principal, unit_path: str) -> bool:
@@ -126,14 +129,7 @@ async def ledger_view(
     can_manage: bool,
     can_add_expense: bool,
 ) -> dict[str, Any]:
-    column = LedgerEntry.project_id if isinstance(owner, Project) else LedgerEntry.fellowship_id
-    entries = (
-        await session.scalars(
-            select(LedgerEntry)
-            .where(column == owner.id, LedgerEntry.deleted_at.is_(None))
-            .order_by(LedgerEntry.entry_date, LedgerEntry.created_at)
-        )
-    ).all()
+    entries = await owner_entries(session, owner)
     received = spent = 0.0
     rows = []
     for e in entries:
@@ -174,16 +170,26 @@ def check_dates(start: date, end: date, srf_upgrade_on: date | None = None) -> N
         )
 
 
-async def project_entries(session: AsyncSession, project_id: uuid.UUID) -> list[LedgerEntry]:
+async def _entries(session: AsyncSession, owned: ColumnElement[bool]) -> list[LedgerEntry]:
     return list(
         (
             await session.scalars(
                 select(LedgerEntry)
-                .where(LedgerEntry.project_id == project_id, LedgerEntry.deleted_at.is_(None))
+                .where(owned, LedgerEntry.deleted_at.is_(None))
                 .order_by(LedgerEntry.entry_date, LedgerEntry.created_at)
             )
         ).all()
     )
+
+
+async def project_entries(session: AsyncSession, project_id: uuid.UUID) -> list[LedgerEntry]:
+    return await _entries(session, LedgerEntry.project_id == project_id)
+
+
+async def owner_entries(session: AsyncSession, owner: Project | Fellowship) -> list[LedgerEntry]:
+    if isinstance(owner, Project):
+        return await project_entries(session, owner.id)
+    return await _entries(session, LedgerEntry.fellowship_id == owner.id)
 
 
 def _total(entries: list[LedgerEntry], kind: str) -> float:
@@ -205,22 +211,140 @@ async def pi_and_office_user_ids(session: AsyncSession, project: Project) -> lis
     return [u for u in (pi_user, *office) if u]
 
 
+def inr(amount: float) -> str:
+    """₹ with lakh and crore grouping, paise only when there are some, as the web shows it."""
+    whole, paise = f"{abs(amount):.2f}".split(".")
+    head, tail = whole[:-3], whole[-3:]
+    while head:
+        tail = f"{head[-2:]},{tail}"
+        head = head[:-2]
+    return f"{'-' if amount < 0 else ''}₹{tail}{'' if paise == '00' else '.' + paise}"
+
+
+def _day(value: date) -> str:
+    return value.strftime("%-d %b %Y")
+
+
+def ledger_warnings(
+    owner: Project | Fellowship,
+    entries: list[LedgerEntry],
+    *,
+    kind: str,
+    amount: float,
+    on: date,
+) -> dict[str, str]:
+    """What looks wrong with a new entry, by code. It may still be true (money spent ahead of
+    an instalment, a backfilled record), so the person confirms rather than being blocked."""
+    warnings: dict[str, str] = {}
+    if kind == "expense":
+        spent = round(_total(entries, "expense") + amount, 2)
+        balance = round(_total(entries, "disbursement") - spent, 2)
+        if balance < 0:
+            warnings["over_balance"] = f"This takes the balance to {inr(balance)}."
+        if isinstance(owner, Project) and spent > owner.amount_sanctioned:
+            warnings["over_sanction"] = (
+                f"Total spending would exceed the {inr(owner.amount_sanctioned)} sanctioned."
+            )
+    what = "project" if isinstance(owner, Project) else "fellowship"
+    if on > datetime.now(IST).date():
+        warnings["future_date"] = "This date is in the future."
+    elif on < owner.start_date:
+        warnings["outside_period"] = (
+            f"This date is before the {what} started on {_day(owner.start_date)}."
+        )
+    elif on > owner.end_date:
+        warnings["outside_period"] = (
+            f"This date is after the {what} ended on {_day(owner.end_date)}."
+        )
+    return warnings
+
+
+async def _nearest_admin_ids(
+    session: AsyncSession, unit_path: str, *, excluding: uuid.UUID
+) -> list[uuid.UUID]:
+    """The admins of the closest unit at or above `unit_path` with one other than `excluding`,
+    so the department hears first and a department with no admin of its own is still covered."""
+    rows = (
+        await session.execute(
+            select(RoleAssignment.user_id, func.nlevel(OrgUnit.path))
+            .join(OrgUnit, OrgUnit.id == RoleAssignment.unit_id)
+            .where(
+                RoleAssignment.role == "admin",
+                RoleAssignment.deleted_at.is_(None),
+                RoleAssignment.user_id != excluding,
+                OrgUnit.deleted_at.is_(None),
+                OrgUnit.path.op("@>")(cast(literal(unit_path), Ltree)),
+            )
+        )
+    ).all()
+    nearest = max((level for _, level in rows), default=None)
+    return [user_id for user_id, level in rows if level == nearest]
+
+
+async def _owner_label(session: AsyncSession, owner: Project | Fellowship) -> tuple[str, str]:
+    """A short name for the owner and what the alert should say about who it belongs to."""
+    if isinstance(owner, Project):
+        pi = await session.scalar(
+            select(User.full_name)
+            .join(Faculty, Faculty.user_id == User.id)
+            .where(Faculty.id == owner.pi_id)
+        )
+        return owner.title, f"project {owner.title} (PI {pi})"
+    scholar = await session.scalar(
+        select(User.full_name)
+        .join(Scholar, Scholar.user_id == User.id)
+        .where(Scholar.id == owner.scholar_id)
+    )
+    return f"fellowship of {scholar}", f"the fellowship of {scholar}"
+
+
+async def alert_confirmed(
+    session: AsyncSession,
+    principal: Principal,
+    owner: Project | Fellowship,
+    unit_path: str,
+    *,
+    amount: float,
+    on: date,
+    warnings: dict[str, str],
+) -> None:
+    """Someone saved an entry despite its warnings: the department's admin hears who and what,
+    so a second person looks at it. The person who confirmed is never the one told."""
+    short, full = await _owner_label(session, owner)
+    notify(
+        session,
+        await _nearest_admin_ids(session, unit_path, excluding=principal.user_id),
+        "grant_alert",
+        f"Ledger entry confirmed: {short}",
+        f"{principal.full_name} confirmed an entry of {inr(amount)} dated {_day(on)} on {full}. "
+        + " ".join(warnings.values()),
+        f"/projects/{owner.id}" if isinstance(owner, Project) else "/fellowships",
+    )
+
+
 async def alert_if_low(session: AsyncSession, project: Project, expense: float) -> None:
     """After an expense: tell the PI and the research office once, as it takes the unspent
-    balance below LOW_BALANCE_SHARE of the amount received (PRD M8)."""
+    balance below LOW_BALANCE_SHARE of the amount received (PRD M8), or as the first money
+    goes out with none recorded as received."""
     entries = await project_entries(session, project.id)
     received = _total(entries, "disbursement")
-    balance = round(received - _total(entries, "expense"), 2)
+    spent = _total(entries, "expense")
+    balance = round(received - spent, 2)
     floor = received * LOW_BALANCE_SHARE
-    if not (received > 0 and balance < floor <= balance + expense):
+    low = received > 0 and balance < floor <= balance + expense
+    unfunded = received == 0 and spent == expense
+    if not (low or unfunded):
         return
     notify(
         session,
         await pi_and_office_user_ids(session, project),
         "grant_alert",
-        f"Funds running low: {project.title}",
-        f"Unspent balance is ₹{balance:,.2f} of ₹{received:,.2f} received "
-        f"(below {LOW_BALANCE_SHARE:.0%}). Ask the agency for the next instalment in time.",
+        f"{'Funds running low' if low else 'Spending with no money received'}: {project.title}",
+        f"Unspent balance is {inr(balance)} of {inr(received)} received "
+        f"(below {LOW_BALANCE_SHARE:.0%}). Ask the agency for the next instalment in time."
+        if low
+        else f"{inr(spent)} was spent before any money was recorded as received. "
+        "Record the money received, or check the entry.",
         f"/projects/{project.id}",
     )
 

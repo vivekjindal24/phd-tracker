@@ -12,3 +12,5 @@
 .ledger-out { color: var(--ink-soft); }
 .ledger-empty { padding: var(--space-5); }
 .ledger-add { display: grid; gap: var(--space-3); }
+.ledger-confirm { display: grid; gap: var(--space-2); }
+.ledger-confirm p { margin: 0; }

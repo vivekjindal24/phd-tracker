@@ -383,7 +383,13 @@ submitted date).
   balance. The PI signs it outside; the signed scan is attached as today.
 - **Grant alerts** (daily job): the PI and the Research Office are told when a
   project ends within 60 days, and when an expense takes its unspent balance
-  below 10% of the amount received (told once, at the crossing).
+  below 10% of the amount received (told once, at the crossing), or when the
+  first expense goes out with no money recorded as received.
+- **Entries that look wrong** (Decided 2026-11-06, warn and confirm, never
+  block): an expense beyond the balance, spending beyond the sanctioned amount,
+  a future date, or a date outside the project or fellowship period. The
+  person confirms what they saw, the entry keeps the warnings it was confirmed
+  with, and the department's admin is told who entered what.
 
 **M9 — NAAC research data** (Decided 2026-10-31). For a range of academic
 years, the Research Office and root admin export the research data NAAC

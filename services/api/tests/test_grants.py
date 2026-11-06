@@ -6,8 +6,11 @@ import dataclasses
 from datetime import UTC, datetime, timedelta
 
 import pytest
+from sqlalchemy import select
 
 from app.config import settings
+from app.grants import inr
+from app.models import AuditLog
 from app.routers import cron
 from tests.conftest import auth
 from tests.test_publications import enable
@@ -248,7 +251,9 @@ async def test_daily_job_reminds_once(client, world, grants_on, monkeypatch):
         assert [n["category"] for n in inbox] == ["fellowship_ending"]
 
 
-async def ledger_entry(client, world, pid, kind, amount, on, head="equipment", reference=None):
+async def ledger_entry(
+    client, world, pid, kind, amount, on, head="equipment", reference=None, confirmed=()
+):
     res = await client.post(
         f"{API}/ledger",
         headers=auth(world.research_office.id),
@@ -259,6 +264,7 @@ async def ledger_entry(client, world, pid, kind, amount, on, head="equipment", r
             "amount": amount,
             "entry_date": on,
             "reference": reference,
+            "confirmed_warnings": list(confirmed),
         },
     )
     assert res.status_code == 201, res.text
@@ -274,7 +280,9 @@ async def test_uc_figures_follow_the_ledger(client, world, grants_on):
     await ledger_entry(client, world, pid, "expense", 50000, "2026-06-01", "travel")
     await ledger_entry(client, world, pid, "expense", 25000, "2026-07-01", "consumables")
     # after the period: not in this certificate
-    await ledger_entry(client, world, pid, "expense", 10000, "2027-05-01", "travel")
+    await ledger_entry(
+        client, world, pid, "expense", 10000, "2027-05-01", "travel", confirmed=["future_date"]
+    )
     uc = await client.post(
         f"{API}/projects/{pid}/ucs",
         headers=auth(world.research_office.id),
@@ -323,3 +331,162 @@ async def test_daily_job_reminds_project_end(client, world, grants_on, monkeypat
     assert res.json()["project_reminders"] == 1
     inbox = (await get(client, world.sup_b1, "/notifications")).json()
     assert [n["category"] for n in inbox] == ["grant_alert"]
+
+
+async def post_entry(client, user, owner, kind, amount, on, confirmed=()):
+    return await client.post(
+        f"{API}/ledger",
+        headers=auth(user.id),
+        json=owner
+        | {
+            "entry_kind": kind,
+            "head": "equipment",
+            "amount": amount,
+            "entry_date": on,
+            "confirmed_warnings": list(confirmed),
+        },
+    )
+
+
+async def ledger_alerts(client, user):
+    inbox = (await get(client, user, "/notifications")).json()
+    return [n for n in inbox if n["title"].startswith("Ledger entry confirmed")]
+
+
+async def warnings_for(client, user, owner, kind, amount, on):
+    res = await post_entry(client, user, owner, kind, amount, on)
+    assert res.status_code == 409, res.text
+    assert res.json()["error"]["code"] == "ledger_confirmation_needed"
+    return res.json()["error"]["details"]["warnings"]
+
+
+async def test_entry_that_looks_wrong_needs_confirmation(client, world, grants_on):
+    pid = (await project(client, world, amount_sanctioned=100000)).json()["id"]
+    owner = {"project_id": pid}
+    office = world.research_office
+    await ledger_entry(client, world, pid, "disbursement", 100000, "2025-05-01")
+
+    assert set(await warnings_for(client, office, owner, "expense", 150000, "2025-06-01")) == {
+        "over_balance",
+        "over_sanction",
+    }
+    assert set(await warnings_for(client, office, owner, "expense", 10, "2020-01-01")) == {
+        "outside_period"
+    }
+    assert set(await warnings_for(client, office, owner, "disbursement", 10, "2099-01-01")) == {
+        "future_date"
+    }
+    view = (await get(client, office, f"/projects/{pid}/ledger")).json()
+    assert view["spent"] == 0  # nothing was written
+
+
+async def test_confirming_covers_only_the_warnings_seen(client, world, grants_on, session):
+    pid = (await project(client, world, amount_sanctioned=100000)).json()["id"]
+    owner = {"project_id": pid}
+    office = world.research_office
+    partly = await post_entry(
+        client, office, owner, "expense", 150000, "2025-06-01", ["over_balance"]
+    )
+    assert partly.status_code == 409
+
+    res = await post_entry(
+        client, office, owner, "expense", 150000, "2025-06-01", ["over_balance", "over_sanction"]
+    )
+    assert res.status_code == 201, res.text
+    assert res.json()["balance"] == -150000
+    row = await session.scalar(select(AuditLog).where(AuditLog.table_name == "ledger_entries"))
+    assert sorted(row.data["confirmed_warnings"]) == ["over_balance", "over_sanction"]
+
+
+async def test_clean_entry_is_saved_with_no_alert(client, world, grants_on):
+    pid = (await project(client, world, unit_id=str(world.a1.id))).json()["id"]
+    await ledger_entry(client, world, pid, "disbursement", 100000, "2025-05-01")
+    await ledger_entry(client, world, pid, "expense", 10000, "2025-06-01")
+    assert (await get(client, world.admin_a1, "/notifications")).json() == []
+
+
+async def test_department_admins_hear_of_a_confirmed_entry(client, world, grants_on):
+    pid = (await project(client, world, unit_id=str(world.a1.id))).json()["id"]
+    res = await post_entry(
+        client,
+        world.sup_b1,
+        {"project_id": pid},
+        "expense",
+        5000,
+        "2025-06-01",
+        ["over_balance"],
+    )
+    assert res.status_code == 201, res.text
+    for admin in (world.admin_a1, world.meera):
+        alerts = await ledger_alerts(client, admin)
+        assert len(alerts) == 1
+        assert world.sup_b1.full_name in alerts[0]["body"]
+        assert "Low-power edge inference" in alerts[0]["body"]
+        assert alerts[0]["link"] == f"/projects/{pid}"
+    assert (await get(client, world.root_admin, "/notifications")).json() == []
+
+
+async def test_an_admin_is_not_alerted_about_their_own_entry(client, world, grants_on):
+    pid = (await project(client, world, unit_id=str(world.a1.id))).json()["id"]
+    await post_entry(
+        client,
+        world.admin_a1,
+        {"project_id": pid},
+        "expense",
+        5000,
+        "2025-06-01",
+        ["over_balance"],
+    )
+    assert await ledger_alerts(client, world.admin_a1) == []
+    assert len(await ledger_alerts(client, world.meera)) == 1
+
+
+async def test_alert_climbs_to_the_nearest_admin_above(client, world, grants_on):
+    pid = (await project(client, world)).json()["id"]  # unit B1 has no admin of its own
+    await post_entry(
+        client,
+        world.research_office,
+        {"project_id": pid},
+        "expense",
+        5000,
+        "2025-06-01",
+        ["over_balance"],
+    )
+    inbox = (await get(client, world.root_admin, "/notifications")).json()
+    assert [n["title"] for n in inbox] == ["Ledger entry confirmed: Low-power edge inference"]
+
+
+async def test_confirmed_fellowship_entry_names_the_scholar(client, world, grants_on):
+    fid = (await fellowship(client, world)).json()["id"]
+    owner = {"fellowship_id": fid}
+    assert set(await warnings_for(client, world.admin_a1, owner, "expense", 100, "2024-09-01")) == {
+        "over_balance"
+    }
+    assert (
+        await post_entry(
+            client, world.admin_a1, owner, "expense", 100, "2024-09-01", ["over_balance"]
+        )
+    ).status_code == 201
+    alerts = await ledger_alerts(client, world.meera)
+    assert len(alerts) == 1
+    assert world.scholar_a1.full_name in alerts[0]["body"]
+    assert alerts[0]["link"] == "/fellowships"
+
+
+async def test_first_expense_with_no_money_received_tells_pi_once(client, world, grants_on):
+    pid = (await project(client, world)).json()["id"]
+    owner = {"project_id": pid}
+    office = world.research_office
+    await post_entry(client, office, owner, "expense", 100, "2025-06-01", ["over_balance"])
+    await post_entry(client, office, owner, "expense", 100, "2025-07-01", ["over_balance"])
+    inbox = (await get(client, world.sup_b1, "/notifications")).json()
+    assert [n["title"] for n in inbox] == [
+        "Spending with no money received: Low-power edge inference"
+    ]
+
+
+def test_money_in_messages_uses_lakh_and_crore_grouping():
+    assert inr(999) == "₹999"
+    assert inr(100000) == "₹1,00,000"
+    assert inr(99999999.5) == "₹9,99,99,999.50"
+    assert inr(-2000011009.23) == "-₹2,00,00,11,009.23"

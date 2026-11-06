@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { Button, ErrorText, Field, Table } from "@/components/ui/kit";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 import { formatDate, formatMoney } from "@/lib/format";
 import { HEAD_LABELS } from "@/lib/types";
 import type { LedgerHead, LedgerKind, LedgerView } from "@/lib/types";
@@ -21,27 +21,37 @@ function AddEntry({ owner, view, onSaved }: { owner: Owner; view: LedgerView; on
   const [reference, setReference] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [warnings, setWarnings] = useState<Record<string, string> | null>(null);
 
-  async function submit(e: FormEvent) {
-    e.preventDefault();
+  async function save(confirmed: string[]) {
     setBusy(true);
     setError(null);
     try {
       onSaved(await api<LedgerView>("/ledger", {
         method: "POST",
-        body: JSON.stringify({ ...owner, entry_kind: kind, head, amount: Number(amount), entry_date: date, reference: reference || null }),
+        body: JSON.stringify({ ...owner, entry_kind: kind, head, amount: Number(amount), entry_date: date, reference: reference || null, confirmed_warnings: confirmed }),
       }));
       setAmount("");
       setReference("");
+      setWarnings(null);
     } catch (err) {
-      setError(errorText(err));
+      if (err instanceof ApiError && err.code === "ledger_confirmation_needed") {
+        setWarnings(err.details.warnings as Record<string, string>);
+      } else {
+        setError(errorText(err));
+      }
     } finally {
       setBusy(false);
     }
   }
 
+  function submit(e: FormEvent) {
+    e.preventDefault();
+    void save([]);
+  }
+
   return (
-    <form className="ledger-add" onSubmit={submit}>
+    <form className="ledger-add" onSubmit={submit} onChange={() => setWarnings(null)}>
       <div className="row">
         <Field label="Entry">
           <select value={kind} onChange={(e) => setKind(e.target.value as LedgerKind)} disabled={!view.can_manage}>
@@ -63,7 +73,20 @@ function AddEntry({ owner, view, onSaved }: { owner: Owner; view: LedgerView; on
         <input maxLength={100} value={reference} onChange={(e) => setReference(e.target.value)} />
       </Field>
       <ErrorText>{error}</ErrorText>
-      <Button kind="secondary" type="submit" disabled={busy}>{busy ? "Saving…" : "Add entry"}</Button>
+      {warnings ? (
+        <div className="ledger-confirm" role="alert">
+          <ul className="warn-list" aria-label="Check this entry">
+            {Object.entries(warnings).map(([code, text]) => <li key={code}>{text}</li>)}
+          </ul>
+          <p className="muted">If it is correct you can still save it. The department admin will be told.</p>
+          <div className="row">
+            <Button kind="secondary" disabled={busy} onClick={() => save(Object.keys(warnings))}>{busy ? "Saving…" : "Save anyway"}</Button>
+            <Button kind="ghost" disabled={busy} onClick={() => setWarnings(null)}>Go back and edit</Button>
+          </div>
+        </div>
+      ) : (
+        <Button kind="secondary" type="submit" disabled={busy}>{busy ? "Saving…" : "Add entry"}</Button>
+      )}
     </form>
   );
 }

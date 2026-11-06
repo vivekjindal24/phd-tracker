@@ -173,6 +173,7 @@ LedgerHead = Literal[
     "fellowship_salary", "equipment", "consumables", "travel", "contingency", "overhead"
 ]
 LEDGER_HEADS = get_args(LedgerHead)
+LedgerWarning = Literal["over_balance", "over_sanction", "future_date", "outside_period"]
 
 LeftReason = Literal["withdrawn", "cancelled"]
 LEFT_REASONS = get_args(LeftReason)
