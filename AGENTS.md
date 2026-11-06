@@ -88,7 +88,7 @@ Before implementing a non-trivial task:
 ## 6. Validation
 
 After implementation (run what applies; report what was skipped):
-1. API: `ruff check .` + `pytest` (needs `DATABASE_URL` and a live Postgres;
+1. API: `ruff check .` + `pytest` (needs `TEST_DATABASE_URL` and a live Postgres;
    venv: `~/.venvs/anveshan-api`).
 2. Export: `npm run typecheck` + `npm test`.
 3. Migration sanity: `alembic upgrade head` against a scratch DB when DDL changed.

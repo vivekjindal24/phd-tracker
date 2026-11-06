@@ -136,9 +136,9 @@ supervisees; scholar sees self; the three offices are university-wide.
 Acceptance: a HoD of Physics never sees a Chemistry scholar (403); a person
 with two roles sees the union of both scopes, never more.
 
-**F3 — Configurable approval chains.** Four item types go through approval
+**F3 — Configurable approval chains.** Five item types go through approval
 chains: **progress report, publication, thesis submission, coursework
-clearance**. The root admin configures one chain per item type **for the
+clearance, no-dues clearance**. The root admin configures one chain per item type **for the
 whole university** (not per unit). Default chains:
 
 | Item | Initiator | Chain |
@@ -147,6 +147,7 @@ whole university** (not per unit). Default chains:
 | Publication | Scholar | Supervisor (authorship) → Library (journal, indexing, DOI) → Research Office |
 | Coursework clearance | Exam Office (enters subjects + grades) | Department (confirms) → Exam Office (marks cleared) → Research Office (noted) |
 | Thesis submission | Scholar | Supervisor → Department → Library (plagiarism score) → Exam Office (receipt, examiners) → Research Office (final) |
+| No-dues clearance (when the university requires it, M3) | Scholar | Supervisor (lab dues) → Department → Library (books) → Research Office (fees) |
 
 "Department" step = the head **or** an admin of the scholar's own unit.
 
@@ -436,7 +437,7 @@ Intentionally NOT in this version:
    completion and drop-outs by unit).
 5. **Grants:** fellowships, research projects, grant ledger.
 6. **Production packaging:** self-hosted Docker Compose stack for a
-   university server/NAS (ARCHITECTURE.md §8).
+   university server/NAS (ARCHITECTURE.md §4).
 7. **Reach & research administration** (Decided 2026-10-31): WhatsApp
    notifications (F5); generated utilisation certificates and grant alerts
    (M8); no-dues clearance before thesis submission (M3); provisional PhD
@@ -500,8 +501,8 @@ Each phase ends with a check-in with the owner before the next starts.
   may the supervisor see examiner names before the viva?
 - With single sign-on configured, should password login be switchable off?
   (Default: both stay on.)
-- NAAC / NIRF / AISHE reporting pack: a non-goal today; revisit after the
-  pilot with real data in hand.
+- NIRF / AISHE reporting pack: a non-goal today; revisit after the pilot with
+  real data in hand.
 - ~~Grant ledger: may a PI enter expenses on their own project?~~ Resolved
   2026-10-21: yes, on their own projects only (SECURITY.md §3).
 

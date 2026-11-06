@@ -39,7 +39,7 @@ UI or scripts; file bytes never pass through the export service.
 | WhatsApp | Meta WhatsApp Cloud API (`httpx`), one utility template, after commit like email; outcome recorded |
 | Export | Express + pdfkit (node:22-slim) |
 | Web | Next.js 16 (App Router, client components behind an auth gate), `output: "standalone"` for self-hosting |
-| CI/CD | Render builds `services/api/Dockerfile` and Vercel builds `web/` on every push to the deploy branch; GitHub Actions `ci.yml` (tests) to be added |
+| CI/CD | Render builds `services/api/Dockerfile` and Vercel builds `web/` on every push to the deploy branch; GitHub Actions `ci.yml` runs the tests and a fresh-install stack on every push |
 
 ## 4. Deployment Targets
 
@@ -104,7 +104,7 @@ Browser (web)
   export goes through it. Out-of-scope id → 403, never 404.
 - `rbac.py` — `MATRIX`: (role, entity) → allowed actions, as data. Route
   guard `require_perm`; row guard `get_or_403` combines MATRIX + scope.
-- `workflow.py` — the **one** approval engine for all four item types.
+- `workflow.py` — the **one** approval engine for all five item types.
   States `draft → in_review → approved`, plus `sent_back`. The item stores
   `current_step` and a `chain_snapshot` copied from `approval_chains` at
   submit. `can_act(user, item)` resolves the current step's actor (scholar's
@@ -228,7 +228,7 @@ keep-alive: it runs once a day.
 | One installation per university | universities want their data on their own server; no tenant-isolation bugs possible |
 | Role assignments scoped to org units | real people hold several roles; one scope function covers every level of a flexible tree |
 | `ltree` for the org tree | subtree visibility is one indexed predicate, any depth |
-| One generic approval engine + chain snapshot | four item types, one state machine; chain edits never corrupt in-flight items |
+| One generic approval engine + chain snapshot | five item types, one state machine; chain edits never corrupt in-flight items |
 | Chains university-wide, not per unit | owner decision: simpler and consistent across departments |
 | Files in S3-compatible storage, presigned URLs | theses are 10–50 MB; same code on R2 (dev) and Garage on a NAS (prod) |
 | Optional modules as a settings table | not every university needs grants/admissions; disabled = invisible + 404 |

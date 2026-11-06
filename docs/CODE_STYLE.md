@@ -15,8 +15,8 @@
   compliance software; silent failure is the worst outcome.
 - No secrets in code; config by environment, validated at startup.
 - `ponytail:` comments mark deliberate simplifications with a known ceiling
-  and their upgrade path (e.g. the count-then-insert UGC cap check in
-  `scholars.py`).
+  and their upgrade path (e.g. the serial-number race in
+  `certificate.py`).
 - exFAT junk: `._*` AppleDouble and `__pycache__` are gitignored — never
   stage or edit them; delete before running directory-scanning tools.
 

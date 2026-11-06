@@ -44,18 +44,19 @@
   mocks for the S3 API. SMTP: the low-level send is replaced by a capture
   (outbox) in tests; delivery outcomes (sent / failed / muted / not
   configured) are asserted on the notification rows.
-- Files: `tests/test_auth.py`, `test_scope.py`, `test_rbac.py`,
-  `test_workflow.py` (parametrised over all four item types),
-  `test_meetings_sharing.py`, `test_modules.py`, `test_files.py`,
-  `test_notifications.py`, `test_search.py`, one file per module.
+- Files: `tests/test_auth.py`, `test_scope.py`, `test_workflow.py` (the engine
+  rules; each item type's own flow is in `test_reports.py`,
+  `test_publications.py`, `test_coursework.py`, `test_thesis.py` and
+  `test_no_dues.py`), `test_meetings.py`, `test_files.py`,
+  `test_notifications.py`, `test_explore.py`, one file per module.
 - Lint: `ruff check .` clean.
 
 ```bash
-# venv off the exFAT volume: ~/.venvs/anveshan-api; scratch DB anveshan_test
-DATABASE_URL="postgresql+psycopg://$(whoami)@localhost:5432/anveshan_test" \
-  JWT_SECRET=test-secret-0123456789abcdef0123456789 \
-  S3_ENDPOINT=http://localhost:9000 S3_BUCKET=anveshan-test \
-  pytest
+# venv off the exFAT volume: ~/.venvs/anveshan-api
+# conftest.py loads TEST_DATABASE_URL, S3_TEST_BUCKET, S3_ENDPOINT and the S3 keys
+# from ~/.config/anveshan/dev.env. It overwrites DATABASE_URL and S3_BUCKET, and
+# refuses to start unless the database ends in _test and the bucket in -test.
+pytest
 ruff check .
 ```
 
