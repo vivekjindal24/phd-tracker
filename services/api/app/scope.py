@@ -82,6 +82,13 @@ def faculty_predicate(principal: Principal) -> ColumnElement[bool]:
     return or_(*clauses) if clauses else false()
 
 
+def org_tree_predicate(principal: Principal) -> ColumnElement[bool]:
+    """Someone who is only a scholar reads their own unit; any other role, the tree (§3)."""
+    if principal.roles != {"scholar"}:
+        return true()
+    return OrgUnit.id.in_(select(Scholar.unit_id).where(Scholar.id == principal.scholar_id))
+
+
 def unit_predicate(principal: Principal, entity: str, unit_column) -> ColumnElement[bool]:
     """Records anchored on a unit rather than a scholar (admissions): offices see all, unit
     heads/admins their subtree (DATABASE.md §5)."""

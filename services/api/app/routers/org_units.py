@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import org
+from app import org, scope
 from app.auth.deps import current_principal, require_root_admin
 from app.auth.principal import Principal
 from app.crud import update
@@ -17,11 +17,13 @@ router = APIRouter(prefix="/org-units", tags=["org"])
 
 @router.get("", response_model=list[OrgUnitOut])
 async def list_units(
-    _: Principal = Depends(current_principal), session: AsyncSession = Depends(get_session)
+    principal: Principal = Depends(current_principal),
+    session: AsyncSession = Depends(get_session),
 ) -> list[OrgUnit]:
-    """The tree is readable by every signed-in user (structure is not sensitive)."""
     rows = await session.scalars(
-        select(OrgUnit).where(OrgUnit.deleted_at.is_(None)).order_by(OrgUnit.path)
+        select(OrgUnit)
+        .where(OrgUnit.deleted_at.is_(None), scope.org_tree_predicate(principal))
+        .order_by(OrgUnit.path)
     )
     return list(rows)
 

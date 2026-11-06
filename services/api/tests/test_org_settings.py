@@ -4,16 +4,29 @@ import pytest
 from sqlalchemy import select
 
 from app.errors import ApiError
-from app.models import OrgUnit
+from app.models import OrgUnit, RoleAssignment
 from app.modules import require_module
 from tests.conftest import auth
 
 
-async def test_everyone_reads_the_tree_in_path_order(client, world):
-    res = await client.get("/api/v1/org-units", headers=auth(world.scholar_b1.id))
+async def test_staff_read_the_tree_in_path_order(client, world):
+    res = await client.get("/api/v1/org-units", headers=auth(world.sup_b1.id))
     assert res.status_code == 200
     paths = [u["path"] for u in res.json()]
     assert paths == sorted(paths) and paths[0] == "tu" and "tu.sa.a1" in paths
+
+
+async def test_a_scholar_reads_only_their_own_unit(client, world):
+    res = await client.get("/api/v1/org-units", headers=auth(world.scholar_b1.id))
+    assert res.status_code == 200
+    assert [u["id"] for u in res.json()] == [str(world.b1.id)]
+
+
+async def test_a_scholar_with_another_role_reads_the_tree(client, world, session):
+    session.add(RoleAssignment(user_id=world.scholar_b1.id, role="exam_office"))
+    await session.commit()
+    res = await client.get("/api/v1/org-units", headers=auth(world.scholar_b1.id))
+    assert "tu.sa.a1" in [u["path"] for u in res.json()]
 
 
 async def test_root_admin_adds_unit_under_parent(client, world):
