@@ -61,7 +61,7 @@ async def list_faculty(
 ) -> list[FacultyOut]:
     stmt = _query().where(scope.faculty_predicate(principal))
     if q:
-        stmt = stmt.where(User.full_name.ilike(f"%{q}%"))
+        stmt = stmt.where(User.full_name.icontains(q, autoescape=True))
     if unit_id:
         path = await scope.unit_path(session, unit_id)
         stmt = stmt.where(Faculty.unit_id.in_(scope.subtree_unit_ids((path,))))

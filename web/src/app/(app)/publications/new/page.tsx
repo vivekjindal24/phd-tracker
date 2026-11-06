@@ -1,12 +1,13 @@
 "use client";
 
+import { RequireRole } from "@/components/ui/RequireRole";
 import { useRouter } from "next/navigation";
 import { EMPTY_PUBLICATION, PublicationForm } from "@/components/items/PublicationForm";
 import { Card, PageHeader } from "@/components/ui/kit";
 import { api } from "@/lib/api";
 import type { ItemView } from "@/lib/types";
 
-export default function NewPublicationPage() {
+function NewPublicationForm() {
   const router = useRouter();
   return (
     <>
@@ -21,4 +22,8 @@ export default function NewPublicationPage() {
       </Card>
     </>
   );
+}
+
+export default function NewPublicationPage() {
+  return <RequireRole roles={["scholar"]}><NewPublicationForm /></RequireRole>;
 }

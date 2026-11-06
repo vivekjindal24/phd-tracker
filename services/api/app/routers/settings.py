@@ -1,9 +1,10 @@
 """University-wide settings: co-supervision, module switches, approval chains (root admin)."""
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app import branding
 from app.auth.deps import current_principal, require_root_admin
 from app.auth.principal import Principal
 from app.crud import update
@@ -25,6 +26,7 @@ async def _read(session: AsyncSession) -> SettingsOut:
     )
     return SettingsOut.model_validate(
         {
+            "university_address": settings.university_address,
             "co_supervision": settings.co_supervision,
             "require_hardcopy": settings.require_hardcopy,
             "require_no_dues": settings.require_no_dues,
@@ -62,6 +64,26 @@ async def update_settings(
     await update(session, principal, row, {**changes, "updated_by": principal.user_id})
     await session.commit()
     return await _read(session)
+
+
+@router.put("/logo", status_code=204)
+async def set_logo(
+    request: Request,
+    principal: Principal = Depends(require_root_admin),
+    session: AsyncSession = Depends(get_session),
+) -> None:
+    content, content_type = await branding.read_logo_upload(request)
+    await branding.replace_logo(session, principal, content, content_type)
+    await session.commit()
+
+
+@router.delete("/logo", status_code=204)
+async def remove_logo(
+    principal: Principal = Depends(require_root_admin),
+    session: AsyncSession = Depends(get_session),
+) -> None:
+    await branding.remove_logo(session, principal)
+    await session.commit()
 
 
 @router.put("/modules/{key}", response_model=SettingsOut)

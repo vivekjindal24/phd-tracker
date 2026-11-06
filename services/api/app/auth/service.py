@@ -29,6 +29,8 @@ THROTTLE_WINDOW = timedelta(minutes=15)
 PASSWORD_LINK_TTL = timedelta(hours=72)
 
 _INVALID = ApiError(401, "invalid_credentials", "Email or password is incorrect.")
+# Verified when there is no real hash, so login takes as long whether the account exists or not.
+_NO_ACCOUNT_HASH = _hasher.hash(secrets.token_urlsafe(32))
 
 
 def hash_password(password: str) -> str:
@@ -36,10 +38,8 @@ def hash_password(password: str) -> str:
 
 
 def verify_password(password_hash: str | None, password: str) -> bool:
-    if password_hash is None:
-        return False  # invited / SSO-only account: no password set yet
-    try:
-        return _hasher.verify(password_hash, password)
+    try:  # no hash: unknown, invited or SSO-only account
+        return _hasher.verify(password_hash or _NO_ACCOUNT_HASH, password)
     except (VerificationError, InvalidHashError):
         return False
 
@@ -102,7 +102,8 @@ async def issue_tokens(session: AsyncSession, user_id: uuid.UUID) -> tuple[str, 
 async def login(session: AsyncSession, email: str, password: str) -> tuple[str, str]:
     await _check_throttle(session, email)
     user = await session.scalar(select(User).where(User.email == email, User.deleted_at.is_(None)))
-    if user is None or not user.is_active or not verify_password(user.password_hash, password):
+    password_ok = verify_password(user.password_hash if user else None, password)
+    if user is None or not user.is_active or not password_ok:
         session.add(LoginAttempt(email=email.lower()))
         await session.commit()
         raise _INVALID

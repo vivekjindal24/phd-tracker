@@ -6,11 +6,11 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import { Owl } from "@/components/brand/Owl";
 import { StateBadge } from "@/components/items/StateBadge";
-import { Button, Card, ErrorText, Field, PageHeader, Table } from "@/components/ui/kit";
+import { Button, Card, ErrorText, Field, PageHeader, ShowMore, Table } from "@/components/ui/kit";
 import { api } from "@/lib/api";
 import { useSession } from "@/lib/session";
 import type { ItemView, NoDuesMine, ThesisRow } from "@/lib/types";
-import { errorText, useFetch } from "@/lib/useFetch";
+import { errorText, useFetch, usePagedFetch } from "@/lib/useFetch";
 
 function StartThesis() {
   const router = useRouter();
@@ -81,7 +81,7 @@ function NoDues() {
 
 export default function ThesisPage() {
   const { me } = useSession();
-  const { data, error } = useFetch<ThesisRow[]>("/theses");
+  const { data, error, hasMore, more } = usePagedFetch<ThesisRow>("/theses", 200);
   const mine = me?.scholar_id ? data?.find((t) => t.scholar.id === me.scholar_id) : undefined;
   const others = data?.filter((t) => t.scholar.id !== me?.scholar_id) ?? [];
 
@@ -110,6 +110,7 @@ export default function ThesisPage() {
           ))}
         </Table>
       )}
+      <ShowMore hasMore={hasMore} more={more} />
     </>
   );
 }

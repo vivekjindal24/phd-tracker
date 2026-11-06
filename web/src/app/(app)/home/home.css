@@ -108,7 +108,6 @@ a.tile:hover {
 .tile-butter .tile-label,
 .tile-coral .tile-label {
   color: var(--badge-ink);
-  opacity: 0.8;
 }
 
 /* lists */

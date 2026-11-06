@@ -4,16 +4,16 @@ import Link from "next/link";
 import { useState } from "react";
 import { Owl } from "@/components/brand/Owl";
 import { StateBadge } from "@/components/items/StateBadge";
-import { ErrorText, Field, PageHeader, Table } from "@/components/ui/kit";
+import { ErrorText, Field, PageHeader, ShowMore, Table } from "@/components/ui/kit";
 import { useSession } from "@/lib/session";
 import { STATE_LABELS } from "@/lib/types";
 import type { ItemState, ReportRow } from "@/lib/types";
-import { useFetch } from "@/lib/useFetch";
+import { usePagedFetch } from "@/lib/useFetch";
 
 export default function ReportsPage() {
   const { me } = useSession();
   const [state, setState] = useState("");
-  const { data, error } = useFetch<ReportRow[]>(`/reports?limit=500${state ? `&state=${state}` : ""}`);
+  const { data, error, hasMore, more } = usePagedFetch<ReportRow>(`/reports${state ? `?state=${state}` : ""}`, 500);
   const isScholar = me?.scholar_id != null;
 
   return (
@@ -60,6 +60,7 @@ export default function ReportsPage() {
           ))}
         </Table>
       )}
+      <ShowMore hasMore={hasMore} more={more} />
     </>
   );
 }

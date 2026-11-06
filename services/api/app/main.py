@@ -8,6 +8,7 @@ from app.errors import install_error_handlers
 from app.routers import (
     admissions,
     auth,
+    branding,
     comments,
     conferences,
     coursework,
@@ -37,6 +38,7 @@ from app.routers import (
     seminars,
     theses,
     users,
+    verify,
 )
 from app.routers import settings as settings_router
 
@@ -63,6 +65,7 @@ async def healthz() -> dict[str, str]:
 
 for module in (
     auth,
+    branding,
     org_units,
     users,
     scholars,
@@ -86,6 +89,7 @@ for module in (
     conferences,
     documents,
     theses,
+    verify,
     coursework,
     admissions,
     duration,

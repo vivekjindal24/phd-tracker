@@ -105,6 +105,8 @@ class MeOut(BaseModel):
     whatsapp_muted: list[str]
 
 
+MAX_ADJUSTMENT_DAYS = 1825  # five years: the most any time limit or single adjustment may be
+
 # --- org --------------------------------------------------------------------------------
 
 
@@ -253,6 +255,7 @@ Rubric = Annotated[list[RubricCriterion], Field(min_length=1, max_length=10)]
 
 
 class SettingsOut(BaseModel):
+    university_address: str
     co_supervision: CoSupervision
     require_hardcopy: bool
     require_no_dues: bool
@@ -270,6 +273,7 @@ class SettingsOut(BaseModel):
 
 
 class SettingsUpdate(BaseModel):
+    university_address: str | None = Field(default=None, max_length=500)
     co_supervision: CoSupervision | None = None
     require_hardcopy: bool | None = None
     require_no_dues: bool | None = None
@@ -278,9 +282,9 @@ class SettingsUpdate(BaseModel):
     min_coursework_credits: float | None = Field(default=None, ge=0, le=40)
     min_coursework_cgpa: float | None = Field(default=None, ge=0, le=10)
     max_duration_years: int | None = Field(default=None, ge=3, le=12)
-    max_extension_days: int | None = Field(default=None, ge=0, le=1825)
-    max_relaxation_days: int | None = Field(default=None, ge=0, le=1825)
-    max_maternity_leave_days: int | None = Field(default=None, ge=0, le=1825)
+    max_extension_days: int | None = Field(default=None, ge=0, le=MAX_ADJUSTMENT_DAYS)
+    max_relaxation_days: int | None = Field(default=None, ge=0, le=MAX_ADJUSTMENT_DAYS)
+    max_maternity_leave_days: int | None = Field(default=None, ge=0, le=MAX_ADJUSTMENT_DAYS)
 
     @model_validator(mode="after")
     def _unique_criteria(self) -> "SettingsUpdate":

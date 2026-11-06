@@ -50,6 +50,7 @@ export type OrgUnit = {
 };
 
 export type SettingsData = {
+  university_address: string;
   co_supervision: CoSupervision;
   require_hardcopy: boolean;
   require_no_dues: boolean;
@@ -483,6 +484,22 @@ export const VIVA_LABELS: Record<VivaOutcome, string> = {
   redefend: "Re-defend after revision",
   fail: "Not passed",
 };
+export type Branding = {
+  university: string;
+  address: string;
+  has_logo: boolean;
+  logo_version: number | null;
+};
+
+export type CertificateCheck = {
+  name: string;
+  thesis_title: string;
+  unit: string;
+  viva_date: string;
+  issued_on: string;
+  status: "valid" | "revoked";
+};
+
 export type Evaluation = {
   thesis_id: string;
   names_hidden: boolean;
@@ -498,6 +515,16 @@ export type Evaluation = {
   unreleased_count: number;
   vivas: { id: string; held_on: string; venue: string; panel: string; outcome: VivaOutcome; notes: string }[];
   deposit: { id: string; deposited_on: string; handle_url: string } | null;
+  certificates: {
+    id: string;
+    serial: string;
+    issued_on: string;
+    verify_path: string;
+    revoked_at: string | null;
+    revoked_reason: string | null;
+  }[];
+  can_issue_certificate: boolean;
+  can_revoke_certificate: boolean;
   can_record_reports: boolean;
   can_record_viva: boolean;
   viva_block: string | null;

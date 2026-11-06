@@ -5,19 +5,23 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import type { ReactNode } from "react";
 import { Owl, OwlMark } from "@/components/brand/Owl";
+import { UniversityMark } from "@/components/brand/UniversityMark";
 import { Nav } from "@/components/Nav";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { BusyBar } from "@/components/ui/BusyBar";
 import { Button, ErrorText } from "@/components/ui/kit";
 import { useSession } from "@/lib/session";
 import "./shell.css";
 
 export default function AppLayout({ children }: { children: ReactNode }) {
-  const { me, loading, error, logout } = useSession();
+  const { me, loading, error, loggedOut, logout } = useSession();
   const router = useRouter();
 
   useEffect(() => {
-    if (!loading && !me && !error) router.replace("/login?expired=1");
-  }, [me, loading, error, router]);
+    if (loading || me || error) return;
+    const here = encodeURIComponent(window.location.pathname + window.location.search);
+    router.replace(loggedOut ? "/login" : `/login?expired=1&next=${here}`);
+  }, [me, loading, error, loggedOut, router]);
 
   if (loading) {
     return (
@@ -36,12 +40,14 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <>
+      <BusyBar />
       <header className="topbar">
         <div className="topbar-inner clay">
           <Link href="/home" className="wordmark" aria-label="Anveshan home">
             <OwlMark />
             <span>Anveshan</span>
           </Link>
+          <UniversityMark />
           <Nav me={me} />
           <form className="topbar-search" role="search" action="/search">
             <label className="visually-hidden" htmlFor="topbar-q">Search</label>
@@ -58,9 +64,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
               )}
             </Link>
             <ThemeToggle />
-            <Button kind="ghost" onClick={() => logout().then(() => router.replace("/login"))}>
-              Log out
-            </Button>
+            <Button kind="ghost" onClick={logout}>Log out</Button>
           </div>
         </div>
       </header>

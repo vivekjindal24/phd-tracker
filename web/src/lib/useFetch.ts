@@ -29,6 +29,40 @@ export function useFetch<T>(path: string | null) {
   return { data, error, loading, reload, setData };
 }
 
+/** A list read page by page, so a long list is never silently cut off. */
+export function usePagedFetch<T>(path: string | null, pageSize: number) {
+  const sep = path?.includes("?") ? "&" : "?";
+  const first = useFetch<T[]>(path && `${path}${sep}limit=${pageSize}`);
+  const [end, setEnd] = useState(false);
+  const [moreError, setMoreError] = useState<string | null>(null);
+  const { data, setData, reload } = first;
+
+  useEffect(() => setEnd(false), [path]);
+
+  const more = useCallback(async () => {
+    if (!data) return;
+    try {
+      const next = await api<T[]>(`${path}${sep}limit=${pageSize}&offset=${data.length}`);
+      setData([...data, ...next]);
+      setEnd(next.length < pageSize);
+      setMoreError(null);
+    } catch (e) {
+      setMoreError(errorText(e));
+    }
+  }, [data, path, sep, pageSize, setData]);
+
+  return {
+    ...first,
+    error: first.error ?? moreError,
+    reload: () => {
+      setEnd(false);
+      return reload();
+    },
+    hasMore: !end && (data?.length ?? 0) >= pageSize,
+    more,
+  };
+}
+
 export function errorText(e: unknown): string {
   return e instanceof ApiError ? e.message : String(e);
 }

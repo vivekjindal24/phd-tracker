@@ -4,20 +4,20 @@ import Link from "next/link";
 import { useState } from "react";
 import { Owl } from "@/components/brand/Owl";
 import { StateBadge } from "@/components/items/StateBadge";
-import { ErrorText, Field, PageHeader, Table } from "@/components/ui/kit";
+import { ErrorText, Field, PageHeader, ShowMore, Table } from "@/components/ui/kit";
 import { useSession } from "@/lib/session";
 import { INDEXING_LABELS, PUB_TYPE_LABELS, STATE_LABELS } from "@/lib/types";
 import type { ItemState, PublicationRow } from "@/lib/types";
-import { useFetch } from "@/lib/useFetch";
+import { usePagedFetch } from "@/lib/useFetch";
 
 export default function PublicationsPage() {
   const { me } = useSession();
   const [state, setState] = useState("");
   const [year, setYear] = useState("");
-  const query = new URLSearchParams({ limit: "500" });
+  const query = new URLSearchParams();
   if (state) query.set("state", state);
   if (year) query.set("pub_year", year);
-  const { data, error } = useFetch<PublicationRow[]>(`/publications?${query}`);
+  const { data, error, hasMore, more } = usePagedFetch<PublicationRow>(`/publications?${query}`, 500);
   const isScholar = me?.scholar_id != null;
 
   return (
@@ -58,6 +58,7 @@ export default function PublicationsPage() {
           ))}
         </Table>
       )}
+      <ShowMore hasMore={hasMore} more={more} />
     </>
   );
 }

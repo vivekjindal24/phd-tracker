@@ -91,6 +91,10 @@ def load_of_faculty():
     )
 
 
+def cap_text(count: int) -> str:
+    return f"{count} scholar" if count == 1 else f"{count} scholars"
+
+
 def counts_toward_cap(scholar: Scholar) -> bool:
     return scholar.left_on is None and scholar.stage != COMPLETED_STAGE
 
@@ -133,8 +137,7 @@ async def assign_supervisor(
         raise ApiError(
             409,
             "supervisor_cap_exceeded",
-            f"This supervisor already guides {faculty.max_scholars} scholars, "
-            "the UGC limit for their designation.",
+            f"This supervisor already guides {cap_text(faculty.max_scholars)}, their limit.",
         )
     await update(session, principal, scholar, {"supervisor_id": faculty_id})
     if not announce:
@@ -166,8 +169,8 @@ async def recheck_cap(session: AsyncSession, scholar: Scholar) -> None:
         raise ApiError(
             409,
             "supervisor_cap_exceeded",
-            f"Their supervisor already guides {faculty.max_scholars} current scholars, the UGC "
-            "limit; assign another supervisor first.",
+            f"Their supervisor already guides {cap_text(faculty.max_scholars)}, their limit; "
+            "assign another supervisor first.",
         )
 
 

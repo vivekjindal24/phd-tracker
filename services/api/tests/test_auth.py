@@ -1,7 +1,8 @@
 import pytest
-from sqlalchemy import select
+from sqlalchemy import select, update
 
-from app.models import AuditLog
+from app.auth import service
+from app.models import AuditLog, User
 from tests.conftest import auth
 from tests.world import PASSWORD
 
@@ -160,3 +161,23 @@ async def test_whatsapp_number_must_be_e164(client, world, number):
         headers=auth(world.scholar_a1.id),
     )
     assert res.status_code == 422
+
+
+async def test_failed_login_burns_a_hash_whether_or_not_the_account_exists(
+    client, world, session, monkeypatch
+):
+    real, hashed = service._hasher, []
+
+    class Spy:
+        def verify(self, password_hash, password):
+            hashed.append(password_hash)
+            return real.verify(password_hash, password)
+
+    monkeypatch.setattr(service, "_hasher", Spy())
+    await session.execute(
+        update(User).where(User.email == "scholar_a2@x.edu").values(is_active=False)
+    )
+    await session.commit()
+    assert (await _login(client, "nobody@x.edu", "nope-nope-nope")).status_code == 401
+    assert (await _login(client, "scholar_a2@x.edu", PASSWORD)).status_code == 401
+    assert len(hashed) == 2

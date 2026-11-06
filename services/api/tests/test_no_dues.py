@@ -11,8 +11,9 @@ API = "/api/v1"
 
 
 @pytest.fixture
-async def documents_on(session, world):
+async def documents_on(client, session, world):
     await enable(session, "documents")
+    await require_no_dues(client, world)
 
 
 async def no_dues(client, user, nid, action):
@@ -43,7 +44,7 @@ async def cleared(client, world) -> str:
 
 async def test_chain_runs_through_every_office(client, world, documents_on):
     mine = (await client.get(f"{API}/no-dues/mine", headers=auth(world.scholar_a1.id))).json()
-    assert mine == {"required": False, "item": None}
+    assert mine == {"required": True, "item": None}
     nid = await cleared(client, world)
     mine = (await client.get(f"{API}/no-dues/mine", headers=auth(world.scholar_a1.id))).json()
     assert mine["item"]["id"] == nid and mine["item"]["state"] == "approved"
@@ -79,6 +80,7 @@ async def test_thesis_waits_for_no_dues_only_when_required(client, session, worl
 
 
 async def test_thesis_is_not_gated_when_the_setting_is_off(client, session, world, documents_on):
+    await require_no_dues(client, world, on=False)
     tid = await new_thesis(client, world)
     await ready_file(session, world.scholar_a1, "thesis_submissions", tid)
     assert (await act(client, world.scholar_a1, tid, "submit")).status_code == 200

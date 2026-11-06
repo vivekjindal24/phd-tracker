@@ -151,3 +151,16 @@ async def test_seminar_settings_are_validated(client, world):
     body = ok.json()
     assert body["seminar_rubric"] == [{"name": "Overall", "max": 100}]
     assert (body["seminar_graders"], body["require_hardcopy"]) == ("panel_and_attending", True)
+
+
+async def test_reports_are_due_by_the_seminar(client, world):
+    late = {**seminar_body(world), "report_due": "2099-01-01"}
+    res = await _schedule(client, world.admin_a1, late)
+    assert res.json()["error"]["code"] == "report_due_after_seminar"
+    seminar = (await _schedule(client, world.admin_a1, seminar_body(world))).json()
+    res = await client.patch(
+        f"/api/v1/seminars/{seminar['id']}",
+        json={"report_due": "2099-01-01"},
+        headers=auth(world.admin_a1.id),
+    )
+    assert res.json()["error"]["code"] == "report_due_after_seminar"

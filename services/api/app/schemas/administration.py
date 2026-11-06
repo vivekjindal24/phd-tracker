@@ -14,7 +14,7 @@ from app.enums import (
     Stage,
     TimeKind,
 )
-from app.schemas import LongTitle, Name, Notes, Password, Ref, Resolution
+from app.schemas import MAX_ADJUSTMENT_DAYS, LongTitle, Name, Notes, Password, Ref, Resolution
 
 # --- bulk import ------------------------------------------------------------------------
 
@@ -190,6 +190,8 @@ class TimeAdjustmentIn(BaseModel):
     def _ordered(self) -> "TimeAdjustmentIn":
         if self.end_date < self.start_date:
             raise ValueError("the end date is before the start date")
+        if (self.end_date - self.start_date).days > MAX_ADJUSTMENT_DAYS:
+            raise ValueError(f"one adjustment cannot exceed {MAX_ADJUSTMENT_DAYS} days")
         return self
 
 

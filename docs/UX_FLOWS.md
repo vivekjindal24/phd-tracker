@@ -193,6 +193,19 @@ After approval, on the thesis page: Exam Office adds each **examiner report**
 names) → records the **viva** (outcome Pass → stage Viva) → Library records
 the **Shodhganga deposit** (date, handle, certificate).
 
+After a passed viva the Research Office **issues the provisional certificate**
+on the same page: serial, PDF with a QR code, public `/verify/<token>` page
+(name, thesis, unit, viva date, issue date, status). **Revoke** asks for a
+reason, which stays on record but never appears publicly; the page then says
+Revoked and a new certificate can be issued with a new serial.
+
+## Flow 8b — NAAC data
+
+The Research Office or root admin opens **NAAC data**, picks a range of academic
+years (July to June, up to ten) and downloads a CSV per sheet: projects and
+grants, scholars registered and awarded per guide, publications with indexing,
+books and chapters. Sheets carry the underlying rows, never computed scores.
+
 ## Flow 9 — Coursework (module)
 
 1. Exam Office → **Coursework**: picks a scholar, enrols courses from the

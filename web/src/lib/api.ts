@@ -38,6 +38,13 @@ function setWaking(waking: boolean) {
   wakeListeners.forEach((l) => l(waking));
 }
 
+const busyListeners = new Set<(busy: boolean) => void>();
+
+export function onBusy(listener: (busy: boolean) => void): () => void {
+  busyListeners.add(listener);
+  return () => busyListeners.delete(listener);
+}
+
 function readRefresh(): string | null {
   try {
     return localStorage.getItem(REFRESH_KEY);
@@ -67,7 +74,10 @@ async function send(
 ): Promise<Response> {
   if (!base) throw new ApiError(0, "config_error", "The server address is not configured.");
   pending += 1;
-  if (pending === 1) wakeTimer = setTimeout(() => setWaking(true), WAKE_AFTER_MS);
+  if (pending === 1) {
+    wakeTimer = setTimeout(() => setWaking(true), WAKE_AFTER_MS);
+    busyListeners.forEach((l) => l(true));
+  }
   try {
     const headers = new Headers(init.headers);
     // JSON for strings; a File/Blob body (bulk import) keeps the browser's content type.
@@ -81,6 +91,7 @@ async function send(
     if (pending === 0) {
       if (wakeTimer) clearTimeout(wakeTimer);
       setWaking(false);
+      busyListeners.forEach((l) => l(false));
     }
   }
 }
@@ -160,6 +171,8 @@ export const login = (email: string, password: string) => obtainTokens("/auth/lo
 export const exchangeSsoCode = (code: string) => obtainTokens("/auth/sso/exchange", { code });
 export const setPasswordWithLink = (token: string, password: string) =>
   obtainTokens("/auth/set-password", { token, password });
+
+export const logoUrl = (version: number | null) => `${API_URL}/api/v1/branding/logo?v=${version}`;
 
 /** SSO starts with a full-page navigation to the API, which redirects to the provider. */
 export function ssoStartUrl(provider: string): string {

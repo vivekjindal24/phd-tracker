@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { RequireRole } from "@/components/ui/RequireRole";
 import { useState } from "react";
 import { Owl } from "@/components/brand/Owl";
 import { DownloadButton } from "@/components/DownloadButton";
@@ -50,7 +51,7 @@ function Problems({ report }: { report: ImportReport }) {
   );
 }
 
-export default function ImportPage() {
+function ImportForm() {
   const [kind, setKind] = useState<ImportKind>("faculty");
   const [file, setFile] = useState<File | null>(null);
   const [report, setReport] = useState<ImportReport | null>(null);
@@ -184,4 +185,8 @@ export default function ImportPage() {
       </div>
     </>
   );
+}
+
+export default function ImportPage() {
+  return <RequireRole roles={["admin"]}><ImportForm /></RequireRole>;
 }

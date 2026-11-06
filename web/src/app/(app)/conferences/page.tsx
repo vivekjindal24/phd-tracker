@@ -4,13 +4,13 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import { Owl } from "@/components/brand/Owl";
 import { Attachments } from "@/components/Attachments";
-import { Button, Card, ErrorText, Field, PageHeader, Table } from "@/components/ui/kit";
+import { Button, Card, ErrorText, Field, PageHeader, ShowMore, Table } from "@/components/ui/kit";
 import { api } from "@/lib/api";
 import { formatDate } from "@/lib/format";
 import { useSession } from "@/lib/session";
 import { CONFERENCE_TYPE_LABELS } from "@/lib/types";
 import type { Conference, ConferenceType } from "@/lib/types";
-import { errorText, useFetch } from "@/lib/useFetch";
+import { errorText, usePagedFetch } from "@/lib/useFetch";
 
 function AddConference({ onAdded }: { onAdded: () => void }) {
   const [name, setName] = useState("");
@@ -75,7 +75,7 @@ function AddConference({ onAdded }: { onAdded: () => void }) {
 
 export default function ConferencesPage() {
   const { me } = useSession();
-  const { data, error, reload } = useFetch<Conference[]>("/conferences?limit=500");
+  const { data, error, reload, hasMore, more } = usePagedFetch<Conference>("/conferences", 500);
   const [open, setOpen] = useState<string | null>(null);
   const [actError, setActError] = useState<string | null>(null);
   const isScholar = me?.scholar_id != null;
@@ -123,6 +123,7 @@ export default function ConferencesPage() {
           ))}
         </Table>
       )}
+      <ShowMore hasMore={hasMore} more={more} />
       {selected && (
         <div style={{ marginTop: "var(--space-5)" }}>
           <Attachments table="conferences" recordId={selected.id} canUpload={selected.can_edit}

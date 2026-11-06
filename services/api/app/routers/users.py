@@ -69,8 +69,9 @@ async def list_users(
 ) -> list[User]:
     stmt = select(User).where(User.deleted_at.is_(None), scope.user_predicate(principal))
     if q:
-        like = f"%{q}%"
-        stmt = stmt.where(User.full_name.ilike(like) | User.email.ilike(like))
+        stmt = stmt.where(
+            User.full_name.icontains(q, autoescape=True) | User.email.icontains(q, autoescape=True)
+        )
     rows = await session.scalars(stmt.order_by(User.full_name).limit(limit).offset(offset))
     return list(rows)
 

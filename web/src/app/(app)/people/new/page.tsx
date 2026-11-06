@@ -1,5 +1,6 @@
 "use client";
 
+import { RequireRole } from "@/components/ui/RequireRole";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { FormEvent } from "react";
@@ -13,7 +14,7 @@ import "./people.css";
 
 type Kind = "scholar" | "faculty";
 
-export default function AddPersonPage() {
+function AddPersonForm() {
   const { me } = useSession();
   const router = useRouter();
   const { data: units } = useFetch<OrgUnit[]>("/org-units");
@@ -113,4 +114,8 @@ export default function AddPersonPage() {
       </form>
     </>
   );
+}
+
+export default function AddPersonPage() {
+  return <RequireRole roles={["admin"]}><AddPersonForm /></RequireRole>;
 }

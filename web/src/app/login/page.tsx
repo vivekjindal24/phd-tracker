@@ -5,9 +5,11 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { Owl, OwlMark } from "@/components/brand/Owl";
+import { UniversityMark } from "@/components/brand/UniversityMark";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Button, ErrorText, Field } from "@/components/ui/kit";
 import { api, ApiError, exchangeSsoCode, ssoStartUrl } from "@/lib/api";
+import { safeNext } from "@/lib/safeNext";
 import { useSession } from "@/lib/session";
 import { useFetch } from "@/lib/useFetch";
 import "./login.css";
@@ -81,8 +83,8 @@ function LoginForm() {
   const [forgot, setForgot] = useState(false);
 
   useEffect(() => {
-    if (me) router.replace("/home");
-  }, [me, router]);
+    if (me) router.replace(safeNext(params.get("next")));
+  }, [me, params, router]);
 
   // Back from the university's sign-in page: trade the one-time code for a session.
   useEffect(() => {
@@ -105,7 +107,6 @@ function LoginForm() {
     setError(null);
     try {
       await login(email, password);
-      router.replace("/home");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Something went wrong. Please try again.");
     } finally {
@@ -150,6 +151,7 @@ export default function LoginPage() {
         <ThemeToggle />
       </div>
       <section className="login-hero" aria-labelledby="brand">
+        <UniversityMark />
         <Link className="login-brand" href="/">
           <OwlMark size={52} />
           <h1 id="brand">Anveshan</h1>

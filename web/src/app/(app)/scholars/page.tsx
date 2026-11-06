@@ -4,11 +4,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Owl } from "@/components/brand/Owl";
-import { ErrorText, Field, PageHeader, Table } from "@/components/ui/kit";
+import { ErrorText, Field, PageHeader, ShowMore, Table } from "@/components/ui/kit";
 import { useSession } from "@/lib/session";
 import { STAGES } from "@/lib/types";
 import type { Scholar } from "@/lib/types";
-import { useFetch } from "@/lib/useFetch";
+import { usePagedFetch } from "@/lib/useFetch";
 
 export default function ScholarsPage() {
   const { me } = useSession();
@@ -30,7 +30,7 @@ export default function ScholarsPage() {
   const params = new URLSearchParams();
   if (query) params.set("q", query);
   if (stage) params.set("stage", stage);
-  const { data, error } = useFetch<Scholar[]>(onlyScholar ? null : `/scholars?${params}`);
+  const { data, error, hasMore, more } = usePagedFetch<Scholar>(onlyScholar ? null : `/scholars?${params}`, 100);
 
   if (onlyScholar) return null;
   return (
@@ -92,6 +92,7 @@ export default function ScholarsPage() {
           ))}
         </Table>
       )}
+      <ShowMore hasMore={hasMore} more={more} />
     </>
   );
 }

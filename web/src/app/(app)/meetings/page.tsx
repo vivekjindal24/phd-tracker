@@ -2,16 +2,16 @@
 
 import Link from "next/link";
 import { Owl } from "@/components/brand/Owl";
-import { ErrorText, PageHeader, Table } from "@/components/ui/kit";
+import { ErrorText, PageHeader, ShowMore, Table } from "@/components/ui/kit";
 import { formatDate } from "@/lib/format";
 import { useSession } from "@/lib/session";
 import type { Meeting } from "@/lib/types";
-import { useFetch } from "@/lib/useFetch";
+import { usePagedFetch } from "@/lib/useFetch";
 import "./meetings.css";
 
 export default function MeetingsPage() {
   const { me } = useSession();
-  const { data, error } = useFetch<Meeting[]>("/meetings?limit=200");
+  const { data, error, hasMore, more } = usePagedFetch<Meeting>("/meetings", 200);
   const canLog = me?.roles.some((r) => r === "scholar" || r === "supervisor") ?? false;
 
   return (
@@ -49,6 +49,7 @@ export default function MeetingsPage() {
           ))}
         </Table>
       )}
+      <ShowMore hasMore={hasMore} more={more} />
     </>
   );
 }

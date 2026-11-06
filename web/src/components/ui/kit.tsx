@@ -97,6 +97,11 @@ export function Switch({
 }
 
 /** Registers and lists: one clay card, flat readable rows inside (DESIGN_SYSTEM.md §4). */
+export function ShowMore({ hasMore, more }: { hasMore: boolean; more: () => void }) {
+  if (!hasMore) return null;
+  return <div className="show-more"><Button kind="ghost" onClick={more}>Show more</Button></div>;
+}
+
 export function Table({
   head,
   children,

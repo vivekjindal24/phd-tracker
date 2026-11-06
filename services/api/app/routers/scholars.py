@@ -84,11 +84,10 @@ async def list_scholars(
 ) -> list[ScholarOut]:
     stmt = _query(principal)
     if q:
-        like = f"%{q}%"
         stmt = stmt.where(
-            User.full_name.ilike(like)
-            | Scholar.roll_number.ilike(like)
-            | Scholar.research_title.ilike(like)
+            User.full_name.icontains(q, autoescape=True)
+            | Scholar.roll_number.icontains(q, autoescape=True)
+            | Scholar.research_title.icontains(q, autoescape=True)
         )
     if unit_id:
         path = await scope.unit_path(session, unit_id)

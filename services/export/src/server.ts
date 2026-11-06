@@ -3,8 +3,8 @@
 import express from "express";
 import type { NextFunction, Request, Response } from "express";
 import { z } from "zod";
-import { fetchView, registerView, reportView, ucView, UpstreamError } from "./api.ts";
-import { registerCsv, registerPdf, reportPdf, ucPdf } from "./render.ts";
+import { certificateView, fetchView, naacView, registerView, reportView, ucView, UpstreamError } from "./api.ts";
+import { certificatePdf, naacCsv, registerCsv, registerPdf, reportPdf, ucPdf } from "./render.ts";
 
 export type Config = { apiUrl: string; corsOrigins: string[] };
 
@@ -26,6 +26,11 @@ function input<T>(schema: z.ZodType<T>, value: unknown): T {
   if (!r.success) throw new BadRequest(r.error.issues.map((i) => i.message).join("; "));
   return r.data;
 }
+
+const naacQuery = z.object({
+  from_year: z.string().regex(/^\d{4}$/),
+  to_year: z.string().regex(/^\d{4}$/),
+});
 
 const registerQuery = z.object({
   unit_id: z.string().uuid().optional(),
@@ -82,6 +87,27 @@ export function createApp(config: Config) {
       const view = await fetchView(config.apiUrl, `/internal/ucs/${id}/export-view`, auth(req), ucView);
       send(res, "application/pdf", `utilisation-certificate-${view.sanction_number}-${view.period_end}.pdf`,
         await ucPdf(view));
+    } catch (e) {
+      next(e);
+    }
+  });
+
+  app.get("/certificates/:id.pdf", async (req, res, next) => {
+    try {
+      const id = input(z.string().uuid(), req.params.id);
+      const view = await fetchView(config.apiUrl, `/internal/certificates/${id}/export-view`, auth(req), certificateView);
+      send(res, "application/pdf", `provisional-certificate-${view.roll_number}.pdf`, await certificatePdf(view));
+    } catch (e) {
+      next(e);
+    }
+  });
+
+  app.get("/naac/:sheet.csv", async (req, res, next) => {
+    try {
+      const sheet = input(z.enum(["projects", "scholars", "publications", "books"]), req.params.sheet);
+      const q = input(naacQuery, req.query);
+      const view = await fetchView(config.apiUrl, `/internal/naac/${sheet}?${new URLSearchParams(q)}`, auth(req), naacView);
+      send(res, "text/csv; charset=utf-8", `naac-${sheet}-${q.from_year}-${q.to_year}.csv`, naacCsv(view));
     } catch (e) {
       next(e);
     }

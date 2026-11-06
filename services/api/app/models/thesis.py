@@ -117,6 +117,37 @@ class Viva(DomainRow, Base):
     notes: Mapped[str] = mapped_column(Text, server_default=text("''"))
 
 
+class ProvisionalCertificate(DomainRow, Base):
+    """Issued after a passed viva. Revoked, never deleted; the serial and token stay valid
+    references, so a new certificate for the same thesis gets its own."""
+
+    __tablename__ = "provisional_certificates"
+    __table_args__ = (
+        UniqueConstraint("year", "number", name="uq_certificate_serial"),
+        UniqueConstraint("verify_token", name="uq_certificate_token"),
+        Index(
+            "uq_certificate_active",
+            "thesis_id",
+            unique=True,
+            postgresql_where=text("revoked_at IS NULL AND deleted_at IS NULL"),
+        ),
+        CheckConstraint(
+            "(revoked_at IS NULL) = (revoked_reason IS NULL)", name="ck_certificate_revoked"
+        ),
+    )
+
+    thesis_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("thesis_submissions.id"), index=True
+    )
+    year: Mapped[int] = mapped_column(Integer)
+    number: Mapped[int] = mapped_column(Integer)
+    serial: Mapped[str] = mapped_column(Text)
+    verify_token: Mapped[str] = mapped_column(Text)
+    issued_on: Mapped[date] = mapped_column(Date)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    revoked_reason: Mapped[str | None] = mapped_column(Text)
+
+
 class ShodhgangaDeposit(DomainRow, Base):
     __tablename__ = "shodhganga_deposits"
     __table_args__ = (

@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import items, scope, thesis, workflow
+from app import certificate, items, scope, thesis, workflow
 from app.auth.principal import Principal
 from app.crud import insert, update
 from app.db import get_session
@@ -31,6 +31,7 @@ from app.notify import notify
 from app.rbac import require_perm
 from app.schemas import ItemView, NoDuesMine
 from app.schemas.research import (
+    CertificateRevokeIn,
     DepositIn,
     EvaluationView,
     ExaminerReportIn,
@@ -128,6 +129,8 @@ async def start_no_dues(
     """A draft for the scholar themself; they submit it on /items like any item."""
     if principal.scholar_id is None:
         raise ApiError(403, "forbidden", "Scholars request their own no-dues clearance.")
+    if not await items.no_dues_required(session):
+        raise ApiError(422, "no_dues_not_required", "This university does not require no-dues.")
     row = await insert(session, principal, NoDuesClearance(scholar_id=principal.scholar_id))
     await session.commit()
     ctx = await items.load_ctx(session, principal, "no_dues_clearance", row.id)
@@ -265,6 +268,29 @@ async def release_reports(
         f"{len(pending)} report(s) on the thesis are now available.",
         ctx.link,
     )
+    return await _done(session, principal, ctx)
+
+
+@router.post("/theses/{thesis_id}/certificate", response_model=EvaluationView)
+async def issue_certificate(
+    thesis_id: uuid.UUID,
+    principal: Principal = Depends(CAN_READ),
+    session: AsyncSession = Depends(get_session),
+) -> dict[str, Any]:
+    ctx = await _office_ctx(session, principal, thesis_id, "research_office")
+    await certificate.issue(session, principal, ctx)
+    return await _done(session, principal, ctx)
+
+
+@router.post("/theses/{thesis_id}/certificate/revoke", response_model=EvaluationView)
+async def revoke_certificate(
+    thesis_id: uuid.UUID,
+    body: CertificateRevokeIn,
+    principal: Principal = Depends(CAN_READ),
+    session: AsyncSession = Depends(get_session),
+) -> dict[str, Any]:
+    ctx = await _office_ctx(session, principal, thesis_id, "research_office")
+    await certificate.revoke(session, principal, ctx, body.reason)
     return await _done(session, principal, ctx)
 
 

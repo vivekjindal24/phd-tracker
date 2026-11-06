@@ -221,7 +221,7 @@ async def search(
     principal: Principal = Depends(current_principal),
     session: AsyncSession = Depends(get_session),
 ) -> dict[str, list[dict[str, Any]]]:
-    like = f"%{q.strip()}%"
+    q = q.strip()
     ScholarUser = aliased(User)
     out: dict[str, list[dict[str, Any]]] = {}
 
@@ -232,9 +232,9 @@ async def search(
             Scholar.deleted_at.is_(None),
             scope.scholar_directory_predicate(principal),
             or_(
-                User.full_name.ilike(like),
-                Scholar.roll_number.ilike(like),
-                Scholar.research_title.ilike(like),
+                User.full_name.icontains(q, autoescape=True),
+                Scholar.roll_number.icontains(q, autoescape=True),
+                Scholar.research_title.icontains(q, autoescape=True),
             ),
         )
         .order_by(User.full_name)
@@ -249,7 +249,7 @@ async def search(
         .where(
             Faculty.deleted_at.is_(None),
             scope.faculty_predicate(principal),
-            User.full_name.ilike(like),
+            User.full_name.icontains(q, autoescape=True),
         )
         .order_by(User.full_name)
         .limit(GROUP_LIMIT)
@@ -265,7 +265,7 @@ async def search(
             .where(
                 ProgressReport.deleted_at.is_(None),
                 scope.scholar_predicate(principal, "progress_reports"),
-                ProgressReport.summary.ilike(like),
+                ProgressReport.summary.icontains(q, autoescape=True),
             )
             .limit(GROUP_LIMIT)
         )
@@ -288,7 +288,7 @@ async def search(
             .where(
                 Meeting.deleted_at.is_(None),
                 scope.scholar_predicate(principal, "meetings"),
-                Meeting.agenda.ilike(like),
+                Meeting.agenda.icontains(q, autoescape=True),
             )
             .order_by(Meeting.meeting_date.desc())
             .limit(GROUP_LIMIT * 3)
@@ -313,7 +313,7 @@ async def search(
             .where(
                 Milestone.deleted_at.is_(None),
                 scope.scholar_predicate(principal, "milestones"),
-                Milestone.resolution_number.ilike(like),
+                Milestone.resolution_number.icontains(q, autoescape=True),
             )
             .limit(GROUP_LIMIT)
         )
@@ -335,7 +335,10 @@ async def search(
             .where(
                 Publication.deleted_at.is_(None),
                 scope.scholar_predicate(principal, "publications"),
-                or_(Publication.title.ilike(like), Publication.venue.ilike(like)),
+                or_(
+                    Publication.title.icontains(q, autoescape=True),
+                    Publication.venue.icontains(q, autoescape=True),
+                ),
             )
             .order_by(Publication.pub_year.desc())
             .limit(GROUP_LIMIT)
@@ -355,7 +358,7 @@ async def search(
         .where(
             Seminar.deleted_at.is_(None),
             seminars.visible(principal, open_),
-            Seminar.title.ilike(like),
+            Seminar.title.icontains(q, autoescape=True),
         )
         .order_by(Seminar.starts_at.desc())
         .limit(GROUP_LIMIT)

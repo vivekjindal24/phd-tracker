@@ -18,6 +18,8 @@
   single-use, 72-hour expiry, sha256-hashed in the DB; using it revokes all
   the user's refresh tokens. Forgot-password answers the same whether or not
   the email exists (no account enumeration) and shares the login throttle.
+  A failed login verifies a hash even for an unknown or inactive account, so
+  response time gives neither away.
 - **Access token:** HS256 JWT, 30-minute expiry, held in browser memory
   (never localStorage, never a cookie). Claims carry only `sub` — roles and
   scope are loaded from the DB per request, so a revoked role takes effect
@@ -78,6 +80,7 @@ role's scope (§2).
 | no-dues clearance | CR own, submit | R, step | R, step (department) | R, step (department) | R, step | R | R, step |
 | examiner reports | R own after release† | R after release† | R | R | R | CRU, release | R |
 | viva | R own | R | R | R | R | CRU | R |
+| provisional certificate | R own | R | R | R | R, issue, revoke | R | R |
 | Shodhganga deposit | R own | R | R | R | R | R | CRU |
 | bulk import | — | — | — | run in subtree | — | — | — |
 | time adjustments (extensions, leave) | R own | R | R | CRD in subtree | CRD | — | — |
@@ -92,6 +95,7 @@ role's scope (§2).
 | faculty requests | — | CR for own scholars (co-supervisor, panel), answer own | CR panel in subtree, answer own | CR in subtree, answer own | — | — | — |
 | comments | on any record they can R | ← | ← | ← | ← | ← | ← |
 | files | on any record they can R (upload where they can U/C) | ← | ← | ← | ← | ← | ← |
+| NAAC data (M9) | — | — | — | root admin only | R | — | — |
 | exports | own record | supervisees | subtree | subtree | all | coursework, thesis | publications, thesis |
 | audit log | — | — | — | R in subtree | R | — | — |
 
@@ -136,6 +140,17 @@ Exam Office, Research Office and root admin until the viva outcome is
 recorded; reports reach the scholar and supervisor only after the Exam Office
 releases them — omitted server-side, as with meeting redaction. A supervisor or co-supervisor who also heads the unit
 waits for release like any other supervisor.
+
+**Branding:** `GET /api/v1/branding` and `/branding/logo` need no login (the
+login page shows them) and return only the university's name, address and logo.
+A logo is PNG or JPEG by its bytes, 500 KB at most; SVG is refused because it can
+carry script. Only the root admin changes them.
+
+**Certificate verification:** `GET /api/v1/verify/{token}` is the one route
+with personal data and no login. The token is 256 random bits printed as the QR code; the
+answer is name, thesis title, unit, viva date, issue date and status, never the
+revocation reason or anything else. The token is redacted in `audit_log`, and
+the page asks search engines not to index it.
 
 **Grants:** the supervisor column of the grants rows means the project's PI —
 any faculty member, with or without supervision rights, reads their own

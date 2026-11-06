@@ -1,5 +1,6 @@
 "use client";
 
+import { RequireRole } from "@/components/ui/RequireRole";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { FormEvent } from "react";
@@ -13,7 +14,7 @@ function currentPeriod(): { year: number; period: Period } {
   return { year: now.getFullYear(), period: now.getMonth() < 6 ? "January-June" : "July-December" };
 }
 
-export default function NewReportPage() {
+function NewReportForm() {
   const router = useRouter();
   const initial = currentPeriod();
   const [year, setYear] = useState(initial.year);
@@ -63,4 +64,8 @@ export default function NewReportPage() {
       </form>
     </>
   );
+}
+
+export default function NewReportPage() {
+  return <RequireRole roles={["scholar"]}><NewReportForm /></RequireRole>;
 }

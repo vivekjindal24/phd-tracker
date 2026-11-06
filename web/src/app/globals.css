@@ -134,6 +134,7 @@ body {
   min-height: 100dvh;
   background: var(--bg);
   color: var(--ink);
+  overflow-wrap: break-word;
   font: 400 var(--text-base) / 1.55 var(--font-body), system-ui, sans-serif;
   background-image: radial-gradient(circle at 15% 10%, rgb(167 139 218 / 0.16), transparent 40%),
     radial-gradient(circle at 90% 80%, rgb(129 178 154 / 0.12), transparent 45%);
@@ -175,4 +176,14 @@ a {
     animation: none !important;
     transition: none !important;
   }
+}
+
+/* Long unbroken user text wraps instead of widening the page. Not on body: "anywhere" also lets
+   squeezed labels, buttons and badges break mid-word. */
+.page h1,
+.page h2,
+.page p,
+.page td,
+.page dd {
+  overflow-wrap: anywhere;
 }

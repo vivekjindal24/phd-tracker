@@ -1,5 +1,6 @@
 "use client";
 
+import { RequireRole } from "@/components/ui/RequireRole";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
@@ -14,7 +15,7 @@ function toggle(list: string[], id: string): string[] {
   return list.includes(id) ? list.filter((x) => x !== id) : [...list, id];
 }
 
-export default function ScheduleSeminarPage() {
+function ScheduleSeminarForm() {
   const { me } = useSession();
   const router = useRouter();
   const { data: units } = useFetch<OrgUnit[]>("/org-units");
@@ -123,4 +124,8 @@ export default function ScheduleSeminarPage() {
       </form>
     </>
   );
+}
+
+export default function ScheduleSeminarPage() {
+  return <RequireRole roles={["unit_head", "admin"]}><ScheduleSeminarForm /></RequireRole>;
 }

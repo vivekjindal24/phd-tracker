@@ -3,33 +3,26 @@ scope as every other route: the export service forwards the caller's token verba
 PDF can only ever contain what that person may already see."""
 
 import uuid
-from datetime import UTC, datetime
-from typing import Any
+from datetime import UTC, date, datetime
+from typing import Any, Literal
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
-from app import grants, items, scope
+from app import branding, certificate, grants, items, naac, scope
 from app.auth.deps import current_principal
 from app.auth.principal import Principal
 from app.db import get_session
 from app.enums import MilestoneStatus, MilestoneType
+from app.errors import ApiError, forbidden
 from app.models import Faculty, Milestone, OrgUnit, Scholar, User
 from app.rbac import require_perm
 
 router = APIRouter(prefix="/internal", tags=["internal"])
 REGISTER_LIMIT = 2000
-
-
-async def _university(session: AsyncSession) -> str:
-    return (
-        await session.scalar(
-            select(OrgUnit.name).where(OrgUnit.parent_id.is_(None), OrgUnit.deleted_at.is_(None))
-        )
-        or "University"
-    )
+NAAC_MAX_YEARS = 10
 
 
 @router.get("/reports/{report_id}/export-view")
@@ -49,7 +42,7 @@ async def report_export_view(
         )
     unit = await session.scalar(select(OrgUnit.name).where(OrgUnit.id == ctx.scholar.unit_id))
     return {
-        "university": await _university(session),
+        **await branding.export_fields(session),
         "unit": unit,
         "scholar": view["scholar"]["name"],
         "roll_number": ctx.scholar.roll_number,
@@ -101,7 +94,7 @@ async def register_export_view(
         )
     )
     return {
-        "university": await _university(session),
+        **await branding.export_fields(session),
         "unit": unit_name,
         "filters": {"milestone_type": milestone_type, "status": status},
         "rows": [
@@ -123,6 +116,48 @@ async def register_export_view(
     }
 
 
+@router.get("/naac/{sheet}")
+async def naac_view(
+    sheet: Literal["projects", "scholars", "publications", "books"],
+    from_year: int = Query(ge=2000, le=2100),
+    to_year: int = Query(ge=2000, le=2100),
+    principal: Principal = Depends(current_principal),
+    session: AsyncSession = Depends(get_session),
+) -> dict[str, Any]:
+    """Academic years from_year-… to to_year-…, university wide (PRD M9)."""
+    if not (principal.is_root_admin or "research_office" in principal.office_roles):
+        raise forbidden()
+    if not 0 <= to_year - from_year < NAAC_MAX_YEARS:
+        raise ApiError(422, "invalid_years", f"Choose up to {NAAC_MAX_YEARS} academic years.")
+    title, columns, build = naac.SHEETS[sheet]
+    period = (
+        date(from_year, naac.AY_START_MONTH, 1),
+        date(to_year + 1, naac.AY_START_MONTH - 1, 30),
+    )
+    return {
+        **await branding.export_fields(session),
+        "title": title,
+        "columns": columns,
+        "rows": await build(session, period),
+        "generated_at": datetime.now(UTC),
+        "generated_by": principal.full_name,
+    }
+
+
+@router.get("/certificates/{certificate_id}/export-view")
+async def certificate_export_view(
+    certificate_id: uuid.UUID,
+    principal: Principal = Depends(current_principal),  # whoever may read the thesis
+    session: AsyncSession = Depends(get_session),
+) -> dict[str, Any]:
+    return {
+        **await branding.export_fields(session),
+        **await certificate.export_view(session, principal, certificate_id),
+        "generated_at": datetime.now(UTC),
+        "generated_by": principal.full_name,
+    }
+
+
 @router.get("/ucs/{uc_id}/export-view")
 async def uc_export_view(
     uc_id: uuid.UUID,
@@ -138,7 +173,7 @@ async def uc_export_view(
     )
     unit = await session.scalar(select(OrgUnit.name).where(OrgUnit.id == project.unit_id))
     return {
-        "university": await _university(session),
+        **await branding.export_fields(session),
         "unit": unit,
         "title": project.title,
         "agency": project.agency,

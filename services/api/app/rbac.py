@@ -93,7 +93,7 @@ MATRIX: dict[str, dict[str, frozenset[str]]] = {
         "library": frozenset({R}),
     },
     "courses": {
-        **{role: frozenset({R}) for role in ALL_ROLES},
+        **{role: frozenset({R}) for role in ALL_ROLES if role != "library"},
         "admin": frozenset({R, C, U, D}),  # in their subtree
         "exam_office": frozenset({R, C, U, D}),
     },

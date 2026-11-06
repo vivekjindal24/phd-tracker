@@ -24,7 +24,7 @@ from app.models.seminars import (
     SeminarScholar,
     Todo,
 )
-from app.models.settings import ApprovalChain, Module, Settings
+from app.models.settings import ApprovalChain, Module, Settings, UniversityLogo
 from app.models.system import (
     AuditLog,
     JobRun,
@@ -39,6 +39,7 @@ from app.models.thesis import (
     DocumentVersion,
     ExaminerReport,
     NoDuesClearance,
+    ProvisionalCertificate,
     ShodhgangaDeposit,
     ThesisSubmission,
     Viva,
@@ -76,6 +77,7 @@ __all__ = [
     "ProgressReport",
     "Project",
     "ProjectMember",
+    "ProvisionalCertificate",
     "Publication",
     "RefreshToken",
     "RoleAssignment",
@@ -90,6 +92,7 @@ __all__ = [
     "ThesisSubmission",
     "TimeAdjustment",
     "Todo",
+    "UniversityLogo",
     "User",
     "UtilisationCertificate",
     "Viva",

@@ -11,6 +11,7 @@ type Session = {
   error: ApiError | null;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  loggedOut: boolean;
   reload: () => Promise<void>;
 };
 
@@ -20,6 +21,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [me, setMe] = useState<Me | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<ApiError | null>(null);
+  const [loggedOut, setLoggedOut] = useState(false);
 
   const reload = useCallback(async () => {
     try {
@@ -47,17 +49,20 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       me,
       loading,
       error,
+      loggedOut,
       reload,
       login: async (email, password) => {
         await apiLogin(email, password);
         await reload();
+        setLoggedOut(false);
       },
       logout: async () => {
         await apiLogout();
+        setLoggedOut(true);
         setMe(null);
       },
     }),
-    [me, loading, error, reload],
+    [me, loading, error, loggedOut, reload],
   );
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
 }

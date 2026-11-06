@@ -154,3 +154,12 @@ async def test_date_rules(client, world):
         headers=auth(world.meera.id),
     )
     assert bad_next.json()["error"]["code"] == "next_before_meeting"
+
+
+async def test_a_meeting_date_from_antiquity_is_refused(client, world):
+    res = await client.post(
+        "/api/v1/meetings",
+        json=body(world.s_a1, meeting_date="0001-01-01"),
+        headers=auth(world.meera.id),
+    )
+    assert res.json()["error"]["code"] == "meeting_too_old"

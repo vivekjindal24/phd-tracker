@@ -158,7 +158,7 @@ async def test_scholars_from_excel_with_supervisor_under_cap(client, session, wo
         {
             "row": 3,
             "column": "Supervisor email",
-            "message": "already guides 2 scholars — the UGC limit is 2",
+            "message": "already guides 2 scholars — their limit is 2",
         }
     ]
     assert body["created"] == 0

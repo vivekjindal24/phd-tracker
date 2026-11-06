@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import { Attachments } from "@/components/Attachments";
 import { Celebrate, firstTime } from "@/components/Celebrate";
+import { DownloadButton } from "@/components/DownloadButton";
 import { Button, Card, ErrorText, Field } from "@/components/ui/kit";
 import { api } from "@/lib/api";
 import { formatDate } from "@/lib/format";
@@ -40,6 +41,22 @@ function RecordForm({ label, onSubmit, children }: { label: string; onSubmit: ()
         <Button kind="ghost" onClick={() => setOpen(false)}>Cancel</Button>
       </div>
     </form>
+  );
+}
+
+function RevokeForm({ thesisId, onSaved }: { thesisId: string; onSaved: (e: Evaluation) => void }) {
+  const [reason, setReason] = useState("");
+  return (
+    <RecordForm label="Revoke certificate" onSubmit={async () => {
+      onSaved(await api<Evaluation>(`/theses/${thesisId}/certificate/revoke`, {
+        method: "POST",
+        body: JSON.stringify({ reason }),
+      }));
+    }}>
+      <Field label="Reason (kept on record, not shown publicly)">
+        <input required minLength={3} maxLength={500} value={reason} onChange={(e) => setReason(e.target.value)} />
+      </Field>
+    </RecordForm>
   );
 }
 
@@ -139,10 +156,10 @@ export function ThesisEvaluation({ thesisId, isOwn }: { thesisId: string; isOwn:
   if (error) return <ErrorText>{error}</ErrorText>;
   if (!ev) return null;
 
-  async function release() {
+  async function act(path: string) {
     setActError(null);
     try {
-      setData(await api<Evaluation>(`/theses/${thesisId}/release-reports`, { method: "POST" }));
+      setData(await api<Evaluation>(path, { method: "POST" }));
     } catch (e) {
       setActError(errorText(e));
     }
@@ -179,7 +196,7 @@ export function ThesisEvaluation({ thesisId, isOwn }: { thesisId: string; isOwn:
         <div className="row">
           <ReportForm thesisId={thesisId} onSaved={setData} />
           {ev.unreleased_count > 0 && (
-            <Button kind="primary" onClick={release}>Release {ev.unreleased_count} report{ev.unreleased_count === 1 ? "" : "s"} to the scholar</Button>
+            <Button kind="primary" onClick={() => act(`/theses/${thesisId}/release-reports`)}>Release {ev.unreleased_count} report{ev.unreleased_count === 1 ? "" : "s"} to the scholar</Button>
           )}
         </div>
       )}
@@ -196,6 +213,28 @@ export function ThesisEvaluation({ thesisId, isOwn }: { thesisId: string; isOwn:
         </ul>
       )}
       {ev.can_record_viva && (ev.viva_block ? <p className="muted">{ev.viva_block}</p> : <VivaForm thesisId={thesisId} onSaved={recorded} />)}
+      <h3>Provisional certificate</h3>
+      {ev.certificates.length === 0 ? <p className="muted">Not issued yet.</p> : (
+        <ul className="plain-list">
+          {ev.certificates.map((c) => (
+            <li key={c.id}>
+              <strong className="mono">{c.serial}</strong> · issued {formatDate(c.issued_on)}
+              {c.revoked_at
+                ? <><span className="badge badge-draft">Revoked</span><div className="muted">{c.revoked_reason}</div></>
+                : (
+                  <div className="row">
+                    <DownloadButton path={`/certificates/${c.id}.pdf`}>Download PDF</DownloadButton>
+                    <a href={c.verify_path} target="_blank" rel="noopener noreferrer">Public verification page</a>
+                  </div>
+                )}
+            </li>
+          ))}
+        </ul>
+      )}
+      {ev.can_issue_certificate && (
+        <Button kind="primary" onClick={() => act(`/theses/${thesisId}/certificate`)}>Issue provisional certificate</Button>
+      )}
+      {ev.can_revoke_certificate && <RevokeForm thesisId={thesisId} onSaved={setData} />}
       <h3>Shodhganga deposit</h3>
       {ev.deposit ? (
         <>

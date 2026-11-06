@@ -3,7 +3,7 @@ thesis (PRD M1-M3). Literals come from app/enums.py, mirroring the DB CHECKs."""
 
 import uuid
 from datetime import date, datetime
-from typing import Annotated
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field, StringConstraints
 
@@ -229,6 +229,30 @@ class DepositView(BaseModel):
     handle_url: str
 
 
+class CertificateView(BaseModel):
+    id: uuid.UUID
+    serial: str
+    issued_on: date
+    verify_path: str
+    revoked_at: datetime | None
+    revoked_reason: str | None
+
+
+class CertificateRevokeIn(BaseModel):
+    reason: Annotated[str, StringConstraints(strip_whitespace=True, min_length=3, max_length=500)]
+
+
+class CertificateVerification(BaseModel):
+    """The public page: this and nothing else (PRD M3)."""
+
+    name: str
+    thesis_title: str
+    unit: str
+    viva_date: date
+    issued_on: date
+    status: Literal["valid", "revoked"]
+
+
 class EvaluationView(BaseModel):
     thesis_id: uuid.UUID
     names_hidden: bool
@@ -236,6 +260,9 @@ class EvaluationView(BaseModel):
     unreleased_count: int
     vivas: list[VivaView]
     deposit: DepositView | None
+    certificates: list[CertificateView]
+    can_issue_certificate: bool
+    can_revoke_certificate: bool
     can_record_reports: bool
     can_record_viva: bool
     viva_block: str | None

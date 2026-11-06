@@ -154,7 +154,7 @@ function UnitBlock({ u }: { u: UnitSection }) {
             <h3>By unit</h3>
             <ul className="plain-list">
               {u.children.map((c) => (
-                <li key={c.id}><strong>{c.name}</strong> <span className="muted">· {c.scholars} scholars</span>
+                <li key={c.id}><strong>{c.name}</strong> <span className="muted">· {c.scholars} {c.scholars === 1 ? "scholar" : "scholars"}</span>
                   {c.overdue > 0 && <span className="badge badge-sent_back" style={{ marginLeft: 8 }}>{c.overdue} overdue</span>}</li>
               ))}
             </ul>

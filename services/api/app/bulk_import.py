@@ -367,7 +367,8 @@ async def _plan_scholars(ctx: _Context, rows: list[Row], report: Report) -> list
             elif current and load >= sup.max_scholars:
                 c.error(
                     "supervisor_email",
-                    f"already guides {load} scholars — the UGC limit is {sup.max_scholars}",
+                    f"already guides {directory.cap_text(load)} — their limit is "
+                    f"{sup.max_scholars}",
                 )
             elif c.ok and current:
                 assigned[sup.id] += 1

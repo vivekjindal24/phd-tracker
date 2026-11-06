@@ -220,6 +220,7 @@ async def schedule(
 ) -> dict[str, Any]:
     path = await scope.unit_path(session, body.unit_id)
     seminars.require_manager(principal, path)
+    seminars.check_report_due(body.report_due, body.starts_at)
     await seminars.check_scholars_in_unit(session, path, body.scholar_ids)
     await seminars.check_faculty(session, body.panel_faculty_ids)
     seminar = await insert(
@@ -256,6 +257,10 @@ async def edit(
     if seminar.status == "cancelled":
         raise ApiError(422, "seminar_cancelled", "A cancelled seminar cannot be changed.")
     changes = body.model_dump(exclude_unset=True, exclude={"scholar_ids", "panel_faculty_ids"})
+    seminars.check_report_due(
+        changes.get("report_due", seminar.report_due),
+        changes.get("starts_at", seminar.starts_at),
+    )
     if body.scholar_ids is not None:
         await seminars.check_scholars_in_unit(session, path, body.scholar_ids)
     if body.panel_faculty_ids is not None:

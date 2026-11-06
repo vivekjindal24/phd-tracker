@@ -12,6 +12,12 @@ export class UpstreamError extends Error {
   }
 }
 
+const brand = {
+  university: z.string(),
+  address: z.string(),
+  logo: z.string().nullable(), // base64 PNG or JPEG
+};
+
 const historyEntry = z.object({
   action: z.string(),
   actor: z.string(),
@@ -22,7 +28,7 @@ const historyEntry = z.object({
 });
 
 export const reportView = z.object({
-  university: z.string(),
+  ...brand,
   unit: z.string().nullable(),
   scholar: z.string(),
   roll_number: z.string(),
@@ -39,8 +45,33 @@ export const reportView = z.object({
 });
 export type ReportView = z.infer<typeof reportView>;
 
+export const certificateView = z.object({
+  ...brand,
+  unit: z.string().nullable(),
+  serial: z.string(),
+  scholar: z.string(),
+  roll_number: z.string(),
+  thesis_title: z.string(),
+  viva_date: z.string(),
+  issued_on: z.string(),
+  verify_url: z.string().url(),
+  generated_at: z.string(),
+  generated_by: z.string(),
+});
+export type CertificateView = z.infer<typeof certificateView>;
+
+export const naacView = z.object({
+  ...brand,
+  title: z.string(),
+  columns: z.array(z.string()),
+  rows: z.array(z.array(z.union([z.string(), z.number(), z.null()]))),
+  generated_at: z.string(),
+  generated_by: z.string(),
+});
+export type NaacView = z.infer<typeof naacView>;
+
 export const registerView = z.object({
-  university: z.string(),
+  ...brand,
   unit: z.string().nullable(),
   filters: z.object({ milestone_type: z.string().nullable(), status: z.string().nullable() }),
   rows: z.array(
@@ -63,7 +94,7 @@ export type RegisterView = z.infer<typeof registerView>;
 
 const money = z.number().nonnegative();
 export const ucView = z.object({
-  university: z.string(),
+  ...brand,
   unit: z.string().nullable(),
   title: z.string(),
   agency: z.string(),

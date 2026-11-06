@@ -97,7 +97,8 @@ against its own limit (`app/duration.py`).
 bool, `updated_by`, `updated_at`. Seeded with every key; core features have
 no row (always on).
 
-**settings** — single row (`id` = 1, CHECK): `co_supervision` CHECK
+**settings** — single row (`id` = 1, CHECK): `university_address` (default
+''; the name is the root org unit's), `co_supervision` CHECK
 (`off` / `view` / `approve`, default `off`), `require_hardcopy` bool (default
 false), `require_no_dues` bool (default false: a thesis waits for an approved
 no-dues clearance while true), `seminar_graders` CHECK (`panel` / `panel_and_attending`, default
@@ -192,6 +193,17 @@ CHECK (accept / minor_revision / major_revision / reject), `notes`,
 `released_at` (set when the Exam Office releases reports to the scholar and
 supervisor). **vivas** — `thesis_id`, `held_on`, `venue`, `panel`, `outcome`
 CHECK (pass / redefend / fail); a pass moves the scholar to Viva.
+**university_logos** — `content` bytea (PNG or JPEG, 500 KB at most),
+`content_type`. The newest live row is in use; replacing or removing soft-deletes
+the old one. Its own table so that reading `settings` never loads image bytes.
+
+**provisional_certificates** — `thesis_id` (indexed; `uq_certificate_active`:
+one unrevoked per thesis), `year` + `number` (UNIQUE, the per-year counter),
+`serial` (`<university code>/PHD/<year>/<n>`), `verify_token` (UNIQUE, random,
+redacted in `audit_log`), `issued_on`, `revoked_at` + `revoked_reason` (CHECK
+both or neither). Revoked rows stay for good; a new certificate gets a new
+serial and token.
+
 **shodhganga_deposits** — `thesis_id` (partial UNIQUE), `deposited_on`,
 `handle_url`. Report, viva and deposit files hang off their own rows.
 

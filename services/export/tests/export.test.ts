@@ -4,12 +4,12 @@ import type { AddressInfo } from "node:net";
 import { after, before, test } from "node:test";
 import express from "express";
 import { createApp, loadConfig } from "../src/server.ts";
-import { csvCell } from "../src/render.ts";
+import { certificatePdf, csvCell, naacCsv } from "../src/render.ts";
 
 const REPORT_ID = "6f1c2a7e-3b4d-4e5f-8a9b-0c1d2e3f4a5b";
 const JUNK_ID = "00000000-0000-4000-8000-000000000000";
 const report = {
-  university: "Demo University", unit: "CSE", scholar: "Arun Kumar", roll_number: "PHD-CSE-001",
+  university: "Demo University", address: "", logo: null, unit: "CSE", scholar: "Arun Kumar", roll_number: "PHD-CSE-001",
   supervisor: "Meera", period: "July-December", report_year: 2026,
   summary: "Survey finished, baselines run, chapter two drafted.", state: "in_review",
   submitted_at: "2026-10-01T10:00:00Z", approved_at: null,
@@ -17,7 +17,7 @@ const report = {
   generated_at: "2026-10-22T10:00:00Z", generated_by: "Meera",
 };
 const register = {
-  university: "Demo University", unit: null, filters: { milestone_type: null, status: null },
+  university: "Demo University", address: "", logo: null, unit: null, filters: { milestone_type: null, status: null },
   rows: [{ scholar: "Arun Kumar", roll_number: "PHD-CSE-001", unit: "CSE", milestone_type: "viva",
     status: "Approved", approval_body: "RDC", resolution_number: "=HYPERLINK(\"x\")",
     resolution_date: "2026-09-30", notes: "Held, \"cleared\"" }],
@@ -25,13 +25,20 @@ const register = {
 };
 
 const uc = {
-  university: "Demo University", unit: "ECE", title: "Low-power edge inference", agency: "SERB",
+  university: "Demo University", address: "", logo: null, unit: "ECE", title: "Low-power edge inference", agency: "SERB",
   sanction_number: "SERB/CRG/2025/001", amount_sanctioned: 2500000, pi: "Dr B",
   period_start: "2026-04-01", period_end: "2027-03-31", opening_balance: 800000,
   grants_received: [{ date: "2026-05-01", reference: "SERB/2nd", amount: 500000 }], received: 500000,
   available: 1300000, spent_by_head: { travel: 50000, consumables: 25000 }, spent: 75000,
   closing_balance: 1225000, received_to_date: 1500000, spent_to_date: 275000,
   generated_at: "2026-10-31T10:00:00Z", generated_by: "Research Office",
+};
+
+const certificate = {
+  university: "Demo University", address: "", logo: null, unit: "Physics", serial: "DEMO/PHD/2026/1", scholar: "Kabir Malhotra",
+  roll_number: "PHD-PHY-2021-003", thesis_title: "Topological phases in cold atoms", viva_date: "2026-10-20",
+  issued_on: "2026-11-06", verify_url: "https://research.example.edu/verify/abc",
+  generated_at: "2026-11-06T10:00:00Z", generated_by: "Research Office",
 };
 
 const seen: { auth?: string; url?: string } = {};
@@ -46,6 +53,7 @@ before(async () => {
     seen.url = req.url;
     if (req.headers.authorization !== "Bearer good") return res.status(403).json({ error: { code: "forbidden", message: "Not yours." } });
     if (req.path.startsWith("/api/v1/internal/ucs/")) return res.json(uc);
+    if (req.path.startsWith("/api/v1/internal/certificates/")) return res.json(certificate);
     if (req.path.endsWith("/export-view")) return res.json(req.path.includes(JUNK_ID) ? { nope: 1 } : report);
     if (req.path.endsWith("/register-view")) return res.json(register);
     res.sendStatus(404);
@@ -127,6 +135,25 @@ test("CORS only answers allowlisted origins", async () => {
   const bad = await fetch(`${exportUrl}/register.pdf`, { method: "OPTIONS", headers: { Origin: "https://evil.example" } });
   assert.equal(bad.status, 400);
   assert.equal(bad.headers.get("access-control-allow-origin"), null);
+});
+
+test("certificate PDF is rendered from the export view, with the token forwarded", async () => {
+  const res = await get(`/certificates/${REPORT_ID}.pdf`);
+  assert.equal(res.status, 200);
+  assert.equal(seen.url, `/api/v1/internal/certificates/${REPORT_ID}/export-view`);
+  assert.match(res.headers.get("content-disposition") ?? "", /provisional-certificate-PHD-PHY-2021-003\.pdf/);
+  assert.equal(Buffer.from(await res.arrayBuffer()).subarray(0, 5).toString(), "%PDF-");
+});
+
+test("a broken logo is logged and never blocks the PDF", async () => {
+  const res = await certificatePdf({ ...certificate, address: "Sector 1", logo: Buffer.from("not an image").toString("base64") });
+  assert.equal(res.subarray(0, 5).toString(), "%PDF-");
+});
+
+test("NAAC CSV keeps numbers and neutralises formulas", () => {
+  const csv = naacCsv({ university: "U", address: "", logo: null, title: "T", columns: ["Title", "Amount", "Note"],
+    rows: [["=cmd()", 40000, null]], generated_at: "2026-11-06T10:00:00Z", generated_by: "R" });
+  assert.equal(csv, "\uFEFFTitle,Amount,Note\r\n'=cmd(),40000,\r\n");
 });
 
 test("csvCell neutralises every formula lead character", () => {

@@ -4,7 +4,16 @@ import json
 import uuid
 from typing import Any
 
-from sqlalchemy import Boolean, CheckConstraint, ForeignKey, Integer, Numeric, Text, text
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    ForeignKey,
+    Integer,
+    LargeBinary,
+    Numeric,
+    Text,
+    text,
+)
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -16,7 +25,7 @@ from app.enums import (
     SEMINAR_GRADERS,
     sql_in,
 )
-from app.models.base import Base, Timestamps
+from app.models.base import Base, DomainRow, Timestamps
 
 
 class Settings(Timestamps, Base):
@@ -44,6 +53,7 @@ class Settings(Timestamps, Base):
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    university_address: Mapped[str] = mapped_column(Text, server_default=text("''"))
     co_supervision: Mapped[str] = mapped_column(Text, server_default=text("'off'"))
     require_hardcopy: Mapped[bool] = mapped_column(Boolean, server_default=text("false"))
     require_no_dues: Mapped[bool] = mapped_column(Boolean, server_default=text("false"))
@@ -90,3 +100,13 @@ class ApprovalChain(Timestamps, Base):
     item_type: Mapped[str] = mapped_column(Text, primary_key=True)
     steps: Mapped[list[dict[str, Any]]] = mapped_column(JSONB)
     updated_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"))
+
+
+class UniversityLogo(DomainRow, Base):
+    """The install's logo; the newest live row is the one in use. Its own table so reading
+    settings, which most requests do, never pulls image bytes."""
+
+    __tablename__ = "university_logos"
+
+    content: Mapped[bytes] = mapped_column(LargeBinary)
+    content_type: Mapped[str] = mapped_column(Text)

@@ -99,7 +99,7 @@ DEMO_SCHOLARS = [
         "PHD-PHY-2021-003",
         "PHY",
         "farhan",
-        "Thesis Submitted",
+        "Pre-Synopsis",
         date(2021, 7, 1),
     ),
     ("zoya", "Zoya Khan", "PHD-CHE-2023-006", "CHE", "deepa", "Coursework", date(2023, 7, 20)),

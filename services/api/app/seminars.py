@@ -1,6 +1,7 @@
 """Progress seminar rules (PRD F15): who sees a seminar, who manages it, who is told."""
 
 import uuid
+from datetime import date, datetime
 
 from sqlalchemy import ColumnElement, cast, literal, or_, select, true
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -100,6 +101,11 @@ async def may_request_panel(
 def require_manager(principal: Principal, unit_path: str) -> None:
     if not can_manage(principal, unit_path):
         raise forbidden()
+
+
+def check_report_due(report_due: date, starts_at: datetime) -> None:
+    if report_due > starts_at.date():
+        raise ApiError(422, "report_due_after_seminar", "Reports are due by the seminar date.")
 
 
 async def check_scholars_in_unit(

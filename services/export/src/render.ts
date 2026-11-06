@@ -1,7 +1,8 @@
 /** Print-like documents (DESIGN_SYSTEM.md §7): black on white, rules not shadows, readable
  *  when photocopied in grayscale. No claymorphism here. */
 import PDFDocument from "pdfkit";
-import type { RegisterView, ReportView, UcView } from "./api.ts";
+import QRCode from "qrcode";
+import type { CertificateView, NaacView, RegisterView, ReportView, UcView } from "./api.ts";
 
 const MILESTONES: Record<string, string> = {
   coursework: "Coursework",
@@ -40,8 +41,22 @@ function toBuffer(doc: PDFKit.PDFDocument): Promise<Buffer> {
   });
 }
 
-function header(doc: PDFKit.PDFDocument, university: string, title: string, subtitle: string) {
-  doc.font("Helvetica-Bold").fontSize(15).text(university, { align: "center" });
+type Brand = Pick<ReportView, "university" | "address" | "logo">;
+const LOGO_SIZE = 52;
+
+function drawLogo(doc: PDFKit.PDFDocument, logo: string) {
+  try {
+    doc.image(Buffer.from(logo, "base64"), (doc.page.width - LOGO_SIZE) / 2, doc.y, { fit: [LOGO_SIZE, LOGO_SIZE], align: "center" });
+    doc.y += LOGO_SIZE + 6;
+  } catch (e) {
+    console.error("the university logo could not be drawn; replace it in Settings:", e); // one bad file must not block every PDF
+  }
+}
+
+function header(doc: PDFKit.PDFDocument, brand: Brand, title: string, subtitle: string) {
+  if (brand.logo) drawLogo(doc, brand.logo);
+  doc.font("Helvetica-Bold").fontSize(15).text(brand.university, { align: "center" });
+  if (brand.address) doc.font("Helvetica").fontSize(8.5).fillColor("#444444").text(brand.address, { align: "center" }).fillColor("black");
   doc.moveDown(0.2).font("Helvetica").fontSize(11).text(title, { align: "center" });
   doc.fontSize(9).fillColor("#444444").text(subtitle, { align: "center" }).fillColor("black");
   const y = doc.y + 8;
@@ -77,7 +92,7 @@ function keyValues(doc: PDFKit.PDFDocument, rows: [string, string][]) {
 
 export async function reportPdf(v: ReportView): Promise<Buffer> {
   const doc = new PDFDocument({ size: "A4", margin: 56, bufferPages: true, info: { Title: `Progress report – ${v.scholar}` } });
-  header(doc, v.university, "Six-monthly Progress Report",
+  header(doc, v, "Six-monthly Progress Report",
     `${v.period.replace("-", "–")} ${v.report_year}${v.unit ? ` · ${v.unit}` : ""}`);
   if (v.state !== "approved") {
     doc.font("Helvetica-Bold").fontSize(10).fillColor("#666666")
@@ -117,7 +132,7 @@ export async function registerPdf(v: RegisterView): Promise<Buffer> {
   const doc = new PDFDocument({ size: "A4", layout: "landscape", margin: 40, bufferPages: true, info: { Title: "RDC register" } });
   const filters = [v.unit, v.filters.milestone_type && MILESTONES[v.filters.milestone_type], v.filters.status]
     .filter(Boolean).join(" · ");
-  header(doc, v.university, "Committee decisions register", filters || "All decisions you can see");
+  header(doc, v, "Committee decisions register", filters || "All decisions you can see");
   const left = doc.page.margins.left;
   const drawHead = () => {
     let x = left;
@@ -180,7 +195,7 @@ function amountRows(doc: PDFKit.PDFDocument, rows: [string, number, boolean?][])
  *  finance officer sign it outside Anveshan; the signed scan is attached to the UC. */
 export async function ucPdf(v: UcView): Promise<Buffer> {
   const doc = new PDFDocument({ size: "A4", margin: 56, bufferPages: true, info: { Title: `Utilisation certificate – ${v.sanction_number}` } });
-  header(doc, v.university, "Utilisation Certificate (GFR 12-A)", `${day(v.period_start)} to ${day(v.period_end)}`);
+  header(doc, v, "Utilisation Certificate (GFR 12-A)", `${day(v.period_start)} to ${day(v.period_end)}`);
   doc.font("Helvetica-Bold").fontSize(10).fillColor("#666666")
     .text("DRAFT — to be verified and signed before submission", { align: "center" }).fillColor("black").moveDown(0.6);
   keyValues(doc, [
@@ -221,6 +236,40 @@ export async function ucPdf(v: UcView): Promise<Buffer> {
   return toBuffer(doc);
 }
 
+export async function certificatePdf(v: CertificateView): Promise<Buffer> {
+  const doc = new PDFDocument({ size: "A4", margin: 56, bufferPages: true, info: { Title: `Provisional certificate – ${v.serial}` } });
+  header(doc, v, "Provisional Certificate", `Serial no. ${v.serial}`);
+  doc.moveDown(1.5).font("Helvetica").fontSize(12).text("This is to certify that", { align: "center" }).moveDown(0.6);
+  doc.font("Helvetica-Bold").fontSize(16).text(v.scholar, { align: "center" }).moveDown(0.2);
+  doc.font("Helvetica").fontSize(10).text(`Roll number ${v.roll_number}${v.unit ? ` · ${v.unit}` : ""}`, { align: "center" }).moveDown(1);
+  doc.fontSize(12).text("has successfully defended the thesis entitled", { align: "center" }).moveDown(0.6);
+  doc.font("Helvetica-Bold").fontSize(13).text(v.thesis_title, { align: "center" }).moveDown(1);
+  doc.font("Helvetica").fontSize(11.5).text(
+    `at the viva voce examination held on ${day(v.viva_date)}. The degree of Doctor of Philosophy has been ` +
+    "awarded in accordance with the provisions of the UGC (Minimum Standards and Procedures for Award of Ph.D. " +
+    "Degree) Regulations, 2022. This provisional certificate stands until the degree certificate is issued.",
+    { align: "justify", lineGap: 3 });
+  doc.moveDown(1).fontSize(10.5).text(`Date of issue: ${day(v.issued_on)}`);
+
+  const left = doc.page.margins.left;
+  const y = doc.y + 70; // room to sign above the lines
+  const col = (doc.page.width - left - doc.page.margins.right) / 2;
+  ["Controller of Examinations", "Registrar"].forEach((who, i) => {
+    doc.moveTo(left + i * col + 16, y).lineTo(left + (i + 1) * col - 16, y).lineWidth(0.6).stroke();
+    doc.font("Helvetica").fontSize(9).text(who, left + i * col, y + 4, { width: col, align: "center" });
+  });
+
+  const qr = await QRCode.toBuffer(v.verify_url, { errorCorrectionLevel: "M", margin: 1, width: 300 });
+  const size = 92;
+  const qrY = y + 44;
+  doc.image(qr, (doc.page.width - size) / 2, qrY, { width: size });
+  doc.fontSize(8).fillColor("#555555")
+    .text("Scan to verify this certificate", left, qrY + size + 4, { width: col * 2, align: "center" })
+    .fillColor("black");
+  footer(doc, v.generated_by, v.generated_at);
+  return toBuffer(doc);
+}
+
 /** RFC 4180 quoting, plus a leading quote on cells a spreadsheet would treat as a formula
  *  (=, +, -, @, tab, CR) so an opened CSV can never execute anything. */
 export function csvCell(value: string | null): string {
@@ -235,4 +284,10 @@ export function registerCsv(v: RegisterView): string {
     [r.scholar, r.roll_number, r.unit, MILESTONES[r.milestone_type] ?? r.milestone_type, r.approval_body,
       r.resolution_number, r.resolution_date, r.status, r.notes].map(csvCell).join(","));
   return `\uFEFF${[head.join(","), ...lines].join("\r\n")}\r\n`; // BOM: Excel reads UTF-8 names correctly
+}
+
+export function naacCsv(v: NaacView): string {
+  const line = (cells: (string | number | null)[]) =>
+    cells.map((c) => (typeof c === "number" ? String(c) : csvCell(c))).join(",");
+  return `\uFEFF${[v.columns, ...v.rows].map(line).join("\r\n")}\r\n`;
 }

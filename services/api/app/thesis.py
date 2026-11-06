@@ -20,7 +20,13 @@ from app import items
 from app.auth.principal import Principal
 from app.errors import ApiError, forbidden
 from app.meetings import FUTURE_SLACK
-from app.models import ExaminerReport, ShodhgangaDeposit, ThesisSubmission, Viva
+from app.models import (
+    ExaminerReport,
+    ProvisionalCertificate,
+    ShodhgangaDeposit,
+    ThesisSubmission,
+    Viva,
+)
 from app.workflow import ItemContext
 
 OFFICES_SEEING_UNRELEASED = frozenset({"exam_office", "research_office", "library"})
@@ -136,6 +142,10 @@ async def evaluation(session: AsyncSession, principal: Principal, ctx: ItemConte
     reports = sorted(await _rows(session, ExaminerReport, thesis.id), key=lambda r: r.received_on)
     vivas = sorted(await _rows(session, Viva, thesis.id), key=lambda v: v.held_on)
     deposits = await _rows(session, ShodhgangaDeposit, thesis.id)
+    certificates = await _rows(session, ProvisionalCertificate, thesis.id)
+    certificates.sort(key=lambda c: (c.year, c.number), reverse=True)
+    live_certificate = any(c.revoked_at is None for c in certificates)
+    research_office = "research_office" in principal.office_roles
     names = items.sees_examiners(principal) or bool(vivas)
     unreleased_ok = sees_unreleased(principal, ctx)
     approved = thesis.state == "approved"
@@ -176,6 +186,21 @@ async def evaluation(session: AsyncSession, principal: Principal, ctx: ItemConte
             if deposits
             else None
         ),
+        "certificates": [
+            {
+                "id": c.id,
+                "serial": c.serial,
+                "issued_on": c.issued_on,
+                "verify_path": f"/verify/{c.verify_token}",
+                "revoked_at": c.revoked_at,
+                "revoked_reason": c.revoked_reason,
+            }
+            for c in certificates
+        ],
+        "can_issue_certificate": (
+            research_office and not live_certificate and any(v.outcome == "pass" for v in vivas)
+        ),
+        "can_revoke_certificate": research_office and live_certificate,
         "can_record_reports": approved and "exam_office" in principal.office_roles,
         "can_record_viva": approved and "exam_office" in principal.office_roles,
         "viva_block": block[1] if (block := _viva_block(reports, vivas)) else None,

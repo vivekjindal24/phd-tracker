@@ -10,6 +10,7 @@ from app.errors import ApiError, forbidden
 from app.models import Meeting, Scholar
 
 FUTURE_SLACK = timedelta(days=1)  # time-zone slack; meetings are logged after they happen
+EARLIEST_MEETING = date(2000, 1, 1)  # same floor as report_year: older dates are typos
 
 
 def is_party(principal: Principal, scholar: Scholar) -> bool:
@@ -70,6 +71,8 @@ def resolve_supervisor(
 def check_dates(meeting_date: date, next_date: date | None) -> None:
     if meeting_date > date.today() + FUTURE_SLACK:
         raise ApiError(422, "meeting_in_future", "Log a meeting after it has taken place.")
+    if meeting_date < EARLIEST_MEETING:
+        raise ApiError(422, "meeting_too_old", "Check the meeting date.")
     if next_date is not None and next_date < meeting_date:
         raise ApiError(
             422, "next_before_meeting", "The next meeting must be on or after this meeting's date."

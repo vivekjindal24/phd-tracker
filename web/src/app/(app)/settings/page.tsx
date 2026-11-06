@@ -5,6 +5,7 @@ import { Card, ErrorText, PageHeader } from "@/components/ui/kit";
 import { api, ApiError } from "@/lib/api";
 import { useSession } from "@/lib/session";
 import type { SettingsData } from "@/lib/types";
+import { BrandingSettings } from "./BrandingSettings";
 import { ChainEditor } from "./ChainEditor";
 import { CoSupervision } from "./CoSupervision";
 import { Modules } from "./Modules";
@@ -60,6 +61,7 @@ export default function SettingsPage() {
         <div className="settings-grid">
           <OrgTree />
           <div className="settings-side">
+            <BrandingSettings data={data} save={save} />
             <Modules modules={data.modules} save={save} />
             <CoSupervision value={data.co_supervision} save={save} />
           </div>

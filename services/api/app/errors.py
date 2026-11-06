@@ -6,7 +6,7 @@ from typing import Any
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import DataError, IntegrityError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 log = logging.getLogger("anveshan")
@@ -24,6 +24,8 @@ CONSTRAINT_ERRORS: dict[str, tuple[int, str, str]] = {
     ),
     "uq_apr_active": (409, "duplicate_apr", "A progress report for this period already exists."),
     "uq_thesis_active": (409, "duplicate_thesis", "A thesis submission already exists."),
+    "uq_certificate_active": (409, "certificate_exists", "A valid certificate already exists."),
+    "uq_certificate_serial": (409, "version_conflict", "Issued at the same moment; try again."),
     "uq_shodhganga_thesis": (409, "duplicate_deposit", "The deposit is already recorded."),
     "uq_document_version_no": (
         409,
@@ -80,6 +82,8 @@ def install_error_handlers(app: FastAPI) -> None:
     @app.exception_handler(RequestValidationError)
     async def _validation(_: Request, exc: RequestValidationError) -> JSONResponse:
         errors = [{"loc": list(e["loc"]), "msg": e["msg"], "type": e["type"]} for e in exc.errors()]
+        if any(e["loc"][0] == "path" for e in errors):  # a broken link, not a form mistake
+            return envelope(404, "not_found", "This page or record does not exist.")
         return envelope(422, "validation_error", "Some fields are invalid.", {"errors": errors})
 
     @app.exception_handler(StarletteHTTPException)
@@ -97,6 +101,13 @@ def install_error_handlers(app: FastAPI) -> None:
             return envelope(status, code, message)
         log.exception("unmapped integrity error (constraint=%s)", name)
         return envelope(409, "conflict", "This change conflicts with existing data.")
+
+    @app.exception_handler(DataError)
+    async def _data(_: Request, exc: DataError) -> JSONResponse:
+        log.info("rejected value the database cannot hold: %s", exc.orig)
+        return envelope(
+            422, "invalid_value", "A value contains characters or a size we can't store."
+        )
 
     @app.exception_handler(Exception)
     async def _unhandled(_: Request, exc: Exception) -> JSONResponse:

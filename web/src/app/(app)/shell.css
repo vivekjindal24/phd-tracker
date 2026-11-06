@@ -14,6 +14,7 @@
   border-radius: var(--radius-pill);
 }
 .wordmark {
+  white-space: nowrap;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -82,4 +83,7 @@
   .topbar-actions {
     margin-left: auto;
   }
+}
+.topbar-actions .btn {
+  white-space: nowrap;
 }
