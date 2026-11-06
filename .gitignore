@@ -11,3 +11,6 @@ node_modules/
 .ruff_cache/
 !.env.example
 .gstack/
+
+# generated knowledge graph (rebuild with /graphify)
+graphify-out/
