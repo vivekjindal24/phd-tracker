@@ -66,7 +66,7 @@ PASSWORD_TOKEN_PURPOSES = get_args(PasswordTokenPurpose)
 SsoProvider = Literal["google", "microsoft"]
 SSO_PROVIDERS = get_args(SsoProvider)
 
-AuditAction = Literal["insert", "update", "soft_delete", "restore", "transition"]
+AuditAction = Literal["insert", "update", "soft_delete", "restore", "transition", "lookup"]
 AUDIT_ACTIONS = get_args(AuditAction)
 
 NotificationCategory = Literal[
@@ -153,6 +153,10 @@ DocKind = Literal["proposal", "chapter", "synopsis", "draft", "other"]
 DOC_KINDS = get_args(DocKind)
 Recommendation = Literal["accept", "minor_revision", "major_revision", "reject"]
 RECOMMENDATIONS = get_args(Recommendation)
+ReviewStatus = Literal["invited", "accepted", "declined", "expired", "submitted"]
+REVIEW_STATUSES = get_args(ReviewStatus)
+CopyKind = Literal["view", "download"]
+COPY_KINDS = get_args(CopyKind)
 VivaOutcome = Literal["pass", "redefend", "fail"]
 VIVA_OUTCOMES = get_args(VivaOutcome)
 
@@ -212,6 +216,7 @@ FileOwner = Literal[
     "vivas",
     "shodhganga_deposits",
     "utilisation_certificates",
+    "thesis_reviews",
 ]
 FILE_OWNER_TABLES = get_args(FileOwner)
 FileStatus = Literal["pending", "ready"]

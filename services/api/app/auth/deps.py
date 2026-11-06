@@ -11,7 +11,7 @@ from app.models import User
 _bearer = HTTPBearer(auto_error=False)
 
 
-async def current_principal(
+async def any_principal(
     creds: HTTPAuthorizationCredentials | None = Depends(_bearer),
     session: AsyncSession = Depends(get_session),
 ) -> Principal:
@@ -21,6 +21,20 @@ async def current_principal(
     if user is None or user.deleted_at is not None or not user.is_active:
         raise ApiError(401, "invalid_token", "Your session has expired. Please log in.")
     return await load_principal(session, user)
+
+
+def current_principal(principal: Principal = Depends(any_principal)) -> Principal:
+    """The default guard. A thesis reviewer is refused here, so every route is closed to them
+    unless it asks for any_principal or current_reviewer by name (PRD M3)."""
+    if principal.is_reviewer:
+        raise ApiError(403, "reviewers_only_review", "This account can only open its reviews.")
+    return principal
+
+
+def current_reviewer(principal: Principal = Depends(any_principal)) -> Principal:
+    if not principal.is_reviewer:
+        raise ApiError(403, "forbidden", "This page is for invited thesis reviewers.")
+    return principal
 
 
 def require_root_admin(principal: Principal = Depends(current_principal)) -> Principal:

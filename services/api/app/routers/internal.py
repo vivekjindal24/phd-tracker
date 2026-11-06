@@ -11,14 +11,15 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
-from app import branding, certificate, grants, items, naac, scope
-from app.auth.deps import current_principal
+from app import branding, certificate, grants, items, naac, reviews, scope
+from app.auth.deps import current_principal, current_reviewer
 from app.auth.principal import Principal
 from app.db import get_session
 from app.enums import MilestoneStatus, MilestoneType
 from app.errors import ApiError, forbidden
 from app.models import Faculty, Milestone, OrgUnit, Scholar, User
 from app.rbac import require_perm
+from app.schemas.research import ReviewCopyView
 
 router = APIRouter(prefix="/internal", tags=["internal"])
 REGISTER_LIMIT = 2000
@@ -158,6 +159,20 @@ async def certificate_export_view(
         "generated_at": datetime.now(UTC),
         "generated_by": principal.full_name,
     }
+
+
+@router.get("/reviews/{review_id}/copy", response_model=ReviewCopyView)
+async def review_copy(
+    review_id: uuid.UUID,
+    download: bool = False,
+    principal: Principal = Depends(current_reviewer),
+    session: AsyncSession = Depends(get_session),
+) -> dict[str, Any]:
+    """A fresh traceable copy of the thesis; the export service stamps its code on each page."""
+    await grants.require_module(session, "documents")
+    view = await reviews.issue_copy(session, principal, review_id, download=download)
+    await session.commit()
+    return view
 
 
 @router.get("/ucs/{uc_id}/export-view")

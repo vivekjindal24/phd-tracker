@@ -60,6 +60,14 @@ export const certificateView = z.object({
 });
 export type CertificateView = z.infer<typeof certificateView>;
 
+export const reviewCopyView = z.object({
+  code: z.string(),
+  file_url: z.string().url(),
+  file_name: z.string(),
+  download: z.boolean(),
+});
+export type ReviewCopyView = z.infer<typeof reviewCopyView>;
+
 export const naacView = z.object({
   ...brand,
   title: z.string(),

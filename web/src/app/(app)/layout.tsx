@@ -18,12 +18,13 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
+    if (me?.is_reviewer) router.replace("/review");
     if (loading || me || error) return;
     const here = encodeURIComponent(window.location.pathname + window.location.search);
     router.replace(loggedOut ? "/login" : `/login?expired=1&next=${here}`);
   }, [me, loading, error, loggedOut, router]);
 
-  if (loading) {
+  if (loading || me?.is_reviewer) {
     return (
       <main className="shell-loading" aria-busy="true">
         <Owl pose="reading" size={120} label="Loading" />

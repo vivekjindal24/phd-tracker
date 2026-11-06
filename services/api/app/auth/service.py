@@ -65,7 +65,7 @@ def decode_access_token(token: str) -> uuid.UUID:
         raise ApiError(401, "invalid_token", "Your session has expired. Please log in.") from exc
 
 
-def _hash_token(raw: str) -> str:
+def hash_token(raw: str) -> str:
     return hashlib.sha256(raw.encode()).hexdigest()
 
 
@@ -74,7 +74,7 @@ async def _issue_refresh(session: AsyncSession, user_id: uuid.UUID) -> str:
     session.add(
         RefreshToken(
             user_id=user_id,
-            token_hash=_hash_token(raw),
+            token_hash=hash_token(raw),
             expires_at=datetime.now(UTC) + timedelta(days=settings.refresh_token_days),
         )
     )
@@ -115,7 +115,7 @@ async def login(session: AsyncSession, email: str, password: str) -> tuple[str, 
 async def rotate_refresh(session: AsyncSession, raw: str) -> tuple[str, str]:
     """Single-use: the presented token is revoked and a new pair issued."""
     row = await session.scalar(
-        select(RefreshToken).where(RefreshToken.token_hash == _hash_token(raw)).with_for_update()
+        select(RefreshToken).where(RefreshToken.token_hash == hash_token(raw)).with_for_update()
     )
     now = datetime.now(UTC)
     if row is None or row.revoked_at is not None or row.expires_at <= now:
@@ -131,7 +131,7 @@ async def rotate_refresh(session: AsyncSession, raw: str) -> tuple[str, str]:
 
 async def revoke_refresh(session: AsyncSession, raw: str) -> None:
     row = await session.scalar(
-        select(RefreshToken).where(RefreshToken.token_hash == _hash_token(raw))
+        select(RefreshToken).where(RefreshToken.token_hash == hash_token(raw))
     )
     if row is not None and row.revoked_at is None:
         row.revoked_at = datetime.now(UTC)
@@ -171,7 +171,7 @@ async def issue_password_link(session: AsyncSession, user_id: uuid.UUID, purpose
     session.add(
         PasswordToken(
             user_id=user_id,
-            token_hash=_hash_token(raw),
+            token_hash=hash_token(raw),
             purpose=purpose,
             expires_at=now + PASSWORD_LINK_TTL,
         )
@@ -223,7 +223,7 @@ async def forgot_password(session: AsyncSession, email: str) -> None:
 
 async def set_password_with_link(session: AsyncSession, raw: str, password: str) -> uuid.UUID:
     row = await session.scalar(
-        select(PasswordToken).where(PasswordToken.token_hash == _hash_token(raw)).with_for_update()
+        select(PasswordToken).where(PasswordToken.token_hash == hash_token(raw)).with_for_update()
     )
     now = datetime.now(UTC)
     if row is None or row.used_at is not None or row.expires_at <= now:

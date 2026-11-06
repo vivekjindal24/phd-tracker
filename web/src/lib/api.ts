@@ -141,9 +141,7 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   return (res.status === 204 ? undefined : await res.json()) as T;
 }
 
-/** Fetches a file (export service by default, or the API — e.g. import templates) with the
- * same token and one-refresh retry, and saves it. */
-export async function download(path: string, from: "export" | "api" = "export"): Promise<void> {
+async function fetchFile(path: string, from: "export" | "api"): Promise<Response> {
   const base = from === "export" ? EXPORT_URL : API_URL && `${API_URL}/api/v1`;
   if (!base && from === "export") {
     throw new ApiError(0, "config_error", "PDF and CSV exports are not set up on this server yet.");
@@ -153,6 +151,18 @@ export async function download(path: string, from: "export" | "api" = "export"):
     res = await send(path, {}, accessToken, base);
   }
   if (!res.ok) throw await toError(res);
+  return res;
+}
+
+/** A file's bytes for showing in the page, with no link anywhere (the reviewer's thesis). */
+export async function fileBytes(path: string): Promise<ArrayBuffer> {
+  return (await fetchFile(path, "export")).arrayBuffer();
+}
+
+/** Fetches a file (export service by default, or the API — e.g. import templates) with the
+ * same token and one-refresh retry, and saves it. */
+export async function download(path: string, from: "export" | "api" = "export"): Promise<void> {
+  const res = await fetchFile(path, from);
   const name = /filename="([^"]+)"/.exec(res.headers.get("Content-Disposition") ?? "")?.[1] ?? "export";
   const url = URL.createObjectURL(await res.blob());
   const a = Object.assign(document.createElement("a"), { href: url, download: name });

@@ -9,6 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import distinct_on, insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app import reviews
 from app.config import settings
 from app.dashboard import DUE_SOON_DAYS, SUBMITTED, deadlines_query
 from app.db import get_session
@@ -184,6 +185,7 @@ async def daily(
     projects = await _projects_ending(session, today)
     apr_soon, apr_late = await _apr_reminders(session, today)
     meetings = await _meetings_tomorrow(session, today)
+    review_counts = await reviews.daily(session, today)
     await session.commit()
     return {
         "ran": True,
@@ -192,4 +194,5 @@ async def daily(
         "apr_due_soon": apr_soon,
         "apr_overdue": apr_late,
         "meeting_reminders": meetings,
+        **review_counts,
     }

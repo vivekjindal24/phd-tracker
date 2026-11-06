@@ -30,6 +30,7 @@ class Principal:
     can_supervise: bool = False
     scholar_id: uuid.UUID | None = None
     root_path: str | None = None
+    is_reviewer: bool = False
 
     @property
     def roles(self) -> frozenset[str]:
@@ -83,6 +84,7 @@ async def load_principal(session: AsyncSession, user: User) -> Principal:
     )
     return Principal(
         user_id=user.id,
+        is_reviewer=user.is_reviewer,
         email=user.email,
         full_name=user.full_name,
         co_supervision=co_supervision or "off",

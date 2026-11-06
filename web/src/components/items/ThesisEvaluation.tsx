@@ -11,6 +11,7 @@ import { formatDate } from "@/lib/format";
 import { RECOMMENDATION_LABELS, VIVA_LABELS } from "@/lib/types";
 import type { Evaluation, Recommendation, VivaOutcome } from "@/lib/types";
 import { errorText, useFetch } from "@/lib/useFetch";
+import { ThesisReviewers } from "./ThesisReviewers";
 
 function RecordForm({ label, onSubmit, children }: { label: string; onSubmit: () => Promise<void>; children: ReactNode }) {
   const [open, setOpen] = useState(false);
@@ -178,6 +179,7 @@ export function ThesisEvaluation({ thesisId, isOwn }: { thesisId: string; isOwn:
     <Card className="evaluation">
       {celebrate && <Celebrate message={celebrate} onDone={() => setCelebrate(null)} />}
       <h2>Evaluation</h2>
+      {(ev.can_invite_reviewers || ev.reviews.length > 0) && <ThesisReviewers thesisId={thesisId} ev={ev} onSaved={setData} />}
       <h3>Examiner reports</h3>
       {ev.names_hidden && <p className="muted">Examiner names stay confidential until the viva.</p>}
       {ev.reports.length === 0 ? <p className="muted">No reports to show yet.</p> : (
@@ -187,6 +189,11 @@ export function ThesisEvaluation({ thesisId, isOwn }: { thesisId: string; isOwn:
               <strong>{r.examiner_name ?? "Examiner"}</strong>{r.institution && ` · ${r.institution}`}
               {" · "}{RECOMMENDATION_LABELS[r.recommendation]} · received {formatDate(r.received_on)}
               {!r.released && <span className="badge badge-draft">Not released</span>}
+              {r.comments.length > 0 && (
+                <ul className="plain-list">
+                  {r.comments.map((c) => <li key={`${c.page}-${c.body}`}><strong>Page {c.page}:</strong> {c.body}</li>)}
+                </ul>
+              )}
               <Attachments table="examiner_reports" recordId={r.id} canUpload={ev.can_record_reports} title="Report file" />
             </li>
           ))}

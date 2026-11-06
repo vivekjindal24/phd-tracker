@@ -92,6 +92,8 @@ class User(DomainRow, Base):
     password_hash: Mapped[str | None] = mapped_column(Text)
     full_name: Mapped[str] = mapped_column(Text)
     is_active: Mapped[bool] = mapped_column(Boolean, server_default=text("true"))
+    # An external thesis reviewer: reaches only their own reviews (auth/deps.py).
+    is_reviewer: Mapped[bool] = mapped_column(Boolean, server_default=text("false"))
     email_muted: Mapped[list[str]] = mapped_column(ARRAY(Text), server_default=text("'{}'::text[]"))
     # Set only by the person themself — setting it is the WhatsApp opt-in (PRD F5).
     whatsapp_number: Mapped[str | None] = mapped_column(Text)

@@ -24,6 +24,8 @@ from app.models import (
     ExaminerReport,
     ProvisionalCertificate,
     ShodhgangaDeposit,
+    ThesisReview,
+    ThesisReviewComment,
     ThesisSubmission,
     Viva,
 )
@@ -142,6 +144,25 @@ async def child_ctx(
     return row, await load_thesis(session, principal, row.thesis_id)
 
 
+async def _review_comments(
+    session: AsyncSession, reviews: list[ThesisReview]
+) -> dict[uuid.UUID, list[dict[str, Any]]]:
+    """Page comments by the report each review became, shown only with that report."""
+    report_of = {r.id: r.report_id for r in reviews if r.report_id}
+    out: dict[uuid.UUID, list[dict[str, Any]]] = {}
+    rows = await session.scalars(
+        select(ThesisReviewComment)
+        .where(
+            ThesisReviewComment.review_id.in_(report_of),
+            ThesisReviewComment.deleted_at.is_(None),
+        )
+        .order_by(ThesisReviewComment.page, ThesisReviewComment.created_at)
+    )
+    for c in rows:
+        out.setdefault(report_of[c.review_id], []).append({"page": c.page, "body": c.body})
+    return out
+
+
 async def evaluation(session: AsyncSession, principal: Principal, ctx: ItemContext) -> dict:
     thesis: ThesisSubmission = ctx.item  # type: ignore[assignment]
     reports = sorted(await _rows(session, ExaminerReport, thesis.id), key=lambda r: r.received_on)
@@ -154,6 +175,9 @@ async def evaluation(session: AsyncSession, principal: Principal, ctx: ItemConte
     names = (items.sees_examiners(principal) and not is_guide(principal, ctx)) or bool(vivas)
     unreleased_ok = sees_unreleased(principal, ctx)
     approved = thesis.state == "approved"
+    runs_reviews = "exam_office" in principal.office_roles and not is_guide(principal, ctx)
+    invited = await _rows(session, ThesisReview, thesis.id)
+    comments = await _review_comments(session, invited)
     return {
         "thesis_id": thesis.id,
         "names_hidden": not names,
@@ -166,11 +190,14 @@ async def evaluation(session: AsyncSession, principal: Principal, ctx: ItemConte
                 "recommendation": r.recommendation,
                 "notes": r.notes,
                 "released": r.released_at is not None,
+                "comments": comments.get(r.id, []),
             }
             for r in reports
             if r.released_at is not None or unreleased_ok
         ],
         "unreleased_count": sum(r.released_at is None for r in reports) if unreleased_ok else 0,
+        "reviews": sorted(invited, key=lambda r: r.created_at) if runs_reviews else [],
+        "can_invite_reviewers": runs_reviews and approved,
         "vivas": [
             {
                 "id": v.id,

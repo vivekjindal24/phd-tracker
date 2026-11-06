@@ -79,6 +79,7 @@ role's scope (§2).
 | thesis submissions | CRU own, submit | R, step | R, step (department) | R, step (department) | R, step | R, step | R, step |
 | no-dues clearance | CR own, submit | R, step | R, step (department) | R, step (department) | R, step | R | R, step |
 | examiner reports | R own after release† | R after release† | R | R | R | CRU, release | R |
+| thesis reviewers (invite, deadline, trace a code) | — | — | — | — | — | CRU | — |
 | viva | R own | R | R | R | R | CRU | R |
 | provisional certificate | R own | R | R | R | R, issue, revoke | R | R |
 | Shodhganga deposit | R own | R | R | R | R | R | CRU |
@@ -142,8 +143,10 @@ releases them — omitted server-side, as with meeting redaction. A supervisor o
 works in an office waits for release like any other supervisor, never reads their own scholar's
 examiner names, and leaves that scholar's reports to a colleague (403 `own_scholar`).
 
-**Thesis reviewers (decided, not built yet, PRD M3):** an external reviewer logs in
-for one assigned thesis until their deadline or submission, and reads nothing else.
+**Thesis reviewers (PRD M3):** an external reviewer logs in for one assigned thesis
+until their deadline or submission, and reads nothing else: `users.is_reviewer`
+makes `current_principal` refuse them, so a route is closed to reviewers unless it
+asks for `any_principal` or `current_reviewer` by name.
 Invitation links work without a login but open only the title, abstract and the
 Accept / Decline choice. The code stamped on each copy holds no personal details;
 only the Exam Office may look it up, and each lookup is audited. A determined

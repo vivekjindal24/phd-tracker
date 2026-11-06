@@ -1,0 +1,13 @@
+.review-shell { max-width: 1200px; margin: 0 auto; padding: var(--space-5) var(--space-4); display: grid; gap: var(--space-4); }
+.review-top { display: flex; justify-content: space-between; align-items: center; gap: var(--space-3); flex-wrap: wrap; }
+.review-work { display: grid; grid-template-columns: minmax(0, 3fr) minmax(280px, 2fr); gap: var(--space-4); align-items: start; }
+.review-side { display: grid; gap: var(--space-4); min-width: 0; }
+.review-side form { display: grid; gap: var(--space-3); }
+.pdf-viewer { display: grid; gap: var(--space-3); min-width: 0; }
+.pdf-page { overflow: auto; }
+.pdf-page canvas { display: block; max-width: 100%; height: auto; user-select: none; }
+.pdf-pager { justify-content: center; align-items: center; }
+.review-comment { display: flex; justify-content: space-between; gap: var(--space-2); align-items: start; }
+.review-check { display: flex; gap: var(--space-2); align-items: start; }
+@media (max-width: 860px) { .review-work { grid-template-columns: minmax(0, 1fr); } }
+@media print { .pdf-viewer { display: none; } }

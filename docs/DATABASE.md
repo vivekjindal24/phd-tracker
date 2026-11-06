@@ -51,7 +51,8 @@ Not an approvable item: no chain, one answer.
 
 **users** — login identity: `email` (citext, UNIQUE), `password_hash`
 (NULL until the person sets one — invited or SSO-only accounts cannot log in
-by password), `full_name`, `is_active`, `email_muted` text[] (notification categories the
+by password), `full_name`, `is_active`, `is_reviewer` (an external thesis reviewer,
+closed everywhere but their reviews), `email_muted` text[] (notification categories the
 user muted for email; CHECK ⊆ categories in §3.7), `whatsapp_number` (NULL =
 no WhatsApp; set only by the person themself, which is the opt-in; CHECK E.164
 `^\+[1-9][0-9]{7,14}$`), `whatsapp_muted` text[] (as `email_muted`, for
@@ -193,6 +194,18 @@ CHECK (accept / minor_revision / major_revision / reject), `notes`,
 `released_at` (set when the Exam Office releases reports to the scholar and
 supervisor). **vivas** — `thesis_id`, `held_on`, `venue`, `panel`, `outcome`
 CHECK (pass / redefend / fail); a pass moves the scholar to Viva.
+**thesis_reviews** — one external reviewer on one approved thesis (PRD M3):
+`thesis_id`, `reviewer_user_id` (set on accepting), `report_id` (the
+`examiner_reports` row a submitted review became; its files move there too),
+`name`, `email`, `institution`, `abstract`, `deadline`, `allow_download`, `status`
+CHECK (invited / accepted / declined / expired / submitted), `invite_token_hash`
+(single use, partial UNIQUE), `invite_expires_at`, `responded_at`,
+`decline_reason`, `recommendation`, `submitted_at`. `uq_thesis_review_active`:
+one live invitation per reviewer per thesis.
+**thesis_review_comments** — `review_id`, `page` (CHECK >= 1), `body`.
+**thesis_review_copies** — `review_id`, `code` (UNIQUE; random, holds no details),
+`kind` CHECK (view / download). One row per copy handed out, so it is also the
+view and download log. A lookup writes an `audit_log` row with action `lookup`.
 **university_logos** — `content` bytea (PNG or JPEG, 500 KB at most),
 `content_type`. The newest live row is in use; replacing or removing soft-deletes
 the old one. Its own table so that reading `settings` never loads image bytes.
@@ -314,7 +327,7 @@ fellowship_ending / grant_alert / seminar / system), `title`, `body`, `link`, `r
 `whatsapp_status` (same CHECK), `whatsapp_error`.
 
 **audit_log** — every mutation on every table: `table_name`, `record_id`,
-`action` CHECK (insert / update / soft_delete / restore / transition),
+`action` CHECK (insert / update / soft_delete / restore / transition / lookup),
 `from_state` / `to_state`, `prev` / `data` jsonb snapshots (password hashes
 and token hashes redacted), `actor_id`, `actor_roles` text[], `at`. Written
 only by `crud.py` / `workflow.py`. "Every mutation" means every record a person

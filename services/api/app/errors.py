@@ -24,6 +24,12 @@ CONSTRAINT_ERRORS: dict[str, tuple[int, str, str]] = {
     ),
     "uq_apr_active": (409, "duplicate_apr", "A progress report for this period already exists."),
     "uq_thesis_active": (409, "duplicate_thesis", "A thesis submission already exists."),
+    "uq_thesis_review_active": (
+        409,
+        "reviewer_already_invited",
+        "This reviewer has already been invited to this thesis.",
+    ),
+    "uq_review_copy_code": (409, "version_conflict", "Please try again."),
     "uq_certificate_active": (409, "certificate_exists", "A valid certificate already exists."),
     "uq_certificate_serial": (409, "version_conflict", "Issued at the same moment; try again."),
     "uq_shodhganga_thesis": (409, "duplicate_deposit", "The deposit is already recorded."),

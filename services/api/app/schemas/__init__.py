@@ -90,6 +90,7 @@ class MeOut(BaseModel):
     id: uuid.UUID
     email: str
     full_name: str
+    is_reviewer: bool
     roles: list[str]
     unit_roles: list[UnitRoleOut]
     office_roles: list[AssignedRole]

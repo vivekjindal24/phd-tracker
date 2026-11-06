@@ -3,8 +3,9 @@
 import express from "express";
 import type { NextFunction, Request, Response } from "express";
 import { z } from "zod";
-import { certificateView, fetchView, naacView, registerView, reportView, ucView, UpstreamError } from "./api.ts";
+import { certificateView, fetchView, naacView, registerView, reportView, reviewCopyView, ucView, UpstreamError } from "./api.ts";
 import { certificatePdf, naacCsv, registerCsv, registerPdf, reportPdf, ucPdf } from "./render.ts";
+import { stampPdf, UnstampablePdf } from "./stamp.ts";
 
 export type Config = { apiUrl: string; corsOrigins: string[] };
 
@@ -99,6 +100,20 @@ export function createApp(config: Config) {
       send(res, "application/pdf", `provisional-certificate-${view.roll_number}.pdf`, await certificatePdf(view));
     } catch (e) {
       next(e);
+    }
+  });
+
+  // One reviewer's copy of a thesis: the API decides who and logs it, this only prints the code.
+  app.get("/reviews/:id/thesis.pdf", async (req, res, next) => {
+    try {
+      const id = input(z.string().uuid(), req.params.id);
+      const download = input(z.enum(["0", "1"]).default("0"), req.query.download) === "1";
+      const view = await fetchView(config.apiUrl, `/internal/reviews/${id}/copy?download=${download}`, auth(req), reviewCopyView);
+      const file = await fetch(view.file_url);
+      if (!file.ok) throw new Error(`thesis file fetch failed: ${file.status}`);
+      send(res, "application/pdf", view.file_name, await stampPdf(await file.bytes(), view.code));
+    } catch (e) {
+      next(e instanceof UnstampablePdf ? new BadRequest(e.message) : e);
     }
   });
 

@@ -30,6 +30,7 @@ export type Me = {
   faculty_id: string | null;
   scholar_id: string | null;
   is_root_admin: boolean;
+  is_reviewer: boolean;
   co_supervision: CoSupervision;
   modules: Record<ModuleKey, boolean>;
   unread_notifications: number;
@@ -433,6 +434,7 @@ export type Conference = {
 };
 
 export type FileOwner =
+  | "thesis_reviews"
   | "scholars"
   | "publications"
   | "conferences"
@@ -500,6 +502,48 @@ export type CertificateCheck = {
   status: "valid" | "revoked";
 };
 
+export type ReviewStatus = "invited" | "accepted" | "declined" | "expired" | "submitted";
+export const REVIEW_STATUS_LABELS: Record<ReviewStatus, string> = {
+  invited: "Invited",
+  accepted: "Accepted",
+  declined: "Declined",
+  expired: "No reply",
+  submitted: "Submitted",
+};
+export type ReviewRow = {
+  id: string;
+  name: string;
+  email: string;
+  institution: string;
+  deadline: string;
+  allow_download: boolean;
+  status: ReviewStatus;
+  decline_reason: string | null;
+  submitted_at: string | null;
+};
+export type ReviewInvitation = {
+  university: string;
+  reviewer_name: string;
+  thesis_title: string;
+  abstract: string;
+  deadline: string;
+};
+export type ReviewSummary = { id: string; thesis_title: string; deadline: string; status: ReviewStatus; is_open: boolean };
+export type ReviewDetail = ReviewSummary & {
+  abstract: string;
+  allow_download: boolean;
+  comments: { id: string; page: number; body: string }[];
+};
+export type ReviewCopyTrace = {
+  code: string;
+  kind: "view" | "download";
+  issued_at: string;
+  reviewer_name: string;
+  reviewer_email: string;
+  institution: string;
+  thesis_title: string;
+};
+
 export type Evaluation = {
   thesis_id: string;
   names_hidden: boolean;
@@ -511,8 +555,11 @@ export type Evaluation = {
     recommendation: Recommendation;
     notes: string;
     released: boolean;
+    comments: { page: number; body: string }[];
   }[];
   unreleased_count: number;
+  reviews: ReviewRow[];
+  can_invite_reviewers: boolean;
   vivas: { id: string; held_on: string; venue: string; panel: string; outcome: VivaOutcome; notes: string }[];
   deposit: { id: string; deposited_on: string; handle_url: string } | null;
   certificates: {

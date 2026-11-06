@@ -333,10 +333,10 @@ Library at its step), examiners (entered by Exam Office at its step).
 - **Examiner reports:** the Exam Office records each examiner's report —
   received date, recommendation (accept / minor revision / major revision /
   reject), report file.
-- **Thesis reviewer portal** (Decided 2026-11-06, not built yet): external
+- **Thesis reviewer portal** (Decided 2026-11-06): external
   reviewers are invited to a fully approved thesis and get a login. A reviewer
-  sees only the thesis assigned to them, and only until their deadline. Until
-  this ships, the Exam Office records their reports as above (UX_FLOWS.md Flow 8c).
+  sees only the thesis assigned to them, and only until their deadline. A
+  submitted review joins the examiner reports above (UX_FLOWS.md Flow 8c).
   - **Invitation:** the Exam Office enters name, email, institution, deadline
     and whether download is allowed (default off), for any number of reviewers.
     It may extend a deadline, which reopens access.
@@ -346,8 +346,7 @@ Library at its step), examiners (entered by Exam Office at its step).
     confidentiality promise. A decline may give a reason. No reply in 7 days
     expires the invitation. The Exam Office is told of each outcome.
   - **Login:** accepting sends a single-use set-password link, never a password.
-    Forgot-password covers recovery. The set-password page asks for the password
-    twice. The portal needs email configured.
+    Forgot-password covers recovery. The portal needs email configured.
   - **Deadline:** reminders 7 days and 1 day before, unless submitted. Access
     closes at the deadline (saved work kept, Exam Office told) and on submission.
   - **Review:** page comments are optional, on as few or as many pages as the

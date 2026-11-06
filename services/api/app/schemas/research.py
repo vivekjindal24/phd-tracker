@@ -5,16 +5,18 @@ import uuid
 from datetime import date, datetime
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, Field, StringConstraints
+from pydantic import BaseModel, EmailStr, Field, StringConstraints
 
 from app.enums import (
     ConferenceType,
+    CopyKind,
     DocKind,
     Indexing,
     ItemState,
     PubStatus,
     PubType,
     Recommendation,
+    ReviewStatus,
     VivaOutcome,
 )
 from app.schemas import LongTitle, Name, Notes, Ref, Venue
@@ -204,6 +206,11 @@ class DepositIn(BaseModel):
     ]
 
 
+class ReviewCommentView(BaseModel):
+    page: int
+    body: str
+
+
 class ExaminerReportView(BaseModel):
     id: uuid.UUID
     examiner_name: str | None
@@ -212,6 +219,109 @@ class ExaminerReportView(BaseModel):
     recommendation: Recommendation
     notes: str
     released: bool
+    comments: list[ReviewCommentView] = []
+
+
+class ReviewInviteIn(BaseModel):
+    name: Name
+    email: EmailStr
+    institution: Annotated[str, StringConstraints(strip_whitespace=True, max_length=200)] = ""
+    abstract: Annotated[
+        str, StringConstraints(strip_whitespace=True, min_length=1, max_length=5000)
+    ]
+    deadline: date
+    allow_download: bool = False
+
+
+class ReviewUpdate(BaseModel):
+    deadline: date | None = None
+    allow_download: bool | None = None
+
+
+class ReviewRow(BaseModel):
+    """The Exam Office's view of one invitation; names never reach anyone else."""
+
+    id: uuid.UUID
+    name: str
+    email: str
+    institution: str
+    deadline: date
+    allow_download: bool
+    status: ReviewStatus
+    decline_reason: str | None
+    submitted_at: datetime | None
+
+
+class InvitationView(BaseModel):
+    """What a link shows before accepting: this and nothing else (PRD M3)."""
+
+    university: str
+    reviewer_name: str
+    thesis_title: str
+    abstract: str
+    deadline: date
+
+
+class InvitationAccept(BaseModel):
+    no_conflict: Literal[True]
+    confidential: Literal[True]
+
+
+class InvitationAccepted(BaseModel):
+    has_password: bool
+    email_sent: bool
+
+
+class InvitationDecline(BaseModel):
+    reason: Annotated[str, StringConstraints(strip_whitespace=True, max_length=500)] = ""
+
+
+class ReviewComment(BaseModel):
+    id: uuid.UUID
+    page: int
+    body: str
+
+
+class ReviewCommentIn(BaseModel):
+    page: int = Field(ge=1, le=100_000)
+    body: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=5000)]
+
+
+class ReviewSubmitIn(BaseModel):
+    recommendation: Recommendation
+
+
+class ReviewSummary(BaseModel):
+    id: uuid.UUID
+    thesis_title: str
+    deadline: date
+    status: ReviewStatus
+    is_open: bool
+
+
+class ReviewDetail(ReviewSummary):
+    abstract: str
+    allow_download: bool
+    comments: list[ReviewComment]
+
+
+class ReviewCopyView(BaseModel):
+    """For the export service, which stamps `code` on the file behind `file_url`."""
+
+    code: str
+    file_url: str
+    file_name: str
+    download: bool
+
+
+class ReviewCopyTrace(BaseModel):
+    code: str
+    kind: CopyKind
+    issued_at: datetime
+    reviewer_name: str
+    reviewer_email: str
+    institution: str
+    thesis_title: str
 
 
 class VivaView(BaseModel):
@@ -264,6 +374,8 @@ class EvaluationView(BaseModel):
     can_issue_certificate: bool
     can_revoke_certificate: bool
     can_record_reports: bool
+    reviews: list[ReviewRow]
+    can_invite_reviewers: bool
     can_record_viva: bool
     viva_block: str | None
     can_record_deposit: bool

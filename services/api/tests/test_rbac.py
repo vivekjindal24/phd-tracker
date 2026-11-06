@@ -47,6 +47,9 @@ PUBLIC = frozenset(
         "GET /auth/sso/{provider}/callback",
         "POST /auth/sso/exchange",
         "POST /internal/cron/daily",  # its own X-Cron-Secret
+        "GET /review-invitations/{token}",
+        "POST /review-invitations/{token}/accept",
+        "POST /review-invitations/{token}/decline",
     }
 )
 MODULE_OF_TAG = {
@@ -54,6 +57,7 @@ MODULE_OF_TAG = {
     "conferences": "conferences",
     "documents": "documents",
     "thesis": "documents",
+    "reviews": "documents",
     "coursework": "coursework",
     "admissions": "admissions",
     "fellowships": "fellowships",

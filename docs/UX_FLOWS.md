@@ -269,7 +269,7 @@ Search box in the top bar; partial matches (`PHD-CS-2024-`); results grouped
 by entity, scoped exactly like the lists, only enabled modules, meeting
 minutes never matched unless shared with the viewer.
 
-## Flow 8c — Thesis reviewer (decided, not built yet)
+## Flow 8c — Thesis reviewer
 
 On an approved thesis the Exam Office invites a reviewer (name, email,
 institution, deadline, download allowed or not). The reviewer opens the emailed

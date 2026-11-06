@@ -4,7 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import service, sso
-from app.auth.deps import current_principal
+from app.auth.deps import any_principal, current_principal
 from app.auth.principal import Principal
 from app.crud import update
 from app.db import get_session
@@ -99,7 +99,7 @@ async def sso_exchange(
 
 @router.get("/me", response_model=MeOut)
 async def me(
-    principal: Principal = Depends(current_principal),
+    principal: Principal = Depends(any_principal),
     session: AsyncSession = Depends(get_session),
 ) -> MeOut:
     user = await session.get(User, principal.user_id)
@@ -118,6 +118,7 @@ async def me(
         id=principal.user_id,
         email=principal.email,
         full_name=principal.full_name,
+        is_reviewer=principal.is_reviewer,
         roles=sorted(principal.roles),
         unit_roles=[
             UnitRoleOut(
@@ -145,7 +146,7 @@ async def me(
 @router.post("/change-password", status_code=204)
 async def change_password(
     body: ChangePasswordIn,
-    principal: Principal = Depends(current_principal),
+    principal: Principal = Depends(any_principal),
     session: AsyncSession = Depends(get_session),
 ) -> None:
     user = await session.get(User, principal.user_id)
@@ -162,7 +163,7 @@ async def change_password(
 @router.put("/me/email-muted", status_code=204)
 async def set_email_muted(
     body: EmailMutedIn,
-    principal: Principal = Depends(current_principal),
+    principal: Principal = Depends(any_principal),
     session: AsyncSession = Depends(get_session),
 ) -> None:
     user = await session.get(User, principal.user_id)

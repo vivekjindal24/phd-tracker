@@ -37,7 +37,7 @@ UI or scripts; file bytes never pass through the export service.
 | Files | S3 API via `boto3`/`aioboto3`-compatible client; presigned PUT/GET (5 min) |
 | Email | SMTP (`aiosmtplib`), sent after commit; failures recorded, never silent |
 | WhatsApp | Meta WhatsApp Cloud API (`httpx`), one utility template, after commit like email; outcome recorded |
-| Export | Express + pdfkit (node:22-slim) |
+| Export | Express + pdfkit, pdf-lib to stamp reviewer copies (node:22-slim) |
 | Web | Next.js 16 (App Router, client components behind an auth gate), `output: "standalone"` for self-hosting |
 | CI/CD | Render builds `services/api/Dockerfile` and Vercel builds `web/` on every push to the deploy branch; GitHub Actions `ci.yml` runs the tests and a fresh-install stack on every push |
 

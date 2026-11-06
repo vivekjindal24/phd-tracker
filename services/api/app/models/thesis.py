@@ -6,6 +6,7 @@ import uuid
 from datetime import date, datetime
 
 from sqlalchemy import (
+    Boolean,
     CheckConstraint,
     Date,
     DateTime,
@@ -17,10 +18,17 @@ from sqlalchemy import (
     UniqueConstraint,
     text,
 )
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import CITEXT, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.enums import DOC_KINDS, RECOMMENDATIONS, VIVA_OUTCOMES, sql_in
+from app.enums import (
+    COPY_KINDS,
+    DOC_KINDS,
+    RECOMMENDATIONS,
+    REVIEW_STATUSES,
+    VIVA_OUTCOMES,
+    sql_in,
+)
 from app.models.base import Base, DomainRow
 from app.models.workflow import ApprovalColumns, approval_constraints
 
@@ -99,6 +107,88 @@ class ExaminerReport(DomainRow, Base):
     recommendation: Mapped[str] = mapped_column(Text)
     notes: Mapped[str] = mapped_column(Text, server_default=text("''"))
     released_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class ThesisReview(DomainRow, Base):
+    """An external reviewer invited to one approved thesis (PRD M3). On submission it becomes
+    an ExaminerReport, so release, confidentiality and the viva gate stay in one place."""
+
+    __tablename__ = "thesis_reviews"
+    __table_args__ = (
+        CheckConstraint(f"status IN ({sql_in(REVIEW_STATUSES)})", name="ck_thesis_reviews_status"),
+        CheckConstraint(
+            f"recommendation IS NULL OR recommendation IN ({sql_in(RECOMMENDATIONS)})",
+            name="ck_thesis_reviews_rec",
+        ),
+        Index(
+            "uq_thesis_review_active",
+            "thesis_id",
+            "email",
+            unique=True,
+            postgresql_where=text(
+                "deleted_at IS NULL AND status IN ('invited', 'accepted', 'submitted')"
+            ),
+        ),
+        Index(
+            "uq_thesis_review_token",
+            "invite_token_hash",
+            unique=True,
+            postgresql_where=text("invite_token_hash IS NOT NULL"),
+        ),
+    )
+
+    thesis_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("thesis_submissions.id"), index=True
+    )
+    reviewer_user_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id"), index=True
+    )
+    report_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("examiner_reports.id")
+    )
+    name: Mapped[str] = mapped_column(Text)  # confidential, as examiner_name
+    email: Mapped[str] = mapped_column(CITEXT)
+    institution: Mapped[str] = mapped_column(Text, server_default=text("''"))
+    abstract: Mapped[str] = mapped_column(Text)
+    deadline: Mapped[date] = mapped_column(Date)
+    allow_download: Mapped[bool] = mapped_column(Boolean, server_default=text("false"))
+    status: Mapped[str] = mapped_column(Text, server_default=text("'invited'"))
+    invite_token_hash: Mapped[str | None] = mapped_column(Text)
+    invite_expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    responded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    decline_reason: Mapped[str | None] = mapped_column(Text)
+    recommendation: Mapped[str | None] = mapped_column(Text)
+    submitted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class ThesisReviewComment(DomainRow, Base):
+    """An optional note on one page; a reviewer adds as few or as many as they like."""
+
+    __tablename__ = "thesis_review_comments"
+    __table_args__ = (CheckConstraint("page >= 1", name="ck_review_comments_page"),)
+
+    review_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("thesis_reviews.id"), index=True
+    )
+    page: Mapped[int] = mapped_column(Integer)
+    body: Mapped[str] = mapped_column(Text)
+
+
+class ThesisReviewCopy(DomainRow, Base):
+    """One copy handed out, which is also the log of views and downloads. `code` is printed on
+    its pages: random, holding no details, so only this row says whose copy a leak was."""
+
+    __tablename__ = "thesis_review_copies"
+    __table_args__ = (
+        CheckConstraint(f"kind IN ({sql_in(COPY_KINDS)})", name="ck_review_copies_kind"),
+        UniqueConstraint("code", name="uq_review_copy_code"),
+    )
+
+    review_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("thesis_reviews.id"), index=True
+    )
+    code: Mapped[str] = mapped_column(Text)
+    kind: Mapped[str] = mapped_column(Text)
 
 
 class Viva(DomainRow, Base):
