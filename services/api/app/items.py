@@ -71,6 +71,15 @@ def sees_examiners(principal: Principal) -> bool:
     )
 
 
+def _hide_examiners_from_guide(
+    content: dict[str, Any], principal: Principal, ctx: ItemContext
+) -> dict[str, Any]:
+    """A guide who also works in an office never reads their own scholar's examiners."""
+    if content.get("examiners") is None or not workflow.is_guide(principal, ctx):
+        return content
+    return content | {"examiners": None, "examiners_hidden": True}
+
+
 def _thesis_content(t: ThesisSubmission, principal: Principal) -> dict[str, Any]:
     names = sees_examiners(principal)
     return {
@@ -316,7 +325,7 @@ async def view(session: AsyncSession, principal: Principal, ctx: ItemContext) ->
         "chain": chain,
         "submitted_at": item.submitted_at,
         "approved_at": item.approved_at,
-        "content": kind.content(item, principal),
+        "content": _hide_examiners_from_guide(kind.content(item, principal), principal, ctx),
         "can_edit": item.state in ("draft", "sent_back") and is_init,
         "can_submit": item.state == "draft" and is_init,
         "can_resubmit": item.state == "sent_back" and is_init,

@@ -121,9 +121,11 @@ async def test_projects_are_scoped(client, world, grants_on):
     as_member = (await get(client, world.scholar_a1, f"/projects/{pid}")).json()
     assert not as_member["sees_ledger"]
     assert (await get(client, world.hod_b1, f"/projects/{pid}")).json()["sees_ledger"]
-    for user in (world.scholar_a2, world.dean_a, world.meera, world.library):
+    for user in (world.scholar_a2, world.dean_a, world.meera):
         assert (await get(client, user, f"/projects/{pid}")).status_code == 403, user.email
         assert (await get(client, user, "/projects")).json() == []
+    assert (await get(client, world.library, f"/projects/{pid}")).status_code == 403
+    assert (await get(client, world.library, "/projects")).status_code == 403
 
 
 async def test_ledger_balance_and_who_may_write(client, world, grants_on):

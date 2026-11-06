@@ -6,7 +6,9 @@ from sqlalchemy import select, update
 from app import scope
 from app.auth.principal import load_principal
 from app.errors import ApiError
-from app.models import Scholar, Settings
+from app.models import Faculty, RoleAssignment, Scholar, Settings
+from tests.conftest import auth
+from tests.test_publications import enable
 
 
 async def visible_rolls(session, user) -> set[str]:
@@ -82,3 +84,44 @@ async def test_soft_deleted_scholar_is_invisible_even_to_offices(session, world)
     principal = await load_principal(session, world.research_office)
     with pytest.raises(ApiError):
         await scope.get_scholar_or_403(session, principal, world.s_b1.id)
+
+
+OFFICE_BARRED_LISTS = ("/seminars", "/users", "/projects")
+
+
+async def test_exam_office_and_library_are_refused_lists_they_have_no_row_for(
+    client, session, world
+):
+    await enable(session, "projects")
+    for user in (world.exam_office, world.library):
+        for path in OFFICE_BARRED_LISTS:
+            res = await client.get(f"/api/v1{path}", headers=auth(user.id))
+            assert res.status_code == 403, (path, res.text)
+            assert res.json()["error"]["code"] == "forbidden"
+        own = await client.get(f"/api/v1/users/{user.id}", headers=auth(user.id))
+        assert own.status_code == 200
+
+
+async def test_those_lists_stay_open_to_everyone_else(client, session, world):
+    await enable(session, "projects")
+    for user in (world.research_office, world.scholar_a1, world.sup_b1, world.hod_b1):
+        for path in OFFICE_BARRED_LISTS:
+            res = await client.get(f"/api/v1{path}", headers=auth(user.id))
+            assert res.status_code == 200, (user.email, path, res.text)
+
+
+async def test_an_office_member_with_a_faculty_profile_or_unit_role_keeps_the_lists(
+    client, session, world
+):
+    await enable(session, "projects")
+    session.add(
+        Faculty(
+            user_id=world.library.id, unit_id=world.a1.id, designation="Professor", max_scholars=8
+        )
+    )
+    session.add(RoleAssignment(user_id=world.exam_office.id, role="unit_head", unit_id=world.a1.id))
+    await session.commit()
+    for user in (world.library, world.exam_office):
+        for path in ("/seminars", "/projects"):
+            res = await client.get(f"/api/v1{path}", headers=auth(user.id))
+            assert res.status_code == 200, (user.email, path, res.text)

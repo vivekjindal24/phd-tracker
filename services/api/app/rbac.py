@@ -175,12 +175,24 @@ MATRIX: dict[str, dict[str, frozenset[str]]] = {
 }
 
 
+OFFICES_BARRED = frozenset({"exam_office", "library"})
+
+
 def roles_allowed(entity: str, action: str) -> frozenset[str]:
     return frozenset(role for role, acts in MATRIX[entity].items() if action in acts)
 
 
 def can(principal: Principal, entity: str, action: str) -> bool:
     return bool(principal.roles & roles_allowed(entity, action))
+
+
+def not_only_office(principal: Principal = Depends(current_principal)) -> Principal:
+    """Route guard for lists scope.py filters: the Exam Office and Library have no row for them
+    (SECURITY.md §3), so someone holding nothing else is refused, not shown an empty list. A
+    faculty profile still counts: any faculty member can be a PI or sit on a panel."""
+    if principal.faculty_id is None and principal.roles and principal.roles <= OFFICES_BARRED:
+        raise ApiError(403, "forbidden", "You do not have permission to do this.")
+    return principal
 
 
 def require_perm(entity: str, action: str):

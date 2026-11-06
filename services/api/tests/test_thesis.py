@@ -6,7 +6,7 @@ import uuid
 import pytest
 from sqlalchemy import select
 
-from app.models import FileRow, Scholar
+from app.models import FileRow, RoleAssignment, Scholar
 from tests.conftest import auth
 from tests.test_publications import enable
 
@@ -319,6 +319,42 @@ async def test_supervisor_who_is_also_head_waits_for_release(client, session, wo
 
     await client.post(f"/api/v1/theses/{tid}/release-reports", headers=auth(world.exam_office.id))
     assert len((await evaluation(client, world.meera, tid)).json()["reports"]) == 1
+
+
+@pytest.mark.parametrize("office", ["exam_office", "research_office", "library"])
+async def test_supervisor_in_an_office_waits_for_release(
+    client, session, world, documents_on, office
+):
+    tid = await approved_thesis(client, session, world)
+    rid = await add_report(client, world, tid, release=False)
+    session.add(RoleAssignment(user_id=world.meera.id, role=office))  # supervises scholar_a1
+    await session.commit()
+
+    mine = (await evaluation(client, world.meera, tid)).json()
+    assert mine["reports"] == [] and mine["unreleased_count"] == 0
+    files = await client.get(
+        "/api/v1/files",
+        headers=auth(world.meera.id),
+        params={"table_name": "examiner_reports", "record_id": rid},
+    )
+    assert files.status_code == 403
+    content = (
+        await client.get(f"/api/v1/items/thesis_submission/{tid}", headers=auth(world.meera.id))
+    ).json()["content"]
+    assert content["examiners"] is None and content["examiners_hidden"]
+
+
+async def test_supervisor_in_the_exam_office_cannot_touch_own_scholars_reports(
+    client, session, world, documents_on
+):
+    tid = await approved_thesis(client, session, world)
+    await add_report(client, world, tid, release=False)
+    session.add(RoleAssignment(user_id=world.meera.id, role="exam_office"))
+    await session.commit()
+
+    res = await client.post(f"/api/v1/theses/{tid}/release-reports", headers=auth(world.meera.id))
+    assert res.status_code == 403 and res.json()["error"]["code"] == "own_scholar"
+    assert (await evaluation(client, world.meera, tid)).json()["reports"] == []
 
 
 async def test_viva_cannot_be_dated_in_the_future(client, session, world, documents_on):

@@ -27,21 +27,26 @@ from app.models import (
     ThesisSubmission,
     Viva,
 )
-from app.workflow import ItemContext
+from app.workflow import ItemContext, is_guide
 
 OFFICES_SEEING_UNRELEASED = frozenset({"exam_office", "research_office", "library"})
 FINAL_VIVA_OUTCOMES = frozenset({"pass", "fail"})
 
 
+def require_not_guide(principal: Principal, ctx: ItemContext) -> None:
+    """A guide who also works in an office leaves their own scholar's reports to a colleague,
+    or they could release the reports to themselves."""
+    if is_guide(principal, ctx):
+        raise ApiError(
+            403, "own_scholar", "A colleague must handle the reports of your own scholar."
+        )
+
+
 def sees_unreleased(principal: Principal, ctx: ItemContext) -> bool:
+    if is_guide(principal, ctx):  # wins over every office or unit role (SECURITY.md §3)
+        return False
     if principal.office_roles & OFFICES_SEEING_UNRELEASED:
         return True
-    co = ctx.scholar.co_supervisor_id if principal.co_supervision != "off" else None
-    if principal.faculty_id is not None and principal.faculty_id in (
-        ctx.scholar.supervisor_id,
-        co,
-    ):
-        return False
     path = ctx.scholar_unit_path
     return principal.covers("unit_head", path) or principal.covers("admin", path)
 
@@ -146,7 +151,7 @@ async def evaluation(session: AsyncSession, principal: Principal, ctx: ItemConte
     certificates.sort(key=lambda c: (c.year, c.number), reverse=True)
     live_certificate = any(c.revoked_at is None for c in certificates)
     research_office = "research_office" in principal.office_roles
-    names = items.sees_examiners(principal) or bool(vivas)
+    names = (items.sees_examiners(principal) and not is_guide(principal, ctx)) or bool(vivas)
     unreleased_ok = sees_unreleased(principal, ctx)
     approved = thesis.state == "approved"
     return {

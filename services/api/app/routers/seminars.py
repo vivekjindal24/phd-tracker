@@ -27,6 +27,7 @@ from app.models import (
     User,
 )
 from app.notify import notify
+from app.rbac import not_only_office
 from app.schemas import HardcopyIn, SeminarDetail, SeminarIn, SeminarRow, SeminarUpdate
 
 router = APIRouter(prefix="/seminars", tags=["seminars"])
@@ -54,7 +55,7 @@ def _row(s: Seminar, unit_name: str, scholar_count: int) -> dict[str, Any]:
 async def list_seminars(
     upcoming: bool = False,
     limit: int = Query(default=100, ge=1, le=500),
-    principal: Principal = Depends(current_principal),
+    principal: Principal = Depends(not_only_office),
     session: AsyncSession = Depends(get_session),
 ) -> list[dict[str, Any]]:
     count = (

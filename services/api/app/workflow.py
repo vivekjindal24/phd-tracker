@@ -87,6 +87,15 @@ def is_initiator(principal: Principal, ctx: ItemContext) -> bool:
     return INITIATOR[ctx.item_type] in principal.office_roles
 
 
+def is_guide(principal: Principal, ctx: ItemContext) -> bool:
+    """The scholar's supervisor, or co-supervisor while co-supervision is on."""
+    co = ctx.scholar.co_supervisor_id if principal.co_supervision != "off" else None
+    return principal.faculty_id is not None and principal.faculty_id in (
+        ctx.scholar.supervisor_id,
+        co,
+    )
+
+
 def holds_step(principal: Principal, ctx: ItemContext, kind: str) -> bool:
     """Role-level answer: does the caller fill a step of this kind for this scholar?"""
     if principal.user_id == ctx.scholar.user_id:

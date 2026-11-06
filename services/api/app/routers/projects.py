@@ -18,7 +18,7 @@ from app.enums import ProjectStatus
 from app.errors import ApiError, forbidden
 from app.models import Faculty, OrgUnit, Project, ProjectMember, Scholar, User
 from app.modules import module_enabled, require_module
-from app.rbac import require_perm
+from app.rbac import not_only_office, require_perm
 from app.schemas import Ref
 from app.schemas.grants import MemberIn, MemberOut, ProjectIn, ProjectOut, ProjectUpdate
 
@@ -102,7 +102,7 @@ async def list_projects(
     unit_id: uuid.UUID | None = None,
     status: ProjectStatus | None = None,
     limit: int = Query(default=500, ge=1, le=2000),
-    principal: Principal = Depends(current_principal),  # scope decides (PIs, members)
+    principal: Principal = Depends(not_only_office),  # then scope decides (PIs, members)
     session: AsyncSession = Depends(get_session),
 ) -> list[ProjectOut]:
     stmt = _query(principal)

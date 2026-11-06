@@ -138,8 +138,9 @@ co-supervisor's under `co_supervision = approve`).
 † **Examiner confidentiality:** examiner names are returned only to the
 Exam Office, Research Office and root admin until the viva outcome is
 recorded; reports reach the scholar and supervisor only after the Exam Office
-releases them — omitted server-side, as with meeting redaction. A supervisor or co-supervisor who also heads the unit
-waits for release like any other supervisor.
+releases them — omitted server-side, as with meeting redaction. A supervisor or co-supervisor who also heads the unit or
+works in an office waits for release like any other supervisor, never reads their own scholar's
+examiner names, and leaves that scholar's reports to a colleague (403 `own_scholar`).
 
 **Branding:** `GET /api/v1/branding` and `/branding/logo` need no login (the
 login page shows them) and return only the university's name, address and logo.

@@ -211,6 +211,7 @@ async def add_examiner_report(
     session: AsyncSession = Depends(get_session),
 ) -> dict[str, Any]:
     ctx = await _office_ctx(session, principal, thesis_id, "exam_office")
+    thesis.require_not_guide(principal, ctx)
     await insert(session, principal, ExaminerReport(thesis_id=thesis_id, **body.model_dump()))
     return await _done(session, principal, ctx)
 
@@ -224,6 +225,7 @@ async def update_examiner_report(
 ) -> dict[str, Any]:
     thesis.require_office(principal, "exam_office")
     report, ctx = await thesis.report_ctx(session, principal, report_id)
+    thesis.require_not_guide(principal, ctx)
     await update(session, principal, report, body.model_dump(exclude_unset=True))
     return await _done(session, principal, ctx)
 
@@ -245,6 +247,7 @@ async def release_reports(
     session: AsyncSession = Depends(get_session),
 ) -> dict[str, Any]:
     ctx = await _office_ctx(session, principal, thesis_id, "exam_office")
+    thesis.require_not_guide(principal, ctx)
     pending = [
         r
         for r in await session.scalars(

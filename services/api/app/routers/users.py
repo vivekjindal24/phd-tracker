@@ -17,7 +17,7 @@ from app.enums import UGC_CAP, UNIT_ROLES
 from app.errors import ApiError, forbidden
 from app.models import Faculty, OrgUnit, RoleAssignment, Scholar, User
 from app.notify import email_configured
-from app.rbac import require_perm
+from app.rbac import not_only_office, require_perm
 from app.schemas import (
     RoleAssignmentIn,
     RoleAssignmentOut,
@@ -64,7 +64,7 @@ async def list_users(
     q: str | None = Query(default=None, max_length=100),
     limit: int = Query(default=50, ge=1, le=MAX_PAGE),
     offset: int = Query(default=0, ge=0),
-    principal: Principal = Depends(current_principal),
+    principal: Principal = Depends(not_only_office),
     session: AsyncSession = Depends(get_session),
 ) -> list[User]:
     stmt = select(User).where(User.deleted_at.is_(None), scope.user_predicate(principal))
