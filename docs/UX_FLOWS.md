@@ -269,6 +269,19 @@ Search box in the top bar; partial matches (`PHD-CS-2024-`); results grouped
 by entity, scoped exactly like the lists, only enabled modules, meeting
 minutes never matched unless shared with the viewer.
 
+## Flow 8c — Thesis reviewer (decided, not built yet)
+
+On an approved thesis the Exam Office invites a reviewer (name, email,
+institution, deadline, download allowed or not). The reviewer opens the emailed
+link, reads the title and abstract, and chooses **Accept** or **Decline**. Accepting
+needs the no-conflict tick and the confidentiality promise, then a set-password
+email follows. Signed in, they see only that thesis: they read it, add comments
+on any pages they choose or upload a review file, pick a recommendation and
+**Submit**. Reminders go 7 days and 1 day before the deadline. At the deadline or
+on submission access closes; the Exam Office may extend a deadline. The Exam
+Office checks reviews and releases them to the scholar and supervisor, without
+the reviewer's name. Rules: PRD M3.
+
 ## Flow 14 — Committee / external (no login)
 
 Admin or head downloads PDFs (APR, scholar record, register, unit summary)

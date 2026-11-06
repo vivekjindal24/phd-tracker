@@ -332,7 +332,40 @@ Library at its step), examiners (entered by Exam Office at its step).
 **After submission** (Decided 2026-10-24), on the approved thesis:
 - **Examiner reports:** the Exam Office records each examiner's report —
   received date, recommendation (accept / minor revision / major revision /
-  reject), report file. Examiners have no login (§7).
+  reject), report file.
+- **Thesis reviewer portal** (Decided 2026-11-06, not built yet): external
+  reviewers are invited to a fully approved thesis and get a login. A reviewer
+  sees only the thesis assigned to them, and only until their deadline. Until
+  this ships, the Exam Office records their reports as above (UX_FLOWS.md Flow 8c).
+  - **Invitation:** the Exam Office enters name, email, institution, deadline
+    and whether download is allowed (default off), for any number of reviewers.
+    It may extend a deadline, which reopens access.
+  - **Reply:** the email carries the title, abstract and deadline and a secure
+    link needing no login, to Accept or Decline. The thesis stays locked until
+    they accept, which needs a no-conflict-of-interest tick and the
+    confidentiality promise. A decline may give a reason. No reply in 7 days
+    expires the invitation. The Exam Office is told of each outcome.
+  - **Login:** accepting sends a single-use set-password link, never a password.
+    Forgot-password covers recovery. The set-password page asks for the password
+    twice. The portal needs email configured.
+  - **Deadline:** reminders 7 days and 1 day before, unless submitted. Access
+    closes at the deadline (saved work kept, Exam Office told) and on submission.
+  - **Review:** page comments are optional, on as few or as many pages as the
+    reviewer likes, and they may upload their own review file instead. Submitting
+    needs a recommendation (accept / minor revision / major revision / reject)
+    and at least one comment or a file, then it locks.
+  - **Release:** the scholar and supervisor see nothing until the Exam Office
+    releases reviews, which it checks for names inside files first. The reviewer's
+    name stays hidden on screen until the viva outcome is recorded.
+  - **Copy protection:** every copy carries a random code, small and repeated on
+    each page. The code holds no details; the server maps it to the reviewer, date
+    and time, and only the Exam Office may look it up, with each lookup audited.
+    The confidentiality promise says each copy is uniquely marked and traceable,
+    not how. Download off: an in-app viewer with no download or print button.
+    Download on: downloads logged, with short-lived links. Screenshots, photos and
+    a determined technical reviewer cannot be fully stopped; the code is what
+    traces a leak. Page images were rejected as too heavy, and on-PDF marking is
+    left out for now.
 - **Viva:** the Exam Office records date, venue or online link, panel and
   outcome (pass / re-defend after revision / fail) with the report file. A
   passed viva moves the scholar's stage to Viva. A viva is recorded after it
@@ -414,8 +447,8 @@ Intentionally NOT in this version:
   university).
 - Google Calendar integration; GitHub mirroring; two-way WhatsApp (replies,
   chat bots) — WhatsApp is outbound notifications only (F5).
-- Committee-member (external examiner, RAC outsider) logins — they get PDFs
-  and email.
+- Committee-member logins (RAC outsiders) — they get PDFs and email. Thesis
+  reviewers are the one exception (M3).
 - Per-unit approval chains (chains are university-wide).
 
 ## 8. Build Phases

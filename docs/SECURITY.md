@@ -142,6 +142,14 @@ releases them — omitted server-side, as with meeting redaction. A supervisor o
 works in an office waits for release like any other supervisor, never reads their own scholar's
 examiner names, and leaves that scholar's reports to a colleague (403 `own_scholar`).
 
+**Thesis reviewers (decided, not built yet, PRD M3):** an external reviewer logs in
+for one assigned thesis until their deadline or submission, and reads nothing else.
+Invitation links work without a login but open only the title, abstract and the
+Accept / Decline choice. The code stamped on each copy holds no personal details;
+only the Exam Office may look it up, and each lookup is audited. A determined
+reviewer can still screenshot or save a copy, so the code traces a leak rather
+than prevents it.
+
 **Branding:** `GET /api/v1/branding` and `/branding/logo` need no login (the
 login page shows them) and return only the university's name, address and logo.
 A logo is PNG or JPEG by its bytes, 500 KB at most; SVG is refused because it can
