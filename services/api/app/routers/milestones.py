@@ -7,12 +7,12 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import scope
+from app import scope, thesis
 from app.auth.principal import Principal
 from app.crud import insert, soft_delete, update
 from app.db import get_session
 from app.enums import MilestoneStatus, MilestoneType
-from app.errors import forbidden
+from app.errors import ApiError, forbidden
 from app.models import Milestone, OrgUnit, Scholar, User
 from app.rbac import require_perm
 from app.schemas import MilestoneIn, MilestoneOut, MilestoneUpdate, Ref
@@ -47,6 +47,7 @@ def _out(row) -> MilestoneOut:
         resolution_number=m.resolution_number,
         resolution_date=m.resolution_date,
         notes=m.notes,
+        approved_title=m.approved_title,
         updated_at=m.updated_at,
     )
 
@@ -55,6 +56,11 @@ async def _require_writer(session: AsyncSession, principal: Principal, scholar: 
     if "research_office" in principal.office_roles:
         return
     scope.require_admin_over(principal, await scope.unit_path(session, scholar.unit_id))
+
+
+def _check_title(milestone_type: str, title: str | None) -> None:
+    if title is not None and milestone_type != "proposal_approval":
+        raise ApiError(422, "title_not_allowed", "Only a proposal approval carries a title.")
 
 
 async def _one(session: AsyncSession, principal: Principal, milestone_id: uuid.UUID):
@@ -101,7 +107,9 @@ async def create_milestone(
 ) -> MilestoneOut:
     scholar = await scope.get_scholar_or_403(session, principal, body.scholar_id, "milestones")
     await _require_writer(session, principal, scholar)
+    _check_title(body.milestone_type, body.approved_title)
     m = await insert(session, principal, Milestone(**body.model_dump()))
+    await thesis.sync_title(session, principal, scholar.id)
     await session.commit()
     return _out(await _one(session, principal, m.id))
 
@@ -115,7 +123,13 @@ async def update_milestone(
 ) -> MilestoneOut:
     m, scholar, *_ = await _one(session, principal, milestone_id)
     await _require_writer(session, principal, scholar)
-    await update(session, principal, m, body.model_dump(exclude_unset=True))
+    changes = body.model_dump(exclude_unset=True)
+    _check_title(
+        changes.get("milestone_type", m.milestone_type),
+        changes.get("approved_title", m.approved_title),
+    )
+    await update(session, principal, m, changes)
+    await thesis.sync_title(session, principal, scholar.id)
     await session.commit()
     return _out(await _one(session, principal, milestone_id))
 
@@ -129,4 +143,5 @@ async def delete_milestone(
     m, scholar, *_ = await _one(session, principal, milestone_id)
     await _require_writer(session, principal, scholar)
     await soft_delete(session, principal, m)
+    await thesis.sync_title(session, principal, scholar.id)
     await session.commit()

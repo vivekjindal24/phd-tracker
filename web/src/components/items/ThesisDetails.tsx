@@ -49,20 +49,6 @@ function StepForm({
   );
 }
 
-function TitleEdit({ item, onSaved }: { item: ItemView; onSaved: (v: ItemView) => void }) {
-  const c = item.content as ThesisContent;
-  const [title, setTitle] = useState(c.title);
-  return (
-    <StepForm title="Thesis title" hint="Upload the final thesis below, then submit." onSave={async () => {
-      onSaved(await api<ItemView>(`/theses/${item.id}`, { method: "PATCH", body: JSON.stringify({ title }) }));
-    }}>
-      <Field label="Title">
-        <input required maxLength={500} value={title} onChange={(e) => setTitle(e.target.value)} />
-      </Field>
-    </StepForm>
-  );
-}
-
 function Plagiarism({ item, onSaved }: { item: ItemView; onSaved: (v: ItemView) => void }) {
   const c = item.content as ThesisContent;
   const [tool, setTool] = useState(c.plagiarism_tool ?? "");
@@ -126,7 +112,6 @@ export function ThesisDetails({ item, onSaved }: { item: ItemView; onSaved: (v: 
             {c.examiners ?? <span className="muted">{c.examiners_entered ? "Confidential" : "Not entered yet"}</span>}
           </dd>
         </dl>
-        {item.can_edit && <TitleEdit item={item} onSaved={onSaved} />}
         {atLibrary && <Plagiarism item={item} onSaved={onSaved} />}
         {atExam && <Examiners item={item} onSaved={onSaved} />}
       </Card>

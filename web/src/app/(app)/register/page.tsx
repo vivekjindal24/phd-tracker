@@ -24,7 +24,10 @@ function RecordDecision({ onSaved }: { onSaved: () => void }) {
   const [number, setNumber] = useState("");
   const [date, setDate] = useState("");
   const [notes, setNotes] = useState("");
+  const [typedTitle, setTypedTitle] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const isProposal = type === "proposal_approval";
+  const title = typedTitle ?? scholars?.find((s) => s.id === scholarId)?.research_title ?? "";
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -35,10 +38,12 @@ function RecordDecision({ onSaved }: { onSaved: () => void }) {
         body: JSON.stringify({
           scholar_id: scholarId, milestone_type: type, status, approval_body: body,
           resolution_number: number || null, resolution_date: date || null, notes,
+          approved_title: isProposal && title.trim() ? title : null,
         }),
       });
       setNumber("");
       setNotes("");
+      setTypedTitle(null);
       onSaved();
     } catch (err) {
       setError(errorText(err));
@@ -84,11 +89,53 @@ function RecordDecision({ onSaved }: { onSaved: () => void }) {
           <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
         </Field>
       </div>
+      {isProposal && (
+        <Field label="Approved title" hint="The thesis and certificate use this title. It starts from the scholar's research title.">
+          <input maxLength={500} value={title} onChange={(e) => setTypedTitle(e.target.value)} />
+        </Field>
+      )}
       <Field label="Notes">
         <input maxLength={4000} value={notes} onChange={(e) => setNotes(e.target.value)} />
       </Field>
       <ErrorText>{error}</ErrorText>
       <Button kind="primary" type="submit">Record decision</Button>
+    </form>
+  );
+}
+
+/** The committee's title, editable by those who keep the register. Saving updates the thesis. */
+function ApprovedTitle({ milestone, canEdit, onSaved }: { milestone: Milestone; canEdit: boolean; onSaved: () => void }) {
+  const [title, setTitle] = useState(milestone.approved_title ?? "");
+  const [editing, setEditing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function save(e: FormEvent) {
+    e.preventDefault();
+    setError(null);
+    try {
+      await api(`/milestones/${milestone.id}`, { method: "PATCH", body: JSON.stringify({ approved_title: title }) });
+      setEditing(false);
+      onSaved();
+    } catch (err) {
+      setError(errorText(err));
+    }
+  }
+
+  if (!editing) {
+    return (
+      <>
+        <br /><span className="muted">{milestone.approved_title ?? "No approved title yet"}</span>
+        {canEdit && <> <Button kind="ghost" onClick={() => setEditing(true)}>Edit title</Button></>}
+      </>
+    );
+  }
+  return (
+    <form onSubmit={save}>
+      <Field label="Approved title">
+        <input required maxLength={500} value={title} onChange={(e) => setTitle(e.target.value)} />
+      </Field>
+      <ErrorText>{error}</ErrorText>
+      <Button kind="secondary" type="submit">Save title</Button>
     </form>
   );
 }
@@ -141,7 +188,10 @@ export default function RegisterPage() {
                     <Link href={`/scholars/${m.scholar.id}`}>{m.scholar.name}</Link>
                     <br /><span className="mono">{m.roll_number}</span>
                   </td>
-                  <td>{MILESTONE_LABELS[m.milestone_type]}</td>
+                  <td>
+                    {MILESTONE_LABELS[m.milestone_type]}
+                    {m.milestone_type === "proposal_approval" && <ApprovedTitle milestone={m} canEdit={canRecord} onSaved={reload} />}
+                  </td>
                   <td>{m.approval_body}</td>
                   <td>
                     {m.resolution_number ?? <span className="muted">—</span>}

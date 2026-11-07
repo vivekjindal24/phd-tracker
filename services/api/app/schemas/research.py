@@ -139,10 +139,6 @@ class DocumentOut(BaseModel):
     versions: list[VersionOut]
 
 
-class ThesisIn(BaseModel):
-    title: LongTitle
-
-
 class PlagiarismIn(BaseModel):
     plagiarism_tool: Annotated[
         str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)

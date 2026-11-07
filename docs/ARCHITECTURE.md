@@ -167,6 +167,10 @@ API: `DATABASE_URL`, `JWT_SECRET` (≥32 bytes), `CORS_ORIGINS`,
 `S3_ENDPOINT`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`,
 `S3_REGION`, `MAX_UPLOAD_MB` (default 100), `SMTP_HOST`, `SMTP_PORT`,
 `SMTP_USER`, `SMTP_PASSWORD`, `MAIL_FROM`, `APP_BASE_URL`, `CRON_SECRET`.
+Certificate wording, settled per university at install (blank = default; an
+unknown placeholder in the body stops startup): `CERTIFICATE_DEGREE`,
+`CERTIFICATE_OPENING`, `CERTIFICATE_TITLE_LEAD`, `CERTIFICATE_BODY` (may use
+`{degree}` and `{viva_date}`), `CERTIFICATE_SIGNATORIES` (separated by `|`).
 AI (optional, all-or-nothing): `AI_BASE_URL`, `AI_API_KEY`, `AI_MODEL` — any
 OpenAI-compatible chat endpoint (Gemini in dev, Ollama in production); unset =
 supervisors write seminar to-do points by hand.

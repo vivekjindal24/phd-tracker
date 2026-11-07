@@ -582,6 +582,9 @@ Resolution = Annotated[str, StringConstraints(strip_whitespace=True, max_length=
 Notes = Annotated[str, StringConstraints(strip_whitespace=True, max_length=4000)]
 
 
+LongTitle = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=500)]
+
+
 class MilestoneIn(BaseModel):
     scholar_id: uuid.UUID
     milestone_type: MilestoneType
@@ -590,6 +593,7 @@ class MilestoneIn(BaseModel):
     resolution_number: Resolution | None = None
     resolution_date: date | None = None
     notes: Notes = ""
+    approved_title: LongTitle | None = None
 
 
 class MilestoneUpdate(BaseModel):
@@ -599,6 +603,7 @@ class MilestoneUpdate(BaseModel):
     resolution_number: Resolution | None = None
     resolution_date: date | None = None
     notes: Notes | None = None
+    approved_title: LongTitle | None = None
 
 
 class MilestoneOut(BaseModel):
@@ -612,6 +617,7 @@ class MilestoneOut(BaseModel):
     resolution_number: str | None
     resolution_date: date | None
     notes: str
+    approved_title: str | None
     updated_at: datetime
 
 
@@ -771,4 +777,3 @@ class CommentOut(BaseModel):
 
 # --- shared by the module schemas (schemas/research.py, schemas/administration.py) ---
 
-LongTitle = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=500)]

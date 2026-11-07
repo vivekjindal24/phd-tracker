@@ -70,7 +70,7 @@ async def test_scholars_see_only_their_own(client, world, documents_on):
 
 
 async def test_thesis_waits_for_no_dues_only_when_required(client, session, world, documents_on):
-    tid = await new_thesis(client, world)
+    tid = await new_thesis(client, session, world)
     await ready_file(session, world.scholar_a1, "thesis_submissions", tid)
     await require_no_dues(client, world)
     blocked = await act(client, world.scholar_a1, tid, "submit")
@@ -81,6 +81,6 @@ async def test_thesis_waits_for_no_dues_only_when_required(client, session, worl
 
 async def test_thesis_is_not_gated_when_the_setting_is_off(client, session, world, documents_on):
     await require_no_dues(client, world, on=False)
-    tid = await new_thesis(client, world)
+    tid = await new_thesis(client, session, world)
     await ready_file(session, world.scholar_a1, "thesis_submissions", tid)
     assert (await act(client, world.scholar_a1, tid, "submit")).status_code == 200

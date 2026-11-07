@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import type { FormEvent } from "react";
 import { Owl, OwlMark } from "@/components/brand/Owl";
+import { UniversityMark } from "@/components/brand/UniversityMark";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Button, ErrorText, Field } from "@/components/ui/kit";
 import { setPasswordWithLink } from "@/lib/api";
@@ -75,6 +76,7 @@ export default function SetPasswordPage() {
         <ThemeToggle />
       </div>
       <section className="login-hero" aria-labelledby="brand">
+        <UniversityMark />
         <div className="login-brand">
           <OwlMark size={52} />
           <h1 id="brand">Anveshan</h1>

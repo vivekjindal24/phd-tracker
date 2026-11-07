@@ -493,7 +493,7 @@
   white-space: nowrap;
 }
 @media (max-width: 1500px) {
-  .topbar .university-mark span {
+  .topbar .university-mark img + span {
     display: none;
   }
 }

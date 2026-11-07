@@ -100,6 +100,13 @@ HISTORY = (
     ),
     Column("resolution_date", "Resolution date", False, "Day first.", "22/09/2023"),
     Column("notes", "Notes", False, "Optional.", ""),
+    Column(
+        "approved_title",
+        "Approved title",
+        False,
+        "Proposal approvals only; the thesis and certificate use it.",
+        "Graph learning for traffic forecasting",
+    ),
 )
 KINDS: dict[str, tuple[Column, ...]] = {
     "faculty": FACULTY,
@@ -445,6 +452,9 @@ async def _plan_history(ctx: _Context, rows: list[Row], report: Report) -> list[
         body = c.choice("approval_body", APPROVAL_BODIES, True)
         number, when = c.text("resolution_number", 100), c.day("resolution_date")
         notes = c.text("notes", 4000) or ""
+        title = c.text("approved_title", 500)
+        if title and kind != "proposal_approval":
+            c.error("approved_title", "only a proposal approval carries a title")
         found = scholars.get(roll or "")
         if roll and found is None:
             c.error("roll_number", f"no scholar with roll number {roll} (import scholars first)")
@@ -466,6 +476,7 @@ async def _plan_history(ctx: _Context, rows: list[Row], report: Report) -> list[
             resolution_number=number,
             resolution_date=when,
             notes=notes,
+            approved_title=title,
         )
         plan.append(_milestone(ctx, milestone))
     return plan

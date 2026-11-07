@@ -52,6 +52,9 @@ async def issue(session: AsyncSession, principal: Principal, ctx: ItemContext) -
         raise ApiError(422, "viva_not_passed", "A certificate needs a passed viva.")
     if await _live(session, ctx.item.id):
         raise ApiError(409, "certificate_exists", "A valid certificate already exists.")
+    if await thesis.approved_title(session, ctx.scholar.id) is None:
+        raise thesis.TITLE_NOT_APPROVED
+    await thesis.sync_title(session, principal, ctx.scholar.id)
     today = date.today()
     # ponytail: two offices issuing in the same instant collide on uq_certificate_serial and
     # retry by hand; a per-year counter row removes that if it ever happens.
@@ -142,6 +145,7 @@ async def export_view(
     ctx = await thesis.load_thesis(session, principal, cert.thesis_id)  # the reader check
     if cert.revoked_at is not None:
         raise ApiError(409, "certificate_revoked", "This certificate was revoked.")
+    wording = settings.certificate
     return {
         "unit": await session.scalar(select(OrgUnit.name).where(OrgUnit.id == ctx.scholar.unit_id)),
         "serial": cert.serial,
@@ -149,6 +153,11 @@ async def export_view(
             select(User.full_name).where(User.id == ctx.scholar.user_id)
         ),
         "roll_number": ctx.scholar.roll_number,
+        "degree": wording.degree,
+        "opening": wording.opening,
+        "title_lead": wording.title_lead,
+        "body": wording.body,
+        "signatories": wording.signatories,
         "thesis_title": ctx.item.title,
         "viva_date": await _viva_date(session, cert.thesis_id),
         "issued_on": cert.issued_on,

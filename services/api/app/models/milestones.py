@@ -36,3 +36,5 @@ class Milestone(DomainRow, Base):
     resolution_number: Mapped[str | None] = mapped_column(Text)
     resolution_date: Mapped[date | None] = mapped_column(Date)
     notes: Mapped[str] = mapped_column(Text, server_default=text("''"))
+    # On proposal approvals only: the one title the thesis and certificate use (thesis.py).
+    approved_title: Mapped[str | None] = mapped_column(Text)

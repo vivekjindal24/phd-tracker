@@ -6,7 +6,7 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import { Owl } from "@/components/brand/Owl";
 import { StateBadge } from "@/components/items/StateBadge";
-import { Button, Card, ErrorText, Field, PageHeader, ShowMore, Table } from "@/components/ui/kit";
+import { Button, Card, ErrorText, PageHeader, ShowMore, Table } from "@/components/ui/kit";
 import { api } from "@/lib/api";
 import { useSession } from "@/lib/session";
 import type { ItemView, NoDuesMine, ThesisRow } from "@/lib/types";
@@ -14,14 +14,13 @@ import { errorText, useFetch, usePagedFetch } from "@/lib/useFetch";
 
 function StartThesis() {
   const router = useRouter();
-  const [title, setTitle] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   async function submit(e: FormEvent) {
     e.preventDefault();
     setError(null);
     try {
-      const item = await api<ItemView>("/theses", { method: "POST", body: JSON.stringify({ title }) });
+      const item = await api<ItemView>("/theses", { method: "POST" });
       router.push(`/items/thesis_submission/${item.id}`);
     } catch (err) {
       setError(errorText(err));
@@ -34,9 +33,7 @@ function StartThesis() {
       <h2>Ready to submit your thesis?</h2>
       <p>Start a submission, upload the final thesis, then send it up the chain: supervisor → department → Library (plagiarism check) → Exam Office → Research Office.</p>
       <form className="stack-form" onSubmit={submit}>
-        <Field label="Thesis title">
-          <input required maxLength={500} value={title} onChange={(e) => setTitle(e.target.value)} />
-        </Field>
+        <p className="muted">Your thesis title comes from your RDC approval, so there is nothing to type.</p>
         <ErrorText>{error}</ErrorText>
         <Button kind="primary" type="submit">Start thesis submission</Button>
       </form>

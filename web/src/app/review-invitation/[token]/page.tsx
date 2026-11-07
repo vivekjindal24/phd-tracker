@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState } from "react";
 import { Owl } from "@/components/brand/Owl";
+import { UniversityMark } from "@/components/brand/UniversityMark";
 import { Button, Card, ErrorText, Field } from "@/components/ui/kit";
 import { api } from "@/lib/api";
 import { formatDate } from "@/lib/format";
@@ -55,6 +56,7 @@ export default function InvitationPage() {
   if (error) {
     return (
       <main className="empty-state">
+        <UniversityMark />
         <Owl pose="empty" size={110} />
         <h1>This invitation is not available</h1>
         <p role="alert">It may have expired or already been answered. Please contact the university's Exam Office.</p>
@@ -65,6 +67,7 @@ export default function InvitationPage() {
   if (done) {
     return (
       <main className="empty-state">
+        <UniversityMark />
         <Owl pose="reading" size={110} />
         <p role="status">{done}</p>
         <Link href="/login">Go to log in</Link>
@@ -73,6 +76,7 @@ export default function InvitationPage() {
   }
   return (
     <main className="review-shell">
+      <UniversityMark />
       <Card>
         <h1>Invitation to review a PhD thesis</h1>
         <p>Dear {data.reviewer_name}, {data.university} invites you to review this thesis.</p>

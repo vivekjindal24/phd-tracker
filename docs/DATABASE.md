@@ -132,7 +132,8 @@ viewers happens in the API (`scope.py`), never in the client.
 pre_synopsis / thesis_submission / viva / degree_awarded), `status` CHECK
 (Pending / Approved / Rejected, default Pending), `approval_body` CHECK
 (RDC / DPGC / DRC / RAC / Other), `resolution_number`, `resolution_date`,
-`notes`.
+`notes`, `approved_title` (proposal approvals only: the latest approved one is
+the thesis title, copied onto the live `thesis_submissions.title`).
 
 ### 3.3b Progress seminars (PRD F15)
 

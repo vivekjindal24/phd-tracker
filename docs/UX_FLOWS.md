@@ -124,8 +124,9 @@ co-supervisor (setting on) may log their own meetings but never sets sharing.
    and column) → fix and re-upload until clean → **Import** (all or nothing),
    optionally **send invitations**.
 4. **Roles**: assign HoD / admin for units in their subtree only.
-5. Root admin additionally sees **Settings**: org tree editor (add / rename
-   / move units), **Approval chains** (per item type: ordered clay step chips,
+5. Root admin additionally sees **Settings**: **University identity** (name,
+   address and logo, set once here and shown across the portal and on every
+   PDF), org tree editor (add / rename / move units), **Approval chains** (per item type: ordered clay step chips,
    add / remove / reorder, saved with a note "applies to new submissions
    only"), **Modules** (switches), **Co-supervision** (Off / View /
    View + approve).
@@ -148,7 +149,10 @@ Thesis examiners are not requested here (Exam Office only, Flow 8).
 ## Flow 6 — Research office keeps the RDC register
 
 1. **Register → Add decision**: scholar, milestone type, status, body
-   (RDC/DPGC/DRC/RAC), resolution number/date, notes.
+   (RDC/DPGC/DRC/RAC), resolution number/date, notes. A proposal approval also
+   records the **approved title**, starting from the scholar's research title.
+   Editing it later updates the thesis and is logged; a valid certificate must
+   be revoked first (409 `certificate_issued`).
 2. **Register PDF / CSV** for the committee meeting.
 3. The scholar's RDC status updates on their profile and on head dashboards.
 

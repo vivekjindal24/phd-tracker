@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { Button, Card, ErrorText, Field } from "@/components/ui/kit";
-import { api, ApiError } from "@/lib/api";
+import { api, ApiError, BRANDING_CHANGED } from "@/lib/api";
 import type { OrgUnit } from "@/lib/types";
 
 const depth = (u: OrgUnit) => u.path.split(".").length - 1;
@@ -28,6 +28,8 @@ export function OrgTree() {
   }, []);
   useEffect(() => {
     load();
+    window.addEventListener(BRANDING_CHANGED, load);
+    return () => window.removeEventListener(BRANDING_CHANGED, load);
   }, [load]);
 
   async function add(e: FormEvent) {

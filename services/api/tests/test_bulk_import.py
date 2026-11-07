@@ -228,6 +228,17 @@ async def test_history_import_and_rerun(client, session, world):
     assert again.json()["created"] == 0
 
 
+async def test_history_import_carries_the_approved_title(client, session, world):
+    header = "Roll number,Milestone,Approval body,Approved title"
+    wrong = csv_bytes(header, "PHD-A1-001,viva,RDC,Not a proposal")
+    res = await upload(client, world.admin_a1, "history", wrong, dry_run="true")
+    assert [e["column"] for e in res.json()["errors"]] == ["Approved title"]
+
+    right = csv_bytes(header, "PHD-A1-001,proposal approval,RDC,On graphs")
+    assert (await upload(client, world.admin_a1, "history", right)).json()["created"] == 1
+    assert await session.scalar(select(Milestone.approved_title)) == "On graphs"
+
+
 async def test_invitations_go_out_after_import(client, world, monkeypatch):
     monkeypatch.setattr(notify, "settings", dataclasses.replace(settings, smtp=SMTP))
     sent = []

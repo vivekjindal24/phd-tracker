@@ -259,7 +259,8 @@ it while still unsubmitted. No seminar scheduled → no deadline shown.
 admins) record committee decisions: milestone type (coursework, proposal
 approval, RAC review, pre-synopsis, thesis submission, viva, degree awarded),
 status (Pending / Approved / Rejected), approval body (RDC/DPGC/DRC/RAC),
-resolution number and date, notes. A scholar's current RDC status is shown on
+resolution number and date, notes, and on a proposal approval the approved
+title. A scholar's current RDC status is shown on
 their profile and the head dashboards.
 
 **F10 — Dashboards.** One home page per user, combining their roles:
@@ -377,9 +378,15 @@ Library at its step), examiners (entered by Exam Office at its step).
   by the scholar, runs its own chain (default Supervisor (lab) → Department →
   Library → Research Office (fees)). While the setting is on, a thesis cannot
   be submitted without the scholar's approved no-dues → 409 `no_dues_pending`.
+- **Thesis title** (Decided 2026-11-07): the title comes from the latest
+  approved proposal entry in the register, never from the scholar. A thesis
+  cannot start, and a certificate cannot be issued, until it is recorded
+  (422 `title_not_approved`).
 - **Provisional certificate** (Decided 2026-10-31): after a passed viva the
   Research Office issues the provisional PhD certificate (UGC 2022) — serial
   number `<university code>/PHD/<year>/<n>`, issue date, PDF with a QR code.
+  The scholar's name and thesis title come from the portal; the degree name,
+  wording and signatories are set per university at install (ARCHITECTURE §9).
   The QR opens a public verification page (`/verify/<random token>`, no login)
   showing only name, thesis title, unit, viva date, issue date and status
   (valid / revoked). The Research Office may revoke with a reason; nothing is

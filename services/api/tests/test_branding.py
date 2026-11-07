@@ -45,6 +45,28 @@ async def test_root_admin_sets_address_and_logo(client, world):
     assert logo.headers["x-content-type-options"] == "nosniff"
 
 
+async def test_renaming_the_university_reaches_branding_and_every_export(client, world):
+    res = await client.patch(
+        f"{API}/org-units/{world.root.id}",
+        headers=auth(world.root_admin.id),
+        json={"name": "Gujarat Research University"},
+    )
+    assert res.status_code == 200
+
+    assert (await client.get(f"{API}/branding")).json()["university"] == res.json()["name"]
+    view = await client.get(f"{API}/internal/register-view", headers=auth(world.research_office.id))
+    assert view.json()["university"] == "Gujarat Research University"
+
+
+async def test_only_the_root_admin_renames_the_university(client, world):
+    res = await client.patch(
+        f"{API}/org-units/{world.root.id}",
+        headers=auth(world.research_office.id),
+        json={"name": "Somewhere Else"},
+    )
+    assert res.status_code == 403
+
+
 async def test_type_comes_from_the_bytes_not_the_header(client, world):
     await put_logo(client, world.root_admin, JPEG, "image/png")
     logo = await client.get(f"{API}/branding/logo")

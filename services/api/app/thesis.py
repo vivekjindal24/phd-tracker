@@ -18,10 +18,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import items
 from app.auth.principal import Principal
+from app.crud import update
 from app.errors import ApiError, forbidden
 from app.meetings import FUTURE_SLACK
 from app.models import (
     ExaminerReport,
+    Milestone,
     ProvisionalCertificate,
     ShodhgangaDeposit,
     ThesisReview,
@@ -33,6 +35,54 @@ from app.workflow import ItemContext, is_guide
 
 OFFICES_SEEING_UNRELEASED = frozenset({"exam_office", "research_office", "library"})
 FINAL_VIVA_OUTCOMES = frozenset({"pass", "fail"})
+TITLE_NOT_APPROVED = ApiError(
+    422,
+    "title_not_approved",
+    "The thesis title comes from the RDC approval. Ask the Research Office to record it first.",
+)
+
+
+async def approved_title(session: AsyncSession, scholar_id: uuid.UUID) -> str | None:
+    """The title the committee last approved: the only source of a thesis title."""
+    return await session.scalar(
+        select(Milestone.approved_title)
+        .where(
+            Milestone.scholar_id == scholar_id,
+            Milestone.milestone_type == "proposal_approval",
+            Milestone.status == "Approved",
+            Milestone.approved_title.is_not(None),
+            Milestone.deleted_at.is_(None),
+        )
+        .order_by(Milestone.resolution_date.desc().nulls_last(), Milestone.created_at.desc())
+        .limit(1)
+    )
+
+
+async def sync_title(session: AsyncSession, principal: Principal, scholar_id: uuid.UUID) -> None:
+    """Carry the approved title onto the live thesis. A valid certificate has that title printed
+    on it, so it has to be revoked before the title can change."""
+    title = await approved_title(session, scholar_id)
+    item = await session.scalar(
+        select(ThesisSubmission).where(
+            ThesisSubmission.scholar_id == scholar_id, ThesisSubmission.deleted_at.is_(None)
+        )
+    )
+    if title is None or item is None or item.title == title:
+        return
+    certified = await session.scalar(
+        select(ProvisionalCertificate.id).where(
+            ProvisionalCertificate.thesis_id == item.id,
+            ProvisionalCertificate.revoked_at.is_(None),
+            ProvisionalCertificate.deleted_at.is_(None),
+        )
+    )
+    if certified:
+        raise ApiError(
+            409,
+            "certificate_issued",
+            "This scholar has a valid certificate. Revoke it before changing the title.",
+        )
+    await update(session, principal, item, {"title": title})
 
 
 def require_not_guide(principal: Principal, ctx: ItemContext) -> None:

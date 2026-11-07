@@ -2,6 +2,7 @@
 
 import { useParams } from "next/navigation";
 import { Owl } from "@/components/brand/Owl";
+import { UniversityMark } from "@/components/brand/UniversityMark";
 import { formatDate } from "@/lib/format";
 import type { CertificateCheck } from "@/lib/types";
 import { useFetch } from "@/lib/useFetch";
@@ -13,6 +14,7 @@ export default function VerifyPage() {
 
   return (
     <main className="empty-state">
+      <UniversityMark />
       <Owl pose={data?.status === "valid" ? "reading" : "empty"} size={110} />
       <h1>Provisional certificate</h1>
       {error && <p role="alert">We could not verify this certificate. Check the link or QR code.</p>}

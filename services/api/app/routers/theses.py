@@ -38,7 +38,6 @@ from app.schemas.research import (
     ExaminerReportUpdate,
     ExaminersIn,
     PlagiarismIn,
-    ThesisIn,
     ThesisRow,
     VivaIn,
     VivaUpdate,
@@ -86,14 +85,16 @@ async def list_theses(
 
 @router.post("/theses", response_model=ItemView, status_code=201)
 async def create_thesis(
-    body: ThesisIn,
     principal: Principal = Depends(require_perm("thesis_submissions", "create")),
     session: AsyncSession = Depends(get_session),
 ) -> dict[str, Any]:
     if principal.scholar_id is None:
         raise ApiError(403, "forbidden", "Scholars submit their own thesis.")
+    title = await thesis.approved_title(session, principal.scholar_id)
+    if title is None:
+        raise thesis.TITLE_NOT_APPROVED
     row = await insert(
-        session, principal, ThesisSubmission(scholar_id=principal.scholar_id, title=body.title)
+        session, principal, ThesisSubmission(scholar_id=principal.scholar_id, title=title)
     )
     await session.commit()
     ctx = await thesis.load_thesis(session, principal, row.id)
@@ -134,20 +135,6 @@ async def start_no_dues(
     row = await insert(session, principal, NoDuesClearance(scholar_id=principal.scholar_id))
     await session.commit()
     ctx = await items.load_ctx(session, principal, "no_dues_clearance", row.id)
-    return await items.view(session, principal, ctx)
-
-
-@router.patch("/theses/{thesis_id}", response_model=ItemView)
-async def update_thesis(
-    thesis_id: uuid.UUID,
-    body: ThesisIn,
-    principal: Principal = Depends(require_perm("thesis_submissions", "update")),
-    session: AsyncSession = Depends(get_session),
-) -> dict[str, Any]:
-    ctx = await thesis.load_thesis(session, principal, thesis_id, lock=True)
-    workflow.assert_editable(principal, ctx)
-    await update(session, principal, ctx.item, body.model_dump())
-    await session.commit()
     return await items.view(session, principal, ctx)
 
 

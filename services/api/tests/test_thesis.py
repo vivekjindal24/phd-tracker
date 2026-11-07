@@ -42,16 +42,34 @@ async def act(client, user, tid, action, body=None):
     )
 
 
-async def new_thesis(client, world) -> str:
-    res = await client.post(
-        "/api/v1/theses", headers=auth(world.scholar_a1.id), json={"title": "On graphs"}
+async def record_title(client, session, world, title="On graphs", **fields):
+    """The Research Office records the committee's decision, title and all."""
+    scholar_id = await session.scalar(
+        select(Scholar.id).where(Scholar.user_id == world.scholar_a1.id)
     )
+    return await client.post(
+        "/api/v1/milestones",
+        headers=auth(world.research_office.id),
+        json={
+            "scholar_id": str(scholar_id),
+            "milestone_type": "proposal_approval",
+            "status": "Approved",
+            "approval_body": "RDC",
+            "approved_title": title,
+            **fields,
+        },
+    )
+
+
+async def new_thesis(client, session, world) -> str:
+    assert (await record_title(client, session, world)).status_code == 201
+    res = await client.post("/api/v1/theses", headers=auth(world.scholar_a1.id))
     assert res.status_code == 201, res.text
     return res.json()["id"]
 
 
 async def approved_thesis(client, session, world) -> str:
-    tid = await new_thesis(client, world)
+    tid = await new_thesis(client, session, world)
     await ready_file(session, world.scholar_a1, "thesis_submissions", tid)
     assert (await act(client, world.scholar_a1, tid, "submit")).status_code == 200
     assert (await act(client, world.meera, tid, "approve")).status_code == 200
@@ -73,25 +91,23 @@ async def approved_thesis(client, session, world) -> str:
     return tid
 
 
-async def test_cannot_submit_without_the_thesis_file(client, world, documents_on):
-    tid = await new_thesis(client, world)
+async def test_cannot_submit_without_the_thesis_file(client, session, world, documents_on):
+    tid = await new_thesis(client, session, world)
     res = await act(client, world.scholar_a1, tid, "submit")
     assert res.status_code == 422
     assert "thesis file" in res.json()["error"]["message"]
 
 
-async def test_one_live_thesis_per_scholar(client, world, documents_on):
-    await new_thesis(client, world)
-    res = await client.post(
-        "/api/v1/theses", headers=auth(world.scholar_a1.id), json={"title": "Again"}
-    )
+async def test_one_live_thesis_per_scholar(client, session, world, documents_on):
+    await new_thesis(client, session, world)
+    res = await client.post("/api/v1/theses", headers=auth(world.scholar_a1.id))
     assert res.status_code == 409 and res.json()["error"]["code"] == "duplicate_thesis"
 
 
 async def test_offices_must_fill_their_fields_before_approving(
     client, session, world, documents_on
 ):
-    tid = await new_thesis(client, world)
+    tid = await new_thesis(client, session, world)
     await ready_file(session, world.scholar_a1, "thesis_submissions", tid)
     await act(client, world.scholar_a1, tid, "submit")
     await act(client, world.meera, tid, "approve")
@@ -111,7 +127,7 @@ async def test_offices_must_fill_their_fields_before_approving(
 
 
 async def test_library_removes_only_its_own_certificate(client, session, world, documents_on):
-    tid = await new_thesis(client, world)
+    tid = await new_thesis(client, session, world)
     thesis_file = await ready_file(session, world.scholar_a1, "thesis_submissions", tid)
     await act(client, world.scholar_a1, tid, "submit")
     await act(client, world.meera, tid, "approve")
@@ -209,8 +225,8 @@ async def test_reports_release_viva_and_deposit(client, session, world, document
 VIVA = {"held_on": "2026-10-10", "outcome": "pass"}
 
 
-async def test_nothing_recorded_before_approval(client, world, documents_on):
-    tid = await new_thesis(client, world)
+async def test_nothing_recorded_before_approval(client, session, world, documents_on):
+    tid = await new_thesis(client, session, world)
     early = await client.post(
         f"/api/v1/theses/{tid}/vivas", headers=auth(world.exam_office.id), json=VIVA
     )

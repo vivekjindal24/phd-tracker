@@ -267,6 +267,7 @@ export type Milestone = {
   resolution_number: string | null;
   resolution_date: string | null;
   notes: string;
+  approved_title: string | null;
   updated_at: string;
 };
 

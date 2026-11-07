@@ -96,10 +96,10 @@ async def test_only_the_exam_office_invites(client, session, world, documents_on
     assert (await invite(client, world, tid)).status_code == 201
 
 
-async def test_a_thesis_must_be_approved_first(client, world, documents_on, outbox):
+async def test_a_thesis_must_be_approved_first(client, session, world, documents_on, outbox):
     from tests.test_thesis import new_thesis
 
-    tid = await new_thesis(client, world)
+    tid = await new_thesis(client, session, world)
     assert (await invite(client, world, tid)).status_code == 422
 
 

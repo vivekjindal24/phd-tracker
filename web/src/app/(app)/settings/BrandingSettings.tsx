@@ -3,14 +3,19 @@
 import { useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import { Button, Card, ErrorText, Field } from "@/components/ui/kit";
-import { api, logoUrl } from "@/lib/api";
-import type { Branding, SettingsData } from "@/lib/types";
+import { api, BRANDING_CHANGED, logoUrl } from "@/lib/api";
+import type { Branding, OrgUnit, SettingsData } from "@/lib/types";
 import { errorText, useFetch } from "@/lib/useFetch";
 import type { Save } from "./save";
 
-/** The name comes from the root unit in the tree below; this card adds address and logo. */
+/** The one place for the university's name, address and logo. The name is stored on the root
+ *  unit, so renaming there also renames the top of the tree. */
 export function BrandingSettings({ data, save }: { data: SettingsData; save: Save }) {
   const branding = useFetch<Branding>("/branding");
+  const units = useFetch<OrgUnit[]>("/org-units");
+  const root = units.data?.find((u) => !u.parent_id);
+  const [typedName, setTypedName] = useState<string | null>(null);
+  const name = typedName ?? root?.name ?? "";
   const [address, setAddress] = useState(data.university_address);
   const [error, setError] = useState<string | null>(null);
 
@@ -19,6 +24,7 @@ export function BrandingSettings({ data, save }: { data: SettingsData; save: Sav
     try {
       await work();
       await branding.reload();
+      window.dispatchEvent(new Event(BRANDING_CHANGED));
     } catch (e) {
       setError(errorText(e));
     }
@@ -29,20 +35,30 @@ export function BrandingSettings({ data, save }: { data: SettingsData; save: Sav
     e.target.value = "";
     if (file) run(() => api("/settings/logo", { method: "PUT", body: file }));
   };
-  const saveAddress = (e: FormEvent) => {
+  const saveDetails = (e: FormEvent) => {
     e.preventDefault();
-    run(() => save("/settings", "PATCH", { university_address: address }));
+    run(async () => {
+      if (root && name !== root.name) {
+        await api(`/org-units/${root.id}`, { method: "PATCH", body: JSON.stringify({ name }) });
+        await units.reload();
+        setTypedName(null);
+      }
+      await save("/settings", "PATCH", { university_address: address });
+    });
   };
 
   return (
     <Card>
       <h2>University identity</h2>
-      <p className="muted">Shown at login, in the top bar and on every PDF. The name is the top unit in the tree.</p>
-      <form onSubmit={saveAddress}>
+      <p className="muted">Set these once here. They appear across the portal and on every PDF.</p>
+      <form onSubmit={saveDetails}>
+        <Field label="University name">
+          <input required maxLength={200} disabled={!root} value={name} onChange={(e) => setTypedName(e.target.value)} />
+        </Field>
         <Field label="Address on PDFs">
           <input maxLength={500} value={address} onChange={(e) => setAddress(e.target.value)} />
         </Field>
-        <Button kind="secondary" type="submit">Save address</Button>
+        <Button kind="secondary" type="submit" disabled={!root}>Save details</Button>
       </form>
       {branding.data?.has_logo && (
         <img src={logoUrl(branding.data.logo_version)} alt={`${branding.data.university} logo`} height={72} />
@@ -53,7 +69,7 @@ export function BrandingSettings({ data, save }: { data: SettingsData; save: Sav
       {branding.data?.has_logo && (
         <Button kind="ghost" onClick={() => run(() => api("/settings/logo", { method: "DELETE" }))}>Remove logo</Button>
       )}
-      <ErrorText>{error}</ErrorText>
+      <ErrorText>{error ?? units.error}</ErrorText>
     </Card>
   );
 }

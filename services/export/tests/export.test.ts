@@ -36,7 +36,10 @@ const uc = {
 
 const certificate = {
   university: "Demo University", address: "", logo: null, unit: "Physics", serial: "DEMO/PHD/2026/1", scholar: "Kabir Malhotra",
-  roll_number: "PHD-PHY-2021-003", thesis_title: "Topological phases in cold atoms", viva_date: "2026-10-20",
+  roll_number: "PHD-PHY-2021-003", degree: "Doctor of Philosophy", opening: "This is to certify that",
+  title_lead: "has successfully defended the thesis entitled", body: "held on {viva_date}, degree of {degree}.",
+  signatories: ["Controller of Examinations", "Registrar", "Vice-Chancellor"],
+  thesis_title: "Topological phases in cold atoms", viva_date: "2026-10-20",
   issued_on: "2026-11-06", verify_url: "https://research.example.edu/verify/abc",
   generated_at: "2026-11-06T10:00:00Z", generated_by: "Research Office",
 };

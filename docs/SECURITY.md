@@ -76,7 +76,7 @@ role's scope (§2).
 | publications | CRU own, submit | R, step | R | R | R, step | — | R, step |
 | conferences | CRUD own | R | R | R | R | — | R |
 | documents & versions | CRU own | R, comment | — | — | — | — | — |
-| thesis submissions | CRU own, submit | R, step | R, step (department) | R, step (department) | R, step | R, step | R, step |
+| thesis submissions | CR own, submit | R, step | R, step (department) | R, step (department) | R, step | R, step | R, step |
 | no-dues clearance | CR own, submit | R, step | R, step (department) | R, step (department) | R, step | R | R, step |
 | examiner reports | R own after release† | R after release† | R | R | R | CRU, release | R |
 | thesis reviewers (invite, deadline, trace a code) | — | — | — | — | — | CRU | — |

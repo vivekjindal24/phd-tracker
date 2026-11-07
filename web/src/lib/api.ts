@@ -182,6 +182,9 @@ export const exchangeSsoCode = (code: string) => obtainTokens("/auth/sso/exchang
 export const setPasswordWithLink = (token: string, password: string) =>
   obtainTokens("/auth/set-password", { token, password });
 
+/** Fired after the name or logo changes, so the top bar and tree update without a page reload. */
+export const BRANDING_CHANGED = "anveshan:branding-changed";
+
 export const logoUrl = (version: number | null) => `${API_URL}/api/v1/branding/logo?v=${version}`;
 
 /** SSO starts with a full-page navigation to the API, which redirects to the provider. */

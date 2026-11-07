@@ -96,6 +96,23 @@ class Sso:
     api_public_url: str
 
 
+CERTIFICATE_PLACEHOLDERS = frozenset({"degree", "viva_date"})
+
+
+@dataclass(frozen=True)
+class CertificateWording:
+    degree: str = "Doctor of Philosophy"
+    opening: str = "This is to certify that"
+    title_lead: str = "has successfully defended the thesis entitled"
+    body: str = (
+        "at the viva voce examination held on {viva_date}. The degree of {degree} has been "
+        "awarded in accordance with the provisions of the UGC (Minimum Standards and Procedures "
+        "for Award of Ph.D. Degree) Regulations, 2022. This provisional certificate stands until "
+        "the degree certificate is issued."
+    )
+    signatories: tuple[str, ...] = ("Controller of Examinations", "Registrar")
+
+
 @dataclass(frozen=True)
 class Settings:
     database_url: str
@@ -108,6 +125,7 @@ class Settings:
     sso: Sso | None = None
     whatsapp: Whatsapp | None = None  # unset: WhatsApp off (recorded per notification)
     cron_secret: str | None = None  # unset: the daily job endpoint is off
+    certificate: CertificateWording = CertificateWording()
     access_token_minutes: int = 30
     refresh_token_days: int = 14
 
@@ -268,6 +286,24 @@ def _load_cron_secret() -> str | None:
     return secret or None
 
 
+def _load_certificate() -> CertificateWording:
+    """The wording each university settles at install. A blank variable keeps the default; a
+    mistyped {placeholder} stops startup, because it would otherwise print on every certificate."""
+    default = CertificateWording()
+    body = os.environ.get("CERTIFICATE_BODY", "").strip() or default.body
+    if unknown := set(re.findall(r"{(.*?)}", body)) - CERTIFICATE_PLACEHOLDERS:
+        raise ConfigError(f"CERTIFICATE_BODY has unknown placeholders: {sorted(unknown)}")
+    signatories = os.environ.get("CERTIFICATE_SIGNATORIES", "").strip()
+    return CertificateWording(
+        degree=os.environ.get("CERTIFICATE_DEGREE", "").strip() or default.degree,
+        opening=os.environ.get("CERTIFICATE_OPENING", "").strip() or default.opening,
+        title_lead=os.environ.get("CERTIFICATE_TITLE_LEAD", "").strip() or default.title_lead,
+        body=body,
+        signatories=tuple(s.strip() for s in signatories.split("|") if s.strip())
+        or default.signatories,
+    )
+
+
 def load_settings() -> Settings:
     database_url = _normalize_db_url(_require("DATABASE_URL"))
     jwt_secret = _require("JWT_SECRET")
@@ -286,6 +322,7 @@ def load_settings() -> Settings:
         sso=_load_sso(),
         whatsapp=_load_whatsapp(),
         cron_secret=_load_cron_secret(),
+        certificate=_load_certificate(),
     )
 
 

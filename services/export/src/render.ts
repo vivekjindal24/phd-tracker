@@ -239,22 +239,21 @@ export async function ucPdf(v: UcView): Promise<Buffer> {
 export async function certificatePdf(v: CertificateView): Promise<Buffer> {
   const doc = new PDFDocument({ size: "A4", margin: 56, bufferPages: true, info: { Title: `Provisional certificate – ${v.serial}` } });
   header(doc, v, "Provisional Certificate", `Serial no. ${v.serial}`);
-  doc.moveDown(1.5).font("Helvetica").fontSize(12).text("This is to certify that", { align: "center" }).moveDown(0.6);
+  doc.moveDown(1.5).font("Helvetica").fontSize(12).text(v.opening, { align: "center" }).moveDown(0.6);
   doc.font("Helvetica-Bold").fontSize(16).text(v.scholar, { align: "center" }).moveDown(0.2);
   doc.font("Helvetica").fontSize(10).text(`Roll number ${v.roll_number}${v.unit ? ` · ${v.unit}` : ""}`, { align: "center" }).moveDown(1);
-  doc.fontSize(12).text("has successfully defended the thesis entitled", { align: "center" }).moveDown(0.6);
+  doc.fontSize(12).text(v.title_lead, { align: "center" }).moveDown(0.6);
   doc.font("Helvetica-Bold").fontSize(13).text(v.thesis_title, { align: "center" }).moveDown(1);
   doc.font("Helvetica").fontSize(11.5).text(
-    `at the viva voce examination held on ${day(v.viva_date)}. The degree of Doctor of Philosophy has been ` +
-    "awarded in accordance with the provisions of the UGC (Minimum Standards and Procedures for Award of Ph.D. " +
-    "Degree) Regulations, 2022. This provisional certificate stands until the degree certificate is issued.",
+    v.body.replaceAll("{degree}", v.degree).replaceAll("{viva_date}", day(v.viva_date)),
     { align: "justify", lineGap: 3 });
   doc.moveDown(1).fontSize(10.5).text(`Date of issue: ${day(v.issued_on)}`);
 
   const left = doc.page.margins.left;
   const y = doc.y + 70; // room to sign above the lines
-  const col = (doc.page.width - left - doc.page.margins.right) / 2;
-  ["Controller of Examinations", "Registrar"].forEach((who, i) => {
+  const span = doc.page.width - left - doc.page.margins.right;
+  const col = span / v.signatories.length;
+  v.signatories.forEach((who, i) => {
     doc.moveTo(left + i * col + 16, y).lineTo(left + (i + 1) * col - 16, y).lineWidth(0.6).stroke();
     doc.font("Helvetica").fontSize(9).text(who, left + i * col, y + 4, { width: col, align: "center" });
   });
@@ -264,7 +263,7 @@ export async function certificatePdf(v: CertificateView): Promise<Buffer> {
   const qrY = y + 44;
   doc.image(qr, (doc.page.width - size) / 2, qrY, { width: size });
   doc.fontSize(8).fillColor("#555555")
-    .text("Scan to verify this certificate", left, qrY + size + 4, { width: col * 2, align: "center" })
+    .text("Scan to verify this certificate", left, qrY + size + 4, { width: span, align: "center" })
     .fillColor("black");
   footer(doc, v.generated_by, v.generated_at);
   return toBuffer(doc);
