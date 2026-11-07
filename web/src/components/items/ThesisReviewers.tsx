@@ -129,7 +129,7 @@ function TraceCode() {
       <ErrorText>{error}</ErrorText>
       {trace && (
         <p role="status">
-          {trace.reviewer_name} ({trace.reviewer_email}) · {trace.kind === "download" ? "downloaded" : "viewed"} {formatDate(trace.issued_at.slice(0, 10))} · {trace.thesis_title}
+          {trace.reviewer_name} ({trace.reviewer_email}) · {trace.kind === "download" ? "downloaded" : "viewed"} <time dateTime={trace.issued_at}>{new Date(trace.issued_at).toLocaleString()}</time> · {trace.thesis_title}
         </p>
       )}
     </form>
