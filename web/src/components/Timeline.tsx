@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { formatDate } from "@/lib/format";
 import { useFetch } from "@/lib/useFetch";
-import { Card } from "./ui/kit";
+import { Card, ShowMore } from "./ui/kit";
 import "./timeline.css";
 
 type Event = { at: string; kind: string; title: string; detail: string | null; link: string; badge: string | null };
@@ -18,16 +19,21 @@ const BADGE: Record<string, string> = {
 };
 const BADGE_TEXT: Record<string, string> = { in_review: "In review", sent_back: "Sent back", draft: "Draft", approved: "Approved" };
 
+const PAGE = 50;
+
 /** Everything about a scholar in date order, each row filtered by the viewer's rights. */
 export function Timeline({ scholarId }: { scholarId: string }) {
   const { data } = useFetch<Event[]>(`/scholars/${scholarId}/timeline`);
+  // ponytail: the API sends every event and we page in the browser; page in the API if a
+  // profile ever holds thousands.
+  const [shown, setShown] = useState(PAGE);
   if (!data) return null;
   return (
     <Card className="timeline-card">
       <h2>Timeline</h2>
       {data.length === 0 ? <p className="muted">Nothing recorded yet.</p> : (
         <ol className="timeline">
-          {data.map((e, i) => (
+          {data.slice(0, shown).map((e, i) => (
             <li key={`${e.kind}-${e.link}-${i}`}>
               <span className="timeline-icon" aria-hidden="true">{ICON[e.kind] ?? "•"}</span>
               <div>
@@ -40,6 +46,7 @@ export function Timeline({ scholarId }: { scholarId: string }) {
           ))}
         </ol>
       )}
+      <ShowMore hasMore={data.length > shown} more={() => setShown(shown + PAGE)} />
     </Card>
   );
 }

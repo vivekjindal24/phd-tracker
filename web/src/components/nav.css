@@ -67,7 +67,8 @@
   background: var(--lilac);
   color: var(--ink);
 }
-@media (max-width: 760px) {
+@media (max-width: 1700px) {
+  /* the top bar's two-row breakpoint, see shell.css */
   .nav {
     order: 3;
     width: 100%;

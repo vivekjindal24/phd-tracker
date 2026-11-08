@@ -271,7 +271,7 @@ export default function HomePage() {
 
           {d.supervisor && (
             <section className="dash-section" aria-labelledby="dash-sup">
-              <h2 id="dash-sup">Your scholars <span className="badge">{d.supervisor.load}/{d.supervisor.max_scholars} (UGC limit)</span></h2>
+              <h2 id="dash-sup">Your scholars <span className="badge">{d.supervisor.load}/{d.supervisor.max_scholars} limit</span></h2>
               <div className="dash-grid">
                 <Card>
                   <ul className="plain-list">

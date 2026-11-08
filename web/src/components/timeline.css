@@ -22,10 +22,11 @@
 }
 .timeline li {
   display: grid;
-  grid-template-columns: 36px 1fr;
+  grid-template-columns: 36px minmax(0, 1fr);
   gap: var(--space-3);
   align-items: start;
   position: relative;
+  overflow-wrap: anywhere;
 }
 .timeline-icon {
   width: 36px;

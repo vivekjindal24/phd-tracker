@@ -140,8 +140,10 @@ co-supervisor's under `co_supervision = approve`).
 Exam Office, Research Office and root admin until the viva outcome is
 recorded; reports reach the scholar and supervisor only after the Exam Office
 releases them — omitted server-side, as with meeting redaction. A supervisor or co-supervisor who also heads the unit or
-works in an office waits for release like any other supervisor, never reads their own scholar's
-examiner names, and leaves that scholar's reports to a colleague (403 `own_scholar`).
+works in an office waits for release like any other supervisor, does not read their own scholar's
+examiner names before the viva outcome is recorded, and leaves that scholar's reports to a colleague (403 `own_scholar`).
+Once the viva is held the names are no secret, so everyone who can read the
+reports sees them (owner decision, 2026-11-08).
 
 **Thesis reviewers (PRD M3):** an external reviewer logs in for one assigned thesis
 until their deadline or submission, and reads nothing else: `users.is_reviewer`

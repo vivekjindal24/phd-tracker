@@ -138,7 +138,9 @@ for registers, `<dl class="kv">` for key-value, `<label>`-wrapped controls.
   In review · <step>, Sent back, Approved).
 - **Navigation:** clay pill top bar with grouped menus — My work, My unit,
   Office, Settings — showing only the groups the user's roles and enabled
-  modules allow. On phones it collapses into a bottom sheet.
+  modules allow. Below 1700px wide the menu takes its own row under the
+  wordmark, search and actions (one row needs ~1600px for the widest menu).
+  On phones it collapses into a bottom sheet.
 - **Home:** one page stacking a section per role the user holds (queue
   first, then scholars, then unit overview, then admin), bento tiles inside
   each section.

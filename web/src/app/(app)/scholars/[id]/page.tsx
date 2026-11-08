@@ -58,7 +58,7 @@ function AssignCard({
   return (
     <div className="assign">
       <Field label={kind === "supervisor" ? "Supervisor" : "Co-supervisor"}
-        hint={kind === "supervisor" ? "Only supervisors below their UGC limit are listed." : undefined}>
+        hint={kind === "supervisor" ? "Only supervisors below their limit are listed." : undefined}>
         <select value={choice} onChange={(e) => setChoice(e.target.value)}>
           <option value="">— None —</option>
           {current && <option value={current.id}>{current.name} (current)</option>}

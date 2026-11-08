@@ -9,11 +9,12 @@ import type { Me } from "@/lib/types";
 
 /** The 403 state for a page the API would refuse anyway; the API stays the enforcer. */
 export function NotForYourRole() {
+  const { me } = useSession();
   return (
     <Card className="empty-state">
       <Owl pose="empty" size={110} />
       <h2>This page isn&apos;t for your role</h2>
-      <p>Ask your department admin if you think you should have access.</p>
+      {!me?.is_root_admin && <p>Ask your department admin if you think you should have access.</p>}
       <Link href="/home">Back to home</Link>
     </Card>
   );

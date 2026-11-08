@@ -12,6 +12,8 @@ type Session = {
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   loggedOut: boolean;
+  /** A session stored in this browser could not be renewed (not: never logged in here). */
+  expired: boolean;
   reload: () => Promise<void>;
 };
 
@@ -22,15 +24,19 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<ApiError | null>(null);
   const [loggedOut, setLoggedOut] = useState(false);
+  const [expired, setExpired] = useState(false);
 
   const reload = useCallback(async () => {
     try {
       setMe(await api<Me>("/auth/me"));
       setError(null);
+      setExpired(false);
     } catch (e) {
       setMe(null);
       // 401 just means "not logged in"; anything else is shown to the user.
-      if (!(e instanceof ApiError && e.status === 401)) {
+      if (e instanceof ApiError && e.status === 401) {
+        setExpired(true);
+      } else {
         setError(e instanceof ApiError ? e : new ApiError(0, "unknown", String(e)));
       }
     }
@@ -50,6 +56,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       loading,
       error,
       loggedOut,
+      expired,
       reload,
       login: async (email, password) => {
         await apiLogin(email, password);
@@ -62,7 +69,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         setMe(null);
       },
     }),
-    [me, loading, error, loggedOut, reload],
+    [me, loading, error, loggedOut, expired, reload],
   );
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
 }

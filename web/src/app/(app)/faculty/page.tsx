@@ -14,7 +14,7 @@ function Load({ load, max }: { load: number; max: number }) {
         <span className="meter-fill" style={{ width: `${pct}%` }} />
       </span>
       {load}/{max}
-      {full && <span className="visually-hidden"> (at UGC limit)</span>}
+      {full && <span className="visually-hidden"> (at their limit)</span>}
     </span>
   );
 }
@@ -40,7 +40,7 @@ export default function FacultyPage() {
       </div>
       <ErrorText>{error}</ErrorText>
       {data && (
-        <Table label="Faculty" head={["Name", "Designation", "Department", "Scholars (UGC limit)"]}
+        <Table label="Faculty" head={["Name", "Designation", "Department", "Scholars (limit)"]}
           empty={<p className="empty-state">No faculty match.</p>}>
           {data.map((f) => (
             <tr key={f.id}>
