@@ -201,6 +201,32 @@ async def _require_may_grant(
         raise forbidden()
 
 
+@router.post("/users/{user_id}/two-factor/reset", status_code=204)
+async def reset_two_factor(
+    user_id: uuid.UUID,
+    principal: Principal = Depends(require_perm("users", "update")),
+    session: AsyncSession = Depends(get_session),
+) -> None:
+    """A lost phone: the person sets two-factor up again at their next login."""
+    await _require_admin_over_user(session, principal, user_id)
+    user = await session.get(User, user_id)
+    if user is None or user.deleted_at is not None:
+        raise forbidden()
+    await update(
+        session,
+        principal,
+        user,
+        {
+            "totp_secret": None,
+            "totp_enabled_at": None,
+            "totp_last_step": None,
+            "recovery_hashes": [],
+        },
+    )
+    await auth_service.revoke_all_refresh(session, user.id)
+    await session.commit()
+
+
 @router.get("/office-holders", response_model=list[OfficeHolderOut])
 async def list_office_holders(
     _: Principal = Depends(require_root_admin), session: AsyncSession = Depends(get_session)

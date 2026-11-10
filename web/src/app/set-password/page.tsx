@@ -8,7 +8,7 @@ import { Owl, OwlMark } from "@/components/brand/Owl";
 import { UniversityMark } from "@/components/brand/UniversityMark";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Button, ErrorText, Field } from "@/components/ui/kit";
-import { setPasswordWithLink } from "@/lib/api";
+import { ApiError, setPasswordWithLink } from "@/lib/api";
 import { useSession } from "@/lib/session";
 import { errorText } from "@/lib/useFetch";
 import "../login/login.css";
@@ -37,6 +37,8 @@ function SetPasswordForm() {
       await reload();
       router.replace("/home");
     } catch (err) {
+      // Two-factor is required: the password is saved, the code is asked for at log in.
+      if (err instanceof ApiError && err.code === "login_required") return router.replace("/login?password_set=1");
       setError(errorText(err));
       setBusy(false);
     }

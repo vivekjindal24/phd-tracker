@@ -13,10 +13,11 @@ from argon2.exceptions import InvalidHashError, VerificationError
 from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth import totp
 from app.config import settings
 from app.crud import update as audited_update
 from app.errors import ApiError
-from app.models import LoginAttempt, PasswordToken, RefreshToken, User
+from app.models import LoginAttempt, PasswordToken, RefreshToken, Settings, User
 from app.notify import email_configured, send_email
 
 log = logging.getLogger("anveshan.auth")
@@ -29,6 +30,9 @@ THROTTLE_WINDOW = timedelta(minutes=15)
 PASSWORD_LINK_TTL = timedelta(hours=72)
 
 _INVALID = ApiError(401, "invalid_credentials", "Email or password is incorrect.")
+_INVALID_CODE = ApiError(
+    401, "invalid_code", "That code is not right. Check the app and try again."
+)
 # Verified when there is no real hash, so login takes as long whether the account exists or not.
 _NO_ACCOUNT_HASH = _hasher.hash(secrets.token_urlsafe(32))
 
@@ -99,17 +103,86 @@ async def issue_tokens(session: AsyncSession, user_id: uuid.UUID) -> tuple[str, 
     return create_access_token(user_id), refresh
 
 
-async def login(session: AsyncSession, email: str, password: str) -> tuple[str, str]:
+async def two_factor_required(session: AsyncSession) -> bool:
+    return bool(await session.scalar(select(Settings.require_two_factor).where(Settings.id == 1)))
+
+
+async def _failed(session: AsyncSession, email: str, error: ApiError) -> ApiError:
+    """Every failed step counts toward the throttle, a wrong code like a wrong password."""
+    session.add(LoginAttempt(email=email.lower()))
+    await session.commit()
+    return error
+
+
+async def _second_step(session: AsyncSession, user: User, code: str | None) -> list[str] | None:
+    """The authenticator step of a password login, while the university requires it. The first
+    login after the switch sets it up: the secret goes out once the password is proven, and the
+    first correct code enables it and returns the recovery codes. Returns those codes, or None."""
+    now = datetime.now(UTC)
+    if user.totp_enabled_at is None:
+        if code is None:
+            user.totp_secret = totp.new_secret()
+            await session.commit()
+            raise ApiError(
+                401,
+                "two_factor_setup_required",
+                "Set up an authenticator app to finish logging in.",
+                {
+                    "secret": user.totp_secret,
+                    "otpauth_uri": totp.otpauth_uri(user.totp_secret, user.email),
+                },
+            )
+        step = user.totp_secret and totp.matching_step(
+            user.totp_secret, code, now.timestamp(), None
+        )
+        if not step:
+            raise await _failed(session, user.email, _INVALID_CODE)
+        recovery = totp.new_recovery_codes()
+        await audited_update(
+            session,
+            None,
+            user,
+            {
+                "totp_enabled_at": now,
+                "totp_last_step": step,
+                "recovery_hashes": [totp.hash_recovery(c) for c in recovery],
+            },
+        )
+        return recovery
+    if code is None:
+        raise ApiError(401, "two_factor_required", "Enter the code from your authenticator app.")
+    assert user.totp_secret is not None
+    step = totp.matching_step(user.totp_secret, code, now.timestamp(), user.totp_last_step)
+    if step:
+        user.totp_last_step = step
+        return None
+    hashed = totp.hash_recovery(code)
+    if hashed in user.recovery_hashes:  # a lost phone: each recovery code works once
+        await audited_update(
+            session,
+            None,
+            user,
+            {"recovery_hashes": [h for h in user.recovery_hashes if h != hashed]},
+        )
+        return None
+    raise await _failed(session, user.email, _INVALID_CODE)
+
+
+async def login(
+    session: AsyncSession, email: str, password: str, code: str | None = None
+) -> tuple[str, str, list[str] | None]:
+    """Tokens, plus the recovery codes when this login set two-factor up."""
     await _check_throttle(session, email)
     user = await session.scalar(select(User).where(User.email == email, User.deleted_at.is_(None)))
     password_ok = verify_password(user.password_hash if user else None, password)
     if user is None or not user.is_active or not password_ok:
-        session.add(LoginAttempt(email=email.lower()))
-        await session.commit()
-        raise _INVALID
+        raise await _failed(session, email, _INVALID)
+    recovery = None
+    if await two_factor_required(session):
+        recovery = await _second_step(session, user, code)
     if _hasher.check_needs_rehash(user.password_hash):
         user.password_hash = hash_password(password)
-    return await issue_tokens(session, user.id)
+    return (*await issue_tokens(session, user.id), recovery)
 
 
 async def rotate_refresh(session: AsyncSession, raw: str) -> tuple[str, str]:

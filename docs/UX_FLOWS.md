@@ -33,6 +33,19 @@
 active account → "No Anveshan account for this email — ask your department
 admin".
 
+## Flow 0b — Two-factor login (when the university requires it)
+
+1. Root admin → **Settings → UGC rules** → switch "Require two-factor login".
+2. At their next password login each person sees **Set up two-factor login**:
+   a key to add to an authenticator app (typed, or opened by a link on the
+   phone) and a box for the six-digit code. A correct code shows **Save your
+   recovery codes** once; "I have saved them, continue" enters the app.
+3. Every later login asks for **Enter your code** after the password; a
+   recovery code works there too, once.
+4. Lost phone and no recovery codes: an admin opens the person's page →
+   **Reset two-factor login**; the person sets it up again at the next login.
+   A password reset link saves the new password and returns to the login page.
+
 ## Flow 1 — Scholar submits a progress report (APR chain)
 
 1. Scholar → **Reports** → **New report**: period + year, a short summary and

@@ -57,6 +57,7 @@ export type SettingsData = {
   require_hardcopy: boolean;
   require_no_dues: boolean;
   require_ethics: boolean;
+  require_two_factor: boolean;
   apr_custom_template: boolean;
   apr_sections: AprSection[];
   apr_template: AprSection[];

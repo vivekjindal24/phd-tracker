@@ -26,6 +26,7 @@ const SSO_ERRORS: Record<string, string> = {
 
 function initialMessage(params: URLSearchParams): string | null {
   if (params.get("expired") === "1") return "Your session ended. Please log in again.";
+  if (params.get("password_set") === "1") return "Your password is set. Log in with it to continue.";
   const sso = params.get("sso_error");
   return sso ? (SSO_ERRORS[sso] ?? SSO_FAILED) : null;
 }
@@ -71,7 +72,7 @@ function ForgotPassword({ onBack }: { onBack: () => void }) {
 }
 
 function LoginForm() {
-  const { me, login, reload } = useSession();
+  const { me, login, reload, completeLogin } = useSession();
   const router = useRouter();
   const params = useSearchParams();
   const ssoCode = params.get("sso_code");
@@ -81,6 +82,11 @@ function LoginForm() {
   const [error, setError] = useState<string | null>(() => initialMessage(params));
   const [busy, setBusy] = useState(ssoCode !== null);
   const [forgot, setForgot] = useState(false);
+  // Two-factor, only when the API asks for it: a code, and at the first login the setup key.
+  const [code, setCode] = useState("");
+  const [needsCode, setNeedsCode] = useState(false);
+  const [setup, setSetup] = useState<{ secret: string; otpauth_uri: string } | null>(null);
+  const [recovery, setRecovery] = useState<string[] | null>(null);
 
   useEffect(() => {
     if (me) router.replace(safeNext(params.get("next")));
@@ -106,12 +112,53 @@ function LoginForm() {
     setBusy(true);
     setError(null);
     try {
-      await login(email, password);
+      setRecovery(await login(email, password, needsCode ? code : undefined));
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Something went wrong. Please try again.");
+      const asked = err instanceof ApiError && (err.code === "two_factor_required" || err.code === "two_factor_setup_required");
+      if (asked) {
+        setNeedsCode(true);
+        if (err.code === "two_factor_setup_required") setSetup(err.details as { secret: string; otpauth_uri: string });
+      } else {
+        setError(err instanceof ApiError ? err.message : "Something went wrong. Please try again.");
+      }
     } finally {
       setBusy(false);
     }
+  }
+
+  if (recovery) {
+    return (
+      <div className="login-card clay" aria-labelledby="recovery-title">
+        <h2 id="recovery-title">Save your recovery codes</h2>
+        <p>Two-factor login is set up. If you lose your phone, each of these codes logs you in once. They are shown only now: write them down or store them somewhere safe.</p>
+        <ul className="recovery-codes">{recovery.map((c) => <li key={c}><code>{c}</code></li>)}</ul>
+        <Button kind="primary" onClick={completeLogin}>I have saved them, continue</Button>
+      </div>
+    );
+  }
+
+  if (needsCode) {
+    return (
+      <form className="login-card clay" onSubmit={submit} aria-labelledby="code-title">
+        <h2 id="code-title">{setup ? "Set up two-factor login" : "Enter your code"}</h2>
+        {setup ? (
+          <>
+            <p>Your university requires a second step. In an authenticator app (Google Authenticator, Microsoft Authenticator, Authy), add an account and enter this key:</p>
+            <p><code className="setup-key">{setup.secret.replace(/(.{4})/g, "$1 ").trim()}</code></p>
+            <p className="muted">On this phone? <a href={setup.otpauth_uri}>Open it in your authenticator app</a>. Choose “time based” if asked.</p>
+          </>
+        ) : (
+          <p>Open your authenticator app and type the six-digit code for Anveshan. Lost your phone? Type one of your recovery codes instead.</p>
+        )}
+        <Field label={setup ? "Six-digit code from the app" : "Code"}>
+          <input inputMode="numeric" autoComplete="one-time-code" required minLength={6} maxLength={20} autoFocus
+            value={code} onChange={(e) => setCode(e.target.value)} />
+        </Field>
+        <ErrorText>{error}</ErrorText>
+        <Button kind="primary" type="submit" disabled={busy}>{busy ? "Checking…" : "Continue"}</Button>
+        <Button kind="ghost" onClick={() => { setNeedsCode(false); setSetup(null); setCode(""); setError(null); }}>← Back</Button>
+      </form>
+    );
   }
 
   return (

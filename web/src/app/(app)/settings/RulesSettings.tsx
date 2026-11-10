@@ -56,6 +56,11 @@ export function RulesSettings({ data, save }: { data: SettingsData; save: Save }
           <Switch checked={data.require_ethics} label="Thesis needs an ethics record"
             onChange={(v) => save("/settings", "PATCH", { require_ethics: v }).catch(() => {})} />
         </li>
+        <li>
+          <span>Everyone who logs in with a password also needs a code from an authenticator app. Switch this on for a live university; each person sets it up at their next log in.</span>
+          <Switch checked={data.require_two_factor} label="Require two-factor login"
+            onChange={(v) => save("/settings", "PATCH", { require_two_factor: v }).catch(() => {})} />
+        </li>
       </ul>
     </Card>
   );

@@ -52,7 +52,10 @@ Not an approvable item: no chain, one answer.
 **users** — login identity: `email` (citext, UNIQUE), `password_hash`
 (NULL until the person sets one — invited or SSO-only accounts cannot log in
 by password), `full_name`, `is_active`, `is_reviewer` (an external thesis reviewer,
-closed everywhere but their reviews), `email_muted` text[] (notification categories the
+closed everywhere but their reviews), `totp_secret` (the authenticator key, NULL until setup starts),
+`totp_enabled_at` (NULL = not set up), `totp_last_step` (the last time step
+used: a code works once), `recovery_hashes` text[] (sha256 of the unused
+recovery codes), `email_muted` text[] (notification categories the
 user muted for email; CHECK ⊆ categories in §3.7), `whatsapp_number` (NULL =
 no WhatsApp; set only by the person themself, which is the opt-in; CHECK E.164
 `^\+[1-9][0-9]{7,14}$`), `whatsapp_muted` text[] (as `email_muted`, for
@@ -103,7 +106,8 @@ no row (always on).
 (`off` / `view` / `approve`, default `off`), `require_hardcopy` bool (default
 false), `require_no_dues` bool (default false: a thesis waits for an approved
 no-dues clearance while true), `require_ethics` bool (default false: a thesis
-waits for an ethics record while true), `apr_custom_template` bool (default
+waits for an ethics record while true), `require_two_factor` bool (default false: every password login needs an
+authenticator code while true), `apr_custom_template` bool (default
 false) and `apr_sections` jsonb (ordered `[{"name", "hint"}]`, non-empty: the
 university's own progress report sections, used only while the toggle is on), `seminar_graders` CHECK (`panel` / `panel_and_attending`, default
 `panel`), `seminar_rubric` jsonb (ordered `[{"name", "max"}]`, non-empty),

@@ -12,7 +12,9 @@ from app.auth.principal import Principal
 from app.models import AuditLog
 from app.models.base import Base
 
-REDACTED_COLUMNS = frozenset({"password_hash", "token_hash", "verify_token"})
+REDACTED_COLUMNS = frozenset(
+    {"password_hash", "token_hash", "verify_token", "totp_secret", "recovery_hashes"}
+)
 
 
 def _json(value: Any) -> Any:

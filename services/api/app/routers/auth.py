@@ -31,8 +31,8 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 @router.post("/login", response_model=TokenPair)
 async def login(body: LoginIn, session: AsyncSession = Depends(get_session)) -> TokenPair:
-    access, refresh = await service.login(session, body.email, body.password)
-    return TokenPair(access_token=access, refresh_token=refresh)
+    access, refresh, recovery = await service.login(session, body.email, body.password, body.code)
+    return TokenPair(access_token=access, refresh_token=refresh, recovery_codes=recovery)
 
 
 @router.post("/refresh", response_model=TokenPair)
@@ -59,6 +59,9 @@ async def set_password(
 ) -> TokenPair:
     """Consumes an invite / reset link and logs the person straight in."""
     user_id = await service.set_password_with_link(session, body.token, body.password)
+    if await service.two_factor_required(session):  # an emailed link must not skip the code
+        await session.commit()
+        raise ApiError(403, "login_required", "Your password is set. Log in with it to continue.")
     access, refresh = await service.issue_tokens(session, user_id)
     return TokenPair(access_token=access, refresh_token=refresh)
 

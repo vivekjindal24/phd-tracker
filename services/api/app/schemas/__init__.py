@@ -50,6 +50,10 @@ class Out(BaseModel):
 class LoginIn(BaseModel):
     email: EmailStr
     password: str = Field(min_length=1, max_length=200)
+    # an authenticator code or a recovery code, while two-factor login is required
+    code: (
+        Annotated[str, StringConstraints(strip_whitespace=True, min_length=6, max_length=20)] | None
+    ) = None
 
 
 class RefreshIn(BaseModel):
@@ -60,6 +64,7 @@ class TokenPair(BaseModel):
     access_token: str
     refresh_token: str
     token_type: str = "bearer"  # noqa: S105 — OAuth token type, not a secret
+    recovery_codes: list[str] | None = None  # shown once, at two-factor setup
 
 
 class ChangePasswordIn(BaseModel):
@@ -280,6 +285,7 @@ class SettingsOut(BaseModel):
     require_hardcopy: bool
     require_no_dues: bool
     require_ethics: bool
+    require_two_factor: bool
     apr_custom_template: bool
     apr_sections: list[AprSection]  # the university's own list, kept while the toggle is off
     apr_template: list[AprSection]  # what scholars fill today
@@ -302,6 +308,7 @@ class SettingsUpdate(BaseModel):
     require_hardcopy: bool | None = None
     require_no_dues: bool | None = None
     require_ethics: bool | None = None
+    require_two_factor: bool | None = None
     apr_custom_template: bool | None = None
     apr_sections: AprTemplate | None = None
     seminar_graders: SeminarGraders | None = None

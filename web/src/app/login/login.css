@@ -90,3 +90,15 @@
     height: auto;
   }
 }
+.login-card .setup-key {
+  font-size: var(--text-lg);
+  letter-spacing: 0.08em;
+  word-spacing: 0.3em; /* groups of four stay whole when the line wraps */
+}
+.login-card .recovery-codes {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-2);
+}

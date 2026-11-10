@@ -31,6 +31,7 @@ async def _read(session: AsyncSession) -> SettingsOut:
             "require_hardcopy": settings.require_hardcopy,
             "require_no_dues": settings.require_no_dues,
             "require_ethics": settings.require_ethics,
+            "require_two_factor": settings.require_two_factor,
             "apr_custom_template": settings.apr_custom_template,
             "apr_sections": settings.apr_sections,
             "apr_template": apr.effective(settings),

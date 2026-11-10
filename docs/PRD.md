@@ -138,7 +138,9 @@ when the installation configures it — with their **university Google or
 Microsoft account** (OpenID Connect). Single sign-on only matches an existing,
 active account by verified email; it never creates accounts. So when IT
 switches off a leaver's university account, that person can no longer log in
-(an open session ends within the refresh-token lifetime). New accounts get a
+(an open session ends within the refresh-token lifetime). While the university setting `require_two_factor` is on, a password login
+also needs a code from an authenticator app, set up at the person's first
+login after the switch (SECURITY.md §1). New accounts get a
 **set-password email** (single-use link, 72 h); **Forgot password** sends the
 same link. Role assignments bind a user to a role and (for scoped roles) a
 unit. Scope rule: a unit-scoped role sees its unit's subtree; supervisor sees their

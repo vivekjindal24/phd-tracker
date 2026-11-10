@@ -171,13 +171,17 @@ export async function download(path: string, from: "export" | "api" = "export"):
 }
 
 /** Any endpoint that answers with a token pair: password login, SSO code, set-password link. */
-async function obtainTokens(path: string, body: object): Promise<void> {
+async function obtainTokens(path: string, body: object): Promise<string[] | null> {
   const res = await send(path, { method: "POST", body: JSON.stringify(body) }, null);
   if (!res.ok) throw await toError(res);
-  store(await res.json());
+  const tokens = await res.json();
+  store(tokens);
+  return tokens.recovery_codes ?? null; // only the login that sets two-factor up carries them
 }
 
-export const login = (email: string, password: string) => obtainTokens("/auth/login", { email, password });
+/** `code`: the authenticator or recovery code, once the API has asked for it. */
+export const login = (email: string, password: string, code?: string) =>
+  obtainTokens("/auth/login", { email, password, code: code || undefined });
 export const exchangeSsoCode = (code: string) => obtainTokens("/auth/sso/exchange", { code });
 export const setPasswordWithLink = (token: string, password: string) =>
   obtainTokens("/auth/set-password", { token, password });

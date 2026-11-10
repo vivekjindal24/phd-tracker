@@ -20,6 +20,25 @@
   the email exists (no account enumeration) and shares the login throttle.
   A failed login verifies a hash even for an unknown or inactive account, so
   response time gives neither away.
+- **Two-factor login** (Decided 2026-11-10; university setting
+  `require_two_factor`, default off): while on, every password login also needs
+  a six-digit code from an authenticator app (RFC 6238 TOTP: SHA-1, 30 s, one
+  step of clock drift either way; a code works once). Nobody may opt out. The
+  first password login after the switch sets it up: with the password proven
+  and no code sent, the API answers 401 `two_factor_setup_required` with the
+  key; the first correct code enables it and returns eight single-use recovery
+  codes, shown once and stored only as sha256. Later logins without a code get
+  401 `two_factor_required`; a wrong code is 401 `invalid_code` and counts
+  toward the login throttle. University-account sign-in (SSO) is not asked: the
+  provider guards that account. A set-password or reset link sets the password
+  but does not log in while the setting is on (403 `login_required`), so an
+  emailed link cannot skip the code. An admin over the person resets a lost
+  phone (`POST /users/{id}/two-factor/reset`, which ends their sessions); they
+  set it up again at the next login. Known limits: whoever holds a not yet
+  enrolled person's password can enrol their own phone, exactly as they could
+  log in before the switch; the key is shown as text and a tap-to-open link,
+  not a QR code; the secret is stored unwrapped in `users.totp_secret`, redacted
+  from `audit_log` like the hashes, relying on the disk encryption of §8.
 - **Access token:** HS256 JWT, 30-minute expiry, held in browser memory
   (never localStorage, never a cookie). Claims carry only `sub` — roles and
   scope are loaded from the DB per request, so a revoked role takes effect
@@ -302,6 +321,7 @@ Verified 2026-10-25 (code, tests and the approval-chain click-through):
 - [x] No self-approval / consecutive-step approval
 - [x] Admins cannot grant roles above their own unit
 - [x] Rotating single-use refresh tokens; login throttling
+- [ ] `require_two_factor` switched on at every live university install
 - [x] Private bucket; presigned URLs only after `get_or_403`
 - [x] No secrets in repo; loud env validation
 - [x] CORS allowlist on both services

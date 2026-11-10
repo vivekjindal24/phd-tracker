@@ -1,12 +1,14 @@
 """Organisation tree and people (DATABASE.md §3.1)."""
 
 import uuid
-from datetime import date
+from datetime import date, datetime
 
 from sqlalchemy import (
+    BigInteger,
     Boolean,
     CheckConstraint,
     Date,
+    DateTime,
     ForeignKey,
     Index,
     Integer,
@@ -94,6 +96,13 @@ class User(DomainRow, Base):
     is_active: Mapped[bool] = mapped_column(Boolean, server_default=text("true"))
     # An external thesis reviewer: reaches only their own reviews (auth/deps.py).
     is_reviewer: Mapped[bool] = mapped_column(Boolean, server_default=text("false"))
+    # Two-factor login (SECURITY.md §1). ponytail: the secret is stored as it is, protected by
+    # the disk encryption SECURITY.md §8 requires; wrap it with a dedicated key if a database
+    # dump must not be enough to mint codes.
+    totp_secret: Mapped[str | None] = mapped_column(Text)
+    totp_enabled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    totp_last_step: Mapped[int | None] = mapped_column(BigInteger)  # a code works once
+    recovery_hashes: Mapped[list[str]] = mapped_column(ARRAY(Text), server_default=text("'{}'"))
     email_muted: Mapped[list[str]] = mapped_column(ARRAY(Text), server_default=text("'{}'::text[]"))
     # Set only by the person themself — setting it is the WhatsApp opt-in (PRD F5).
     whatsapp_number: Mapped[str | None] = mapped_column(Text)

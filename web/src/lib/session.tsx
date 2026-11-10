@@ -9,7 +9,10 @@ type Session = {
   me: Me | null;
   loading: boolean;
   error: ApiError | null;
-  login: (email: string, password: string) => Promise<void>;
+  /** Resolves with recovery codes when this login set two-factor up: show them, then call
+   *  `completeLogin`. Otherwise the session is live when it resolves. */
+  login: (email: string, password: string, code?: string) => Promise<string[] | null>;
+  completeLogin: () => Promise<void>;
   logout: () => Promise<void>;
   loggedOut: boolean;
   /** A session stored in this browser could not be renewed (not: never logged in here). */
@@ -42,6 +45,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const completeLogin = useCallback(async () => {
+    await reload();
+    setLoggedOut(false);
+  }, [reload]);
+
   useEffect(() => {
     if (!hasStoredSession()) {
       setLoading(false);
@@ -58,18 +66,20 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       loggedOut,
       expired,
       reload,
-      login: async (email, password) => {
-        await apiLogin(email, password);
-        await reload();
-        setLoggedOut(false);
+      login: async (email, password, code) => {
+        const recovery = await apiLogin(email, password, code);
+        if (recovery) return recovery;
+        await completeLogin();
+        return null;
       },
+      completeLogin,
       logout: async () => {
         await apiLogout();
         setLoggedOut(true);
         setMe(null);
       },
     }),
-    [me, loading, error, loggedOut, expired, reload],
+    [me, loading, error, loggedOut, expired, reload, completeLogin],
   );
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
 }
