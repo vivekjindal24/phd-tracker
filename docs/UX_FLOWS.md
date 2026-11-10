@@ -177,6 +177,13 @@ adds a member by finding a faculty member, or ticks "from outside this
 university" and types a name and institution; Remove takes one off. The list
 prints on the progress report PDF.
 
+The **Research ethics** card beside it holds the clearances: kind, committee,
+approval number, dates and the certificate file, or "Not required" with the
+reason. Its badge reads Recorded, Not recorded, or "Needed before the thesis"
+when the university has switched that rule on in Settings → UGC rules; a
+scholar who then submits a thesis without a record is told to ask the
+department or Research Office to record it.
+
 ## Flow 6b — Progress seminar (PRD F15)
 
 1. HoD / department admin → **Seminars → Schedule**: title, date & time,

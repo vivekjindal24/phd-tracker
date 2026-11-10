@@ -8,7 +8,7 @@ from sqlalchemy import CheckConstraint, Date, ForeignKey, Index, Integer, Text, 
 from sqlalchemy.dialects.postgresql import ARRAY, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.enums import CONFERENCE_TYPES, INDEXINGS, PUB_STATUSES, PUB_TYPES, sql_in
+from app.enums import CONFERENCE_TYPES, ETHICS_KINDS, INDEXINGS, PUB_STATUSES, PUB_TYPES, sql_in
 from app.models.base import Base, DomainRow
 from app.models.workflow import ApprovalColumns, approval_constraints
 
@@ -59,3 +59,33 @@ class Conference(DomainRow, Base):
     event_date: Mapped[date] = mapped_column(Date)
     place: Mapped[str] = mapped_column(Text, server_default=text("''"))
     title: Mapped[str | None] = mapped_column(Text)
+
+
+class EthicsClearance(DomainRow, Base):
+    """An ethics committee's approval of a scholar's research, or the recorded decision that
+    none is required (PRD F9c). The certificate hangs off it as a file."""
+
+    __tablename__ = "ethics_clearances"
+    __table_args__ = (
+        CheckConstraint(f"kind IN ({sql_in(ETHICS_KINDS)})", name="ck_ethics_kind"),
+        CheckConstraint(
+            "(kind = 'not_required' AND approval_number IS NULL AND approved_on IS NULL"
+            " AND valid_until IS NULL AND notes <> '')"
+            " OR (kind <> 'not_required' AND approval_number IS NOT NULL"
+            " AND approved_on IS NOT NULL)",
+            name="ck_ethics_fields",
+        ),
+        CheckConstraint(
+            "valid_until IS NULL OR valid_until >= approved_on", name="ck_ethics_dates"
+        ),
+    )
+
+    scholar_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("scholars.id"), index=True
+    )
+    kind: Mapped[str] = mapped_column(Text)
+    committee: Mapped[str | None] = mapped_column(Text)
+    approval_number: Mapped[str | None] = mapped_column(Text)
+    approved_on: Mapped[date | None] = mapped_column(Date)
+    valid_until: Mapped[date | None] = mapped_column(Date)
+    notes: Mapped[str] = mapped_column(Text, server_default=text("''"))

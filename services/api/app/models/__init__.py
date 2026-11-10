@@ -16,7 +16,7 @@ from app.models.milestones import CommitteeMember, Milestone
 from app.models.org import Faculty, OrgUnit, RoleAssignment, Scholar, User
 from app.models.reports import ProgressReport
 from app.models.requests import FacultyRequest
-from app.models.research import Conference, Publication
+from app.models.research import Conference, EthicsClearance, Publication
 from app.models.seminars import (
     Seminar,
     SeminarGrade,
@@ -63,6 +63,7 @@ __all__ = [
     "Document",
     "DocumentVersion",
     "Enrolment",
+    "EthicsClearance",
     "ExaminerReport",
     "Faculty",
     "FacultyRequest",

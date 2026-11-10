@@ -56,6 +56,7 @@ export type SettingsData = {
   co_supervision: CoSupervision;
   require_hardcopy: boolean;
   require_no_dues: boolean;
+  require_ethics: boolean;
   seminar_graders: "panel" | "panel_and_attending";
   seminar_rubric: { name: string; max: number }[];
   min_coursework_credits: number;
@@ -447,7 +448,8 @@ export type FileOwner =
   | "examiner_reports"
   | "vivas"
   | "shodhganga_deposits"
-  | "utilisation_certificates";
+  | "utilisation_certificates"
+  | "ethics_clearances";
 export type CommentTarget =
   | "scholars"
   | "meetings"
@@ -777,3 +779,21 @@ export type FacultyRequests = { incoming: FacultyRequest[]; sent: FacultyRequest
 
 export type CommitteeMember = { id: string; name: string; institution: string; external: boolean };
 export type CommitteeView = { convener: string | null; members: CommitteeMember[]; can_manage: boolean };
+
+export type EthicsKind = "human" | "animal" | "biosafety" | "not_required";
+export const ETHICS_KIND_LABELS: Record<EthicsKind, string> = {
+  human: "Human ethics",
+  animal: "Animal ethics",
+  biosafety: "Biosafety",
+  not_required: "Not required",
+};
+export type EthicsRecord = {
+  id: string;
+  kind: EthicsKind;
+  committee: string | null;
+  approval_number: string | null;
+  approved_on: string | null;
+  valid_until: string | null;
+  notes: string;
+};
+export type EthicsView = { records: EthicsRecord[]; required: boolean; satisfied: boolean; can_manage: boolean };

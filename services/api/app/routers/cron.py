@@ -15,7 +15,16 @@ from app.dashboard import DUE_SOON_DAYS, SUBMITTED, deadlines_query
 from app.db import get_session
 from app.errors import ApiError
 from app.grants import pi_and_office_user_ids
-from app.models import Faculty, Fellowship, JobRun, Meeting, Project, Scholar, Seminar
+from app.models import (
+    EthicsClearance,
+    Faculty,
+    Fellowship,
+    JobRun,
+    Meeting,
+    Project,
+    Scholar,
+    Seminar,
+)
 from app.modules import module_enabled
 from app.notify import notify
 
@@ -52,6 +61,38 @@ async def _fellowships_ending(session: AsyncSession, today: date) -> int:
             f"The fellowship ends in {FELLOWSHIP_NOTICE_DAYS} days. Speak to the research "
             "office about an extension or the next step.",
             "/fellowships",
+        )
+        count += 1
+    return count
+
+
+ETHICS_NOTICE_DAYS = 60  # PRD F9c
+
+
+async def _ethics_expiring(session: AsyncSession, today: date) -> int:
+    # ponytail: exact-day match, as for fellowships.
+    ends = today + timedelta(days=ETHICS_NOTICE_DAYS)
+    rows = await session.execute(
+        select(Scholar.id, Scholar.user_id, Faculty.user_id)
+        .join(EthicsClearance, EthicsClearance.scholar_id == Scholar.id)
+        .outerjoin(Faculty, Faculty.id == Scholar.supervisor_id)
+        .where(
+            EthicsClearance.deleted_at.is_(None),
+            EthicsClearance.valid_until == ends,
+            Scholar.deleted_at.is_(None),
+            Scholar.left_on.is_(None),
+        )
+    )
+    count = 0
+    for scholar_id, scholar_user, supervisor_user in rows:
+        notify(
+            session,
+            [u for u in (scholar_user, supervisor_user) if u],
+            "system",
+            f"Ethics clearance ends on {ends:%d %b %Y}",
+            f"The ethics clearance lapses in {ETHICS_NOTICE_DAYS} days. Apply to the ethics "
+            "committee for renewal if the work is still going on.",
+            f"/scholars/{scholar_id}",
         )
         count += 1
     return count
@@ -183,6 +224,7 @@ async def daily(
         return {"ran": False, "reason": "already ran today"}
     fellowships = await _fellowships_ending(session, today)
     projects = await _projects_ending(session, today)
+    ethics_reminders = await _ethics_expiring(session, today)
     apr_soon, apr_late = await _apr_reminders(session, today)
     meetings = await _meetings_tomorrow(session, today)
     review_counts = await reviews.daily(session, today)
@@ -191,6 +233,7 @@ async def daily(
         "ran": True,
         "fellowship_reminders": fellowships,
         "project_reminders": projects,
+        "ethics_reminders": ethics_reminders,
         "apr_due_soon": apr_soon,
         "apr_overdue": apr_late,
         "meeting_reminders": meetings,

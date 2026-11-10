@@ -287,6 +287,19 @@ approval step, and outside members get no login (§7). The supervisor cannot be
 added as a member (409 `supervisor_is_convener`); nobody twice (409
 `duplicate_member`).
 
+**F9c — Research ethics clearance** (Decided 2026-11-10). Per scholar, an
+admin over their unit or the Research Office records either one or more
+clearances — kind (human ethics / animal ethics / biosafety), committee,
+approval number, approval date, valid-until date and the certificate file — or
+that **none is required**, with the reason. A clearance and "not required"
+cannot stand together (409 `ethics_conflict`). The scholar, supervisor, heads
+above and the Vice Chancellor read it on the scholar's page. The daily job
+tells the scholar and supervisor 60 days before a clearance lapses. University
+setting `require_ethics` (default off): while on, a thesis cannot be submitted
+until the scholar has an ethics record → 409 `ethics_pending`. A lapsed
+clearance still counts: it covered the work when the work was done. A record,
+not an application: the ethics committee decides outside the system.
+
 **F10 — Dashboards.** One home page per user, combining their roles:
 - Scholar: stage, next APR due, items in progress and where, coursework
   status, publication count, fellowship end date, next meeting.

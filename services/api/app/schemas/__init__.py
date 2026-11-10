@@ -268,6 +268,7 @@ class SettingsOut(BaseModel):
     co_supervision: CoSupervision
     require_hardcopy: bool
     require_no_dues: bool
+    require_ethics: bool
     seminar_graders: SeminarGraders
     seminar_rubric: list[RubricCriterion]
     min_coursework_credits: float
@@ -286,6 +287,7 @@ class SettingsUpdate(BaseModel):
     co_supervision: CoSupervision | None = None
     require_hardcopy: bool | None = None
     require_no_dues: bool | None = None
+    require_ethics: bool | None = None
     seminar_graders: SeminarGraders | None = None
     seminar_rubric: Rubric | None = None
     min_coursework_credits: float | None = Field(default=None, ge=0, le=40)

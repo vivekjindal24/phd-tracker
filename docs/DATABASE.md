@@ -102,7 +102,8 @@ no row (always on).
 ''; the name is the root org unit's), `co_supervision` CHECK
 (`off` / `view` / `approve`, default `off`), `require_hardcopy` bool (default
 false), `require_no_dues` bool (default false: a thesis waits for an approved
-no-dues clearance while true), `seminar_graders` CHECK (`panel` / `panel_and_attending`, default
+no-dues clearance while true), `require_ethics` bool (default false: a thesis
+waits for an ethics record while true), `seminar_graders` CHECK (`panel` / `panel_and_attending`, default
 `panel`), `seminar_rubric` jsonb (ordered `[{"name", "max"}]`, non-empty),
 `min_coursework_credits` numeric(3,1) (default 12, CHECK 0–40) and
 `min_coursework_cgpa` numeric(4,2) (default 5.5, CHECK 0–10),
@@ -141,6 +142,14 @@ name and unit are read live) or `name` + `institution` (an outside expert) —
 exactly one kind (`ck_committee_member_kind`). Partial unique
 `uq_committee_member (scholar_id, faculty_id) WHERE deleted_at IS NULL`. The
 convener is the scholar's `supervisor_id`, never a row here.
+
+**ethics_clearances** (PRD F9c) — `scholar_id` (indexed), `kind` CHECK (human
+/ animal / biosafety / not_required), `committee`, `approval_number`,
+`approved_on`, `valid_until`, `notes`. `ck_ethics_fields`: `not_required`
+carries only a non-empty `notes` (the reason); every other kind needs
+`approval_number` and `approved_on`. `ck_ethics_dates`: `valid_until` ≥
+`approved_on`. The certificate is a `files` row (`table_name =
+'ethics_clearances'`).
 
 ### 3.3b Progress seminars (PRD F15)
 

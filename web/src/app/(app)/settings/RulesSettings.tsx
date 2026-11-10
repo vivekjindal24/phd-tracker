@@ -51,6 +51,11 @@ export function RulesSettings({ data, save }: { data: SettingsData; save: Save }
           <Switch checked={data.require_no_dues} label="Thesis needs no-dues clearance"
             onChange={(v) => save("/settings", "PATCH", { require_no_dues: v }).catch(() => {})} />
         </li>
+        <li>
+          <span>A thesis needs an ethics record: a committee clearance, or a recorded &ldquo;not required&rdquo;</span>
+          <Switch checked={data.require_ethics} label="Thesis needs an ethics record"
+            onChange={(v) => save("/settings", "PATCH", { require_ethics: v }).catch(() => {})} />
+        </li>
       </ul>
     </Card>
   );

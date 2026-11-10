@@ -12,6 +12,7 @@ from app.errors import ApiError, forbidden
 from app.models import (
     Conference,
     Document,
+    EthicsClearance,
     Meeting,
     Milestone,
     OrgUnit,
@@ -65,6 +66,9 @@ async def require_read(
         if row is None:
             raise forbidden()
         return row[1], f"/scholars/{row[1].id}"
+    if table == "ethics_clearances":
+        scholar = await _ethics_scholar(session, principal, record_id)
+        return scholar, f"/scholars/{scholar.id}"
     if table == "publications":
         ctx = await items.load_ctx(session, principal, "publication", record_id)
         return ctx.scholar, ctx.link
@@ -131,6 +135,24 @@ async def document_or_403(
     return row[0], row[1]
 
 
+async def _ethics_scholar(
+    session: AsyncSession, principal: Principal, record_id: uuid.UUID
+) -> Scholar:
+    scholar = await session.scalar(
+        select(Scholar)
+        .join(EthicsClearance, EthicsClearance.scholar_id == Scholar.id)
+        .where(
+            EthicsClearance.id == record_id,
+            EthicsClearance.deleted_at.is_(None),
+            Scholar.deleted_at.is_(None),
+            scope.scholar_predicate(principal, "ethics_clearances"),
+        )
+    )
+    if scholar is None:
+        raise forbidden()
+    return scholar
+
+
 async def _conference(
     session: AsyncSession, principal: Principal, record_id: uuid.UUID
 ) -> tuple[Conference, Scholar]:
@@ -165,6 +187,11 @@ async def require_write(
         if not can(principal, "scholars", "update"):
             raise forbidden()
         scope.require_admin_over(principal, await scope.unit_path(session, scholar.unit_id))
+        return
+    if table == "ethics_clearances":
+        scholar = await _ethics_scholar(session, principal, record_id)
+        if not await scope.can_record(session, principal, scholar):
+            raise forbidden()
         return
     if table == "publications":
         ctx = await items.load_ctx(session, principal, "publication", record_id)

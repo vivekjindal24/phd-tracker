@@ -197,7 +197,8 @@ Web: `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_EXPORT_URL`.
 ## 10. Scheduled Jobs
 
 One daily job calls `POST /api/v1/internal/cron/daily` (header
-`X-Cron-Secret`): fellowship ending in 60 days; project ending in 60 days (PI
+`X-Cron-Secret`): fellowship ending in 60 days; an ethics clearance lapsing in 60 days (scholar
++ supervisor); project ending in 60 days (PI
 + Research Office); APR due in 14 days (scholar)
 and overdue the day after the seminar's report due date (scholar +
 supervisor), while unsubmitted; meeting tomorrow, from the next meeting date

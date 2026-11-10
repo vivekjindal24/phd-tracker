@@ -9,6 +9,7 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field, StringConstraints, 
 
 from app.enums import (
     EntranceRoute,
+    EthicsKind,
     InterviewResult,
     ItemState,
     Stage,
@@ -279,4 +280,50 @@ class CommitteeMemberOut(BaseModel):
 class CommitteeView(BaseModel):
     convener: str | None  # the supervisor
     members: list[CommitteeMemberOut]
+    can_manage: bool
+
+
+# --- research ethics ---------------------------------------------------------------------
+
+
+class EthicsIn(BaseModel):
+    """A committee's clearance, or `not_required` with the reason in `notes`."""
+
+    kind: EthicsKind
+    committee: Name | None = None
+    approval_number: Resolution | None = None
+    approved_on: date | None = None
+    valid_until: date | None = None
+    notes: Notes = ""
+
+    @model_validator(mode="after")
+    def _fields_match_kind(self) -> "EthicsIn":
+        approval = (self.committee, self.approval_number, self.approved_on, self.valid_until)
+        if self.kind == "not_required":
+            if any(v is not None for v in approval) or not self.notes:
+                raise ValueError("'not required' takes only the reason, in notes")
+            return self
+        if not self.approval_number or self.approved_on is None:
+            raise ValueError("a clearance needs its approval number and approval date")
+        if self.valid_until is not None and self.valid_until < self.approved_on:
+            raise ValueError("the clearance ends before it was approved")
+        return self
+
+
+class EthicsOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    kind: EthicsKind
+    committee: str | None
+    approval_number: str | None
+    approved_on: date | None
+    valid_until: date | None
+    notes: str
+
+
+class EthicsView(BaseModel):
+    records: list[EthicsOut]
+    required: bool  # university setting require_ethics: the thesis waits for a record
+    satisfied: bool
     can_manage: bool

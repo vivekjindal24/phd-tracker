@@ -10,7 +10,7 @@ from typing import Any
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import coursework, scope, workflow
+from app import coursework, ethics, scope, workflow
 from app.auth.principal import Principal
 from app.crud import update
 from app.enums import STAGES
@@ -130,6 +130,7 @@ async def _thesis_ready(session: AsyncSession, principal: Principal, ctx: ItemCo
             "no_dues_pending",
             "Get your no-dues clearance approved before submitting the thesis.",
         )
+    await ethics.require_recorded(session, ctx.scholar.id)
 
 
 async def _thesis_approved(session: AsyncSession, principal: Principal, ctx: ItemContext) -> None:

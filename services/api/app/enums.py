@@ -155,6 +155,10 @@ PUB_STATUSES = get_args(PubStatus)
 ConferenceType = Literal["paper_presented", "poster", "attended", "invited_talk", "workshop"]
 CONFERENCE_TYPES = get_args(ConferenceType)
 
+# Ethics clearances (PRD F9c): a committee's approval, or a recorded "not required".
+EthicsKind = Literal["human", "animal", "biosafety", "not_required"]
+ETHICS_KINDS = get_args(EthicsKind)
+
 DocKind = Literal["proposal", "chapter", "synopsis", "draft", "other"]
 DOC_KINDS = get_args(DocKind)
 Recommendation = Literal["accept", "minor_revision", "major_revision", "reject"]
@@ -223,6 +227,7 @@ FileOwner = Literal[
     "shodhganga_deposits",
     "utilisation_certificates",
     "thesis_reviews",
+    "ethics_clearances",
 ]
 FILE_OWNER_TABLES = get_args(FileOwner)
 FileStatus = Literal["pending", "ready"]
