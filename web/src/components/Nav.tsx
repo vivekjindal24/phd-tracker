@@ -43,7 +43,7 @@ const NAV: Entry[] = [
       { href: "/scholars", label: "Scholars", show: (me) => !onlyScholar(me) },
       { href: "/scholars", label: "My profile", show: onlyScholar }, // redirects to own profile
       { href: "/faculty", label: "Faculty", show: (me) => me.roles.some((r) => r !== "scholar" && r !== "supervisor") },
-      { href: "/admissions", label: "Admissions", show: (me) => me.modules.admissions && me.roles.some((r) => r === "admin" || r === "unit_head" || r === "research_office") },
+      { href: "/admissions", label: "Admissions", show: (me) => me.modules.admissions && me.roles.some((r) => r === "admin" || r === "unit_head" || r === "research_office" || r === "vice_chancellor") },
     ],
   },
   {
@@ -53,8 +53,8 @@ const NAV: Entry[] = [
       { href: "/projects", label: "Research projects", show: (me) => me.modules.projects && (me.faculty_id !== null || notOnlyOffice(me)) },
     ],
   },
-  { href: "/leadership", label: "Leadership", show: (me) => me.roles.some((r) => r === "unit_head" || r === "admin" || r === "research_office") },
-  { href: "/naac", label: "NAAC data", show: (me) => me.is_root_admin || me.roles.includes("research_office") },
+  { href: "/leadership", label: "Leadership", show: (me) => me.roles.some((r) => r === "unit_head" || r === "admin" || r === "research_office" || r === "vice_chancellor") },
+  { href: "/naac", label: "NAAC data", show: (me) => me.is_root_admin || me.roles.some((r) => r === "research_office" || r === "vice_chancellor") },
   { href: "/register", label: "Register", show: (me) => me.roles.some((r) => r !== "library") },
   { href: "/settings", label: "Settings", show: (me) => me.is_root_admin },
 ];

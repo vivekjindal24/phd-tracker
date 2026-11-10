@@ -1,9 +1,10 @@
 /** Mirrors of the API's response models (services/api/app/schemas/). */
 
-export type AssignedRole = "unit_head" | "admin" | "research_office" | "exam_office" | "library";
+export type OfficeRole = "vice_chancellor" | "research_office" | "exam_office" | "library";
+export type AssignedRole = "unit_head" | "admin" | OfficeRole;
 export type Role = "scholar" | "supervisor" | AssignedRole;
 export type CoSupervision = "off" | "view" | "approve";
-export type StepKind = "supervisor" | "department" | "research_office" | "exam_office" | "library";
+export type StepKind = "supervisor" | "department" | OfficeRole;
 export type ItemType =
   | "progress_report"
   | "publication"
@@ -86,6 +87,7 @@ export const ROLE_LABELS: Record<Role, string> = {
   research_office: "Research Office",
   exam_office: "Exam Office",
   library: "Library",
+  vice_chancellor: "Vice Chancellor",
 };
 
 export const STEP_LABELS: Record<StepKind, string> = {
@@ -94,6 +96,7 @@ export const STEP_LABELS: Record<StepKind, string> = {
   research_office: "Research Office",
   exam_office: "Exam Office",
   library: "Library",
+  vice_chancellor: "Vice Chancellor",
 };
 
 export const ITEM_LABELS: Record<ItemType, string> = {

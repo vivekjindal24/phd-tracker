@@ -16,6 +16,7 @@ ALL_ROLES = (
     "research_office",
     "exam_office",
     "library",
+    "vice_chancellor",
 )
 
 # entity -> role -> allowed actions. Rows are added together with their feature.
@@ -173,6 +174,12 @@ MATRIX: dict[str, dict[str, frozenset[str]]] = {
         "research_office": frozenset({R}),
     },
 }
+
+# The Vice Chancellor reads whatever the Research Office reads and writes nothing; they decide
+# only at a chain step that names them (workflow.py). One rule, so the two cannot drift.
+for _acts in MATRIX.values():
+    if R in _acts.get("research_office", ()):
+        _acts["vice_chancellor"] = frozenset({R})
 
 
 OFFICES_BARRED = frozenset({"exam_office", "library"})

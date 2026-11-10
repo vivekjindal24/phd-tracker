@@ -22,7 +22,7 @@
   server/NAS via Docker Compose (Postgres, Garage, API, export, web, Caddy, cron); see `deploy/README.md`.
   Same images everywhere; only environment differs.
 - **Primary Users:** scholar, supervisor, unit_head, admin (scoped),
-  research_office, exam_office, library — one login may hold several roles.
+  research_office, exam_office, library, vice_chancellor — one login may hold several roles.
 
 ## 2. Source of Truth
 

@@ -41,6 +41,7 @@ STEP_LABELS = {
     "research_office": "Research Office",
     "exam_office": "Exam Office",
     "library": "Library",
+    "vice_chancellor": "Vice Chancellor",
 }
 
 

@@ -17,7 +17,7 @@ type Overdue = { scholar: Ref; seminar: Ref; report_due: string };
 type UnitSection = {
   unit_id: string;
   unit_name: string;
-  roles: ("unit_head" | "admin")[];
+  roles: ("unit_head" | "admin" | "vice_chancellor")[];
   scholars_by_stage: Record<string, number>;
   total_scholars: number;
   overdue_reports: Overdue[];

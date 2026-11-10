@@ -83,6 +83,14 @@ the org tree, approval chains and modules.
 University-wide. Final approval on progress reports, publications and thesis;
 maintains the RDC/DPGC register; oversees admissions and grants.
 
+### Vice Chancellor
+University-wide (Decided 2026-11-10). Reads everything the Research Office
+reads — every scholar, the leadership view, NAAC data, examiner names — and
+enters no records. Decides only where an approval chain names the Vice
+Chancellor step (F3); on a thesis that step is where they select the examiners
+from the panel the Exam Office proposed (M3). Sees meeting minutes shared with
+unit heads. The root admin appoints office holders in Settings.
+
 ### Examination Office
 University-wide. Records coursework subjects and grades, clears coursework,
 receives submitted theses and records examiners.
@@ -111,6 +119,8 @@ Science / UGC-CARE — DOI) and runs the thesis plagiarism check.
   thesis plagiarism score.
 - As an **admin**, I add scholars and supervisors to my unit and assign
   supervisors.
+- As the **Vice Chancellor**, I see the whole university on my home page and
+  select thesis examiners from the proposed panel.
 - As the **registrar**, I export any scholar's complete record as a PDF.
 
 ## 6. Core Features
@@ -150,6 +160,9 @@ whole university** (not per unit). Default chains:
 | No-dues clearance (when the university requires it, M3) | Scholar | Supervisor (lab dues) → Department → Library (books) → Research Office (fees) |
 
 "Department" step = the head **or** an admin of the scholar's own unit.
+A chain may also carry a **Vice Chancellor** step (any holder of that role
+acts); no default chain has one — the root admin adds it where the
+university's ordinance wants the Vice Chancellor's decision.
 
 Acceptance criteria:
 - Only the actor of the current step may approve or send back — enforced
@@ -391,8 +404,12 @@ Library at its step), examiners (entered by Exam Office at its step).
   showing only name, thesis title, unit, viva date, issue date and status
   (valid / revoked). The Research Office may revoke with a reason; nothing is
   deleted.
+- **Examiner selection:** when the thesis chain has a Vice Chancellor step
+  after the Exam Office, the Exam Office's entry is the proposed panel and the
+  Vice Chancellor edits it down to the examiners selected before approving;
+  the Exam Office can no longer change it once it has moved on.
 - **Examiner confidentiality:** examiner names are visible only to the Exam
-  Office, Research Office and root admin until the viva outcome is recorded;
+  Office, Research Office, Vice Chancellor and root admin until the viva outcome is recorded;
   the Exam Office releases reports (without names) to the scholar and
   supervisor.
 

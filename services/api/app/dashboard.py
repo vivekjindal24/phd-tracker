@@ -398,6 +398,12 @@ async def build(session: AsyncSession, principal: Principal) -> dict[str, Any]:
     by_unit: dict[uuid.UUID, tuple[str, list[str]]] = {}
     for r in principal.unit_roles:  # head + admin of one unit -> one section
         by_unit.setdefault(r.unit_id, (r.unit_path, []))[1].append(r.role)
+    if "vice_chancellor" in principal.office_roles:  # the whole university, as its head sees it
+        root = await session.scalar(
+            select(OrgUnit).where(OrgUnit.parent_id.is_(None), OrgUnit.deleted_at.is_(None))
+        )
+        if root is not None:
+            by_unit.setdefault(root.id, (root.path, []))[1].append("vice_chancellor")
     out["units"] = [
         await _unit_section(session, uid, path, sorted(roles))
         for uid, (path, roles) in by_unit.items()

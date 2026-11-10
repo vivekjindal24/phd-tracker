@@ -44,6 +44,7 @@
 | research_office | role_assignments | university-wide |
 | exam_office | role_assignments | university-wide, own item types only |
 | library | role_assignments | university-wide, own item types only |
+| vice_chancellor | role_assignments | university-wide, read only; acts only on a Vice Chancellor chain step |
 
 A user with several roles gets the **union** of what each role allows — never
 a combination that no single role allows (e.g. a supervisor who is also the
@@ -100,6 +101,15 @@ role's scope (§2).
 | exports | own record | supervisees | subtree | subtree | all | coursework, thesis | publications, thesis |
 | audit log | — | — | — | R in subtree | R | — | — |
 
+**Vice Chancellor** (no column above: one rule in `rbac.py`): R on every
+entity the research_office column reads, and nothing else — no C, U or D
+anywhere, no settings, no role assignments. Scope is university-wide. They act
+on an item only at a `vice_chancellor` chain step, under the same engine rules
+(§4); at that step on a thesis they may rewrite `examiners`. For meeting
+minutes they count as a unit head: `unit_heads` in `shared_with` opens the
+minutes to them. Office holders are listed (`GET /office-holders`) and
+appointed by the root admin only.
+
 \* **Meeting redaction:** a viewer in scope sees the full meeting only if
 their role group is in `meetings.shared_with` (`unit_heads`, `research_office`,
 `admins`); otherwise the API returns only `id`, `meeting_date`, scholar and
@@ -137,7 +147,7 @@ after their supervisor finalised; finalising is the main supervisor's (and the
 co-supervisor's under `co_supervision = approve`).
 
 † **Examiner confidentiality:** examiner names are returned only to the
-Exam Office, Research Office and root admin until the viva outcome is
+Exam Office, Research Office, Vice Chancellor and root admin until the viva outcome is
 recorded; reports reach the scholar and supervisor only after the Exam Office
 releases them — omitted server-side, as with meeting redaction. A supervisor or co-supervisor who also heads the unit or
 works in an office waits for release like any other supervisor, does not read their own scholar's
@@ -200,13 +210,15 @@ regardless of role, and so does a NAAC sheet built from that module.
     notification goes to the nearest unit with a head/admin *other than the
     actor who moved the item*: a HoD who approved as supervisor hands the
     step to the Dean;
-  - `research_office` / `exam_office` / `library` → any holder of that role.
+  - `research_office` / `exam_office` / `library` / `vice_chancellor` → any
+    holder of that role.
 - **No self-approval:** a user may not act on an item about themselves, and
   may not act on two consecutive steps of the same item (the engine checks
   `approval_actions`); the next eligible person must act.
 - Send back: approver chooses the initiator or any earlier step; comment
   required. Illegal action/role/state → 422 `workflow_violation`.
-- Step-only fields (`plagiarism_score` — library; `examiners` — exam office)
+- Step-only fields (`plagiarism_score` — library; `examiners` — exam office,
+  and the Vice Chancellor at their own step)
   are writable only by the actor of that step while it is current.
   On a thesis, scholar and Library share the files: each removes only what it
   uploaded (the Library its certificate, never the thesis).

@@ -25,7 +25,7 @@ export default function NaacPage() {
   const [from, setFrom] = useState(current - DEFAULT_SPAN);
   const [to, setTo] = useState(current);
 
-  if (!me?.is_root_admin && !me?.roles.includes("research_office")) return <NotForYourRole />;
+  if (!me?.is_root_admin && !me?.roles.some((r) => r === "research_office" || r === "vice_chancellor")) return <NotForYourRole />;
   const query = `from_year=${from}&to_year=${to}`;
   const select = (value: number, onChange: (y: number) => void) => (
     <select value={value} onChange={(e) => onChange(Number(e.target.value))}>

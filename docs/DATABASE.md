@@ -59,8 +59,8 @@ no WhatsApp; set only by the person themself, which is the opt-in; CHECK E.164
 WhatsApp).
 
 **role_assignments** — `user_id` FK, `role` CHECK (`unit_head` / `admin` /
-`research_office` / `exam_office` / `library`), `unit_id` FK org_units.
-CHECK `ck_role_scope`: `unit_head` and `admin` require `unit_id`; the three
+`research_office` / `exam_office` / `library` / `vice_chancellor`), `unit_id` FK org_units.
+CHECK `ck_role_scope`: `unit_head` and `admin` require `unit_id`; the four
 office roles require `unit_id IS NULL` (university-wide). Partial unique
 `(user_id, role, unit_id) WHERE deleted_at IS NULL`. An `admin` at the root
 unit is the **root admin**. Scholar and supervisor are not rows here — they
@@ -115,7 +115,7 @@ University-wide switches that are not modules live here.
 `publication`, `coursework_clearance`, `thesis_submission`,
 `no_dues_clearance`), `steps` jsonb:
 ordered array of `{"kind": …}` where kind ∈ `supervisor` / `department` /
-`research_office` / `exam_office` / `library`; CHECK non-empty array (kinds
+`research_office` / `exam_office` / `library` / `vice_chancellor`; CHECK non-empty array (kinds
 validated by Pydantic). One chain per item type, university-wide. Seeded with
 the PRD F3 defaults. `updated_by`, `updated_at`.
 

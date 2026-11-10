@@ -73,7 +73,7 @@ async def require_review_access(
     the scholar only after their supervisor finalised it."""
     if (
         seminars.can_manage(principal, unit_path)
-        or "research_office" in principal.office_roles
+        or principal.reads_all
         or supervises(principal, scholar)
         or await is_grader(session, principal, seminar.id)
     ):

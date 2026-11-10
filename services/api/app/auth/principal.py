@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.enums import READ_ALL_ROLES
 from app.models import Faculty, OrgUnit, RoleAssignment, Scholar, Settings, User
 
 
@@ -48,6 +49,11 @@ class Principal:
     @property
     def is_root_admin(self) -> bool:
         return self.root_path is not None and self.root_path in self.unit_paths("admin")
+
+    @property
+    def reads_all(self) -> bool:
+        """Research Office or Vice Chancellor: every record the matrix lets them read."""
+        return bool(self.office_roles & READ_ALL_ROLES)
 
     @property
     def directory_wide(self) -> bool:

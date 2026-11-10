@@ -54,6 +54,7 @@ DEMO_UNITS = [
 # (login, full name, roles: [(role, unit code | None)])
 DEMO_STAFF = [
     ("admin", "Anita Desai", [("admin", "ADU")]),
+    ("vc", "Prof. Sarala Nair", [("vice_chancellor", None)]),
     ("research", "Dr. Kavita Rao", [("research_office", None)]),
     ("exams", "Suresh Pillai", [("exam_office", None)]),
     ("library", "Fatima Sheikh", [("library", None)]),

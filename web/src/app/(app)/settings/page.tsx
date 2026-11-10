@@ -9,6 +9,7 @@ import { BrandingSettings } from "./BrandingSettings";
 import { ChainEditor } from "./ChainEditor";
 import { CoSupervision } from "./CoSupervision";
 import { Modules } from "./Modules";
+import { Offices } from "./Offices";
 import { OrgTree } from "./OrgTree";
 import { RulesSettings } from "./RulesSettings";
 import { SeminarSettings } from "./SeminarSettings";
@@ -67,6 +68,7 @@ export default function SettingsPage() {
           </div>
           <SeminarSettings data={data} save={save} />
           <RulesSettings data={data} save={save} />
+          <Offices emailConfigured={data.email_configured} />
           <ChainEditor chains={data.chains} save={save} />
         </div>
       )}

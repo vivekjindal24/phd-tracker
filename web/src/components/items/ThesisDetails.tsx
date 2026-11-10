@@ -71,11 +71,12 @@ function Plagiarism({ item, onSaved }: { item: ItemView; onSaved: (v: ItemView) 
   );
 }
 
-function Examiners({ item, onSaved }: { item: ItemView; onSaved: (v: ItemView) => void }) {
+function Examiners({ item, onSaved, selecting }: { item: ItemView; onSaved: (v: ItemView) => void; selecting: boolean }) {
   const c = item.content as ThesisContent;
   const [names, setNames] = useState(c.examiners ?? "");
   return (
-    <StepForm title="Examiners" hint="Confidential: only the Exam Office, Research Office and university admin see these names until the viva."
+    <StepForm title={selecting ? "Select the examiners" : "Examiners"}
+      hint={`${selecting ? "Keep the examiners you select from the proposed panel and remove the rest. " : ""}Confidential: only the Exam Office, Research Office, Vice Chancellor and university admin see these names until the viva.`}
       onSave={async () => {
         onSaved(await api<ItemView>(`/theses/${item.id}/examiners`, { method: "PUT", body: JSON.stringify({ examiners: names }) }));
       }}>
@@ -90,6 +91,7 @@ export function ThesisDetails({ item, onSaved }: { item: ItemView; onSaved: (v: 
   const c = item.content as ThesisContent;
   const atLibrary = item.can_act && item.waiting_on === "Library";
   const atExam = item.can_act && item.waiting_on === "Exam Office";
+  const atVc = item.can_act && item.waiting_on === "Vice Chancellor";
   const over = c.plagiarism_score !== null && c.plagiarism_score > UGC_LEVEL0_MAX;
   return (
     <>
@@ -113,7 +115,7 @@ export function ThesisDetails({ item, onSaved }: { item: ItemView; onSaved: (v: 
           </dd>
         </dl>
         {atLibrary && <Plagiarism item={item} onSaved={onSaved} />}
-        {atExam && <Examiners item={item} onSaved={onSaved} />}
+        {(atExam || atVc) && <Examiners item={item} onSaved={onSaved} selecting={atVc} />}
       </Card>
       <Attachments table="thesis_submissions" recordId={item.id} canUpload={item.can_edit || atLibrary}
         removeOwnOnly title="Thesis files" hint="The final thesis (and, from the Library, the plagiarism-check certificate)." />

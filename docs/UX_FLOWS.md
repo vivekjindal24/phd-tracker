@@ -107,6 +107,21 @@ co-supervisor (setting on) may log their own meetings but never sets sharing.
 4. **Mark as left** (withdrew / registration cancelled) on the profile frees
    the supervisor's slot and counts as a drop-out; *Undo* re-checks the cap.
 
+## Flow 4c — Vice Chancellor
+
+1. The root admin opens **Settings → University offices**, types the person's
+   email (and a full name if they have no account yet) and appoints them Vice
+   Chancellor. The same card appoints and removes the Research Office, Exam
+   Office and Library.
+2. The Vice Chancellor's home shows the whole university as a head sees a
+   unit: scholars by stage, overdue reports, stuck items, supervisor load and
+   a per-school breakdown, with the Leadership view and NAAC data in the menu.
+   Every list is read-only for them.
+3. Where the root admin added a Vice Chancellor step to a chain (Settings →
+   Approval chains), the item lands in their queue. On a thesis the step shows
+   **Select the examiners**: they keep the names they choose from the proposed
+   panel, save, and approve or send back with a reason (Flow 2).
+
 ## Flow 5 — Admin manages people (scoped)
 
 1. Department admin → **My unit → People**: scholars and faculty of their

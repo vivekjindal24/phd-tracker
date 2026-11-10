@@ -138,9 +138,11 @@ async def start_no_dues(
     return await items.view(session, principal, ctx)
 
 
-async def _step_fields(session, principal, thesis_id, kind: str, changes: dict) -> dict[str, Any]:
+async def _step_fields(session, principal, thesis_id, kinds: tuple[str, ...], changes: dict):
+    """`kinds`: the steps that may write these fields; the first names the refusal."""
     ctx = await thesis.load_thesis(session, principal, thesis_id, lock=True)
-    await workflow.assert_step_field(session, principal, ctx, kind)
+    now = workflow.current_kind(ctx)
+    await workflow.assert_step_field(session, principal, ctx, now if now in kinds else kinds[0])
     await update(session, principal, ctx.item, changes)
     await session.commit()
     return await items.view(session, principal, ctx)
@@ -154,7 +156,7 @@ async def set_plagiarism(
     session: AsyncSession = Depends(get_session),
 ) -> dict[str, Any]:
     """Library step only; the certificate is attached to the thesis as a file."""
-    return await _step_fields(session, principal, thesis_id, "library", body.model_dump())
+    return await _step_fields(session, principal, thesis_id, ("library",), body.model_dump())
 
 
 @router.put("/theses/{thesis_id}/examiners", response_model=ItemView)
@@ -164,8 +166,11 @@ async def set_examiners(
     principal: Principal = Depends(CAN_READ),
     session: AsyncSession = Depends(get_session),
 ) -> dict[str, Any]:
-    """Exam Office step only; names stay confidential (thesis.py)."""
-    return await _step_fields(session, principal, thesis_id, "exam_office", body.model_dump())
+    """The Exam Office proposes at its step; where the chain has a Vice Chancellor step, they
+    select from the panel there. Names stay confidential (thesis.py)."""
+    return await _step_fields(
+        session, principal, thesis_id, ("exam_office", "vice_chancellor"), body.model_dump()
+    )
 
 
 @router.get("/theses/{thesis_id}/evaluation", response_model=EvaluationView)

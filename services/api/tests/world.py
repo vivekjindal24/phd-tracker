@@ -31,6 +31,7 @@ class World:
     research_office: User
     exam_office: User
     library: User
+    vice_chancellor: User
     dean_a: User
     hod_a2: User
     hod_b1: User
@@ -101,6 +102,7 @@ async def build_world(session: AsyncSession) -> World:
         "research_office",
         "exam_office",
         "library",
+        "vice_chancellor",
         "dean_a",
         "hod_a2",
         "hod_b1",
@@ -117,7 +119,7 @@ async def build_world(session: AsyncSession) -> World:
     u = {n: await _user(session, n) for n in names}
 
     await _role(session, u["root_admin"], "admin", root)
-    for office in ("research_office", "exam_office", "library"):
+    for office in ("research_office", "exam_office", "library", "vice_chancellor"):
         await _role(session, u[office], office)
     await _role(session, u["dean_a"], "unit_head", school_a)
     await _role(session, u["hod_a2"], "unit_head", a2)

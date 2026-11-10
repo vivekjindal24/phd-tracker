@@ -3,10 +3,14 @@ tuples, so they cannot drift apart (DATABASE.md §2)."""
 
 from typing import Literal, get_args
 
-AssignedRole = Literal["unit_head", "admin", "research_office", "exam_office", "library"]
+AssignedRole = Literal[
+    "unit_head", "admin", "research_office", "exam_office", "library", "vice_chancellor"
+]
 ASSIGNED_ROLES = get_args(AssignedRole)
 UNIT_ROLES = ("unit_head", "admin")
-OFFICE_ROLES = ("research_office", "exam_office", "library")
+OFFICE_ROLES = ("research_office", "exam_office", "library", "vice_chancellor")
+# Read every record, university wide: the Research Office and the Vice Chancellor.
+READ_ALL_ROLES = frozenset({"research_office", "vice_chancellor"})
 
 Designation = Literal["Professor", "Associate Professor", "Assistant Professor"]
 DESIGNATIONS = get_args(Designation)
@@ -51,7 +55,9 @@ ItemType = Literal[
 ]
 ITEM_TYPES = get_args(ItemType)
 
-StepKind = Literal["supervisor", "department", "research_office", "exam_office", "library"]
+StepKind = Literal[
+    "supervisor", "department", "research_office", "exam_office", "library", "vice_chancellor"
+]
 STEP_KINDS = get_args(StepKind)
 
 ItemState = Literal["draft", "in_review", "sent_back", "approved"]

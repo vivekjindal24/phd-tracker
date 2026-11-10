@@ -65,10 +65,8 @@ def _report_content(r: ProgressReport, _: Principal) -> dict[str, Any]:
 
 
 def sees_examiners(principal: Principal) -> bool:
-    """Examiner identities: Exam Office, Research Office, root admin (PRD M3)."""
-    return principal.is_root_admin or bool(
-        principal.office_roles & {"exam_office", "research_office"}
-    )
+    """Examiner identities: Exam Office, Research Office, Vice Chancellor, root admin (PRD M3)."""
+    return principal.is_root_admin or principal.reads_all or "exam_office" in principal.office_roles
 
 
 def _hide_examiners_from_guide(

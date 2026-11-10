@@ -33,7 +33,13 @@ def sees_full(principal: Principal, meeting: Meeting, scholar: Scholar, unit_pat
         return True
     shared = set(meeting.shared_with)
     return (
-        ("unit_heads" in shared and principal.covers("unit_head", unit_path))
+        (
+            "unit_heads" in shared  # the Vice Chancellor heads the university
+            and (
+                principal.covers("unit_head", unit_path)
+                or "vice_chancellor" in principal.office_roles
+            )
+        )
         or ("admins" in shared and principal.covers("admin", unit_path))
         or ("research_office" in shared and "research_office" in principal.office_roles)
     )

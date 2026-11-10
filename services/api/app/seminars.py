@@ -33,7 +33,7 @@ def live_scholar_seminars(*conditions: ColumnElement[bool]):
 def visible(principal: Principal, open_to_faculty: bool = False) -> ColumnElement[bool]:
     """open_to_faculty: the university lets any faculty attend and grade
     (seminar_graders = panel_and_attending), so every faculty member sees scheduled seminars."""
-    if "research_office" in principal.office_roles or principal.is_root_admin:
+    if principal.reads_all or principal.is_root_admin:
         return true()
     clauses: list[ColumnElement[bool]] = []
     paths = tuple(r.unit_path for r in principal.unit_roles)

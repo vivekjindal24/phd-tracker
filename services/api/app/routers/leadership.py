@@ -20,7 +20,7 @@ router = APIRouter(tags=["leadership"])
 
 
 def _sees_everything(principal: Principal) -> bool:
-    return principal.is_root_admin or "research_office" in principal.office_roles
+    return principal.is_root_admin or principal.reads_all
 
 
 @router.get("/leadership", response_model=LeadershipView)

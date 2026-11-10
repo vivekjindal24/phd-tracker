@@ -19,6 +19,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app import items
 from app.auth.principal import Principal
 from app.crud import update
+from app.enums import OFFICE_ROLES
 from app.errors import ApiError, forbidden
 from app.meetings import FUTURE_SLACK
 from app.models import (
@@ -33,7 +34,7 @@ from app.models import (
 )
 from app.workflow import ItemContext, is_guide
 
-OFFICES_SEEING_UNRELEASED = frozenset({"exam_office", "research_office", "library"})
+OFFICES_SEEING_UNRELEASED = frozenset(OFFICE_ROLES)
 FINAL_VIVA_OUTCOMES = frozenset({"pass", "fail"})
 TITLE_NOT_APPROVED = ApiError(
     422,

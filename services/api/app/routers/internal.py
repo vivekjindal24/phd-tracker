@@ -126,7 +126,7 @@ async def naac_view(
     session: AsyncSession = Depends(get_session),
 ) -> dict[str, Any]:
     """Academic years from_year-… to to_year-…, university wide (PRD M9)."""
-    if not (principal.is_root_admin or "research_office" in principal.office_roles):
+    if not (principal.is_root_admin or principal.reads_all):
         raise forbidden()
     if not 0 <= to_year - from_year < NAAC_MAX_YEARS:
         raise ApiError(422, "invalid_years", f"Choose up to {NAAC_MAX_YEARS} academic years.")

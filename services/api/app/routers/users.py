@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import directory, scope
 from app.auth import service as auth_service
-from app.auth.deps import current_principal
+from app.auth.deps import current_principal, require_root_admin
 from app.auth.principal import Principal
 from app.auth.service import hash_password
 from app.crud import insert, soft_delete, update
@@ -19,6 +19,7 @@ from app.models import Faculty, OrgUnit, RoleAssignment, Scholar, User
 from app.notify import email_configured
 from app.rbac import not_only_office, require_perm
 from app.schemas import (
+    OfficeHolderOut,
     RoleAssignmentIn,
     RoleAssignmentOut,
     UserCreate,
@@ -198,6 +199,26 @@ async def _require_may_grant(
         raise ApiError(422, "unit_not_allowed", "Office roles are university-wide.")
     if not principal.is_root_admin:
         raise forbidden()
+
+
+@router.get("/office-holders", response_model=list[OfficeHolderOut])
+async def list_office_holders(
+    _: Principal = Depends(require_root_admin), session: AsyncSession = Depends(get_session)
+) -> list[dict]:
+    """Who holds each university-wide role, for the root admin who appoints them."""
+    rows = await session.execute(
+        select(RoleAssignment.id, RoleAssignment.role, User.id, User.full_name, User.email)
+        .join(User, User.id == RoleAssignment.user_id)
+        .where(
+            RoleAssignment.unit_id.is_(None),
+            RoleAssignment.deleted_at.is_(None),
+            User.deleted_at.is_(None),
+        )
+        .order_by(RoleAssignment.role, User.full_name)
+    )
+    return [
+        {"id": i, "role": r, "user_id": u, "full_name": n, "email": e} for i, r, u, n, e in rows
+    ]
 
 
 @router.post("/role-assignments", response_model=RoleAssignmentOut, status_code=201)

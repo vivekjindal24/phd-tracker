@@ -100,10 +100,10 @@ def unit_predicate(principal: Principal, entity: str, unit_column) -> ColumnElem
 
 
 def project_predicate(principal: Principal, *, ledger: bool = False) -> ColumnElement[bool]:
-    """Projects the caller may read (SECURITY.md §3): the research office all, unit heads and
-    admins their subtree, the PI their own, a scholar the projects they belong to — but not
-    the money (`ledger=True` drops members)."""
-    if "research_office" in principal.office_roles:
+    """Projects the caller may read (SECURITY.md §3): the research office and Vice
+    Chancellor all, unit heads and admins their subtree, the PI their own, a scholar the
+    projects they belong to — but not the money (`ledger=True` drops members)."""
+    if principal.reads_all:
         return true()
     clauses: list[ColumnElement[bool]] = []
     if principal.faculty_id:
@@ -126,7 +126,7 @@ def project_predicate(principal: Principal, *, ledger: bool = False) -> ColumnEl
 def fellowship_ledger_predicate(principal: Principal) -> ColumnElement[bool]:
     """Whose fellowship money the caller may read: the research office all, unit heads and
     admins their subtree. Scholars and supervisors see the fellowship, not its ledger."""
-    if "research_office" in principal.office_roles:
+    if principal.reads_all:
         return true()
     paths = _unit_paths(principal, frozenset(UNIT_ROLES))
     return Scholar.unit_id.in_(subtree_unit_ids(paths)) if paths else false()
@@ -135,7 +135,7 @@ def fellowship_ledger_predicate(principal: Principal) -> ColumnElement[bool]:
 def user_predicate(principal: Principal) -> ColumnElement[bool]:
     """Users the caller may read: self, everyone for root admin / research office, and for
     scoped heads/admins the users whose profile or role assignment sits in their subtree."""
-    if principal.is_root_admin or "research_office" in principal.roles:
+    if principal.is_root_admin or principal.reads_all:
         return true()
     clauses: list[ColumnElement[bool]] = [User.id == principal.user_id]
     paths = _unit_paths(principal, frozenset({"unit_head", "admin"}))
