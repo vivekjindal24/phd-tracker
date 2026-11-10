@@ -1,6 +1,6 @@
 """Export read models obey the same scope as the pages (SECURITY.md §6)."""
 
-from tests.conftest import auth
+from tests.conftest import APR_SECTIONS, auth
 
 SUMMARY = "This period: survey finished, first baselines run, chapter two drafted."
 
@@ -10,7 +10,12 @@ async def test_report_export_view_is_scoped(client, world):
         await client.post(
             "/api/v1/reports",
             headers=auth(world.scholar_a1.id),
-            json={"report_year": 2026, "period": "July-December", "summary": SUMMARY},
+            json={
+                "report_year": 2026,
+                "period": "July-December",
+                "summary": SUMMARY,
+                "sections": APR_SECTIONS,
+            },
         )
     ).json()
     url = f"/api/v1/internal/reports/{r['id']}/export-view"

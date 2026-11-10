@@ -103,7 +103,9 @@ no row (always on).
 (`off` / `view` / `approve`, default `off`), `require_hardcopy` bool (default
 false), `require_no_dues` bool (default false: a thesis waits for an approved
 no-dues clearance while true), `require_ethics` bool (default false: a thesis
-waits for an ethics record while true), `seminar_graders` CHECK (`panel` / `panel_and_attending`, default
+waits for an ethics record while true), `apr_custom_template` bool (default
+false) and `apr_sections` jsonb (ordered `[{"name", "hint"}]`, non-empty: the
+university's own progress report sections, used only while the toggle is on), `seminar_graders` CHECK (`panel` / `panel_and_attending`, default
 `panel`), `seminar_rubric` jsonb (ordered `[{"name", "max"}]`, non-empty),
 `min_coursework_credits` numeric(3,1) (default 12, CHECK 0–40) and
 `min_coursework_cgpa` numeric(4,2) (default 5.5, CHECK 0–10),
@@ -183,8 +185,10 @@ order correctly. State
 lives **only** in these columns and changes **only** through `workflow.py`.
 
 **progress_reports** (APR) — `scholar_id` (indexed), `report_year` CHECK
-2000–2100, `period` CHECK (January-June / July-December), `summary` +
-approval columns. Partial unique `uq_apr_active (scholar_id, report_year,
+2000–2100, `period` CHECK (January-June / July-December), `summary`,
+`sections` jsonb (ordered `[{"name", "text"}]`, default `[]`: the template's
+sections as written, headings copied in) + approval columns. Files hang off it
+(`files.table_name = 'progress_reports'`). Partial unique `uq_apr_active (scholar_id, report_year,
 period) WHERE deleted_at IS NULL` → 409 `duplicate_apr`.
 
 **publications** (module `publications`) — `scholar_id`, `title`,
@@ -254,7 +258,9 @@ clearance is in review or approved. Partial unique `uq_clearance_active
 `item_id` (indexed pair; polymorphic, no FK — CHECK whitelist on
 `item_type`), `step_index`, `step_kind`, `action` CHECK (submit / approve /
 send_back / resubmit), `to_step` int (send-back destination; NULL = back to
-initiator), `comment` (required for send_back — CHECK), `actor_id` FK users,
+initiator), `comment` (required for send_back — CHECK), `rating` (NULL, or on an approve
+of an assessed item: satisfactory / needs_improvement / unsatisfactory —
+`ck_actions_rating`), `actor_id` FK users,
 `at`. Written only by `workflow.py`.
 
 ### 3.5 Research record (modules)

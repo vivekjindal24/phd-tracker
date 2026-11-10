@@ -75,7 +75,13 @@ async def approve(
         principal,
         item_type,
         item_id,
-        lambda ctx: items.approve(session, principal, ctx, body.comment if body else None),
+        lambda ctx: items.approve(
+            session,
+            principal,
+            ctx,
+            body.comment if body else None,
+            body.rating if body else None,
+        ),
     )
 
 

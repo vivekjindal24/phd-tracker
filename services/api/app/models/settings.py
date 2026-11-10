@@ -19,6 +19,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from app.enums import (
     CO_SUPERVISION,
+    DEFAULT_APR_SECTIONS,
     DEFAULT_RUBRIC,
     ITEM_TYPES,
     MODULE_KEYS,
@@ -42,6 +43,10 @@ class Settings(Timestamps, Base):
             "jsonb_typeof(seminar_rubric) = 'array' AND jsonb_array_length(seminar_rubric) > 0",
             name="ck_settings_seminar_rubric",
         ),
+        CheckConstraint(
+            "jsonb_typeof(apr_sections) = 'array' AND jsonb_array_length(apr_sections) > 0",
+            name="ck_settings_apr_sections",
+        ),
         CheckConstraint("min_coursework_credits BETWEEN 0 AND 40", name="ck_settings_min_credits"),
         CheckConstraint("min_coursework_cgpa BETWEEN 0 AND 10", name="ck_settings_min_cgpa"),
         CheckConstraint("max_duration_years BETWEEN 3 AND 12", name="ck_settings_max_years"),
@@ -61,6 +66,11 @@ class Settings(Timestamps, Base):
     seminar_graders: Mapped[str] = mapped_column(Text, server_default=text("'panel'"))
     seminar_rubric: Mapped[list[dict[str, Any]]] = mapped_column(
         JSONB, server_default=text(f"'{json.dumps(list(DEFAULT_RUBRIC))}'::jsonb")
+    )
+    # Progress report sections: the university's own list, used while the toggle is on.
+    apr_custom_template: Mapped[bool] = mapped_column(Boolean, server_default=text("false"))
+    apr_sections: Mapped[list[dict[str, Any]]] = mapped_column(
+        JSONB, server_default=text(f"'{json.dumps(list(DEFAULT_APR_SECTIONS))}'::jsonb")
     )
     # UGC 2022: coursework of 12-16 credits, passed with 55% or its grade equivalent.
     min_coursework_credits: Mapped[float] = mapped_column(

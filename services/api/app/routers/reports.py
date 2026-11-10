@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import items, scope, workflow
+from app import apr, items, scope, workflow
 from app.auth.principal import Principal
 from app.crud import insert, update
 from app.db import get_session
@@ -15,7 +15,7 @@ from app.enums import ItemState
 from app.errors import ApiError
 from app.models import OrgUnit, ProgressReport, Scholar, User
 from app.rbac import require_perm
-from app.schemas import ItemView, ReportIn, ReportRow, ReportUpdate
+from app.schemas import ItemView, PeriodActivity, ReportIn, ReportRow, ReportUpdate
 
 router = APIRouter(prefix="/reports", tags=["reports"])
 
@@ -85,6 +85,7 @@ async def create_report(
             report_year=body.report_year,
             period=body.period,
             summary=body.summary,
+            sections=await apr.clean_sections(session, [s.model_dump() for s in body.sections]),
         ),
     )
     await session.commit()
@@ -101,6 +102,20 @@ async def update_report(
 ) -> dict[str, Any]:
     ctx = await items.load_ctx(session, principal, "progress_report", report_id, lock=True)
     workflow.assert_editable(principal, ctx)  # author only, draft or sent back only
-    await update(session, principal, ctx.item, body.model_dump(exclude_unset=True))
+    changes = body.model_dump(exclude_unset=True, exclude_none=True)
+    if "sections" in changes:
+        changes["sections"] = await apr.clean_sections(session, changes["sections"])
+    await update(session, principal, ctx.item, changes)
     await session.commit()
     return await items.view(session, principal, ctx)
+
+
+@router.get("/{report_id}/activity", response_model=PeriodActivity)
+async def report_activity(
+    report_id: uuid.UUID,
+    principal: Principal = Depends(require_perm("progress_reports", "read")),
+    session: AsyncSession = Depends(get_session),
+) -> dict[str, Any]:
+    ctx = await items.load_ctx(session, principal, "progress_report", report_id)
+    report: ProgressReport = ctx.item  # type: ignore[assignment]
+    return await apr.activity(session, ctx.scholar, report.report_year, report.period)

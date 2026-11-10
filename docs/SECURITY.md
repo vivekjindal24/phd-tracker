@@ -219,6 +219,9 @@ regardless of role, and so does a NAAC sheet built from that module.
   `approval_actions`); the next eligible person must act.
 - Send back: approver chooses the initiator or any earlier step; comment
   required. Illegal action/role/state → 422 `workflow_violation`.
+- A progress report is **assessed**: approving it needs a rating and written
+  remarks at every step (`items.py`, 422 `workflow_violation` otherwise). Its
+  files are attached and removed by the scholar only while it is editable.
 - Step-only fields (`plagiarism_score` — library; `examiners` — exam office,
   and the Vice Chancellor at their own step)
   are writable only by the actor of that step while it is current.

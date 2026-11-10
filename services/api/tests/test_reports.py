@@ -3,7 +3,7 @@
 
 import pytest
 
-from tests.conftest import auth
+from tests.conftest import APR_SECTIONS, ASSESS, auth
 
 SUMMARY = "Completed the literature survey and the first experiments on the district panel."
 
@@ -11,7 +11,7 @@ SUMMARY = "Completed the literature survey and the first experiments on the dist
 async def _create(client, scholar_user, year=2026, period="January-June"):
     res = await client.post(
         "/api/v1/reports",
-        json={"report_year": year, "period": period, "summary": SUMMARY},
+        json={"report_year": year, "period": period, "summary": SUMMARY, "sections": APR_SECTIONS},
         headers=auth(scholar_user.id),
     )
     assert res.status_code == 201, res.text
@@ -19,6 +19,8 @@ async def _create(client, scholar_user, year=2026, period="January-June"):
 
 
 async def _act(client, user, item, action, **body):
+    if action == "approve":
+        body = ASSESS | body
     return await client.post(
         f"/api/v1/items/progress_report/{item['id']}/{action}",
         json=body or None,

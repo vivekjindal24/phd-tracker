@@ -11,13 +11,13 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
-from app import branding, certificate, committee, grants, items, naac, reviews, scope
+from app import apr, branding, certificate, committee, grants, items, naac, reviews, scope
 from app.auth.deps import current_principal, current_reviewer
 from app.auth.principal import Principal
 from app.db import get_session
 from app.enums import MilestoneStatus, MilestoneType
 from app.errors import ApiError, forbidden
-from app.models import Faculty, Milestone, OrgUnit, Scholar, User
+from app.models import Faculty, FileRow, Milestone, OrgUnit, Scholar, User
 from app.rbac import require_perm
 from app.schemas.research import ReviewCopyView
 
@@ -49,6 +49,22 @@ async def report_export_view(
         "period": view["content"]["period"],
         "report_year": view["content"]["report_year"],
         "summary": view["content"]["summary"],
+        "sections": view["content"]["sections"],
+        "activity": await apr.activity(
+            session, ctx.scholar, view["content"]["report_year"], view["content"]["period"]
+        ),
+        "files": list(
+            await session.scalars(
+                select(FileRow.file_name)
+                .where(
+                    FileRow.table_name == "progress_reports",
+                    FileRow.record_id == report_id,
+                    FileRow.status == "ready",
+                    FileRow.deleted_at.is_(None),
+                )
+                .order_by(FileRow.created_at)
+            )
+        ),
         "state": view["state"],
         "submitted_at": view["submitted_at"],
         "approved_at": view["approved_at"],

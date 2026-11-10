@@ -228,9 +228,26 @@ the minutes — Unit heads / Research Office / Admins. Anyone in scope but not
 ticked sees only that a meeting happened (date, scholar, supervisor). Backdated
 entries allowed but visibly timestamped.
 
-**F8 — Six-monthly progress report (APR).** Period Jan–Jun / Jul–Dec + year +
-summary; runs the APR chain (F3). One live APR per scholar per period
-(409 `duplicate_apr`). Its deadline comes from the scholar's progress seminar
+**F8 — Six-monthly progress report (APR).** Period Jan–Jun / Jul–Dec + year;
+runs the APR chain (F3). One live APR per scholar per period
+(409 `duplicate_apr`). Content (Decided 2026-11-10):
+- **Sections:** a short summary plus one answer per section of the report
+  template. Standard template: Work done this period, Progress against
+  objectives, Difficulties faced, Plan for the next six months. University
+  setting `apr_custom_template` (root admin, default off): while on, the
+  university's own ordered list of sections (heading + hint, 1–10) is used
+  instead; switching it off keeps their list for later. A draft may leave
+  sections blank; submitting needs every section of the template in force
+  written (422). A report keeps the headings it was written under.
+- **Files:** the scholar attaches files (full report, slides, data) while the
+  report is a draft or sent back; everyone who reads the report reads them.
+- **Assessment:** an approver cannot approve bare. Each step gives a rating
+  (Satisfactory / Needs improvement / Unsatisfactory) and written remarks
+  (422 otherwise); both show in the history and print on the PDF. Sending back
+  needs its reason, as for every item.
+- **This period on record:** the page and the PDF show what the system already
+  holds for the six months — supervision meetings held, the year's
+  publications and the period's conferences (each only while its module is on). Its deadline comes from the scholar's progress seminar
 (F15): "due soon" 14 days before the seminar's report due date, "overdue" after
 it while still unsubmitted. No seminar scheduled → no deadline shown.
 

@@ -188,6 +188,10 @@ async def require_write(
             raise forbidden()
         scope.require_admin_over(principal, await scope.unit_path(session, scholar.unit_id))
         return
+    if table == "progress_reports":
+        ctx = await items.load_ctx(session, principal, "progress_report", record_id)
+        workflow.assert_editable(principal, ctx)  # author, while draft or sent back
+        return
     if table == "ethics_clearances":
         scholar = await _ethics_scholar(session, principal, record_id)
         if not await scope.can_record(session, principal, scholar):

@@ -25,6 +25,11 @@ const ACTIONS: Record<string, string> = {
   approve: "Approved",
   send_back: "Sent back",
 };
+const RATINGS: Record<string, string> = {
+  satisfactory: "Satisfactory",
+  needs_improvement: "Needs improvement",
+  unsatisfactory: "Unsatisfactory",
+};
 
 const day = (iso: string | null) =>
   iso ? new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "—";
@@ -107,9 +112,22 @@ export async function reportPdf(v: ReportView): Promise<Buffer> {
     ["Submitted", day(v.submitted_at)],
     ["Approved", day(v.approved_at)],
   ]);
-  doc.moveDown(0.6).font("Helvetica-Bold").fontSize(11).text("Summary of progress");
-  doc.moveDown(0.3).font("Helvetica").fontSize(10).text(v.summary, { align: "justify", lineGap: 2 });
-  doc.moveDown(0.9).font("Helvetica-Bold").fontSize(11).text("Approval history");
+  const section = (title: string, body: string) => {
+    doc.moveDown(0.7).font("Helvetica-Bold").fontSize(11).text(title);
+    doc.moveDown(0.3).font("Helvetica").fontSize(10).text(body, { align: "justify", lineGap: 2 });
+  };
+  section("Summary", v.summary);
+  for (const s of v.sections) if (s.text.trim()) section(s.name, s.text);
+  const listed = (items: string[]) => (items.length ? items.join("; ") : "None recorded");
+  doc.moveDown(0.9).font("Helvetica-Bold").fontSize(11).text("This period on record");
+  doc.moveDown(0.3);
+  keyValues(doc, [
+    ["Supervision meetings", String(v.activity.meetings)],
+    ...(v.activity.publications ? [["Publications this year", listed(v.activity.publications)] as [string, string]] : []),
+    ...(v.activity.conferences ? [["Conferences and talks", listed(v.activity.conferences)] as [string, string]] : []),
+    ["Files attached", listed(v.files)],
+  ]);
+  doc.moveDown(0.9).font("Helvetica-Bold").fontSize(11).text("Assessment and approval history");
   doc.moveDown(0.3).font("Helvetica").fontSize(10);
   if (v.history.length === 0) doc.text("Not submitted yet.");
   for (const h of v.history) {
@@ -117,6 +135,7 @@ export async function reportPdf(v: ReportView): Promise<Buffer> {
     const to = h.to ? ` (to ${h.to})` : "";
     doc.font("Helvetica-Bold").text(`${ACTIONS[h.action] ?? h.action}${where}${to}`, { continued: true })
       .font("Helvetica").text(` — ${h.actor}, ${stamp(h.at)}`);
+    if (h.rating) doc.font("Helvetica-Bold").text(`Assessment: ${RATINGS[h.rating]}`, { indent: 14 }).font("Helvetica");
     if (h.comment) doc.fillColor("#333333").text(`“${h.comment}”`, { indent: 14 }).fillColor("black");
     doc.moveDown(0.3);
   }

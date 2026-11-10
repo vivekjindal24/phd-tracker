@@ -24,6 +24,7 @@ from app.enums import (
     NotificationCategory,
     PanelKind,
     Period,
+    Rating,
     SeminarGraders,
     SeminarStatus,
     Stage,
@@ -263,12 +264,25 @@ class RubricCriterion(BaseModel):
 Rubric = Annotated[list[RubricCriterion], Field(min_length=1, max_length=10)]
 
 
+class AprSection(BaseModel):
+    """One section of the progress report template: its heading and a hint for the scholar."""
+
+    name: Name
+    hint: Annotated[str, StringConstraints(strip_whitespace=True, max_length=300)] = ""
+
+
+AprTemplate = Annotated[list[AprSection], Field(min_length=1, max_length=10)]
+
+
 class SettingsOut(BaseModel):
     university_address: str
     co_supervision: CoSupervision
     require_hardcopy: bool
     require_no_dues: bool
     require_ethics: bool
+    apr_custom_template: bool
+    apr_sections: list[AprSection]  # the university's own list, kept while the toggle is off
+    apr_template: list[AprSection]  # what scholars fill today
     seminar_graders: SeminarGraders
     seminar_rubric: list[RubricCriterion]
     min_coursework_credits: float
@@ -288,6 +302,8 @@ class SettingsUpdate(BaseModel):
     require_hardcopy: bool | None = None
     require_no_dues: bool | None = None
     require_ethics: bool | None = None
+    apr_custom_template: bool | None = None
+    apr_sections: AprTemplate | None = None
     seminar_graders: SeminarGraders | None = None
     seminar_rubric: Rubric | None = None
     min_coursework_credits: float | None = Field(default=None, ge=0, le=40)
@@ -303,6 +319,10 @@ class SettingsUpdate(BaseModel):
             names = [c.name.lower() for c in self.seminar_rubric]
             if len(names) != len(set(names)):
                 raise ValueError("rubric criteria must have different names")
+        if self.apr_sections:
+            names = [s.name.lower() for s in self.apr_sections]
+            if len(names) != len(set(names)):
+                raise ValueError("report sections must have different names")
         return self
 
 
@@ -509,6 +529,7 @@ class HistoryEntry(BaseModel):
     step: str | None
     to: str | None
     comment: str | None
+    rating: Rating | None
     at: datetime
 
 
@@ -541,6 +562,7 @@ class NoDuesMine(BaseModel):
 
 class ApproveIn(BaseModel):
     comment: Comment | None = None
+    rating: Rating | None = None  # required with the comment on assessed items (PRD F8)
 
 
 class SendBackIn(BaseModel):
@@ -564,14 +586,34 @@ class QueueEntry(BaseModel):
 Summary = Annotated[str, StringConstraints(strip_whitespace=True, min_length=20, max_length=20000)]
 
 
+class SectionText(BaseModel):
+    """One section of the template as the scholar filled it; blank is fine in a draft."""
+
+    name: Name
+    text: Annotated[str, StringConstraints(strip_whitespace=True, max_length=20000)]
+
+
+ReportSections = Annotated[list[SectionText], Field(max_length=10)]
+
+
 class ReportIn(BaseModel):
     report_year: int = Field(ge=2000, le=2100)
     period: Period
     summary: Summary
+    sections: ReportSections = []
 
 
 class ReportUpdate(BaseModel):
-    summary: Summary
+    summary: Summary | None = None
+    sections: ReportSections | None = None
+
+
+class PeriodActivity(BaseModel):
+    """What the system already holds for the report's six months (PRD F8)."""
+
+    meetings: int
+    publications: list[str] | None  # None: the module is off
+    conferences: list[str] | None
 
 
 class ReportRow(BaseModel):

@@ -3,7 +3,7 @@
 from sqlalchemy import select, update
 
 from app.models import Notification, Settings
-from tests.conftest import auth
+from tests.conftest import APR_SECTIONS, auth
 
 
 def seminar_body(world, unit=None, scholars=None, panel=None, **extra):
@@ -83,7 +83,12 @@ async def test_detail_shows_each_scholars_report_state(client, world):
     summary = "Progress this period: survey finished and first baselines run."
     r = await client.post(
         "/api/v1/reports",
-        json={"report_year": 2026, "period": "July-December", "summary": summary},
+        json={
+            "report_year": 2026,
+            "period": "July-December",
+            "summary": summary,
+            "sections": APR_SECTIONS,
+        },
         headers=auth(world.scholar_a1.id),
     )
     await client.post(

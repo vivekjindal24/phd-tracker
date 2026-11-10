@@ -121,6 +121,20 @@ DEFAULT_RUBRIC = (
     {"name": "Plan", "max": 10},
 )
 
+# Progress reports (PRD F8): each approver rates the period; the standard sections a scholar
+# fills unless the university sets its own (settings.apr_custom_template).
+Rating = Literal["satisfactory", "needs_improvement", "unsatisfactory"]
+RATINGS = get_args(Rating)
+DEFAULT_APR_SECTIONS = (
+    {"name": "Work done this period", "hint": "Experiments, fieldwork, reading and writing."},
+    {
+        "name": "Progress against objectives",
+        "hint": "Each objective of the proposal: where it stands.",
+    },
+    {"name": "Difficulties faced", "hint": "Anything that slowed the work, and what would help."},
+    {"name": "Plan for the next six months", "hint": "What will be done, and by when."},
+)
+
 TodoPart = Literal[
     "introduction",
     "literature_review",
@@ -218,6 +232,7 @@ COMMENT_TARGETS = get_args(CommentTarget)
 # Tables files may hang off; each phase adds its owners (with a migration widening the CHECK).
 FileOwner = Literal[
     "scholars",
+    "progress_reports",
     "publications",
     "conferences",
     "documents",

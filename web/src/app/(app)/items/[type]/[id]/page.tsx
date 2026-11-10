@@ -9,13 +9,15 @@ import { Celebrate, firstTime } from "@/components/Celebrate";
 import { ChainSteps } from "@/components/items/ChainSteps";
 import { ClearanceDetails } from "@/components/items/ClearanceDetails";
 import { PublicationDetails } from "@/components/items/PublicationDetails";
+import { ReportDetails } from "@/components/items/ReportDetails";
 import { ThesisDetails } from "@/components/items/ThesisDetails";
 import { ThesisEvaluation } from "@/components/items/ThesisEvaluation";
 import { StateBadge } from "@/components/items/StateBadge";
 import { Button, Card, ErrorText, Field, PageHeader } from "@/components/ui/kit";
 import { api } from "@/lib/api";
 import { useSession } from "@/lib/session";
-import type { CommentTarget, ItemType, ItemView } from "@/lib/types";
+import { RATING_LABELS } from "@/lib/types";
+import type { CommentTarget, ItemType, ItemView, Rating } from "@/lib/types";
 import { errorText, useFetch } from "@/lib/useFetch";
 import "./item.css";
 
@@ -39,55 +41,11 @@ const RECORD_TABLE: Partial<Record<ItemType, CommentTarget>> = {
 
 /** The type-specific record card; the chain, actions and history around it are generic. */
 function ItemContent({ item, onSaved }: { item: ItemView; onSaved: (v: ItemView) => void }) {
-  if (item.item_type === "progress_report") return <ReportContent item={item} onSaved={onSaved} />;
+  if (item.item_type === "progress_report") return <ReportDetails item={item} onSaved={onSaved} />;
   if (item.item_type === "publication") return <PublicationDetails item={item} onSaved={onSaved} />;
   if (item.item_type === "thesis_submission") return <ThesisDetails item={item} onSaved={onSaved} />;
   if (item.item_type === "coursework_clearance") return <ClearanceDetails item={item} />;
   return null;
-}
-
-function ReportContent({ item, onSaved }: { item: ItemView; onSaved: (v: ItemView) => void }) {
-  const summary = String(item.content.summary ?? "");
-  const [draft, setDraft] = useState(summary);
-  const [editing, setEditing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  useEffect(() => setDraft(summary), [summary]);
-
-  async function save() {
-    setError(null);
-    try {
-      onSaved(await api<ItemView>(`/reports/${item.id}`, {
-        method: "PATCH",
-        body: JSON.stringify({ summary: draft }),
-      }));
-      setEditing(false);
-    } catch (e) {
-      setError(errorText(e));
-    }
-  }
-
-  return (
-    <Card>
-      <h2>Summary of progress</h2>
-      {editing ? (
-        <Field label="Summary" hint="At least 20 characters.">
-          <textarea className="summary-edit" value={draft} maxLength={20000}
-            onChange={(e) => setDraft(e.target.value)} />
-        </Field>
-      ) : (
-        <p className="prose">{summary}</p>
-      )}
-      <ErrorText>{error}</ErrorText>
-      {item.can_edit && (editing ? (
-        <div className="row">
-          <Button kind="primary" onClick={save}>Save</Button>
-          <Button kind="ghost" onClick={() => { setDraft(summary); setEditing(false); }}>Cancel</Button>
-        </div>
-      ) : (
-        <Button onClick={() => setEditing(true)}>Edit summary</Button>
-      ))}
-    </Card>
-  );
 }
 
 /** UX Flow 2 step 4: whoever an item was sent back to sees why, pinned above everything else. */
@@ -105,7 +63,9 @@ function SentBackReason({ item }: { item: ItemView }) {
 
 function Actions({ item, run }: { item: ItemView; run: (action: string, body?: object) => Promise<void> }) {
   const [comment, setComment] = useState("");
+  const [rating, setRating] = useState<Rating | "">("");
   const [target, setTarget] = useState<string>("initiator");
+  const assessed = item.item_type === "progress_report"; // the API refuses a bare approval
   const [busy, setBusy] = useState(false);
 
   async function go(action: string, body?: object) {
@@ -141,12 +101,23 @@ function Actions({ item, run }: { item: ItemView; run: (action: string, body?: o
     return (
       <Card className="act">
         <h2>Your decision · {item.waiting_on}</h2>
-        <Field label="Comment" hint="Optional when approving; required when sending back.">
+        {assessed && (
+          <Field label="Your assessment of this period">
+            <select value={rating} onChange={(e) => setRating(e.target.value as Rating | "")}>
+              <option value="">Choose…</option>
+              {(Object.keys(RATING_LABELS) as Rating[]).map((r) => <option key={r} value={r}>{RATING_LABELS[r]}</option>)}
+            </select>
+          </Field>
+        )}
+        <Field label={assessed ? "Remarks" : "Comment"}
+          hint={assessed ? "Required: what went well, what must improve, what to do next. It prints on the report."
+            : "Optional when approving; required when sending back."}>
           <textarea value={comment} maxLength={4000} onChange={(e) => setComment(e.target.value)} />
         </Field>
         <div className="row">
-          <Button kind="primary" disabled={busy} onClick={() => go("approve", { comment: comment || null })}>
-            Approve
+          <Button kind="primary" disabled={busy || (assessed && (!rating || !comment.trim()))}
+            onClick={() => go("approve", { comment: comment || null, rating: rating || null })}>
+            {assessed ? "Approve with this assessment" : "Approve"}
           </Button>
         </div>
         <div className="send-back">
@@ -247,6 +218,7 @@ export default function ItemPage() {
                     {h.step && h.action !== "submit" && ` at ${h.step}`}
                     {h.to && ` → ${h.to}`}
                     <time dateTime={h.at}>{new Date(h.at).toLocaleString()}</time>
+                    {h.rating && <> <span className={`badge ${h.rating === "satisfactory" ? "badge-approved" : "badge-sent_back"}`}>{RATING_LABELS[h.rating]}</span></>}
                     {h.comment && <blockquote>{h.comment}</blockquote>}
                   </li>
                 ))}

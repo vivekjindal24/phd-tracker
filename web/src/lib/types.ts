@@ -57,6 +57,9 @@ export type SettingsData = {
   require_hardcopy: boolean;
   require_no_dues: boolean;
   require_ethics: boolean;
+  apr_custom_template: boolean;
+  apr_sections: AprSection[];
+  apr_template: AprSection[];
   seminar_graders: "panel" | "panel_and_attending";
   seminar_rubric: { name: string; max: number }[];
   min_coursework_credits: number;
@@ -218,7 +221,7 @@ export type ItemView = {
   can_act: boolean;
   send_back_targets: { to_step: number | null; label: string }[];
   blocked_reason: string | null;
-  history: { action: string; actor: string; step: string | null; to: string | null; comment: string | null; at: string }[];
+  history: { action: string; actor: string; step: string | null; to: string | null; comment: string | null; rating: Rating | null; at: string }[];
 };
 
 export type QueueEntry = {
@@ -449,7 +452,8 @@ export type FileOwner =
   | "vivas"
   | "shodhganga_deposits"
   | "utilisation_certificates"
-  | "ethics_clearances";
+  | "ethics_clearances"
+  | "progress_reports";
 export type CommentTarget =
   | "scholars"
   | "meetings"
@@ -797,3 +801,14 @@ export type EthicsRecord = {
   notes: string;
 };
 export type EthicsView = { records: EthicsRecord[]; required: boolean; satisfied: boolean; can_manage: boolean };
+
+/** Progress report template and assessment (PRD F8). */
+export type AprSection = { name: string; hint: string };
+export type SectionText = { name: string; text: string };
+export type Rating = "satisfactory" | "needs_improvement" | "unsatisfactory";
+export const RATING_LABELS: Record<Rating, string> = {
+  satisfactory: "Satisfactory",
+  needs_improvement: "Needs improvement",
+  unsatisfactory: "Unsatisfactory",
+};
+export type PeriodActivity = { meetings: number; publications: string[] | null; conferences: string[] | null };

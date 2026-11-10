@@ -35,8 +35,12 @@ admin".
 
 ## Flow 1 — Scholar submits a progress report (APR chain)
 
-1. Scholar → **Reports** → **New report**: period + year + summary.
-2. Save → **Draft**; **Submit for approval** → badge **In review ·
+1. Scholar → **Reports** → **New report**: period + year, a short summary and
+   one box per section of the report template. Sections may be left for later.
+2. Save → **Draft**. On the report's page the scholar edits the sections,
+   attaches files, and sees "This period on record" (meetings, publications,
+   conferences). While a section is unwritten the page says which, and submit
+   is refused. **Submit for approval** → badge **In review ·
    Supervisor**. The item page shows the chain as a row of clay steps with
    the current one highlighted.
 3. Each approver sees it in **Your queue**; the scholar sees the step move
@@ -52,7 +56,9 @@ non-initiator never sees the New button and the API 403s anyway.
 1. Approver opens **Your queue** (items at a step they can act on, oldest
    first, with item type, scholar and days waiting).
 2. Opens an item: content, files, comments, full approval history.
-3. **Approve** (optional comment) → next step with a small confetti burst,
+3. **Approve** (optional comment; on a progress report a rating —
+   Satisfactory / Needs improvement / Unsatisfactory — and written remarks are
+   required, and the button stays off until both are given) → next step with a small confetti burst,
    or Approved if last (full burst + cheering owl; reduced-motion: none).
 4. **Send back** → picker: "To the scholar" or any earlier step by name
    (e.g. "Supervisor"); comment required. The receiver is notified and sees
@@ -106,6 +112,14 @@ co-supervisor (setting on) may log their own meetings but never sets sharing.
    warns when the limit is near or past.
 4. **Mark as left** (withdrew / registration cancelled) on the profile frees
    the supervisor's slot and counts as a drop-out; *Undo* re-checks the cap.
+
+## Flow 4d — The university's own report template
+
+Root admin → **Settings → Progress report template**: a switch "Use our own
+sections instead of the standard ones". On: an editable list of headings with
+optional hints (add, remove, save). Off: the standard four are shown and used;
+the university's list is kept. Reports not yet submitted follow the template
+in force; submitted ones keep their headings.
 
 ## Flow 4c — Vice Chancellor
 

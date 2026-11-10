@@ -11,9 +11,12 @@ const JUNK_ID = "00000000-0000-4000-8000-000000000000";
 const report = {
   university: "Demo University", address: "", logo: null, unit: "CSE", scholar: "Arun Kumar", roll_number: "PHD-CSE-001",
   supervisor: "Meera", committee: ["Prof. R. Sen (IIT Delhi)"], period: "July-December", report_year: 2026,
-  summary: "Survey finished, baselines run, chapter two drafted.", state: "in_review",
+  summary: "Survey finished, baselines run, chapter two drafted.",
+  sections: [{ name: "Work done this period", text: "Baselines run on the district panel." }],
+  activity: { meetings: 4, publications: ["A paper (accepted)"], conferences: null }, files: ["report.pdf"],
+  state: "in_review",
   submitted_at: "2026-10-01T10:00:00Z", approved_at: null,
-  history: [{ action: "submit", actor: "Arun Kumar", step: "Supervisor", to: null, comment: null, at: "2026-10-01T10:00:00Z" }],
+  history: [{ action: "submit", actor: "Arun Kumar", step: "Supervisor", to: null, comment: null, rating: null, at: "2026-10-01T10:00:00Z" }],
   generated_at: "2026-10-22T10:00:00Z", generated_by: "Meera",
 };
 const register = {

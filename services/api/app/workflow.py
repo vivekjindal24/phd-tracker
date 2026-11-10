@@ -203,6 +203,7 @@ def _record(
     step_index: int | None,
     to_step: int | None = None,
     comment: str | None = None,
+    rating: str | None = None,
 ) -> None:
     kind = None
     if step_index is not None and ctx.item.chain_snapshot:
@@ -216,6 +217,7 @@ def _record(
             action=action,
             to_step=to_step,
             comment=comment,
+            rating=rating,
             actor_id=principal.user_id,
         )
     )
@@ -230,12 +232,13 @@ async def _transition(
     step_index: int | None,
     to_step: int | None = None,
     comment: str | None = None,
+    rating: str | None = None,
 ) -> None:
     prev = snapshot(ctx.item)  # type: ignore[arg-type]
     from_state = ctx.item.state
     for key, value in changes.items():
         setattr(ctx.item, key, value)
-    _record(session, principal, ctx, action, step_index, to_step, comment)
+    _record(session, principal, ctx, action, step_index, to_step, comment, rating)
     await session.flush()
     await session.refresh(ctx.item)
     audit(
@@ -302,7 +305,11 @@ async def resubmit(session: AsyncSession, principal: Principal, ctx: ItemContext
 
 
 async def approve(
-    session: AsyncSession, principal: Principal, ctx: ItemContext, comment: str | None = None
+    session: AsyncSession,
+    principal: Principal,
+    ctx: ItemContext,
+    comment: str | None = None,
+    rating: str | None = None,
 ) -> None:
     if not await can_act(session, principal, ctx):
         raise violation("You cannot approve this item at its current step.")
@@ -317,6 +324,7 @@ async def approve(
             {"current_step": step + 1},
             step_index=step,
             comment=comment,
+            rating=rating,
         )
         await _notify_step(session, principal, ctx)
         return
@@ -332,6 +340,7 @@ async def approve(
         },
         step_index=step,
         comment=comment,
+        rating=rating,
     )
     notify(session, [ctx.scholar.user_id], "approved", f"{ctx.label} approved", link=ctx.link)
 

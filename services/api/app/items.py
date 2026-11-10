@@ -10,7 +10,7 @@ from typing import Any
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import coursework, ethics, scope, workflow
+from app import apr, coursework, ethics, scope, workflow
 from app.auth.principal import Principal
 from app.crud import update
 from app.enums import STAGES
@@ -44,6 +44,8 @@ class ItemKind:
     module: str | None = None  # optional module that must be on (PRD F4)
     # step kind -> (column, label) that step must fill in before it may approve
     required: dict[str, tuple[tuple[str, str], ...]] = field(default_factory=dict)
+    # every approver gives a rating and written remarks, not a bare approval (PRD F8)
+    assessed: bool = False
     before_submit: Hook | None = None  # raise to refuse a submit / resubmit
     on_approved: Hook | None = None  # side effects of the final approval
 
@@ -61,7 +63,12 @@ def _report_title(r: ProgressReport) -> str:
 
 
 def _report_content(r: ProgressReport, _: Principal) -> dict[str, Any]:
-    return {"report_year": r.report_year, "period": r.period, "summary": r.summary}
+    return {
+        "report_year": r.report_year,
+        "period": r.period,
+        "summary": r.summary,
+        "sections": r.sections,
+    }
 
 
 def sees_examiners(principal: Principal) -> bool:
@@ -156,7 +163,14 @@ def _publication_content(p: Publication, _: Principal) -> dict[str, Any]:
 
 
 REGISTRY: dict[str, ItemKind] = {
-    "progress_report": ItemKind(ProgressReport, "progress_reports", _report_title, _report_content),
+    "progress_report": ItemKind(
+        ProgressReport,
+        "progress_reports",
+        _report_title,
+        _report_content,
+        assessed=True,
+        before_submit=apr.require_complete,
+    ),
     "publication": ItemKind(
         Publication, "publications", lambda p: p.title, _publication_content, "publications"
     ),
@@ -210,7 +224,11 @@ async def resubmit(session: AsyncSession, principal: Principal, ctx: ItemContext
 
 
 async def approve(
-    session: AsyncSession, principal: Principal, ctx: ItemContext, comment: str | None
+    session: AsyncSession,
+    principal: Principal,
+    ctx: ItemContext,
+    comment: str | None,
+    rating: str | None = None,
 ) -> None:
     kind = kind_of(ctx.item_type)
     step = workflow.current_kind(ctx)
@@ -221,7 +239,11 @@ async def approve(
     ]
     if missing and await workflow.can_act(session, principal, ctx):
         raise workflow.violation(f"Fill in {' and '.join(missing)} before approving.")
-    await workflow.approve(session, principal, ctx, comment)
+    if not kind.assessed:
+        rating = None
+    elif not (rating and comment) and await workflow.can_act(session, principal, ctx):
+        raise workflow.violation("Give a rating and written remarks before approving.")
+    await workflow.approve(session, principal, ctx, comment, rating)
     if ctx.item.state == "approved" and kind.on_approved:
         await kind.on_approved(session, principal, ctx)
 
@@ -361,6 +383,7 @@ async def history(session: AsyncSession, ctx: ItemContext) -> list[dict[str, Any
                 "step": STEP_LABELS[a.step_kind] if a.step_kind else None,
                 "to": to,
                 "comment": a.comment,
+                "rating": a.rating,
                 "at": a.at,
             }
         )

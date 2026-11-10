@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, Request
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import branding
+from app import apr, branding
 from app.auth.deps import current_principal, require_root_admin
 from app.auth.principal import Principal
 from app.crud import update
@@ -31,6 +31,9 @@ async def _read(session: AsyncSession) -> SettingsOut:
             "require_hardcopy": settings.require_hardcopy,
             "require_no_dues": settings.require_no_dues,
             "require_ethics": settings.require_ethics,
+            "apr_custom_template": settings.apr_custom_template,
+            "apr_sections": settings.apr_sections,
+            "apr_template": apr.effective(settings),
             "seminar_graders": settings.seminar_graders,
             "seminar_rubric": settings.seminar_rubric,
             "min_coursework_credits": settings.min_coursework_credits,

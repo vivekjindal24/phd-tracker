@@ -117,3 +117,16 @@ async def client():
 
 def auth(user_id) -> dict[str, str]:
     return {"Authorization": f"Bearer {create_access_token(user_id)}"}
+
+
+# A complete progress report under the standard template, and an approver's assessment.
+APR_SECTIONS = [
+    {"name": name, "text": f"{name}: done as planned."}
+    for name in (
+        "Work done this period",
+        "Progress against objectives",
+        "Difficulties faced",
+        "Plan for the next six months",
+    )
+]
+ASSESS = {"rating": "satisfactory", "comment": "Good progress."}

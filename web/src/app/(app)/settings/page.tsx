@@ -11,6 +11,7 @@ import { CoSupervision } from "./CoSupervision";
 import { Modules } from "./Modules";
 import { Offices } from "./Offices";
 import { OrgTree } from "./OrgTree";
+import { ReportTemplate } from "./ReportTemplate";
 import { RulesSettings } from "./RulesSettings";
 import { SeminarSettings } from "./SeminarSettings";
 import "./settings.css";
@@ -66,6 +67,7 @@ export default function SettingsPage() {
             <Modules modules={data.modules} save={save} />
             <CoSupervision value={data.co_supervision} save={save} />
           </div>
+          <ReportTemplate data={data} save={save} />
           <SeminarSettings data={data} save={save} />
           <RulesSettings data={data} save={save} />
           <Offices emailConfigured={data.email_configured} />

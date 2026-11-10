@@ -7,7 +7,7 @@ from sqlalchemy import text, update
 
 from app.dashboard import due_status
 from app.models import Scholar
-from tests.conftest import auth
+from tests.conftest import APR_SECTIONS, auth
 
 TODAY = date.today()
 
@@ -67,7 +67,12 @@ async def test_overdue_reports_reach_supervisor_and_heads_but_not_other_units(cl
     r = await client.post(
         "/api/v1/reports",
         headers=auth(world.scholar_a1.id),
-        json={"report_year": 2026, "period": "July-December", "summary": summary},
+        json={
+            "report_year": 2026,
+            "period": "July-December",
+            "summary": summary,
+            "sections": APR_SECTIONS,
+        },
     )
     await client.post(
         f"/api/v1/items/progress_report/{r.json()['id']}/submit", headers=auth(world.scholar_a1.id)
@@ -102,7 +107,12 @@ async def test_stuck_items_after_fourteen_days(client, world, session):
     r = await client.post(
         "/api/v1/reports",
         headers=auth(world.scholar_a1b.id),
-        json={"report_year": 2026, "period": "January-June", "summary": summary},
+        json={
+            "report_year": 2026,
+            "period": "January-June",
+            "summary": summary,
+            "sections": APR_SECTIONS,
+        },
     )
     await client.post(
         f"/api/v1/items/progress_report/{r.json()['id']}/submit", headers=auth(world.scholar_a1b.id)
@@ -120,7 +130,12 @@ async def test_queue_summary_for_approvers(client, world):
     r = await client.post(
         "/api/v1/reports",
         headers=auth(world.scholar_a1b.id),
-        json={"report_year": 2026, "period": "January-June", "summary": summary},
+        json={
+            "report_year": 2026,
+            "period": "January-June",
+            "summary": summary,
+            "sections": APR_SECTIONS,
+        },
     )
     await client.post(
         f"/api/v1/items/progress_report/{r.json()['id']}/submit", headers=auth(world.scholar_a1b.id)

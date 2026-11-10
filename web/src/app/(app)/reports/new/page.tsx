@@ -6,8 +6,9 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import { Button, ErrorText, Field, PageHeader } from "@/components/ui/kit";
 import { api } from "@/lib/api";
-import type { ItemView, Period } from "@/lib/types";
-import { errorText } from "@/lib/useFetch";
+import { ReportSections } from "@/components/items/ReportSections";
+import type { ItemView, Period, SectionText, SettingsData } from "@/lib/types";
+import { errorText, useFetch } from "@/lib/useFetch";
 
 function currentPeriod(): { year: number; period: Period } {
   const now = new Date();
@@ -20,6 +21,8 @@ function NewReportForm() {
   const [year, setYear] = useState(initial.year);
   const [period, setPeriod] = useState<Period>(initial.period);
   const [summary, setSummary] = useState("");
+  const [sections, setSections] = useState<SectionText[]>([]);
+  const template = useFetch<SettingsData>("/settings").data?.apr_template;
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -30,7 +33,7 @@ function NewReportForm() {
     try {
       const item = await api<ItemView>("/reports", {
         method: "POST",
-        body: JSON.stringify({ report_year: year, period, summary }),
+        body: JSON.stringify({ report_year: year, period, summary, sections }),
       });
       router.push(`/items/progress_report/${item.id}`);
     } catch (err) {
@@ -55,10 +58,12 @@ function NewReportForm() {
               onChange={(e) => setYear(Number(e.target.value))} />
           </Field>
         </div>
-        <Field label="Summary of progress" hint="What you did this period, results, and plans for the next. Saved as a draft; you submit it when ready.">
+        <Field label="Summary" hint="A short overview of the period, at least 20 characters.">
           <textarea required minLength={20} maxLength={20000} value={summary}
-            style={{ minHeight: 240, resize: "vertical" }} onChange={(e) => setSummary(e.target.value)} />
+            style={{ minHeight: 120, resize: "vertical" }} onChange={(e) => setSummary(e.target.value)} />
         </Field>
+        {template && <ReportSections template={template} value={sections} onChange={setSections} />}
+        <p className="muted">Saved as a draft. You can leave sections for later, attach files on the next page, and submit when every section is written.</p>
         <ErrorText>{error}</ErrorText>
         <Button kind="primary" type="submit" disabled={busy}>{busy ? "Saving…" : "Save draft"}</Button>
       </form>

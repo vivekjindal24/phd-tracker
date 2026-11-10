@@ -24,6 +24,7 @@ const historyEntry = z.object({
   step: z.string().nullable(),
   to: z.string().nullable(),
   comment: z.string().nullable(),
+  rating: z.enum(["satisfactory", "needs_improvement", "unsatisfactory"]).nullable(),
   at: z.string(),
 });
 
@@ -37,6 +38,13 @@ export const reportView = z.object({
   period: z.string(),
   report_year: z.number().int(),
   summary: z.string(),
+  sections: z.array(z.object({ name: z.string(), text: z.string() })),
+  activity: z.object({
+    meetings: z.number().int(),
+    publications: z.array(z.string()).nullable(),
+    conferences: z.array(z.string()).nullable(),
+  }),
+  files: z.array(z.string()),
   state: z.enum(["draft", "in_review", "sent_back", "approved"]),
   submitted_at: z.string().nullable(),
   approved_at: z.string().nullable(),

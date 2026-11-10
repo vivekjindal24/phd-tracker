@@ -5,7 +5,7 @@ from datetime import date
 from sqlalchemy import select
 
 from app.models import Notification
-from tests.conftest import auth
+from tests.conftest import APR_SECTIONS, auth
 
 TODAY = date.today().isoformat()
 SUMMARY = "Survey finished; first baselines on the district crime panel are promising."
@@ -30,7 +30,12 @@ async def _report(client, world):
     res = await client.post(
         "/api/v1/reports",
         headers=auth(world.scholar_a1.id),
-        json={"report_year": 2026, "period": "July-December", "summary": SUMMARY},
+        json={
+            "report_year": 2026,
+            "period": "July-December",
+            "summary": SUMMARY,
+            "sections": APR_SECTIONS,
+        },
     )
     return res.json()
 

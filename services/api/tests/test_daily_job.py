@@ -10,7 +10,7 @@ from sqlalchemy import select
 from app.config import settings
 from app.models import Meeting, Notification, Seminar, SeminarScholar
 from app.routers import cron
-from tests.conftest import auth
+from tests.conftest import APR_SECTIONS, auth
 
 SECRET = "s" * 40
 
@@ -61,6 +61,7 @@ async def test_apr_due_soon_and_overdue(client, session, world, cron_on):
             "report_year": datetime.now(UTC).year,
             "period": "July-December",
             "summary": "Two chapters drafted and one paper under review.",
+            "sections": APR_SECTIONS,
         },
     )
     rid = created.json()["id"]

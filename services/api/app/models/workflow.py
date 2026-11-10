@@ -9,7 +9,7 @@ from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, Integer, Te
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.enums import APPROVAL_ACTIONS, ITEM_STATES, ITEM_TYPES, STEP_KINDS, sql_in
+from app.enums import APPROVAL_ACTIONS, ITEM_STATES, ITEM_TYPES, RATINGS, STEP_KINDS, sql_in
 from app.models.base import Base
 
 
@@ -44,6 +44,10 @@ class ApprovalActionRow(Base):
             "action <> 'send_back' OR char_length(coalesce(comment, '')) > 0",
             name="ck_actions_send_back_comment",
         ),
+        CheckConstraint(
+            f"rating IS NULL OR (action = 'approve' AND rating IN ({sql_in(RATINGS)}))",
+            name="ck_actions_rating",
+        ),
         Index("ix_approval_actions_item", "item_type", "item_id"),
     )
 
@@ -57,6 +61,7 @@ class ApprovalActionRow(Base):
     action: Mapped[str] = mapped_column(Text)
     to_step: Mapped[int | None] = mapped_column(Integer)
     comment: Mapped[str | None] = mapped_column(Text)
+    rating: Mapped[str | None] = mapped_column(Text)  # assessed item types only (items.py)
     actor_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"))
     # clock_timestamp, not now(): several actions in one transaction must still order.
     at: Mapped[datetime] = mapped_column(

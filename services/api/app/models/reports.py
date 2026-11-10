@@ -1,9 +1,10 @@
 """Six-monthly progress reports (DATABASE.md §3.4). State changes only via app/workflow.py."""
 
 import uuid
+from typing import Any
 
 from sqlalchemy import CheckConstraint, ForeignKey, Index, Integer, Text, text
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.enums import PERIODS, sql_in
@@ -39,3 +40,6 @@ class ProgressReport(ApprovalColumns, DomainRow, Base):
     report_year: Mapped[int] = mapped_column(Integer)
     period: Mapped[str] = mapped_column(Text)
     summary: Mapped[str] = mapped_column(Text)
+    # Ordered [{"name", "text"}]: the template's sections as the scholar filled them. Names are
+    # copied in, so a later change of template never rewrites an old report.
+    sections: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, server_default=text("'[]'"))
