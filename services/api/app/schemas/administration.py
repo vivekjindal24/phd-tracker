@@ -247,3 +247,36 @@ class LeadershipView(BaseModel):
     by_unit: list[LeadershipRow]
     at_risk: list[AtRisk]
     as_of: date
+
+
+# --- research advisory committee ---------------------------------------------------------
+
+
+class CommitteeMemberIn(BaseModel):
+    """Faculty of this university by id, or an outside expert by name and institution."""
+
+    faculty_id: uuid.UUID | None = None
+    name: Name | None = None
+    institution: Name | None = None
+
+    @model_validator(mode="after")
+    def _one_kind(self) -> "CommitteeMemberIn":
+        outside = self.name is not None and self.institution is not None
+        if self.faculty_id is not None and (self.name is None and self.institution is None):
+            return self
+        if self.faculty_id is None and outside:
+            return self
+        raise ValueError("give a faculty member, or an outside expert's name and institution")
+
+
+class CommitteeMemberOut(BaseModel):
+    id: uuid.UUID
+    name: str
+    institution: str
+    external: bool
+
+
+class CommitteeView(BaseModel):
+    convener: str | None  # the supervisor
+    members: list[CommitteeMemberOut]
+    can_manage: bool

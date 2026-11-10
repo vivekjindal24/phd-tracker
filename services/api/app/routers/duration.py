@@ -22,12 +22,6 @@ from app.schemas.administration import DurationView, TimeAdjustmentIn
 router = APIRouter(tags=["duration"])
 
 
-async def _may_write(session: AsyncSession, principal: Principal, scholar: Scholar) -> bool:
-    if "research_office" in principal.office_roles:
-        return True
-    return principal.covers("admin", await scope.unit_path(session, scholar.unit_id))
-
-
 async def _view(session: AsyncSession, principal: Principal, scholar: Scholar) -> dict[str, Any]:
     limits = await duration.limits(session)
     rows = (await duration.adjustments_for(session, [scholar.id])).get(scholar.id, [])
@@ -49,7 +43,7 @@ async def _view(session: AsyncSession, principal: Principal, scholar: Scholar) -
             for a in rows
         ],
         "max_years": limits.max_years,
-        "can_manage": await _may_write(session, principal, scholar),
+        "can_manage": await scope.can_record(session, principal, scholar),
     }
 
 
@@ -73,7 +67,7 @@ async def add_adjustment(
     """Recorded even when it goes past a limit — the view then says so; the university's
     committee, not the software, decides on exceptions."""
     scholar = await scope.get_scholar_or_403(session, principal, scholar_id, "time_adjustments")
-    if not await _may_write(session, principal, scholar):
+    if not await scope.can_record(session, principal, scholar):
         raise forbidden()
     await insert(session, principal, TimeAdjustment(scholar_id=scholar.id, **body.model_dump()))
     await session.commit()
@@ -94,7 +88,7 @@ async def remove_adjustment(
     if row is None:
         raise forbidden()
     scholar = await scope.get_scholar_or_403(session, principal, row.scholar_id, "time_adjustments")
-    if not await _may_write(session, principal, scholar):
+    if not await scope.can_record(session, principal, scholar):
         raise forbidden()
     await soft_delete(session, principal, row)
     await session.commit()

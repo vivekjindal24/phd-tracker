@@ -50,6 +50,13 @@ MATRIX: dict[str, dict[str, frozenset[str]]] = {
         "research_office": frozenset({R, C, U, D}),
         "exam_office": frozenset({R}),
     },
+    "committee_members": {  # writes: admins over the scholar's unit, or the research office
+        "scholar": frozenset({R}),
+        "supervisor": frozenset({R}),
+        "unit_head": frozenset({R}),
+        "admin": frozenset({R, C, D}),
+        "research_office": frozenset({R, C, D}),
+    },
     "progress_reports": {
         "scholar": frozenset({R, C, U}),
         "supervisor": frozenset({R}),

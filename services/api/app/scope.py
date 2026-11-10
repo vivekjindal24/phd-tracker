@@ -186,6 +186,14 @@ async def get_user_or_403(session: AsyncSession, principal: Principal, user_id: 
     return user
 
 
+async def can_record(session: AsyncSession, principal: Principal, scholar: Scholar) -> bool:
+    """Who keeps a scholar's committee records (register, time records, committee): the
+    Research Office anywhere, or an admin over the scholar's unit."""
+    if "research_office" in principal.office_roles:
+        return True
+    return principal.covers("admin", await unit_path(session, scholar.unit_id))
+
+
 def require_admin_over(principal: Principal, path: str) -> None:
     """Writes to a unit (or its people) need an admin assignment at or above that unit."""
     if not principal.covers("admin", path):

@@ -171,6 +171,12 @@ Thesis examiners are not requested here (Exam Office only, Flow 8).
 2. **Register PDF / CSV** for the committee meeting.
 3. The scholar's RDC status updates on their profile and on head dashboards.
 
+On the scholar's page the **Research Advisory Committee** card lists the
+supervisor as convener and the other members. The same admin or Research Office
+adds a member by finding a faculty member, or ticks "from outside this
+university" and types a name and institution; Remove takes one off. The list
+prints on the progress report PDF.
+
 ## Flow 6b — Progress seminar (PRD F15)
 
 1. HoD / department admin → **Seminars → Schedule**: title, date & time,

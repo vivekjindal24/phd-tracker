@@ -135,6 +135,13 @@ pre_synopsis / thesis_submission / viva / degree_awarded), `status` CHECK
 `notes`, `approved_title` (proposal approvals only: the latest approved one is
 the thesis title, copied onto the live `thesis_submissions.title`).
 
+**committee_members** (Research Advisory Committee, PRD F9b) — `scholar_id`
+(indexed), then either `faculty_id` FK faculty (a member from this university;
+name and unit are read live) or `name` + `institution` (an outside expert) —
+exactly one kind (`ck_committee_member_kind`). Partial unique
+`uq_committee_member (scholar_id, faculty_id) WHERE deleted_at IS NULL`. The
+convener is the scholar's `supervisor_id`, never a row here.
+
 ### 3.3b Progress seminars (PRD F15)
 
 **seminars** — `unit_id` FK (scope anchor), `title`, `starts_at`

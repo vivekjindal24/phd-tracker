@@ -53,9 +53,8 @@ def _out(row) -> MilestoneOut:
 
 
 async def _require_writer(session: AsyncSession, principal: Principal, scholar: Scholar) -> None:
-    if "research_office" in principal.office_roles:
-        return
-    scope.require_admin_over(principal, await scope.unit_path(session, scholar.unit_id))
+    if not await scope.can_record(session, principal, scholar):
+        raise forbidden()
 
 
 def _check_title(milestone_type: str, title: str | None) -> None:

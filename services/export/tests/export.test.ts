@@ -10,7 +10,7 @@ const REPORT_ID = "6f1c2a7e-3b4d-4e5f-8a9b-0c1d2e3f4a5b";
 const JUNK_ID = "00000000-0000-4000-8000-000000000000";
 const report = {
   university: "Demo University", address: "", logo: null, unit: "CSE", scholar: "Arun Kumar", roll_number: "PHD-CSE-001",
-  supervisor: "Meera", period: "July-December", report_year: 2026,
+  supervisor: "Meera", committee: ["Prof. R. Sen (IIT Delhi)"], period: "July-December", report_year: 2026,
   summary: "Survey finished, baselines run, chapter two drafted.", state: "in_review",
   submitted_at: "2026-10-01T10:00:00Z", approved_at: null,
   history: [{ action: "submit", actor: "Arun Kumar", step: "Supervisor", to: null, comment: null, at: "2026-10-01T10:00:00Z" }],

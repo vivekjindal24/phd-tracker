@@ -774,3 +774,6 @@ export type FacultyRequest = {
 };
 
 export type FacultyRequests = { incoming: FacultyRequest[]; sent: FacultyRequest[] };
+
+export type CommitteeMember = { id: string; name: string; institution: string; external: boolean };
+export type CommitteeView = { convener: string | null; members: CommitteeMember[]; can_manage: boolean };

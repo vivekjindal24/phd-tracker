@@ -9,6 +9,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from app.enums import APPROVAL_BODIES, MILESTONE_STATUSES, MILESTONE_TYPES, sql_in
 from app.models.base import Base, DomainRow
+from app.models.org import LIVE
 
 
 class Milestone(DomainRow, Base):
@@ -38,3 +39,29 @@ class Milestone(DomainRow, Base):
     notes: Mapped[str] = mapped_column(Text, server_default=text("''"))
     # On proposal approvals only: the one title the thesis and certificate use (thesis.py).
     approved_title: Mapped[str | None] = mapped_column(Text)
+
+
+class CommitteeMember(DomainRow, Base):
+    """One member of a scholar's Research Advisory Committee besides the supervisor, who
+    convenes it: faculty of this university, or an outside expert by name (PRD F9b)."""
+
+    __tablename__ = "committee_members"
+    __table_args__ = (
+        CheckConstraint(
+            "(faculty_id IS NOT NULL AND name IS NULL AND institution IS NULL)"
+            " OR (faculty_id IS NULL AND name IS NOT NULL AND institution IS NOT NULL)",
+            name="ck_committee_member_kind",
+        ),
+        Index(
+            "uq_committee_member", "scholar_id", "faculty_id", unique=True, postgresql_where=LIVE
+        ),
+    )
+
+    scholar_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("scholars.id"), index=True
+    )
+    faculty_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("faculty.id")
+    )
+    name: Mapped[str | None] = mapped_column(Text)
+    institution: Mapped[str | None] = mapped_column(Text)

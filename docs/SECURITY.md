@@ -71,6 +71,7 @@ role's scope (§2).
 | meetings | CRU own | CRU supervisees, sets `shared_with` | R redacted* | R redacted* | R redacted* | — | — |
 | progress reports | CRU own draft/sent_back, submit | R, step | R, step (department) | R, step (department) | R, step | — | — |
 | milestones (RDC register) | R own | R | R | CRUD | CRUD | R | — |
+| committee members (RAC) | R own | R | R | CD | CD | — | — |
 | seminars (schedule, hardcopy) | R own | R (own scholars') | CRUD in subtree | CRUD in subtree | R | — | — |
 | seminar grades | R own after finalise | R own scholars'; finalise own scholars | R | R | R | — | — |
 | to-do list | R, tick done (own) | R own scholars' | R | R | R | — | — |

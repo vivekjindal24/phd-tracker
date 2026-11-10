@@ -7,6 +7,7 @@ import type { FormEvent } from "react";
 import { Button, Card, ErrorText, Field, PageHeader } from "@/components/ui/kit";
 import { Comments } from "@/components/Comments";
 import { CourseworkCard } from "@/components/CourseworkCard";
+import { CommitteeCard } from "@/components/CommitteeCard";
 import { DurationCard } from "@/components/DurationCard";
 import { InviteButton } from "@/components/InviteButton";
 import { MilestoneStatusBadge } from "@/components/MilestoneStatusBadge";
@@ -255,7 +256,10 @@ function Records({ scholar }: { scholar: Scholar }) {
     <>
       <Decisions scholarId={scholar.id} />
       {me?.roles.some((r) => r !== "exam_office" && r !== "library") && (
-        <div style={{ marginTop: "var(--space-5)" }}><DurationCard scholarId={scholar.id} /></div>
+        <>
+          <div style={{ marginTop: "var(--space-5)" }}><CommitteeCard scholarId={scholar.id} /></div>
+          <div style={{ marginTop: "var(--space-5)" }}><DurationCard scholarId={scholar.id} /></div>
+        </>
       )}
       {me?.modules.coursework && !me.roles.every((r) => r === "library") && (
         <div style={{ marginTop: "var(--space-5)" }}><CourseworkCard scholarId={scholar.id} /></div>

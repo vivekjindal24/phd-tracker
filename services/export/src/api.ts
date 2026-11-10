@@ -33,6 +33,7 @@ export const reportView = z.object({
   scholar: z.string(),
   roll_number: z.string(),
   supervisor: z.string().nullable(),
+  committee: z.array(z.string()),
   period: z.string(),
   report_year: z.number().int(),
   summary: z.string(),

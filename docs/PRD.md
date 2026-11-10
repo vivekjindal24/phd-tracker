@@ -276,6 +276,17 @@ resolution number and date, notes, and on a proposal approval the approved
 title. A scholar's current RDC status is shown on
 their profile and the head dashboards.
 
+**F9b — Research Advisory Committee** (Decided 2026-11-10). Each scholar has a
+committee: the supervisor convenes it, and the other members are recorded per
+scholar — faculty of this university (picked from the directory) or an outside
+expert by name and institution. An admin over the scholar's unit or the
+Research Office keeps the list; the scholar, supervisor, heads above and the
+Vice Chancellor read it. It shows on the scholar's page and prints on the
+progress report PDF. A record only: membership opens no records and adds no
+approval step, and outside members get no login (§7). The supervisor cannot be
+added as a member (409 `supervisor_is_convener`); nobody twice (409
+`duplicate_member`).
+
 **F10 — Dashboards.** One home page per user, combining their roles:
 - Scholar: stage, next APR due, items in progress and where, coursework
   status, publication count, fellowship end date, next meeting.

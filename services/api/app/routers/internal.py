@@ -11,7 +11,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
-from app import branding, certificate, grants, items, naac, reviews, scope
+from app import branding, certificate, committee, grants, items, naac, reviews, scope
 from app.auth.deps import current_principal, current_reviewer
 from app.auth.principal import Principal
 from app.db import get_session
@@ -34,13 +34,7 @@ async def report_export_view(
 ) -> dict[str, Any]:
     ctx = await items.load_ctx(session, principal, "progress_report", report_id)
     view = await items.view(session, principal, ctx)
-    sup_name = None
-    if ctx.scholar.supervisor_id:
-        sup_name = await session.scalar(
-            select(User.full_name)
-            .join(Faculty, Faculty.user_id == User.id)
-            .where(Faculty.id == ctx.scholar.supervisor_id)
-        )
+    sup_name = await committee.convener(session, ctx.scholar)
     unit = await session.scalar(select(OrgUnit.name).where(OrgUnit.id == ctx.scholar.unit_id))
     return {
         **await branding.export_fields(session),
@@ -48,6 +42,10 @@ async def report_export_view(
         "scholar": view["scholar"]["name"],
         "roll_number": ctx.scholar.roll_number,
         "supervisor": sup_name,
+        "committee": [
+            f"{m['name']} ({m['institution']})"
+            for m in await committee.members(session, ctx.scholar)
+        ],
         "period": view["content"]["period"],
         "report_year": view["content"]["report_year"],
         "summary": view["content"]["summary"],

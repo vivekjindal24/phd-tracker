@@ -12,7 +12,7 @@ from app.models.grants import (
     UtilisationCertificate,
 )
 from app.models.meetings import Meeting
-from app.models.milestones import Milestone
+from app.models.milestones import CommitteeMember, Milestone
 from app.models.org import Faculty, OrgUnit, RoleAssignment, Scholar, User
 from app.models.reports import ProgressReport
 from app.models.requests import FacultyRequest
@@ -56,6 +56,7 @@ __all__ = [
     "AuditLog",
     "Base",
     "Comment",
+    "CommitteeMember",
     "Conference",
     "Course",
     "CourseworkClearance",
