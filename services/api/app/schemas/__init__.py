@@ -10,6 +10,7 @@ from app.enums import (
     WHATSAPP_NUMBER_RE,
     ApprovalBody,
     AssignedRole,
+    AuditAction,
     CommentTarget,
     CoSupervision,
     Designation,
@@ -835,3 +836,22 @@ class CommentOut(BaseModel):
 
 
 # --- shared by the module schemas (schemas/research.py, schemas/administration.py) ---
+
+
+# --- audit log ---------------------------------------------------------------------------
+
+
+class AuditRow(BaseModel):
+    """One audit entry as its readers see it: never the recorded values (routers/audit.py)."""
+
+    id: uuid.UUID
+    at: datetime
+    actor: str | None  # None: the system, or a link used without a login
+    actor_roles: list[str]
+    action: AuditAction
+    table_name: str
+    record_id: str
+    from_state: str | None
+    to_state: str | None
+    fields: list[str]  # columns an update changed
+    scholar: Ref | None

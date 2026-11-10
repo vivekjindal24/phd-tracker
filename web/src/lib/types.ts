@@ -813,3 +813,17 @@ export const RATING_LABELS: Record<Rating, string> = {
   unsatisfactory: "Unsatisfactory",
 };
 export type PeriodActivity = { meetings: number; publications: string[] | null; conferences: string[] | null };
+
+export type AuditRow = {
+  id: string;
+  at: string;
+  actor: string | null;
+  actor_roles: string[];
+  action: "insert" | "update" | "soft_delete" | "restore" | "transition" | "lookup";
+  table_name: string;
+  record_id: string;
+  from_state: string | null;
+  to_state: string | null;
+  fields: string[];
+  scholar: Ref | null;
+};

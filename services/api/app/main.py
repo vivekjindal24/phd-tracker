@@ -7,6 +7,7 @@ from app.config import settings
 from app.errors import install_error_handlers
 from app.routers import (
     admissions,
+    audit,
     auth,
     branding,
     comments,
@@ -99,6 +100,7 @@ for module in (
     duration,
     committee,
     ethics,
+    audit,
     leadership,
     fellowships,
     projects,

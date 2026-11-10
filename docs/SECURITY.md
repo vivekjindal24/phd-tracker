@@ -131,6 +131,18 @@ minutes they count as a unit head: `unit_heads` in `shared_with` opens the
 minutes to them. Office holders are listed (`GET /office-holders`) and
 appointed by the root admin only.
 
+**Audit log reading** (`GET /audit-log`, the Audit log page): the root admin,
+Research Office and Vice Chancellor read every entry; a scoped admin reads only
+entries about scholars of their subtree (the scholar's own row, or a record
+that carries `scholar_id`) — entries about people, units and settings stay with
+those who read the whole university. An entry tells who (name and roles held),
+what (added / changed / removed / restored / moved / looked up), which kind of
+record, which scholar, when, the state change of a chain action and the
+**names** of the columns an update changed. The recorded values (`prev`,
+`data`) never leave the API: a snapshot may hold meeting minutes, examiner
+names or amounts its reader has no right to. Drafts and their versions
+(`documents`, `document_versions`) are left out altogether.
+
 \* **Meeting redaction:** a viewer in scope sees the full meeting only if
 their role group is in `meetings.shared_with` (`unit_heads`, `research_office`,
 `admins`); otherwise the API returns only `id`, `meeting_date`, scholar and

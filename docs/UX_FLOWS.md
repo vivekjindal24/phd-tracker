@@ -149,6 +149,15 @@ in force; submitted ones keep their headings.
    **Select the examiners**: they keep the names they choose from the proposed
    panel, save, and approve or send back with a reason (Flow 2).
 
+## Flow 4e — Reading the audit log
+
+The root admin, Research Office, Vice Chancellor or an admin opens **Audit
+log** in the menu: a table of When, Who, What, Record, Scholar and Detail,
+newest first, with "Show more". Filters narrow it to one scholar, one kind of
+action, one kind of record or a date range. A scoped admin sees only entries
+about scholars in their unit. The scholar's name links to their page; the
+contents of a record are read there, never in the log.
+
 ## Flow 5 — Admin manages people (scoped)
 
 1. Department admin → **My unit → People**: scholars and faculty of their

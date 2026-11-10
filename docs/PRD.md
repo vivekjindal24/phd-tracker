@@ -334,6 +334,13 @@ not an application: the ethics committee decides outside the system.
 milestones, publications, coursework, thesis — in date order, each item
 filtered by the viewer's permissions.
 
+**F11b — Audit log** (Decided 2026-11-11). A page for the root admin, Research
+Office, Vice Chancellor and scoped admins listing every recorded action,
+newest first: when, who (with their roles), what happened, the kind of record,
+the scholar it concerns and, for a change, which fields changed. Filters:
+scholar, kind of action, kind of record, date range. It never shows a record's
+contents (SECURITY.md §3).
+
 **F12 — Search.** Partial-match search over names, roll numbers, titles,
 resolution numbers; results scoped exactly like the lists.
 

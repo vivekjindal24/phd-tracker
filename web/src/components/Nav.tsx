@@ -57,6 +57,7 @@ const NAV: Entry[] = [
   { href: "/naac", label: "NAAC data", show: (me) => me.is_root_admin || me.roles.some((r) => r === "research_office" || r === "vice_chancellor") },
   { href: "/register", label: "Register", show: (me) => me.roles.some((r) => r !== "library") },
   { href: "/settings", label: "Settings", show: (me) => me.is_root_admin },
+  { href: "/audit", label: "Audit log", show: (me) => me.roles.some((r) => r === "admin" || r === "research_office" || r === "vice_chancellor") },
 ];
 
 const isGroup = (e: Entry): e is Group => "items" in e;
