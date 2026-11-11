@@ -49,6 +49,8 @@ CAN_READ = require_perm("thesis_submissions", "read")
 
 @router.get("/theses", response_model=list[ThesisRow])
 async def list_theses(
+    q: str | None = Query(default=None, max_length=100),
+    unit_id: uuid.UUID | None = None,
     state: ItemState | None = None,
     limit: int = Query(default=200, ge=1, le=1000),
     principal: Principal = Depends(CAN_READ),
@@ -64,6 +66,7 @@ async def list_theses(
             scope.scholar_predicate(principal, "thesis_submissions"),
         )
     )
+    stmt = await scope.narrow_to_scholars(session, stmt, q, unit_id)
     if state:
         stmt = stmt.where(ThesisSubmission.state == state)
     rows = await session.execute(stmt.order_by(ThesisSubmission.updated_at.desc()).limit(limit))

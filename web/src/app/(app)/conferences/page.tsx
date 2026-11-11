@@ -10,6 +10,7 @@ import { formatDate } from "@/lib/format";
 import { useSession } from "@/lib/session";
 import { CONFERENCE_TYPE_LABELS } from "@/lib/types";
 import type { Conference, ConferenceType } from "@/lib/types";
+import { listPath, useScholarFilter } from "@/components/ScholarFilter";
 import { errorText, usePagedFetch } from "@/lib/useFetch";
 
 function AddConference({ onAdded }: { onAdded: () => void }) {
@@ -75,7 +76,8 @@ function AddConference({ onAdded }: { onAdded: () => void }) {
 
 export default function ConferencesPage() {
   const { me } = useSession();
-  const { data, error, reload, hasMore, more } = usePagedFetch<Conference>("/conferences", 500);
+  const filter = useScholarFilter("Scholar name, roll number, event or title");
+  const { data, error, reload, hasMore, more } = usePagedFetch<Conference>(listPath("/conferences", filter.params), 500);
   const [open, setOpen] = useState<string | null>(null);
   const [actError, setActError] = useState<string | null>(null);
   const isScholar = me?.scholar_id != null;
@@ -95,14 +97,15 @@ export default function ConferencesPage() {
     <>
       <PageHeader eyebrow="Research record" title="Conferences & talks" />
       {isScholar && <AddConference onAdded={reload} />}
+      {filter.fields && <div className="toolbar">{filter.fields}</div>}
       <ErrorText>{error ?? actError}</ErrorText>
       {data && (
         <Table label="Conferences and talks" head={["Date", "Event", "Scholar", "Contribution", ""]}
           empty={
             <div className="empty-state">
               <Owl pose="empty" size={96} />
-              <h2>Nothing recorded yet</h2>
-              <p>Papers presented, posters, invited talks and workshops appear here.</p>
+              <h2>{filter.active ? "Nothing matches" : "Nothing recorded yet"}</h2>
+              {!filter.active && <p>Papers presented, posters, invited talks and workshops appear here.</p>}
             </div>
           }>
           {data.map((c) => (

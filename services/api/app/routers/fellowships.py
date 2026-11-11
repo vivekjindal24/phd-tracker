@@ -76,13 +76,15 @@ async def _one(session: AsyncSession, principal: Principal, fellowship_id: uuid.
 
 @router.get("", response_model=list[FellowshipOut])
 async def list_fellowships(
+    q: str | None = Query(default=None, max_length=100),
+    unit_id: uuid.UUID | None = None,
     scholar_id: uuid.UUID | None = None,
     status: FellowshipStatus | None = None,
     limit: int = Query(default=500, ge=1, le=2000),
     principal: Principal = Depends(require_perm("fellowships", "read")),
     session: AsyncSession = Depends(get_session),
 ) -> list[FellowshipOut]:
-    stmt = _query(principal)
+    stmt = await scope.narrow_to_scholars(session, _query(principal), q, unit_id)
     if scholar_id:
         stmt = stmt.where(Fellowship.scholar_id == scholar_id)
     if status:

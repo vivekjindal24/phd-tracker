@@ -3,39 +3,30 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Owl } from "@/components/brand/Owl";
+import { listPath, useScholarFilter } from "@/components/ScholarFilter";
 import { StateBadge } from "@/components/items/StateBadge";
 import { ErrorText, Field, PageHeader, ShowMore, Table } from "@/components/ui/kit";
 import { useSession } from "@/lib/session";
 import { INDEXING_LABELS, PUB_TYPE_LABELS, STATE_LABELS } from "@/lib/types";
 import type { ItemState, PublicationRow } from "@/lib/types";
-import { useDebounced, usePagedFetch } from "@/lib/useFetch";
+import { usePagedFetch } from "@/lib/useFetch";
 
 export default function PublicationsPage() {
   const { me } = useSession();
-  const [q, setQ] = useState("");
-  const search = useDebounced(q);
+  const filter = useScholarFilter("Scholar name, roll number or title");
   const [state, setState] = useState("");
   const [year, setYear] = useState("");
-  const query = new URLSearchParams();
-  if (search) query.set("q", search);
-  if (state) query.set("state", state);
-  if (year) query.set("pub_year", year);
-  const filtered = query.size > 0;
-  const { data, error, hasMore, more } = usePagedFetch<PublicationRow>(`/publications?${query}`, 500);
+  const filtered = filter.active || Boolean(state || year);
+  const { data, error, hasMore, more } = usePagedFetch<PublicationRow>(
+    listPath("/publications", filter.params, { state, pub_year: year }), 500);
   const isScholar = me?.scholar_id != null;
-  const onlyScholar = me?.roles.length === 1 && me.roles[0] === "scholar";
 
   return (
     <>
       <PageHeader eyebrow="Research record" title="Publications"
         actions={isScholar && <Link href="/publications/new" className="btn btn-primary">Add publication</Link>} />
       <div className="toolbar">
-        {!onlyScholar && (
-          <Field label="Search">
-            <input type="search" placeholder="Scholar name, roll number or title" value={q}
-              onChange={(e) => setQ(e.target.value)} />
-          </Field>
-        )}
+        {filter.fields}
         <Field label="State">
           <select value={state} onChange={(e) => setState(e.target.value)}>
             <option value="">All</option>

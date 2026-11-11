@@ -22,6 +22,8 @@ router = APIRouter(prefix="/reports", tags=["reports"])
 
 @router.get("", response_model=list[ReportRow])
 async def list_reports(
+    q: str | None = Query(default=None, max_length=100),
+    unit_id: uuid.UUID | None = None,
     state: ItemState | None = None,
     scholar_id: uuid.UUID | None = None,
     limit: int = Query(default=100, ge=1, le=500),
@@ -39,6 +41,7 @@ async def list_reports(
             scope.scholar_predicate(principal, "progress_reports"),
         )
     )
+    stmt = await scope.narrow_to_scholars(session, stmt, q, unit_id)
     if state:
         stmt = stmt.where(ProgressReport.state == state)
     if scholar_id:

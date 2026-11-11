@@ -6,12 +6,14 @@ import { ErrorText, PageHeader, ShowMore, Table } from "@/components/ui/kit";
 import { formatDate } from "@/lib/format";
 import { useSession } from "@/lib/session";
 import type { Meeting } from "@/lib/types";
+import { listPath, useScholarFilter } from "@/components/ScholarFilter";
 import { usePagedFetch } from "@/lib/useFetch";
 import "./meetings.css";
 
 export default function MeetingsPage() {
   const { me } = useSession();
-  const { data, error, hasMore, more } = usePagedFetch<Meeting>("/meetings", 200);
+  const filter = useScholarFilter();
+  const { data, error, hasMore, more } = usePagedFetch<Meeting>(listPath("/meetings", filter.params), 200);
   const canLog = me?.roles.some((r) => r === "scholar" || r === "supervisor") ?? false;
 
   return (
@@ -21,6 +23,7 @@ export default function MeetingsPage() {
         title="Meetings"
         actions={canLog && <Link href="/meetings/new" className="btn btn-primary">Log meeting</Link>}
       />
+      {filter.fields && <div className="toolbar">{filter.fields}</div>}
       <ErrorText>{error}</ErrorText>
       {data && (
         <Table
@@ -29,8 +32,8 @@ export default function MeetingsPage() {
           empty={
             <div className="empty-state">
               <Owl pose="empty" size={96} />
-              <h2>No meetings yet</h2>
-              <p>Log the first one to start the supervision trail.</p>
+              <h2>{filter.active ? "No meetings match" : "No meetings yet"}</h2>
+              {!filter.active && <p>Log the first one to start the supervision trail.</p>}
             </div>
           }
         >

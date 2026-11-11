@@ -60,13 +60,17 @@ async def _own(session: AsyncSession, principal: Principal, conference_id: uuid.
 
 @router.get("", response_model=list[ConferenceOut])
 async def list_conferences(
+    q: str | None = Query(default=None, max_length=100),
+    unit_id: uuid.UUID | None = None,
     scholar_id: uuid.UUID | None = None,
     limit: int = Query(default=200, ge=1, le=1000),
     offset: int = Query(default=0, ge=0),
     principal: Principal = Depends(require_perm("conferences", "read")),
     session: AsyncSession = Depends(get_session),
 ) -> list[ConferenceOut]:
-    stmt = _query(principal)
+    stmt = await scope.narrow_to_scholars(
+        session, _query(principal), q, unit_id, Conference.title, Conference.event_name
+    )
     if scholar_id:
         stmt = stmt.where(Conference.scholar_id == scholar_id)
     rows = await session.execute(

@@ -4,7 +4,7 @@ dashboard and export filters through these predicates. Out of scope -> 403, neve
 import uuid
 from typing import TypeVar
 
-from sqlalchemy import ColumnElement, cast, false, literal, or_, select, true
+from sqlalchemy import ColumnElement, Select, cast, false, literal, or_, select, true
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.principal import Principal
@@ -160,6 +160,28 @@ async def unit_path(session: AsyncSession, unit_id: uuid.UUID) -> str:
     if path is None:
         raise forbidden()
     return path
+
+
+async def narrow_to_scholars(
+    session: AsyncSession,
+    stmt: Select,
+    q: str | None,
+    unit_id: uuid.UUID | None,
+    *also: ColumnElement,
+    name: ColumnElement = User.full_name,
+) -> Select:
+    """The two filters every list of scholars' records shares: part of a name or roll number
+    (or of any `also` column), and a unit with everything under it. They only narrow what the
+    caller's scope predicate already allows. `stmt` must join Scholar and the scholar's user."""
+    if q:
+        stmt = stmt.where(
+            or_(*(c.icontains(q, autoescape=True) for c in (name, Scholar.roll_number, *also)))
+        )
+    if unit_id:
+        stmt = stmt.where(
+            Scholar.unit_id.in_(subtree_unit_ids((await unit_path(session, unit_id),)))
+        )
+    return stmt
 
 
 async def get_scholar_or_403(

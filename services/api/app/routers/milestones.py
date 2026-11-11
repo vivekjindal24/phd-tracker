@@ -83,9 +83,7 @@ async def list_milestones(
     stmt = _query(principal)
     if scholar_id:
         stmt = stmt.where(Milestone.scholar_id == scholar_id)
-    if unit_id:
-        path = await scope.unit_path(session, unit_id)
-        stmt = stmt.where(Scholar.unit_id.in_(scope.subtree_unit_ids((path,))))
+    stmt = await scope.narrow_to_scholars(session, stmt, None, unit_id)
     if milestone_type:
         stmt = stmt.where(Milestone.milestone_type == milestone_type)
     if status:

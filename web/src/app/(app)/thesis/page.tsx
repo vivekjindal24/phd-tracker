@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { Owl } from "@/components/brand/Owl";
+import { listPath, useScholarFilter } from "@/components/ScholarFilter";
 import { StateBadge } from "@/components/items/StateBadge";
 import { Button, Card, ErrorText, PageHeader, ShowMore, Table } from "@/components/ui/kit";
 import { api } from "@/lib/api";
@@ -78,13 +79,16 @@ function NoDues() {
 
 export default function ThesisPage() {
   const { me } = useSession();
-  const { data, error, hasMore, more } = usePagedFetch<ThesisRow>("/theses", 200);
+  const filter = useScholarFilter();
+  const { data, error, hasMore, more } = usePagedFetch<ThesisRow>(listPath("/theses", filter.params), 200);
   const mine = me?.scholar_id ? data?.find((t) => t.scholar.id === me.scholar_id) : undefined;
   const others = data?.filter((t) => t.scholar.id !== me?.scholar_id) ?? [];
 
   return (
     <>
       <PageHeader eyebrow="Documents & thesis" title="Thesis submissions" />
+      {/* Not for a scholar: filtering would hide their own thesis card above the list. */}
+      {!me?.scholar_id && filter.fields && <div className="toolbar">{filter.fields}</div>}
       <ErrorText>{error}</ErrorText>
       {me?.scholar_id && <NoDues />}
       {data && me?.scholar_id && (mine ? (
@@ -96,7 +100,7 @@ export default function ThesisPage() {
       ) : <StartThesis />)}
       {data && (others.length > 0 || !me?.scholar_id) && (
         <Table label="Thesis submissions" head={["Thesis", "Scholar", "State", "Last change"]}
-          empty={<div className="empty-state"><Owl pose="empty" size={96} /><h2>No submissions yet</h2></div>}>
+          empty={<div className="empty-state"><Owl pose="empty" size={96} /><h2>{filter.active ? "No submissions match" : "No submissions yet"}</h2></div>}>
           {others.map((t) => (
             <tr key={t.id}>
               <td><Link href={`/items/thesis_submission/${t.id}`}>{t.title}</Link></td>

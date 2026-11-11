@@ -68,13 +68,17 @@ async def _one(session: AsyncSession, principal: Principal, meeting_id: uuid.UUI
 
 @router.get("", response_model=list[MeetingOut])
 async def list_meetings(
+    q: str | None = Query(default=None, max_length=100),
+    unit_id: uuid.UUID | None = None,
     scholar_id: uuid.UUID | None = None,
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
     principal: Principal = Depends(require_perm("meetings", "read")),
     session: AsyncSession = Depends(get_session),
 ) -> list[MeetingOut]:
-    stmt = _query(principal)
+    stmt = await scope.narrow_to_scholars(
+        session, _query(principal), q, unit_id, name=ScholarUser.full_name
+    )
     if scholar_id:
         stmt = stmt.where(Meeting.scholar_id == scholar_id)
     rows = await session.execute(

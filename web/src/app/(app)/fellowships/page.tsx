@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import { Owl } from "@/components/brand/Owl";
 import { Ledger } from "@/components/Ledger";
+import { listPath, useScholarFilter } from "@/components/ScholarFilter";
 import { ScholarSearch } from "@/components/ScholarSearch";
 import { Button, Card, ErrorText, Field, PageHeader, Table } from "@/components/ui/kit";
 import { api } from "@/lib/api";
@@ -108,7 +109,8 @@ function Manage({ f, onSaved }: { f: Fellowship; onSaved: () => void }) {
 
 export default function FellowshipsPage() {
   const { me } = useSession();
-  const { data, error, reload } = useFetch<Fellowship[]>("/fellowships");
+  const filter = useScholarFilter();
+  const { data, error, reload } = useFetch<Fellowship[]>(listPath("/fellowships", filter.params));
   const [openId, setOpenId] = useState<string | null>(null);
   const canRecord = me ? me.office_roles.includes("research_office") || me.unit_roles.some((r) => r.role === "admin") : false;
   const open = data?.find((f) => f.id === openId) ?? null;
@@ -117,10 +119,11 @@ export default function FellowshipsPage() {
     <>
       <PageHeader eyebrow="Grants" title="Fellowships" />
       {canRecord && <RecordFellowship onAdded={reload} />}
+      {filter.fields && <div className="toolbar">{filter.fields}</div>}
       <ErrorText>{error}</ErrorText>
       {data && (
         <Table label="Fellowships" head={["Scholar", "Scheme", "Per month", "Period", "Status", ""]}
-          empty={<div className="empty-state"><Owl pose="empty" size={96} /><h2>No fellowships recorded</h2></div>}>
+          empty={<div className="empty-state"><Owl pose="empty" size={96} /><h2>{filter.active ? "No fellowships match" : "No fellowships recorded"}</h2></div>}>
           {data.map((f) => (
             <tr key={f.id}>
               <td>{f.scholar.name}<div className="muted">{f.roll_number} · {f.unit.name}</div></td>

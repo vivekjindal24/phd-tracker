@@ -243,9 +243,12 @@ department or Research Office to record it.
 
 ## Flow 7 — Publication verified by the Library (module)
 
-Anyone who sees more than their own papers finds one with the **Search** box
-on the Publications page: part of a scholar's name, their roll number or the
-paper's title, together with the state and year filters.
+**Finding one scholar's records.** Publications, Progress reports, Meetings,
+Conferences, Fellowships and Thesis submissions each carry a **Search** box
+(part of a scholar's name or their roll number; on Publications and
+Conferences also the title) for anyone who sees more than their own records,
+and a **Department** filter for heads, admins and offices who see more than
+one unit. Both narrow the list inside what the reader may already see.
 
 1. Scholar → **Publications → Add**: details, indexing, DOI, PDF →
    **Submit**.

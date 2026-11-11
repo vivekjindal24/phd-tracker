@@ -130,6 +130,10 @@ on an item only at a `vice_chancellor` chain step, under the same engine rules
 minutes they count as a unit head: `unit_heads` in `shared_with` opens the
 minutes to them. Office holders are appointed by the root admin only.
 
+**List filters** (`q`, `unit_id` on lists of scholars' records): applied by
+`scope.narrow_to_scholars` on top of the caller's scope predicate, so a filter
+can only narrow. A unit outside the caller's view returns an empty list.
+
 **Listing role holders** (`GET /role-holders`, root admin only): every
 appointed role with its holder and, for unit heads and admins, the unit.
 Granting and revoking keep their own rule: a unit role by an admin at or above

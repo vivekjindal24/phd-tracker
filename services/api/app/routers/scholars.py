@@ -83,15 +83,7 @@ async def list_scholars(
     session: AsyncSession = Depends(get_session),
 ) -> list[ScholarOut]:
     stmt = _query(principal)
-    if q:
-        stmt = stmt.where(
-            User.full_name.icontains(q, autoescape=True)
-            | Scholar.roll_number.icontains(q, autoescape=True)
-            | Scholar.research_title.icontains(q, autoescape=True)
-        )
-    if unit_id:
-        path = await scope.unit_path(session, unit_id)
-        stmt = stmt.where(Scholar.unit_id.in_(scope.subtree_unit_ids((path,))))
+    stmt = await scope.narrow_to_scholars(session, stmt, q, unit_id, Scholar.research_title)
     if stage:
         stmt = stmt.where(Scholar.stage == stage)
     if supervisor_id:

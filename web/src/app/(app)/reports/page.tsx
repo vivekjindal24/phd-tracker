@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Owl } from "@/components/brand/Owl";
+import { listPath, useScholarFilter } from "@/components/ScholarFilter";
 import { StateBadge } from "@/components/items/StateBadge";
 import { ErrorText, Field, PageHeader, ShowMore, Table } from "@/components/ui/kit";
 import { useSession } from "@/lib/session";
@@ -13,7 +14,8 @@ import { usePagedFetch } from "@/lib/useFetch";
 export default function ReportsPage() {
   const { me } = useSession();
   const [state, setState] = useState("");
-  const { data, error, hasMore, more } = usePagedFetch<ReportRow>(`/reports${state ? `?state=${state}` : ""}`, 500);
+  const filter = useScholarFilter();
+  const { data, error, hasMore, more } = usePagedFetch<ReportRow>(listPath("/reports", filter.params, { state }), 500);
   const isScholar = me?.scholar_id != null;
 
   return (
@@ -24,6 +26,7 @@ export default function ReportsPage() {
         actions={isScholar && <Link href="/reports/new" className="btn btn-primary">New report</Link>}
       />
       <div className="toolbar">
+        {filter.fields}
         <Field label="State">
           <select value={state} onChange={(e) => setState(e.target.value)}>
             <option value="">All</option>
@@ -41,8 +44,8 @@ export default function ReportsPage() {
           empty={
             <div className="empty-state">
               <Owl pose="empty" size={96} />
-              <h2>No reports yet</h2>
-              <p>{isScholar ? "Write your first six-monthly report." : "Reports appear here once scholars write them."}</p>
+              <h2>{filter.active || state ? "No reports match" : "No reports yet"}</h2>
+              <p>{filter.active || state ? "Try a different search, department or state." : isScholar ? "Write your first six-monthly report." : "Reports appear here once scholars write them."}</p>
             </div>
           }
         >
