@@ -33,6 +33,10 @@
 active account → "No Anveshan account for this email — ask your department
 admin".
 
+**Changing a password:** **My account** in the menu asks for the current
+password and the new one twice. Saving logs the person out on every device and
+returns them to log in with the new password.
+
 ## Flow 0b — Two-factor login (when the university requires it)
 
 1. Root admin → **Settings → UGC rules** → switch "Require two-factor login".
