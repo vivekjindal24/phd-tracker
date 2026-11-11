@@ -55,26 +55,36 @@ def scholar_directory_predicate(principal: Principal) -> ColumnElement[bool]:
     return true() if principal.directory_wide else scholar_predicate(principal, "scholars")
 
 
-def faculty_predicate(principal: Principal) -> ColumnElement[bool]:
-    """Faculty the caller may see: themselves and the people assigned to the same scholars,
-    their unit for heads and admins, everyone for offices and opened departments."""
-    if principal.directory_wide or principal.is_root_admin or principal.roles & set(OFFICE_ROLES):
-        return true()
-    co_on = principal.co_supervision != "off"
+def _own_scholar_clauses(principal: Principal) -> list[ColumnElement[bool]]:
     linked: list[ColumnElement[bool]] = []
     if principal.scholar_id:
         linked.append(Scholar.id == principal.scholar_id)
     if principal.faculty_id:
         linked.append(Scholar.supervisor_id == principal.faculty_id)
-        if co_on:
+        if principal.co_supervision != "off":
             linked.append(Scholar.co_supervisor_id == principal.faculty_id)
+    return linked
+
+
+def own_scholars(principal: Principal) -> ColumnElement[bool]:
+    """The caller's own scholar record and the scholars they supervise: the parties to a
+    meeting, whatever wider view an office or admin role also gives them."""
+    return or_(*_own_scholar_clauses(principal), false())
+
+
+def faculty_predicate(principal: Principal) -> ColumnElement[bool]:
+    """Faculty the caller may see: themselves and the people assigned to the same scholars,
+    their unit for heads and admins, everyone for offices and opened departments."""
+    if principal.directory_wide or principal.is_root_admin or principal.roles & set(OFFICE_ROLES):
+        return true()
+    linked = _own_scholar_clauses(principal)
     clauses: list[ColumnElement[bool]] = []
     if principal.faculty_id:
         clauses.append(Faculty.id == principal.faculty_id)
     if linked:
         scholars = select(Scholar).where(Scholar.deleted_at.is_(None), or_(*linked)).subquery()
         clauses.append(Faculty.id.in_(select(scholars.c.supervisor_id)))
-        if co_on:
+        if principal.co_supervision != "off":
             clauses.append(Faculty.id.in_(select(scholars.c.co_supervisor_id)))
     paths = _unit_paths(principal, frozenset({"unit_head", "admin"}))
     if paths:

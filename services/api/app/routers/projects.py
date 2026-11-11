@@ -102,6 +102,7 @@ async def list_projects(
     unit_id: uuid.UUID | None = None,
     status: ProjectStatus | None = None,
     limit: int = Query(default=500, ge=1, le=2000),
+    offset: int = Query(default=0, ge=0),
     principal: Principal = Depends(not_only_office),  # then scope decides (PIs, members)
     session: AsyncSession = Depends(get_session),
 ) -> list[ProjectOut]:
@@ -111,7 +112,9 @@ async def list_projects(
         stmt = stmt.where(Project.unit_id.in_(scope.subtree_unit_ids((path,))))
     if status:
         stmt = stmt.where(Project.status == status)
-    rows = await session.execute(stmt.order_by(Project.start_date.desc()).limit(limit))
+    rows = await session.execute(
+        stmt.order_by(Project.start_date.desc()).limit(limit).offset(offset)
+    )
     return await _outs(session, principal, rows)
 
 

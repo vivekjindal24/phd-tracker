@@ -5,12 +5,12 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { Owl } from "@/components/brand/Owl";
-import { Button, Card, ErrorText, Field, PageHeader, Table } from "@/components/ui/kit";
+import { Button, Card, ErrorText, Field, PageHeader, ShowMore, Table } from "@/components/ui/kit";
 import { api } from "@/lib/api";
 import { useSession } from "@/lib/session";
 import { DOC_KIND_LABELS } from "@/lib/types";
 import type { DocKind, DocumentItem } from "@/lib/types";
-import { errorText, useFetch } from "@/lib/useFetch";
+import { errorText, usePagedFetch } from "@/lib/useFetch";
 
 function NewDocument() {
   const router = useRouter();
@@ -50,7 +50,7 @@ function NewDocument() {
 
 export default function DocumentsPage() {
   const { me } = useSession();
-  const { data, error } = useFetch<DocumentItem[]>("/documents");
+  const { data, error, hasMore, more } = usePagedFetch<DocumentItem>("/documents", 200);
   return (
     <>
       <PageHeader eyebrow="Documents & thesis" title="Drafts & chapters" />
@@ -71,6 +71,7 @@ export default function DocumentsPage() {
           ))}
         </Table>
       )}
+      <ShowMore hasMore={hasMore} more={more} />
     </>
   );
 }

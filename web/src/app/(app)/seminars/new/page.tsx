@@ -1,5 +1,6 @@
 "use client";
 
+import { PersonChecks } from "@/components/PersonPicker";
 import { RequireRole } from "@/components/ui/RequireRole";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -11,15 +12,10 @@ import type { Faculty, OrgUnit, Period, Scholar, SeminarDetail } from "@/lib/typ
 import { errorText, useFetch } from "@/lib/useFetch";
 import "../seminars.css";
 
-function toggle(list: string[], id: string): string[] {
-  return list.includes(id) ? list.filter((x) => x !== id) : [...list, id];
-}
-
 function ScheduleSeminarForm() {
   const { me } = useSession();
   const router = useRouter();
   const { data: units } = useFetch<OrgUnit[]>("/org-units");
-  const { data: faculty } = useFetch<Faculty[]>("/faculty?limit=500");
   // Units this person heads or administers (and everything below them); the API re-checks.
   const myPaths = me?.unit_roles.map((r) => r.unit_path) ?? [];
   const myUnits = (units ?? []).filter((u) => myPaths.some((p) => u.path === p || u.path.startsWith(`${p}.`)));
@@ -39,7 +35,6 @@ function ScheduleSeminarForm() {
   useEffect(() => {
     if (!unitId && myUnits.length > 0 && myUnits[0]) setUnitId(myUnits[0].id);
   }, [myUnits, unitId]);
-  const { data: scholars } = useFetch<Scholar[]>(unitId ? `/scholars?unit_id=${unitId}&limit=500` : null);
   useEffect(() => setScholarIds([]), [unitId]);
 
   async function submit(e: FormEvent) {
@@ -98,24 +93,10 @@ function ScheduleSeminarForm() {
             </div>
           </Field>
         </div>
-        <fieldset className="pick-list">
-          <legend>Scholars presenting ({scholarIds.length} selected)</legend>
-          {(scholars ?? []).map((s) => (
-            <label key={s.id}>
-              <input type="checkbox" checked={scholarIds.includes(s.id)} onChange={() => setScholarIds(toggle(scholarIds, s.id))} />
-              {s.full_name} <span className="muted">({s.roll_number})</span>
-            </label>
-          ))}
-        </fieldset>
-        <fieldset className="pick-list">
-          <legend>Panel ({panelIds.length} selected)</legend>
-          {(faculty ?? []).map((f) => (
-            <label key={f.id}>
-              <input type="checkbox" checked={panelIds.includes(f.id)} onChange={() => setPanelIds(toggle(panelIds, f.id))} />
-              {f.full_name} <span className="muted">· {f.unit.name}</span>
-            </label>
-          ))}
-        </fieldset>
+        <PersonChecks<Scholar> legend="Scholars presenting" path={unitId ? `/scholars?unit_id=${unitId}` : null}
+          value={scholarIds} onChange={setScholarIds} detail={(s) => s.roll_number} />
+        <PersonChecks<Faculty> legend="Panel" path="/faculty" value={panelIds} onChange={setPanelIds}
+          detail={(f) => f.unit.name} />
         <p className="muted">Scholars, their supervisors, the HoD/Dean and the panel will be notified.</p>
         <ErrorText>{error}</ErrorText>
         <Button kind="primary" type="submit" disabled={busy || scholarIds.length === 0}>

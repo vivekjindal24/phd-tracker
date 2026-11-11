@@ -3,6 +3,7 @@
 
 import pytest
 
+from app.main import app
 from tests.conftest import auth
 from tests.test_publications import enable
 
@@ -15,6 +16,16 @@ LISTS = [
     "conferences",
     "fellowships",
     "theses",
+]
+
+PAGED = [
+    *LISTS,
+    "faculty",
+    "seminars",
+    "projects",
+    "admissions",
+    "documents",
+    "audit-log",
 ]
 
 
@@ -59,3 +70,23 @@ async def test_a_filter_never_widens_scope(client, world, meeting):
     # The head of B1 asks for School A's meetings: the filter cannot show what scope hides.
     assert await _count(client, world.hod_b1, "meetings", unit_id=str(world.school_a.id)) == 0
     assert await _count(client, world.hod_b1, "meetings", q="phd-a1-001") == 0
+
+
+def test_every_list_the_web_pages_through_takes_an_offset():
+    """The web reads these a page at a time (usePagedFetch); a list that ignored `offset`
+    would repeat its first page under "Show more"."""
+    paths = app.openapi()["paths"]
+    for name in PAGED:
+        params = {p["name"] for p in paths[f"/api/v1/{name}"]["get"]["parameters"]}
+        assert {"limit", "offset"} <= params, name
+
+
+async def test_mine_keeps_only_the_callers_own_scholars(client, world):
+    """The meeting form's picker: a supervisor's scholars, never an admin's whole unit."""
+    mine = await client.get("/api/v1/scholars?mine=true", headers=auth(world.meera.id))
+    assert mine.status_code == 200, mine.text
+    assert str(world.s_a1.id) in {s["id"] for s in mine.json()}
+    admin = await client.get("/api/v1/scholars?mine=true", headers=auth(world.admin_a1.id))
+    assert admin.json() == []
+    own = await client.get("/api/v1/scholars?mine=true", headers=auth(world.scholar_a1.id))
+    assert [s["id"] for s in own.json()] == [str(world.s_a1.id)]

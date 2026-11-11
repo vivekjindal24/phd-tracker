@@ -5,7 +5,7 @@ on /items and refuses a record that breaks the credit / CGPA minimums (coursewor
 import uuid
 from typing import Any
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends
 from sqlalchemy import exists, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -52,7 +52,6 @@ async def _require_catalogue_writer(
 @router.get("/courses", response_model=list[CourseOut])
 async def list_courses(
     unit_id: uuid.UUID | None = None,
-    limit: int = Query(default=500, ge=1, le=2000),
     _: Principal = Depends(require_perm("courses", "read")),
     session: AsyncSession = Depends(get_session),
 ) -> list[dict[str, Any]]:
@@ -63,7 +62,8 @@ async def list_courses(
     )
     if unit_id:
         stmt = stmt.where(Course.unit_id == unit_id)
-    rows = await session.execute(stmt.order_by(OrgUnit.name, Course.code).limit(limit))
+    # The whole catalogue, like the org tree: it fills pickers, so it is never cut off.
+    rows = await session.execute(stmt.order_by(OrgUnit.name, Course.code))
     return [_course(c, name) for c, name in rows]
 
 

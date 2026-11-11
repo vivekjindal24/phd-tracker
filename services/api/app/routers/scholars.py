@@ -77,6 +77,7 @@ async def list_scholars(
     unit_id: uuid.UUID | None = None,
     stage: Stage | None = None,
     supervisor_id: uuid.UUID | None = None,
+    mine: bool = False,
     limit: int = Query(default=100, ge=1, le=500),
     offset: int = Query(default=0, ge=0),
     principal: Principal = Depends(current_principal),
@@ -88,6 +89,8 @@ async def list_scholars(
         stmt = stmt.where(Scholar.stage == stage)
     if supervisor_id:
         stmt = stmt.where(Scholar.supervisor_id == supervisor_id)
+    if mine:
+        stmt = stmt.where(scope.own_scholars(principal))
     rows = await session.execute(stmt.order_by(User.full_name).limit(limit).offset(offset))
     return [_out(r, principal.co_supervision) for r in rows]
 

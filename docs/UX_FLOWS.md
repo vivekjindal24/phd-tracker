@@ -250,6 +250,20 @@ Conferences also the title) for anyone who sees more than their own records,
 and a **Department** filter for heads, admins and offices who see more than
 one unit. Both narrow the list inside what the reader may already see.
 
+**Long lists.** No list stops silently. Every list page (scholars, faculty,
+the register, reports, meetings, publications, conferences, fellowships,
+thesis submissions, drafts, seminars, projects, admissions, the audit log)
+loads one page of rows and shows **Show more** while there are further rows.
+The course catalogue is always sent whole, because it also fills the course
+picker.
+
+**Picking a person in a form.** Where a form asks for a scholar or a faculty
+member (log a meeting, record a decision, schedule a seminar, record a
+project) it lists twenty people at a time: type part of a name to narrow the
+list, or **Show more** for the next twenty. Nobody is out of reach however
+large the university. The meeting form lists only the caller's own scholars
+(`/scholars?mine=true`).
+
 1. Scholar → **Publications → Add**: details, indexing, DOI, PDF →
    **Submit**.
 2. Supervisor confirms authorship → Library sees it in **Your queue**, checks

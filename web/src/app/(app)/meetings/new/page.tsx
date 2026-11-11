@@ -1,14 +1,15 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { FormEvent } from "react";
+import { PersonPicker } from "@/components/PersonPicker";
 import { ShareChecks } from "@/components/meetings/ShareChecks";
 import { Button, ErrorText, Field, PageHeader } from "@/components/ui/kit";
 import { api } from "@/lib/api";
 import { useSession } from "@/lib/session";
 import type { Meeting, MeetingShare, Scholar } from "@/lib/types";
-import { errorText, useFetch } from "@/lib/useFetch";
+import { errorText } from "@/lib/useFetch";
 import "../meetings.css";
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -16,12 +17,7 @@ const today = () => new Date().toISOString().slice(0, 10);
 export default function NewMeetingPage() {
   const { me } = useSession();
   const router = useRouter();
-  // The caller's own scoped scholar list (a scholar gets just themselves).
-  const { data: scholars } = useFetch<Scholar[]>("/scholars?limit=500");
-  const mine = (scholars ?? []).filter(
-    (s) => s.user_id === me?.id || s.supervisor?.id === me?.faculty_id || s.co_supervisor?.id === me?.faculty_id,
-  );
-  const [scholarId, setScholarId] = useState("");
+  const [chosen, setChosen] = useState<Scholar | null>(null);
   const [date, setDate] = useState(today());
   const [agenda, setAgenda] = useState("");
   const [minutes, setMinutes] = useState("");
@@ -31,11 +27,6 @@ export default function NewMeetingPage() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  useEffect(() => {
-    if (!scholarId && mine.length === 1 && mine[0]) setScholarId(mine[0].id);
-  }, [mine, scholarId]);
-
-  const chosen = mine.find((s) => s.id === scholarId);
   const isMainSupervisor = Boolean(chosen && me?.faculty_id && chosen.supervisor?.id === me.faculty_id);
 
   async function submit(e: FormEvent) {
@@ -46,7 +37,7 @@ export default function NewMeetingPage() {
       const m = await api<Meeting>("/meetings", {
         method: "POST",
         body: JSON.stringify({
-          scholar_id: scholarId, meeting_date: date, agenda, minutes, action_items: actions,
+          scholar_id: chosen?.id, meeting_date: date, agenda, minutes, action_items: actions,
           next_meeting_date: next || null, shared_with: isMainSupervisor ? share : [],
         }),
       });
@@ -61,14 +52,9 @@ export default function NewMeetingPage() {
     <>
       <PageHeader eyebrow="Supervision trail" title="Log a meeting" />
       <form className="clay card meeting-form" onSubmit={submit}>
-        <Field label="Scholar">
-          <select required value={scholarId} onChange={(e) => setScholarId(e.target.value)}>
-            <option value="" disabled>Choose…</option>
-            {mine.map((s) => (
-              <option key={s.id} value={s.id}>{s.full_name} ({s.roll_number})</option>
-            ))}
-          </select>
-        </Field>
+        {/* mine: the caller's own record and the scholars they supervise, the only parties to a meeting. */}
+        <PersonPicker label="Scholar" path="/scholars?mine=true" value={chosen} onPick={setChosen}
+          detail={(s) => s.roll_number} />
         <div className="two">
           <Field label="Meeting date" hint="Backdating is fine; the record shows when it was logged.">
             <input type="date" required max={today()} value={date} onChange={(e) => setDate(e.target.value)} />
@@ -89,7 +75,7 @@ export default function NewMeetingPage() {
         </Field>
         {isMainSupervisor && <ShareChecks value={share} onChange={setShare} />}
         <ErrorText>{error}</ErrorText>
-        <Button kind="primary" type="submit" disabled={busy || !scholarId}>
+        <Button kind="primary" type="submit" disabled={busy || !chosen}>
           {busy ? "Saving…" : "Save meeting"}
         </Button>
       </form>

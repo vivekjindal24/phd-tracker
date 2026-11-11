@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { ErrorText, Field, PageHeader, Table } from "@/components/ui/kit";
+import { ErrorText, Field, PageHeader, ShowMore, Table } from "@/components/ui/kit";
 import type { Faculty } from "@/lib/types";
-import { useDebounced, useFetch } from "@/lib/useFetch";
+import { useDebounced, usePagedFetch } from "@/lib/useFetch";
 
 function Load({ load, max }: { load: number; max: number }) {
   const full = load >= max;
@@ -22,8 +22,8 @@ function Load({ load, max }: { load: number; max: number }) {
 export default function FacultyPage() {
   const [q, setQ] = useState("");
   const query = useDebounced(q);
-  const { data, error } = useFetch<Faculty[]>(
-    `/faculty${query ? `?q=${encodeURIComponent(query)}` : ""}`,
+  const { data, error, hasMore, more } = usePagedFetch<Faculty>(
+    `/faculty${query ? `?q=${encodeURIComponent(query)}` : ""}`, 200,
   );
 
   return (
@@ -55,6 +55,7 @@ export default function FacultyPage() {
           ))}
         </Table>
       )}
+      <ShowMore hasMore={hasMore} more={more} />
     </>
   );
 }

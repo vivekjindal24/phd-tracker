@@ -78,6 +78,7 @@ async def list_admissions(
     unit_id: uuid.UUID | None = None,
     interview_result: InterviewResult | None = None,
     limit: int = Query(default=500, ge=1, le=2000),
+    offset: int = Query(default=0, ge=0),
     principal: Principal = Depends(require_perm("admissions", "read")),
     session: AsyncSession = Depends(get_session),
 ) -> list[AdmissionOut]:
@@ -87,7 +88,9 @@ async def list_admissions(
         stmt = stmt.where(Admission.unit_id.in_(scope.subtree_unit_ids((path,))))
     if interview_result:
         stmt = stmt.where(Admission.interview_result == interview_result)
-    rows = await session.execute(stmt.order_by(Admission.created_at.desc()).limit(limit))
+    rows = await session.execute(
+        stmt.order_by(Admission.created_at.desc()).limit(limit).offset(offset)
+    )
     return [_out(r, principal) for r in rows]
 
 

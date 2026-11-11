@@ -3,17 +3,17 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Owl } from "@/components/brand/Owl";
-import { Card, ErrorText, PageHeader } from "@/components/ui/kit";
+import { Card, ErrorText, PageHeader, ShowMore } from "@/components/ui/kit";
 import { formatDate, formatWhen } from "@/lib/format";
 import { useSession } from "@/lib/session";
 import type { SeminarRow } from "@/lib/types";
-import { useFetch } from "@/lib/useFetch";
+import { usePagedFetch } from "@/lib/useFetch";
 import "./seminars.css";
 
 export default function SeminarsPage() {
   const { me } = useSession();
   const [upcoming, setUpcoming] = useState(true);
-  const { data, error } = useFetch<SeminarRow[]>(`/seminars?upcoming=${upcoming}`);
+  const { data, error, hasMore, more } = usePagedFetch<SeminarRow>(`/seminars?upcoming=${upcoming}`, 100);
   const canSchedule = me?.roles.some((r) => r === "unit_head" || r === "admin") ?? false;
 
   return (
@@ -52,6 +52,7 @@ export default function SeminarsPage() {
           </Link>
         ))}
       </div>
+      <ShowMore hasMore={hasMore} more={more} />
     </>
   );
 }

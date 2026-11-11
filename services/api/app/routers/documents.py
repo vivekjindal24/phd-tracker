@@ -4,7 +4,7 @@ the supervisor gives feedback as comments. Versions are append-only."""
 import uuid
 from typing import Any
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy import Select, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -83,13 +83,17 @@ async def _own(session: AsyncSession, principal: Principal, document_id: uuid.UU
 @router.get("", response_model=list[DocumentOut])
 async def list_documents(
     scholar_id: uuid.UUID | None = None,
+    limit: int = Query(default=500, ge=1, le=500),
+    offset: int = Query(default=0, ge=0),
     principal: Principal = Depends(require_perm("documents", "read")),
     session: AsyncSession = Depends(get_session),
 ) -> list[dict[str, Any]]:
     stmt = _query(principal)
     if scholar_id:
         stmt = stmt.where(Document.scholar_id == scholar_id)
-    rows = await session.execute(stmt.order_by(Document.updated_at.desc()).limit(500))
+    rows = await session.execute(
+        stmt.order_by(Document.updated_at.desc()).limit(limit).offset(offset)
+    )
     return [await _out(session, principal, r) for r in rows]
 
 

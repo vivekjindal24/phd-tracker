@@ -81,6 +81,7 @@ async def list_fellowships(
     scholar_id: uuid.UUID | None = None,
     status: FellowshipStatus | None = None,
     limit: int = Query(default=500, ge=1, le=2000),
+    offset: int = Query(default=0, ge=0),
     principal: Principal = Depends(require_perm("fellowships", "read")),
     session: AsyncSession = Depends(get_session),
 ) -> list[FellowshipOut]:
@@ -90,7 +91,7 @@ async def list_fellowships(
     if status:
         stmt = stmt.where(Fellowship.status == status)
     rows = await session.execute(
-        stmt.order_by(Fellowship.end_date.desc(), User.full_name).limit(limit)
+        stmt.order_by(Fellowship.end_date.desc(), User.full_name).limit(limit).offset(offset)
     )
     ledger_on = await module_enabled(session, "ledger")
     return [_out(r, principal, ledger_on) for r in rows]

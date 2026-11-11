@@ -55,6 +55,7 @@ def _row(s: Seminar, unit_name: str, scholar_count: int) -> dict[str, Any]:
 async def list_seminars(
     upcoming: bool = False,
     limit: int = Query(default=100, ge=1, le=500),
+    offset: int = Query(default=0, ge=0),
     principal: Principal = Depends(not_only_office),
     session: AsyncSession = Depends(get_session),
 ) -> list[dict[str, Any]]:
@@ -76,9 +77,9 @@ async def list_seminars(
     if upcoming:
         stmt = stmt.where(Seminar.starts_at >= datetime.now(UTC), Seminar.status == "scheduled")
     rows = await session.execute(
-        stmt.order_by(Seminar.starts_at.asc() if upcoming else Seminar.starts_at.desc()).limit(
-            limit
-        )
+        stmt.order_by(Seminar.starts_at.asc() if upcoming else Seminar.starts_at.desc())
+        .limit(limit)
+        .offset(offset)
     )
     return [_row(s, name, n) for s, name, n in rows]
 

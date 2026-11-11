@@ -6,13 +6,13 @@ import { Owl } from "@/components/brand/Owl";
 import { Ledger } from "@/components/Ledger";
 import { listPath, useScholarFilter } from "@/components/ScholarFilter";
 import { ScholarSearch } from "@/components/ScholarSearch";
-import { Button, Card, ErrorText, Field, PageHeader, Table } from "@/components/ui/kit";
+import { Button, Card, ErrorText, Field, PageHeader, ShowMore, Table } from "@/components/ui/kit";
 import { api } from "@/lib/api";
 import { formatDate, formatMoney } from "@/lib/format";
 import { useSession } from "@/lib/session";
 import { SCHEME_LABELS } from "@/lib/types";
 import type { Fellowship, FellowshipScheme, FellowshipStatus, Scholar } from "@/lib/types";
-import { errorText, useFetch } from "@/lib/useFetch";
+import { errorText, usePagedFetch } from "@/lib/useFetch";
 
 const SCHEMES = Object.keys(SCHEME_LABELS) as FellowshipScheme[];
 const STATUS_LABELS: Record<FellowshipStatus, string> = { active: "Active", completed: "Completed", terminated: "Terminated" };
@@ -110,7 +110,7 @@ function Manage({ f, onSaved }: { f: Fellowship; onSaved: () => void }) {
 export default function FellowshipsPage() {
   const { me } = useSession();
   const filter = useScholarFilter();
-  const { data, error, reload } = useFetch<Fellowship[]>(listPath("/fellowships", filter.params));
+  const { data, error, reload, hasMore, more } = usePagedFetch<Fellowship>(listPath("/fellowships", filter.params), 200);
   const [openId, setOpenId] = useState<string | null>(null);
   const canRecord = me ? me.office_roles.includes("research_office") || me.unit_roles.some((r) => r.role === "admin") : false;
   const open = data?.find((f) => f.id === openId) ?? null;
@@ -142,6 +142,7 @@ export default function FellowshipsPage() {
           ))}
         </Table>
       )}
+      <ShowMore hasMore={hasMore} more={more} />
       {open && (
         <Card>
           <h2>{open.scholar.name} · {SCHEME_LABELS[open.scheme]}</h2>

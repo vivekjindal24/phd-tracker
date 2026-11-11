@@ -4,13 +4,13 @@ import Link from "next/link";
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { Owl } from "@/components/brand/Owl";
-import { Button, Card, ErrorText, Field, PageHeader, Table } from "@/components/ui/kit";
+import { Button, Card, ErrorText, Field, PageHeader, ShowMore, Table } from "@/components/ui/kit";
 import { api } from "@/lib/api";
 import { formatDate } from "@/lib/format";
 import { useSession } from "@/lib/session";
 import { ENTRANCE_LABELS, RESULT_LABELS } from "@/lib/types";
 import type { Admission, EntranceRoute, InterviewResult, OrgUnit, SettingsData } from "@/lib/types";
-import { errorText, useFetch } from "@/lib/useFetch";
+import { errorText, useFetch, usePagedFetch } from "@/lib/useFetch";
 
 function AddCandidate({ units, onAdded }: { units: OrgUnit[]; onAdded: () => void }) {
   const [v, setV] = useState({ candidate_name: "", email: "", phone: "", unit_id: "", entrance_route: "net_jrf" as EntranceRoute, entrance_score: "", interview_date: "", admitted_on: "" });
@@ -130,7 +130,7 @@ function ResultSelect({ a, onSaved }: { a: Admission; onSaved: () => void }) {
 
 export default function AdmissionsPage() {
   const { me } = useSession();
-  const { data, error, reload } = useFetch<Admission[]>("/admissions");
+  const { data, error, reload, hasMore, more } = usePagedFetch<Admission>("/admissions", 200);
   const { data: units } = useFetch<OrgUnit[]>("/org-units");
   const emailOn = useFetch<SettingsData>("/settings").data?.email_configured ?? false;
   const isOffice = me?.office_roles.includes("research_office") ?? false;
@@ -161,6 +161,7 @@ export default function AdmissionsPage() {
           ))}
         </Table>
       )}
+      <ShowMore hasMore={hasMore} more={more} />
     </>
   );
 }

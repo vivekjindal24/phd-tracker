@@ -53,6 +53,7 @@ async def list_theses(
     unit_id: uuid.UUID | None = None,
     state: ItemState | None = None,
     limit: int = Query(default=200, ge=1, le=1000),
+    offset: int = Query(default=0, ge=0),
     principal: Principal = Depends(CAN_READ),
     session: AsyncSession = Depends(get_session),
 ) -> list[dict[str, Any]]:
@@ -69,7 +70,9 @@ async def list_theses(
     stmt = await scope.narrow_to_scholars(session, stmt, q, unit_id)
     if state:
         stmt = stmt.where(ThesisSubmission.state == state)
-    rows = await session.execute(stmt.order_by(ThesisSubmission.updated_at.desc()).limit(limit))
+    rows = await session.execute(
+        stmt.order_by(ThesisSubmission.updated_at.desc()).limit(limit).offset(offset)
+    )
     out = []
     for t, sid, name in rows:
         step = t.chain_snapshot[t.current_step]["kind"] if t.current_step is not None else None

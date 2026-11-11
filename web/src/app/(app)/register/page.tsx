@@ -5,19 +5,19 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import { Owl } from "@/components/brand/Owl";
 import { DownloadButton } from "@/components/DownloadButton";
+import { PersonPicker } from "@/components/PersonPicker";
 import { MilestoneStatusBadge } from "@/components/MilestoneStatusBadge";
-import { Button, ErrorText, Field, PageHeader, Table } from "@/components/ui/kit";
+import { Button, ErrorText, Field, PageHeader, ShowMore, Table } from "@/components/ui/kit";
 import { api } from "@/lib/api";
 import { formatDate } from "@/lib/format";
 import { useSession } from "@/lib/session";
 import { APPROVAL_BODIES, MILESTONE_LABELS, MILESTONE_STATUSES } from "@/lib/types";
 import type { ApprovalBody, Milestone, MilestoneStatus, MilestoneType, Scholar } from "@/lib/types";
-import { errorText, useFetch } from "@/lib/useFetch";
+import { errorText, usePagedFetch } from "@/lib/useFetch";
 import "./register.css";
 
 function RecordDecision({ onSaved }: { onSaved: () => void }) {
-  const { data: scholars } = useFetch<Scholar[]>("/scholars?limit=500");
-  const [scholarId, setScholarId] = useState("");
+  const [scholar, setScholar] = useState<Scholar | null>(null);
   const [type, setType] = useState<MilestoneType>("proposal_approval");
   const [status, setStatus] = useState<MilestoneStatus>("Approved");
   const [body, setBody] = useState<ApprovalBody>("RDC");
@@ -27,7 +27,7 @@ function RecordDecision({ onSaved }: { onSaved: () => void }) {
   const [typedTitle, setTypedTitle] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const isProposal = type === "proposal_approval";
-  const title = typedTitle ?? scholars?.find((s) => s.id === scholarId)?.research_title ?? "";
+  const title = typedTitle ?? scholar?.research_title ?? "";
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -36,7 +36,7 @@ function RecordDecision({ onSaved }: { onSaved: () => void }) {
       await api("/milestones", {
         method: "POST",
         body: JSON.stringify({
-          scholar_id: scholarId, milestone_type: type, status, approval_body: body,
+          scholar_id: scholar?.id, milestone_type: type, status, approval_body: body,
           resolution_number: number || null, resolution_date: date || null, notes,
           approved_title: isProposal && title.trim() ? title : null,
         }),
@@ -53,14 +53,8 @@ function RecordDecision({ onSaved }: { onSaved: () => void }) {
   return (
     <form className="clay card decision-form" onSubmit={submit}>
       <h2>Record a decision</h2>
-      <Field label="Scholar">
-        <select required value={scholarId} onChange={(e) => setScholarId(e.target.value)}>
-          <option value="" disabled>Choose…</option>
-          {(scholars ?? []).map((s) => (
-            <option key={s.id} value={s.id}>{s.full_name} ({s.roll_number})</option>
-          ))}
-        </select>
-      </Field>
+      <PersonPicker label="Scholar" path="/scholars" value={scholar} onPick={setScholar}
+        detail={(s) => `${s.roll_number} · ${s.unit.name}`} />
       <div className="three">
         <Field label="Milestone">
           <select value={type} onChange={(e) => setType(e.target.value as MilestoneType)}>
@@ -147,7 +141,7 @@ export default function RegisterPage() {
   const params = new URLSearchParams();
   if (status) params.set("status", status);
   if (type) params.set("milestone_type", type);
-  const { data, error, reload } = useFetch<Milestone[]>(`/milestones?${params}`);
+  const { data, error, reload, hasMore, more } = usePagedFetch<Milestone>(`/milestones?${params}`, 200);
   const canRecord = me?.roles.some((r) => r === "admin" || r === "research_office") ?? false;
 
   return (
@@ -202,6 +196,7 @@ export default function RegisterPage() {
               ))}
             </Table>
           )}
+          <ShowMore hasMore={hasMore} more={more} />
         </div>
         {canRecord && <RecordDecision onSaved={reload} />}
       </div>
