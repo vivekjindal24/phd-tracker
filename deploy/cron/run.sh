@@ -47,8 +47,8 @@ fetch)
   : "${OFFSITE_REMOTE:?set OFFSITE_REMOTE and OFFSITE_PASSPHRASE to fetch the off-site copy}"
   vault
   mkdir -p /backup/db /backup/files
-  rclone copy vault:db /backup/db
-  rclone copy vault:files /backup/files
+  # The whole vault in one go: a university with no uploads yet has no files/ folder there.
+  rclone copy vault: /backup
   echo "fetched the off-site copy into /backup"
   ;;
 *)
