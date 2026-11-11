@@ -10,8 +10,10 @@ design; this is the operator's checklist. Commands run from the repo root.
 - Two DNS names pointing at the server, e.g. `phd.univ.ac.in` (the app) and
   `files.phd.univ.ac.in` (file downloads/uploads), with ports 80 and 443 open to
   them. Caddy gets and renews the certificates.
-- Full-disk encryption on the data disk (SECURITY.md §8) and a second disk for
-  backups.
+- Full-disk encryption on the data disk and on the backup disk (SECURITY.md §8):
+  the local backups are plain files.
+- Recommended: S3-compatible storage somewhere else for the encrypted off-site
+  copy (Backups below).
 
 ## Install
 
@@ -45,6 +47,24 @@ Every night at 02:00 the cron container writes `BACKUP_DIR/db/anveshan-<date>.du
 `BACKUP_DIR/files/`. The daily job runs at 06:00. Both log to
 `docker compose -f deploy/compose.prod.yml logs cron`; run either by hand with
 `… exec cron run.sh backup` / `run.sh daily`.
+
+### Off-site copy
+
+A second disk in the same building does not survive a fire or a theft. Fill the
+`OFFSITE_*` group in `deploy/.env` to also send every nightly backup to
+S3-compatible storage somewhere else, then `up -d` again. The copy is encrypted
+on this server with `OFFSITE_PASSPHRASE` before it leaves, file names included,
+so the storage provider holds nothing readable. Database dumps older than
+`BACKUP_KEEP_DAYS` are removed there too; files are kept.
+
+Keep the passphrase somewhere other than this server (the registrar's safe, a
+password manager): without it the off-site copy cannot be read. The backup log
+says each night whether the off-site copy was sent, or that it is not
+configured.
+
+To restore after losing the server and the backup disk, install afresh with
+the same `OFFSITE_*` values, run `… exec cron run.sh fetch` to bring the copy
+back into `BACKUP_DIR`, then follow Restore below.
 
 ## Restore
 

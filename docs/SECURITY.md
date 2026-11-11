@@ -314,7 +314,14 @@ httpOnly SameSite=Strict cookie behind a Next route-handler proxy.
   only; deletion requests escalate to the root admin.
 - **Backups (production):** nightly `pg_dump` + bucket copy to a second
   disk by the cron container (`deploy/cron/run.sh`); restore
-  (`deploy/README.md`) tested before go-live.
+  (`deploy/README.md`) tested before go-live. The backup disk needs full-disk
+  encryption like the data disk: local backups are plain files. With the
+  `OFFSITE_*` group set, each night's backup is also copied to S3-compatible
+  storage elsewhere through rclone's crypt layer — contents and file names
+  encrypted on the server with `OFFSITE_PASSPHRASE` before they leave. The
+  passphrase is kept away from the server; losing it loses the off-site copy.
+  Still open: nobody is alerted when a backup fails (it is only in the cron
+  log), and a failure can lose up to a day (no point-in-time recovery).
 
 ## 9. Logging
 
@@ -334,6 +341,7 @@ Verified 2026-10-25 (code, tests and the approval-chain click-through):
 - [x] Admins cannot grant roles above their own unit
 - [x] Rotating single-use refresh tokens; login throttling
 - [ ] `require_two_factor` switched on at every live university install
+- [ ] Off-site backup configured and `run.sh fetch` tried at every live install
 - [x] Private bucket; presigned URLs only after `get_or_403`
 - [x] No secrets in repo; loud env validation
 - [x] CORS allowlist on both services
