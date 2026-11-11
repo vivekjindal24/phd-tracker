@@ -63,6 +63,16 @@ export function usePagedFetch<T>(path: string | null, pageSize: number) {
   };
 }
 
+/** A search box's text, trimmed, once typing pauses: one request per pause, not per key. */
+export function useDebounced(value: string, ms = 300): string {
+  const [settled, setSettled] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => setSettled(value.trim()), ms);
+    return () => clearTimeout(t);
+  }, [value, ms]);
+  return settled;
+}
+
 export function errorText(e: unknown): string {
   return e instanceof ApiError ? e.message : String(e);
 }

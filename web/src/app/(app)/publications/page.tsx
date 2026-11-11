@@ -8,23 +8,34 @@ import { ErrorText, Field, PageHeader, ShowMore, Table } from "@/components/ui/k
 import { useSession } from "@/lib/session";
 import { INDEXING_LABELS, PUB_TYPE_LABELS, STATE_LABELS } from "@/lib/types";
 import type { ItemState, PublicationRow } from "@/lib/types";
-import { usePagedFetch } from "@/lib/useFetch";
+import { useDebounced, usePagedFetch } from "@/lib/useFetch";
 
 export default function PublicationsPage() {
   const { me } = useSession();
+  const [q, setQ] = useState("");
+  const search = useDebounced(q);
   const [state, setState] = useState("");
   const [year, setYear] = useState("");
   const query = new URLSearchParams();
+  if (search) query.set("q", search);
   if (state) query.set("state", state);
   if (year) query.set("pub_year", year);
+  const filtered = query.size > 0;
   const { data, error, hasMore, more } = usePagedFetch<PublicationRow>(`/publications?${query}`, 500);
   const isScholar = me?.scholar_id != null;
+  const onlyScholar = me?.roles.length === 1 && me.roles[0] === "scholar";
 
   return (
     <>
       <PageHeader eyebrow="Research record" title="Publications"
         actions={isScholar && <Link href="/publications/new" className="btn btn-primary">Add publication</Link>} />
       <div className="toolbar">
+        {!onlyScholar && (
+          <Field label="Search">
+            <input type="search" placeholder="Scholar name, roll number or title" value={q}
+              onChange={(e) => setQ(e.target.value)} />
+          </Field>
+        )}
         <Field label="State">
           <select value={state} onChange={(e) => setState(e.target.value)}>
             <option value="">All</option>
@@ -42,8 +53,8 @@ export default function PublicationsPage() {
           empty={
             <div className="empty-state">
               <Owl pose="empty" size={96} />
-              <h2>No publications yet</h2>
-              <p>{isScholar ? "Add a paper and send it for verification." : "Publications appear here once scholars add them."}</p>
+              <h2>{filtered ? "No publications match" : "No publications yet"}</h2>
+              <p>{filtered ? "Try a different search, state or year." : isScholar ? "Add a paper and send it for verification." : "Publications appear here once scholars add them."}</p>
             </div>
           }>
           {data.map((p) => (

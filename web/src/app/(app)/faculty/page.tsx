@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { ErrorText, Field, PageHeader, Table } from "@/components/ui/kit";
 import type { Faculty } from "@/lib/types";
-import { useFetch } from "@/lib/useFetch";
+import { useDebounced, useFetch } from "@/lib/useFetch";
 
 function Load({ load, max }: { load: number; max: number }) {
   const full = load >= max;
@@ -21,11 +21,7 @@ function Load({ load, max }: { load: number; max: number }) {
 
 export default function FacultyPage() {
   const [q, setQ] = useState("");
-  const [query, setQuery] = useState("");
-  useEffect(() => {
-    const t = setTimeout(() => setQuery(q.trim()), 300);
-    return () => clearTimeout(t);
-  }, [q]);
+  const query = useDebounced(q);
   const { data, error } = useFetch<Faculty[]>(
     `/faculty${query ? `?q=${encodeURIComponent(query)}` : ""}`,
   );

@@ -29,6 +29,7 @@ router = APIRouter(
 
 @router.get("", response_model=list[PublicationRow])
 async def list_publications(
+    q: str | None = Query(default=None, max_length=100),
     state: ItemState | None = None,
     scholar_id: uuid.UUID | None = None,
     pub_year: int | None = Query(default=None, ge=1950, le=2100),
@@ -47,6 +48,12 @@ async def list_publications(
             scope.scholar_predicate(principal, "publications"),
         )
     )
+    if q:
+        stmt = stmt.where(
+            User.full_name.icontains(q, autoescape=True)
+            | Scholar.roll_number.icontains(q, autoescape=True)
+            | Publication.title.icontains(q, autoescape=True)
+        )
     if state:
         stmt = stmt.where(Publication.state == state)
     if scholar_id:

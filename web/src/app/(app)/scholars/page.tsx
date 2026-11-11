@@ -8,24 +8,19 @@ import { ErrorText, Field, PageHeader, ShowMore, Table } from "@/components/ui/k
 import { useSession } from "@/lib/session";
 import { STAGES } from "@/lib/types";
 import type { Scholar } from "@/lib/types";
-import { usePagedFetch } from "@/lib/useFetch";
+import { useDebounced, usePagedFetch } from "@/lib/useFetch";
 
 export default function ScholarsPage() {
   const { me } = useSession();
   const router = useRouter();
   const [q, setQ] = useState("");
-  const [query, setQuery] = useState("");
+  const query = useDebounced(q);
   const [stage, setStage] = useState("");
   const onlyScholar = me?.roles.length === 1 && me.roles[0] === "scholar";
 
   useEffect(() => {
     if (onlyScholar && me?.scholar_id) router.replace(`/scholars/${me.scholar_id}`);
   }, [onlyScholar, me, router]);
-
-  useEffect(() => {
-    const t = setTimeout(() => setQuery(q.trim()), 300); // search as you type, gently
-    return () => clearTimeout(t);
-  }, [q]);
 
   const params = new URLSearchParams();
   if (query) params.set("q", query);

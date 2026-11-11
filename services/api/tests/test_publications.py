@@ -52,6 +52,22 @@ async def test_disabled_module_is_404_everywhere(client, world):
     assert res.status_code == 404
 
 
+async def test_list_is_searched_by_scholar_name_roll_number_or_title(client, world, modules_on):
+    await _create(client, world)
+    office = auth(world.research_office.id)
+
+    async def found(q: str) -> int:
+        res = await client.get("/api/v1/publications", headers=office, params={"q": q})
+        assert res.status_code == 200, res.text
+        return len(res.json())
+
+    assert await found("phd-a1-001") == 1  # roll number, any case
+    assert await found(world.scholar_a1.full_name[:6]) == 1
+    assert await found("crop yield") == 1
+    assert await found("PHD-B1") == 0  # another scholar's roll number
+    assert await found("%") == 0  # typed text is never a wildcard
+
+
 async def test_full_chain_with_library_verification(client, world, modules_on):
     pub = await _create(client, world)
     assert pub["state"] == "draft" and [s["kind"] for s in pub["chain"]] == [
