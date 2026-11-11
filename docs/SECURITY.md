@@ -128,8 +128,12 @@ anywhere, no settings, no role assignments. Scope is university-wide. They act
 on an item only at a `vice_chancellor` chain step, under the same engine rules
 (§4); at that step on a thesis they may rewrite `examiners`. For meeting
 minutes they count as a unit head: `unit_heads` in `shared_with` opens the
-minutes to them. Office holders are listed (`GET /office-holders`) and
-appointed by the root admin only.
+minutes to them. Office holders are appointed by the root admin only.
+
+**Listing role holders** (`GET /role-holders`, root admin only): every
+appointed role with its holder and, for unit heads and admins, the unit.
+Granting and revoking keep their own rule: a unit role by an admin at or above
+that unit, an office role by the root admin.
 
 **Audit log reading** (`GET /audit-log`, the Audit log page): the root admin,
 Research Office and Vice Chancellor read every entry; a scoped admin reads only

@@ -101,20 +101,23 @@ async def test_selects_examiners_at_their_step(client, session, world, documents
     assert done.json()["state"] == "approved"
 
 
-async def test_only_the_university_admin_appoints_and_lists_office_holders(client, world):
+async def test_only_the_university_admin_appoints_and_lists_role_holders(client, world):
     root = auth(world.root_admin.id)
-    holders = await client.get("/api/v1/office-holders", headers=root)
+    holders = await client.get("/api/v1/role-holders", headers=root)
     assert holders.status_code == 200, holders.text
-    assert {h["role"] for h in holders.json()} == {
+    rows = holders.json()
+    assert {h["role"] for h in rows if h["unit_id"] is None} == {
         "vice_chancellor",
         "research_office",
         "exam_office",
         "library",
     }
+    # Unit heads and admins come with their unit, so the screen can list them under it.
+    by_unit = {(h["user_id"], h["role"]): h["unit_id"] for h in rows if h["unit_id"]}
+    assert by_unit[(str(world.dean_a.id), "unit_head")] == str(world.school_a.id)
+    assert (str(world.admin_a1.id), "admin") in by_unit
     for user in (world.vice_chancellor, world.research_office, world.dean_a):
-        assert (
-            await client.get("/api/v1/office-holders", headers=auth(user.id))
-        ).status_code == 403
+        assert (await client.get("/api/v1/role-holders", headers=auth(user.id))).status_code == 403
     grant = await client.post(
         "/api/v1/role-assignments",
         headers=auth(world.vice_chancellor.id),

@@ -19,9 +19,9 @@ from app.models import Faculty, OrgUnit, RoleAssignment, Scholar, User
 from app.notify import email_configured
 from app.rbac import not_only_office, require_perm
 from app.schemas import (
-    OfficeHolderOut,
     RoleAssignmentIn,
     RoleAssignmentOut,
+    RoleHolderOut,
     UserCreate,
     UserOut,
     UserUpdate,
@@ -227,23 +227,27 @@ async def reset_two_factor(
     await session.commit()
 
 
-@router.get("/office-holders", response_model=list[OfficeHolderOut])
-async def list_office_holders(
+@router.get("/role-holders", response_model=list[RoleHolderOut])
+async def list_role_holders(
     _: Principal = Depends(require_root_admin), session: AsyncSession = Depends(get_session)
 ) -> list[dict]:
-    """Who holds each university-wide role, for the root admin who appoints them."""
+    """Who holds each appointed role (offices, unit heads, admins), for the root admin."""
     rows = await session.execute(
-        select(RoleAssignment.id, RoleAssignment.role, User.id, User.full_name, User.email)
-        .join(User, User.id == RoleAssignment.user_id)
-        .where(
-            RoleAssignment.unit_id.is_(None),
-            RoleAssignment.deleted_at.is_(None),
-            User.deleted_at.is_(None),
+        select(
+            RoleAssignment.id,
+            RoleAssignment.role,
+            RoleAssignment.unit_id,
+            User.id,
+            User.full_name,
+            User.email,
         )
+        .join(User, User.id == RoleAssignment.user_id)
+        .where(RoleAssignment.deleted_at.is_(None), User.deleted_at.is_(None))
         .order_by(RoleAssignment.role, User.full_name)
     )
     return [
-        {"id": i, "role": r, "user_id": u, "full_name": n, "email": e} for i, r, u, n, e in rows
+        {"id": i, "role": r, "unit_id": t, "user_id": u, "full_name": n, "email": e}
+        for i, r, t, u, n, e in rows
     ]
 
 

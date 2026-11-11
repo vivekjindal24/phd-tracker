@@ -228,7 +228,8 @@
 .rubric li {
   flex-wrap: wrap;
 }
-.offices-form {
+.offices-form,
+.offices-units {
   margin-top: var(--space-5);
 }
 .offices-form .row {

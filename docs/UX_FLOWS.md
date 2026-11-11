@@ -136,10 +136,11 @@ in force; submitted ones keep their headings.
 
 ## Flow 4c — Vice Chancellor
 
-1. The root admin opens **Settings → University offices**, types the person's
-   email (and a full name if they have no account yet) and appoints them Vice
-   Chancellor. The same card appoints and removes the Research Office, Exam
-   Office and Library.
+1. The root admin opens **Settings → Offices, heads and administrators**,
+   types the person's email (and a full name if they have no account yet) and
+   appoints them Vice Chancellor. The same card appoints and removes the
+   Research Office, Exam Office and Library, and the head and admin of each
+   school, department or centre (choose the role, then the unit).
 2. The Vice Chancellor's home shows the whole university as a head sees a
    unit: scholars by stage, overdue reports, stuck items, supervisor load and
    a per-school breakdown, with the Leadership view and NAAC data in the menu.

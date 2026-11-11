@@ -243,9 +243,10 @@ class RoleAssignmentOut(Out):
     unit_id: uuid.UUID | None
 
 
-class OfficeHolderOut(BaseModel):
+class RoleHolderOut(BaseModel):
     id: uuid.UUID  # the role assignment
     role: AssignedRole
+    unit_id: uuid.UUID | None  # None for a university-wide office
     user_id: uuid.UUID
     full_name: str
     email: str
