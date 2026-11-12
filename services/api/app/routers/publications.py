@@ -12,7 +12,7 @@ from app import items, scope, workflow
 from app.auth.principal import Principal
 from app.crud import insert, update
 from app.db import get_session
-from app.enums import ITEM_STATES, ItemState
+from app.enums import ITEM_STATES, Indexing, ItemState
 from app.errors import ApiError
 from app.models import Publication, Scholar, User
 from app.modules import require_module
@@ -35,6 +35,7 @@ async def list_publications(
     state: ItemState | None = None,
     scholar_id: uuid.UUID | None = None,
     pub_year: int | None = Query(default=None, ge=1950, le=2100),
+    indexing: Indexing | None = None,
     sort: Sort = None,
     limit: int = Query(default=200, ge=1, le=1000),
     offset: int = Query(default=0, ge=0),
@@ -58,6 +59,8 @@ async def list_publications(
         stmt = stmt.where(Publication.scholar_id == scholar_id)
     if pub_year:
         stmt = stmt.where(Publication.pub_year == pub_year)
+    if indexing:
+        stmt = stmt.where(Publication.indexing.contains([indexing]))
     columns = {
         "title": Publication.title,
         "scholar": User.full_name,

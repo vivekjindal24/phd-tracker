@@ -8,7 +8,7 @@ import { StateBadge } from "@/components/items/StateBadge";
 import { ErrorText, Field, PageHeader, ShowMore, Table } from "@/components/ui/kit";
 import { useSession } from "@/lib/session";
 import { INDEXING_LABELS, PUB_TYPE_LABELS, STATE_LABELS } from "@/lib/types";
-import type { ItemState, PublicationRow } from "@/lib/types";
+import type { Indexing, ItemState, PublicationRow } from "@/lib/types";
 import { usePagedFetch } from "@/lib/useFetch";
 
 export default function PublicationsPage() {
@@ -16,10 +16,11 @@ export default function PublicationsPage() {
   const filter = useScholarFilter("Scholar name, roll number or title");
   const [state, setState] = useState("");
   const [year, setYear] = useState("");
-  const filtered = filter.active || Boolean(state || year);
+  const [indexing, setIndexing] = useState("");
+  const filtered = filter.active || Boolean(state || year || indexing);
   const [sort, setSort] = useState("");
   const { data, error, hasMore, more } = usePagedFetch<PublicationRow>(
-    listPath("/publications", filter.params, { state, pub_year: year, sort }), 500);
+    listPath("/publications", filter.params, { state, pub_year: year, indexing, sort }), 500);
   const isScholar = me?.scholar_id != null;
 
   return (
@@ -32,6 +33,12 @@ export default function PublicationsPage() {
           <select value={state} onChange={(e) => setState(e.target.value)}>
             <option value="">All</option>
             {(Object.keys(STATE_LABELS) as ItemState[]).map((s) => <option key={s} value={s}>{STATE_LABELS[s]}</option>)}
+          </select>
+        </Field>
+        <Field label="Indexed in">
+          <select value={indexing} onChange={(e) => setIndexing(e.target.value)}>
+            <option value="">Any</option>
+            {(Object.keys(INDEXING_LABELS) as Indexing[]).map((i) => <option key={i} value={i}>{INDEXING_LABELS[i]}</option>)}
           </select>
         </Field>
         <Field label="Year">

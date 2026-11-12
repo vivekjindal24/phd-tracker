@@ -253,7 +253,9 @@ Conferences, Fellowships and Thesis submissions each carry a **Search** box
 (part of a scholar's name or their roll number; on Publications and
 Conferences also the title) for anyone who sees more than their own records,
 and a **Department** filter for heads, admins and offices who see more than
-one unit. Both narrow the list inside what the reader may already see.
+one unit. Both narrow the list inside what the reader may already see. Publications
+also filter by state, year and where they are indexed (Scopus, Web of
+Science, UGC-CARE, Other).
 
 **Long lists.** No list stops silently. Every list page (scholars, faculty,
 the register, reports, meetings, publications, conferences, fellowships,

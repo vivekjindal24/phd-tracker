@@ -67,6 +67,13 @@ async def test_list_is_searched_by_scholar_name_roll_number_or_title(client, wor
     assert await found("PHD-B1") == 0  # another scholar's roll number
     assert await found("%") == 0  # typed text is never a wildcard
 
+    async def indexed(where: str):
+        return await client.get("/api/v1/publications", headers=office, params={"indexing": where})
+
+    assert len((await indexed("scopus")).json()) == 1
+    assert (await indexed("wos")).json() == []
+    assert (await indexed("nature")).status_code == 422
+
 
 async def test_full_chain_with_library_verification(client, world, modules_on):
     pub = await _create(client, world)
