@@ -301,6 +301,28 @@
   min-width: 200px;
 }
 
+/* Queue: approve selected items in one go. */
+.bulk-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+  margin-bottom: var(--space-4);
+}
+.bulk-bar p,
+.bulk-outcome p {
+  margin: 0;
+}
+.bulk-outcome {
+  margin-bottom: var(--space-4);
+  font-weight: 700;
+}
+.bulk-check {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent-strong);
+}
+
 /* --- load meter (supervisor load vs UGC cap) --------------------------------------- */
 .meter {
   display: flex;

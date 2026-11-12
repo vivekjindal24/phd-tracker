@@ -91,6 +91,28 @@ async def approved_thesis(client, session, world) -> str:
     return tid
 
 
+async def test_library_bulk_approves_only_after_the_plagiarism_check(
+    client, session, world, documents_on
+):
+    tid = await new_thesis(client, session, world)
+    await ready_file(session, world.scholar_a1, "thesis_submissions", tid)
+    for who in (world.scholar_a1, world.meera, world.admin_a1):
+        action = "submit" if who is world.scholar_a1 else "approve"
+        assert (await act(client, who, tid, action)).status_code == 200
+
+    async def quick() -> list[bool]:
+        res = await client.get("/api/v1/queue", headers=auth(world.library.id))
+        return [q["quick_approve"] for q in res.json() if q["id"] == tid]
+
+    assert await quick() == [False]
+    await client.put(
+        f"/api/v1/theses/{tid}/plagiarism",
+        headers=auth(world.library.id),
+        json={"plagiarism_tool": "Turnitin", "plagiarism_score": 6.5},
+    )
+    assert await quick() == [True]
+
+
 async def test_cannot_submit_without_the_thesis_file(client, session, world, documents_on):
     tid = await new_thesis(client, session, world)
     res = await act(client, world.scholar_a1, tid, "submit")

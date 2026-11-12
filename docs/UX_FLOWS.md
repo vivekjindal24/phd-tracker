@@ -71,7 +71,12 @@ non-initiator never sees the New button and the API 403s anyway.
 ## Flow 2 — Approver acts on any chain step
 
 1. Approver opens **Your queue** (items at a step they can act on, oldest
-   first, with item type, scholar and days waiting).
+   first, with item type, scholar and days waiting), narrowed by item type
+   or a scholar/title search. Items that need nothing filled in first (no
+   rating, no step-only field left empty; the API reports this per item)
+   carry a checkbox: **Approve selected** asks once, then approves each
+   through the same endpoint as the item page, with no comment, and lists
+   any the server refused with its reason.
 2. Opens an item: content, files, comments, full approval history.
 3. **Approve** (optional comment; on a progress report a rating —
    Satisfactory / Needs improvement / Unsatisfactory — and written remarks are

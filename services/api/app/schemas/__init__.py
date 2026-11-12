@@ -588,6 +588,7 @@ class QueueEntry(BaseModel):
     step: str
     waiting_since: datetime
     days_waiting: int
+    quick_approve: bool
 
 
 # --- progress reports -------------------------------------------------------------------

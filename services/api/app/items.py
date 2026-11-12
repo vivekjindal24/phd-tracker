@@ -223,6 +223,16 @@ async def resubmit(session: AsyncSession, principal: Principal, ctx: ItemContext
     await workflow.resubmit(session, principal, ctx)
 
 
+def missing_fields(kind: ItemKind, ctx: ItemContext) -> list[str]:
+    """Labels of the step-only fields still empty at the item's current step."""
+    step = workflow.current_kind(ctx)
+    return [
+        label
+        for column, label in kind.required.get(step or "", ())
+        if getattr(ctx.item, column) in (None, "")
+    ]
+
+
 async def approve(
     session: AsyncSession,
     principal: Principal,
@@ -231,12 +241,7 @@ async def approve(
     rating: str | None = None,
 ) -> None:
     kind = kind_of(ctx.item_type)
-    step = workflow.current_kind(ctx)
-    missing = [
-        label
-        for column, label in kind.required.get(step or "", ())
-        if getattr(ctx.item, column) in (None, "")
-    ]
+    missing = missing_fields(kind, ctx)
     if missing and await workflow.can_act(session, principal, ctx):
         raise workflow.violation(f"Fill in {' and '.join(missing)} before approving.")
     if not kind.assessed:
@@ -431,6 +436,8 @@ async def queue(session: AsyncSession, principal: Principal) -> list[dict[str, A
                     "step": STEP_LABELS[workflow.current_kind(ctx)],
                     "waiting_since": since,
                     "days_waiting": (datetime.now(UTC) - since).days,
+                    # Approvable from the queue in bulk: nothing for approve() to ask for first.
+                    "quick_approve": not kind.assessed and not missing_fields(kind, ctx),
                 }
             )
     return sorted(out, key=lambda q: q["waiting_since"])

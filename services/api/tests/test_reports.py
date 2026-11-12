@@ -70,6 +70,8 @@ async def test_full_chain_through_queues(client, world):
 
     assert r["id"] in await _queue_ids(client, world.sup_a2)
     assert r["id"] not in await _queue_ids(client, world.admin_a1)  # not their step yet
+    queue = (await client.get("/api/v1/queue", headers=auth(world.sup_a2.id))).json()
+    assert [q["quick_approve"] for q in queue] == [False]  # needs a rating: opened one by one
     r = (await _act(client, world.sup_a2, r, "approve", comment="Good progress")).json()
     assert r["waiting_on"] == "Department"
     # Department step: A1's head/admin and the Dean above them all see it in their queue.

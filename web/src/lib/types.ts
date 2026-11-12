@@ -234,6 +234,7 @@ export type QueueEntry = {
   step: string;
   waiting_since: string;
   days_waiting: number;
+  quick_approve: boolean; // nothing to fill in first, so it can be approved from the queue in bulk
 };
 
 export type Period = "January-June" | "July-December";

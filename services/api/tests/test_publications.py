@@ -108,7 +108,9 @@ async def test_library_queue_shows_publications(client, world, modules_on):
     await _act(client, world.scholar_a1, pub["id"], "submit")
     await _act(client, world.meera, pub["id"], "approve")
     queue = (await client.get("/api/v1/queue", headers=auth(world.library.id))).json()
-    assert [(q["item_type"], q["step"]) for q in queue] == [("publication", "Library")]
+    assert [(q["item_type"], q["step"], q["quick_approve"]) for q in queue] == [
+        ("publication", "Library", True)
+    ]
 
 
 async def test_scope_negatives(client, world, modules_on):
