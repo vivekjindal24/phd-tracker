@@ -13,10 +13,10 @@ from app.auth.principal import Principal
 from app.crud import update
 from app.db import get_session
 from app.enums import STAGES, Stage, StudyMode
-from app.errors import forbidden
+from app.errors import ApiError, forbidden
 from app.models import Faculty, OrgUnit, Scholar, User
 from app.rbac import require_perm
-from app.schemas import AssignIn, Ref, ScholarOut, ScholarUpdate
+from app.schemas import AssignIn, Ref, ScholarOut, ScholarOwnProfile, ScholarUpdate
 from app.sorting import Sort, ordered, page_of, ranked
 
 router = APIRouter(prefix="/scholars", tags=["directory"])
@@ -156,6 +156,32 @@ async def update_scholar(
         await directory.recheck_cap(session, scholar)
     await session.commit()
     return await _one(session, principal, scholar_id)
+
+
+@router.put("/mine/profile", response_model=ScholarOut)
+async def fill_own_profile(
+    body: ScholarOwnProfile,
+    principal: Principal = Depends(current_principal),
+    session: AsyncSession = Depends(get_session),
+) -> ScholarOut:
+    """A scholar fills in their own profile fields that are still not recorded (PRD F6). Once
+    a field holds a value only the admin over their unit changes it."""
+    if principal.scholar_id is None:
+        raise forbidden()
+    scholar = await session.get(Scholar, principal.scholar_id, with_for_update=True)
+    assert scholar is not None
+    changes = body.model_dump(exclude_none=True)
+    recorded = sorted(k for k in changes if getattr(scholar, k) is not None)
+    if recorded:
+        raise ApiError(
+            409,
+            "already_recorded",
+            "This is already on your record. Ask your department's admin to correct it.",
+            {"fields": recorded},
+        )
+    await update(session, principal, scholar, changes)
+    await session.commit()
+    return await _one(session, principal, scholar.id)
 
 
 @router.put("/{scholar_id}/supervisor", response_model=ScholarOut)

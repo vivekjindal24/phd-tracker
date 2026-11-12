@@ -198,6 +198,9 @@ async def _scholar_section(session: AsyncSession, principal: Principal) -> dict[
         if "coursework_clearance" in kinds
         else None,
         "fellowship_ends": fellowship_ends,
+        # Profile fields the scholar can still fill in themself (PUT /scholars/mine/profile).
+        "profile_incomplete": None
+        in (scholar.study_mode, scholar.gender, scholar.category, scholar.has_disability),
         "last_meeting": last_meeting,
         "next_meeting": next_meeting if next_meeting and next_meeting >= today else None,
         "latest_decision": (

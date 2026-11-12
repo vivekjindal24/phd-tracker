@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import type { FormEvent } from "react";
+import type { FormEvent, ReactNode } from "react";
 import { Button, Card, ErrorText, Field, PageHeader } from "@/components/ui/kit";
 import { Comments } from "@/components/Comments";
 import { CourseworkCard } from "@/components/CourseworkCard";
@@ -23,6 +23,64 @@ import { errorText, useFetch } from "@/lib/useFetch";
 import "./profile.css";
 
 const NOT_RECORDED = <span className="muted">Not recorded</span>;
+
+const choices = (labels: Record<string, string>) =>
+  Object.entries(labels).map(([k, l]) => <option key={k} value={k}>{l}</option>);
+
+/** A scholar fills in their own details that are still not recorded; a recorded value is the
+ *  admin's to correct (the API refuses a change here). */
+function OwnProfileCard({ scholar, onSaved }: { scholar: Scholar; onSaved: (s: Scholar) => void }) {
+  const [v, setV] = useState({ study_mode: "", gender: "", category: "", has_disability: "" });
+  const [error, setError] = useState<string | null>(null);
+  const missing = {
+    study_mode: scholar.study_mode === null,
+    gender: scholar.gender === null,
+    category: scholar.category === null,
+    has_disability: scholar.has_disability === null,
+  };
+  if (!Object.values(missing).some(Boolean)) return null;
+  const chosen = Object.entries(v).filter(([, value]) => value);
+
+  async function save(e: FormEvent) {
+    e.preventDefault();
+    setError(null);
+    const body = Object.fromEntries(chosen.map(([k, value]) => [k, k === "has_disability" ? value === "true" : value]));
+    try {
+      onSaved(await api<Scholar>("/scholars/mine/profile", { method: "PUT", body: JSON.stringify(body) }));
+      setV({ study_mode: "", gender: "", category: "", has_disability: "" });
+    } catch (err) {
+      setError(errorText(err));
+    }
+  }
+  const field = (key: keyof typeof v, label: string, options: ReactNode) =>
+    missing[key] && (
+      <Field label={label}>
+        <select value={v[key]} onChange={(e) => setV({ ...v, [key]: e.target.value })}>
+          <option value="">Choose…</option>
+          {options}
+        </select>
+      </Field>
+    );
+
+  return (
+    <Card>
+      <h2>Complete your profile</h2>
+      <p className="muted">
+        The university reports these to UGC and AISHE. Your gender, category and disability status are seen only by
+        you, your department&apos;s admins and head, the Research Office and the Vice Chancellor — not by your
+        supervisor. Once saved, ask your department&apos;s admin if something needs correcting.
+      </p>
+      <form className="manage" onSubmit={save}>
+        {field("study_mode", "Mode", choices(STUDY_MODE_LABELS))}
+        {field("gender", "Gender", choices(GENDER_LABELS))}
+        {field("category", "Category", choices(CATEGORY_LABELS))}
+        {field("has_disability", "Person with disability", <><option value="true">Yes</option><option value="false">No</option></>)}
+        <ErrorText>{error}</ErrorText>
+        <Button kind="primary" type="submit" disabled={chosen.length === 0}>Save my details</Button>
+      </form>
+    </Card>
+  );
+}
 
 function AssignCard({
   scholar,
@@ -244,6 +302,7 @@ export default function ScholarProfile() {
             )}
           </dl>
         </Card>
+        {me?.scholar_id === scholar.id && <OwnProfileCard scholar={scholar} onSaved={setData} />}
         {canEdit && (
           <Card>
             <h2>Manage</h2>

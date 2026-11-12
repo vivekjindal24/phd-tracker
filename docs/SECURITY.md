@@ -156,8 +156,9 @@ returned only to the scholar, admins and heads whose unit covers the
 scholar's, the Research Office and the Vice Chancellor
 (`scope.sees_personal`); for everyone else in scope the API sends null and
 `sees_personal: false`, in the record, the list and `/internal/lists/scholars`.
-The list has no filter on them, so their values cannot be probed. Only the
-admin over the unit writes them.
+The list has no filter on them, so their values cannot be probed. The admin
+over the unit writes them; a scholar may set their own while a field is
+still NULL (`PUT /scholars/mine/profile`), never overwrite one.
 
 \* **Meeting redaction:** a viewer in scope sees the full meeting only if
 their role group is in `meetings.shared_with` (`unit_heads`, `research_office`,

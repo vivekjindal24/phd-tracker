@@ -215,8 +215,12 @@ reached by an emailed request they accept, for one seminar panel or co-supervisi
 **Scholar profile** (Decided 2026-11-12). Each scholar also carries a study
 mode (full-time / part-time), gender (female / male / transgender), category
 (General / OBC / SC / ST / EWS) and whether they are a person with
-disability; each may be left "not recorded". The admin over the scholar's
-unit records them on the profile. The mode is seen by everyone who sees the
+disability; each may be left "not recorded". They arrive three ways: as
+optional columns of the scholars import (F16); from the scholar, who is
+prompted on Home to complete their own profile and may fill in any field
+still not recorded (never change a recorded one → 409 `already_recorded`);
+and from the admin over the scholar's unit, who alone corrects a recorded
+value. The mode is seen by everyone who sees the
 scholar and filters the scholars list. Gender, category and disability are
 personal data: seen only by the scholar, the admins and heads over their unit,
 the Research Office and the Vice Chancellor — not by supervisors or other
@@ -370,7 +374,8 @@ file built from a downloadable template, one sheet/file per kind:
   default).
 - **Scholars:** roll number, name, email, unit, supervisor email,
   co-supervisor email (only when co-supervision is on), stage, admission date,
-  research title.
+  research title, and optionally mode, gender, category, person with
+  disability (a blank stays "not recorded").
 - **History (RDC register):** roll number, milestone type, status, approval
   body, resolution number, resolution date, notes.
 

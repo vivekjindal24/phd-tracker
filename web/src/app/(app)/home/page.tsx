@@ -42,6 +42,7 @@ type Dashboard = {
     approved_publications: number | null;
     fellowship_ends: string | null;
     coursework: { credits: number; min_credits: number; cgpa: number | null; cleared_on: string | null } | null;
+    profile_incomplete: boolean;
     duration: { limit_date: string | null; days_left: number | null; status: string; warnings: string[] };
     last_meeting: string | null;
     next_meeting: string | null;
@@ -215,6 +216,11 @@ export default function HomePage() {
           {sch && (
             <section className="dash-section" aria-label="Your research">
               <div className="bento">
+                {sch.profile_incomplete && (
+                  <Tile label="Complete your profile" href={`/scholars/${me.scholar_id}`} tone="tile-wide">
+                    <span>A few details about you are not on record yet. It takes a minute.</span>
+                  </Tile>
+                )}
                 {sch.next_seminar ? (
                   <Tile label={sch.next_seminar.title} href={`/seminars/${sch.next_seminar.id}`} tone="tile-accent tile-wide">
                     <span className="tile-num tile-num-sm">{formatWhen(sch.next_seminar.starts_at)}</span>

@@ -433,6 +433,16 @@ class ScholarOut(BaseModel):
     directory_only: bool = False  # an opened department reading another unit's scholar
 
 
+class ScholarOwnProfile(BaseModel):
+    """What a scholar fills in about themself; only while a field is still not recorded."""
+
+    model_config = ConfigDict(extra="forbid")
+    study_mode: StudyMode | None = None
+    gender: Gender | None = None
+    category: Category | None = None
+    has_disability: bool | None = None
+
+
 class ScholarUpdate(BaseModel):
     research_title: (
         Annotated[str, StringConstraints(strip_whitespace=True, max_length=500)] | None

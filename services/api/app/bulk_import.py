@@ -23,10 +23,13 @@ from app.auth.principal import Principal
 from app.crud import insert
 from app.enums import (
     APPROVAL_BODIES,
+    CATEGORIES,
     DESIGNATIONS,
+    GENDERS,
     MILESTONE_STATUSES,
     MILESTONE_TYPES,
     STAGES,
+    STUDY_MODES,
     UGC_CAP,
 )
 from app.models import Faculty, Milestone, OrgUnit, Scholar, Settings, User
@@ -78,6 +81,11 @@ SCHOLARS = (
         "15/07/2023",
     ),
     Column("research_title", "Research title", False, "Optional.", "Graph learning for…"),
+    # Profile (PRD F6): all optional; a blank is left for the scholar or admin to fill in later.
+    Column("study_mode", "Mode", False, "Optional: full time / part time.", "full time"),
+    Column("gender", "Gender", False, "Optional: " + " / ".join(GENDERS) + ".", ""),
+    Column("category", "Category", False, "Optional: " + " / ".join(CATEGORIES) + ".", ""),
+    Column("has_disability", "Person with disability", False, "Optional: yes / no.", ""),
 )
 HISTORY = (
     Column(
@@ -356,6 +364,9 @@ async def _plan_scholars(ctx: _Context, rows: list[Row], report: Report) -> list
         email, unit = c.email("email", True), ctx.unit(c)
         stage = c.choice("stage", STAGES) or "Registered"
         admitted, title = c.day("admission_date"), c.text("research_title", 500)
+        mode, gender = c.choice("study_mode", STUDY_MODES), c.choice("gender", GENDERS)
+        category = c.choice("category", CATEGORIES)
+        disability = c.choice("has_disability", ("yes", "no"))
         sup, sup_load = _faculty_ref(c, faculty, "supervisor_email")
         co, _ = _faculty_ref(c, faculty, "co_supervisor_email")
         if co and co_mode == "off":
@@ -388,6 +399,10 @@ async def _plan_scholars(ctx: _Context, rows: list[Row], report: Report) -> list
             stage=stage,
             admission_date=admitted,
             research_title=title,
+            study_mode=mode,
+            gender=gender,
+            category=category,
+            has_disability=None if disability is None else disability == "yes",
         )
         plan.append(_scholar_with_guides(ctx, email, name, profile, sup, co))
     return plan
