@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Owl } from "@/components/brand/Owl";
-import { ErrorText, PageHeader, ShowMore, Table } from "@/components/ui/kit";
+import { ErrorText, PageHeader, Table } from "@/components/ui/kit";
+import { ListFoot } from "@/components/ListFoot";
 import { formatDate } from "@/lib/format";
 import { useSession } from "@/lib/session";
 import type { Meeting } from "@/lib/types";
@@ -15,7 +16,7 @@ export default function MeetingsPage() {
   const { me } = useSession();
   const filter = useScholarFilter();
   const [sort, setSort] = useState("");
-  const { data, error, hasMore, more, total } = usePagedFetch<Meeting>(listPath("/meetings", filter.params, { sort }), 200);
+  const { data, error, hasMore, more, total, exportPath } = usePagedFetch<Meeting>(listPath("/meetings", filter.params, { sort }), 200);
   const canLog = me?.roles.some((r) => r === "scholar" || r === "supervisor") ?? false;
 
   return (
@@ -55,7 +56,7 @@ export default function MeetingsPage() {
           ))}
         </Table>
       )}
-      <ShowMore hasMore={hasMore} more={more} shown={data?.length} total={total} />
+      <ListFoot hasMore={hasMore} more={more} shown={data?.length} total={total} exportPath={exportPath} />
     </>
   );
 }

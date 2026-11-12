@@ -102,21 +102,24 @@ export function ShowMore({
   more,
   shown,
   total,
+  children,
 }: {
   hasMore: boolean;
   more: () => void;
   shown?: number;
   total?: number | null;
+  children?: ReactNode; // further list actions, e.g. an export button
 }) {
   // The count of everything that matches the search and filters, not only the rows loaded.
   const count = total != null && total > 0 && shown != null && (
     <p className="muted" role="status">Showing {Math.min(shown, total)} of {total}</p>
   );
-  if (!hasMore && !count) return null;
+  if (!hasMore && !count && !children) return null;
   return (
     <div className="show-more">
       {count}
       {hasMore && <Button kind="ghost" onClick={more}>Show more</Button>}
+      {children}
     </div>
   );
 }

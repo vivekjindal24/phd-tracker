@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Owl } from "@/components/brand/Owl";
-import { Card, ErrorText, Field, PageHeader, ShowMore } from "@/components/ui/kit";
+import { Card, ErrorText, Field, PageHeader } from "@/components/ui/kit";
+import { ListFoot } from "@/components/ListFoot";
 import { formatDate, formatWhen } from "@/lib/format";
 import { useSession } from "@/lib/session";
 import type { SeminarRow } from "@/lib/types";
@@ -15,7 +16,7 @@ export default function SeminarsPage() {
   const { me } = useSession();
   const [upcoming, setUpcoming] = useState(true);
   const [sort, setSort] = useState(""); // cards, not a table: a select stands in for column headers
-  const { data, error, hasMore, more, total } = usePagedFetch<SeminarRow>(
+  const { data, error, hasMore, more, total, exportPath } = usePagedFetch<SeminarRow>(
     listPath("/seminars", { upcoming: String(upcoming), sort }), 100);
   const canSchedule = me?.roles.some((r) => r === "unit_head" || r === "admin") ?? false;
 
@@ -64,7 +65,7 @@ export default function SeminarsPage() {
           </Link>
         ))}
       </div>
-      <ShowMore hasMore={hasMore} more={more} shown={data?.length} total={total} />
+      <ListFoot hasMore={hasMore} more={more} shown={data?.length} total={total} exportPath={exportPath} />
     </>
   );
 }

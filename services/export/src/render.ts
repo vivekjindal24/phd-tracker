@@ -2,7 +2,7 @@
  *  when photocopied in grayscale. No claymorphism here. */
 import PDFDocument from "pdfkit";
 import QRCode from "qrcode";
-import type { CertificateView, NaacView, RegisterView, ReportView, UcView } from "./api.ts";
+import type { CertificateView, TableView, RegisterView, ReportView, UcView } from "./api.ts";
 
 const MILESTONES: Record<string, string> = {
   coursework: "Coursework",
@@ -305,7 +305,7 @@ export function registerCsv(v: RegisterView): string {
   return `\uFEFF${[head.join(","), ...lines].join("\r\n")}\r\n`; // BOM: Excel reads UTF-8 names correctly
 }
 
-export function naacCsv(v: NaacView): string {
+export function tableCsv(v: TableView): string {
   const line = (cells: (string | number | null)[]) =>
     cells.map((c) => (typeof c === "number" ? String(c) : csvCell(c))).join(",");
   return `\uFEFF${[v.columns, ...v.rows].map(line).join("\r\n")}\r\n`;

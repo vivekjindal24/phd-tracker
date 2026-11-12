@@ -82,7 +82,7 @@ export const reviewCopyView = z.object({
 });
 export type ReviewCopyView = z.infer<typeof reviewCopyView>;
 
-export const naacView = z.object({
+export const tableView = z.object({
   ...brand,
   title: z.string(),
   columns: z.array(z.string()),
@@ -90,7 +90,7 @@ export const naacView = z.object({
   generated_at: z.string(),
   generated_by: z.string(),
 });
-export type NaacView = z.infer<typeof naacView>;
+export type TableView = z.infer<typeof tableView>;
 
 export const registerView = z.object({
   ...brand,
@@ -151,4 +151,31 @@ export async function fetchView<T>(
   const body: unknown = await res.json().catch(() => null);
   if (!res.ok) throw new UpstreamError(res.status, body);
   return schema.parse(body); // throws ZodError -> 500 export_failed
+}
+
+// ponytail: a filtered list is read whole into memory, 200 rows a request; stream the CSV if
+// lists ever pass this cap.
+const LIST_PAGE = 200; // within every list endpoint's own limit
+const LIST_MAX_ROWS = 50_000;
+
+/** Every row of a filtered list (/internal/lists/<name>): pages until the API's X-Total-Count
+ *  is reached, so the file is never a silently cut-off page. */
+export async function fetchList(apiUrl: string, name: string, query: URLSearchParams, authorization: string): Promise<TableView> {
+  const rows: TableView["rows"] = [];
+  for (;;) {
+    const page = new URLSearchParams(query);
+    page.set("limit", String(LIST_PAGE));
+    page.set("offset", String(rows.length));
+    const res = await fetch(`${apiUrl}/api/v1/internal/lists/${name}?${page}`, {
+      headers: { Authorization: authorization, Accept: "application/json" },
+    });
+    const body: unknown = await res.json().catch(() => null);
+    if (!res.ok) throw new UpstreamError(res.status, body);
+    const view = tableView.parse(body);
+    const total = Number(res.headers.get("x-total-count"));
+    if (!Number.isInteger(total)) throw new Error(`list ${name}: the API sent no row total`);
+    if (total > LIST_MAX_ROWS) throw new UpstreamError(422, { error: { code: "export_too_large", message: `This list has ${total} rows. Narrow it with the filters and export again.` } });
+    rows.push(...view.rows);
+    if (rows.length >= total || view.rows.length === 0) return { ...view, rows };
+  }
 }

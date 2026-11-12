@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { ErrorText, Field, PageHeader, ShowMore, Table } from "@/components/ui/kit";
+import { ErrorText, Field, PageHeader, Table } from "@/components/ui/kit";
+import { ListFoot } from "@/components/ListFoot";
 import type { Faculty } from "@/lib/types";
 import { useDebounced, usePagedFetch } from "@/lib/useFetch";
 import { listPath } from "@/components/ScholarFilter";
@@ -24,7 +25,7 @@ export default function FacultyPage() {
   const [q, setQ] = useState("");
   const query = useDebounced(q);
   const [sort, setSort] = useState("");
-  const { data, error, hasMore, more, total } = usePagedFetch<Faculty>(
+  const { data, error, hasMore, more, total, exportPath } = usePagedFetch<Faculty>(
     listPath("/faculty", { q: query, sort }), 200,
   );
 
@@ -58,7 +59,7 @@ export default function FacultyPage() {
           ))}
         </Table>
       )}
-      <ShowMore hasMore={hasMore} more={more} shown={data?.length} total={total} />
+      <ListFoot hasMore={hasMore} more={more} shown={data?.length} total={total} exportPath={exportPath} />
     </>
   );
 }

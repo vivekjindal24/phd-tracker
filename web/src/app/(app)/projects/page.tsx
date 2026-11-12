@@ -6,7 +6,8 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import { PersonPicker } from "@/components/PersonPicker";
 import { Owl } from "@/components/brand/Owl";
-import { Button, Card, ErrorText, Field, PageHeader, ShowMore, Table } from "@/components/ui/kit";
+import { Button, Card, ErrorText, Field, PageHeader, Table } from "@/components/ui/kit";
+import { ListFoot } from "@/components/ListFoot";
 import { api } from "@/lib/api";
 import { formatDate, formatMoney } from "@/lib/format";
 import { useSession } from "@/lib/session";
@@ -61,7 +62,7 @@ function NewProject() {
 export default function ProjectsPage() {
   const { me } = useSession();
   const [sort, setSort] = useState("");
-  const { data, error, hasMore, more, total } = usePagedFetch<Project>(listPath("/projects", { sort }), 200);
+  const { data, error, hasMore, more, total, exportPath } = usePagedFetch<Project>(listPath("/projects", { sort }), 200);
   const canRecord = me ? me.office_roles.includes("research_office") || me.unit_roles.some((r) => r.role === "admin") : false;
 
   return (
@@ -84,7 +85,7 @@ export default function ProjectsPage() {
           ))}
         </Table>
       )}
-      <ShowMore hasMore={hasMore} more={more} shown={data?.length} total={total} />
+      <ListFoot hasMore={hasMore} more={more} shown={data?.length} total={total} exportPath={exportPath} />
       {canRecord && <NewProject />}
     </>
   );

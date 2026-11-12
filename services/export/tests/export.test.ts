@@ -4,7 +4,7 @@ import type { AddressInfo } from "node:net";
 import { after, before, test } from "node:test";
 import express from "express";
 import { createApp, loadConfig } from "../src/server.ts";
-import { certificatePdf, csvCell, naacCsv } from "../src/render.ts";
+import { certificatePdf, csvCell, tableCsv } from "../src/render.ts";
 
 const REPORT_ID = "6f1c2a7e-3b4d-4e5f-8a9b-0c1d2e3f4a5b";
 const JUNK_ID = "00000000-0000-4000-8000-000000000000";
@@ -48,6 +48,7 @@ const certificate = {
 };
 
 const seen: { auth?: string; url?: string } = {};
+const listCalls: string[] = [];
 let stubUrl = "";
 let exportUrl = "";
 const servers: { close: () => void }[] = [];
@@ -62,6 +63,15 @@ before(async () => {
     if (req.path.startsWith("/api/v1/internal/certificates/")) return res.json(certificate);
     if (req.path.endsWith("/export-view")) return res.json(req.path.includes(JUNK_ID) ? { nope: 1 } : report);
     if (req.path.endsWith("/register-view")) return res.json(register);
+    if (req.path === "/api/v1/internal/lists/scholars") {
+      // Three rows in all; the stub hands out two a page whatever limit is asked.
+      const offset = Number(req.query.offset);
+      listCalls.push(req.url);
+      res.setHeader("X-Total-Count", "3");
+      return res.json({ university: "U", address: "", logo: null, title: "Scholars", columns: ["Scholar", "Stage"],
+        rows: [["Arun", "Viva"], ["Priya", "Coursework"], ["Zoya", "Registered"]].slice(offset, offset + 2),
+        generated_at: "2026-11-12T10:00:00Z", generated_by: "R" });
+    }
     res.sendStatus(404);
   });
   const listen = (app: express.Express) =>
@@ -157,7 +167,7 @@ test("a broken logo is logged and never blocks the PDF", async () => {
 });
 
 test("NAAC CSV keeps numbers and neutralises formulas", () => {
-  const csv = naacCsv({ university: "U", address: "", logo: null, title: "T", columns: ["Title", "Amount", "Note"],
+  const csv = tableCsv({ university: "U", address: "", logo: null, title: "T", columns: ["Title", "Amount", "Note"],
     rows: [["=cmd()", 40000, null]], generated_at: "2026-11-06T10:00:00Z", generated_by: "R" });
   assert.equal(csv, "\uFEFFTitle,Amount,Note\r\n'=cmd(),40000,\r\n");
 });
@@ -173,4 +183,21 @@ test("config refuses a wildcard origin and a missing API URL", () => {
   assert.throws(() => loadConfig({ API_URL: "http://x", CORS_ORIGINS: "*" }), /allowlist/);
   assert.deepEqual(loadConfig({ API_URL: "http://x/", CORS_ORIGINS: "https://a/, https://b" }),
     { apiUrl: "http://x", corsOrigins: ["https://a", "https://b"] });
+});
+
+test("a list export pages to the total and forwards the page's filters and sort", async () => {
+  const res = await get("/lists/scholars.csv?q=a&sort=-stage&limit=1&offset=9");
+  assert.equal(res.status, 200);
+  assert.match(res.headers.get("content-disposition") ?? "", /scholars\.csv/);
+  // (fetch's text() drops the BOM the file starts with)
+  assert.equal(await res.text(), "Scholar,Stage\r\nArun,Viva\r\nPriya,Coursework\r\nZoya,Registered\r\n");
+  assert.deepEqual(listCalls, [
+    "/api/v1/internal/lists/scholars?q=a&sort=-stage&limit=200&offset=0",
+    "/api/v1/internal/lists/scholars?q=a&sort=-stage&limit=200&offset=2",
+  ]);
+});
+
+test("a list export refuses unknown lists and odd query keys", async () => {
+  assert.equal((await get("/lists/passwords.csv")).status, 422);
+  assert.equal((await get("/lists/scholars.csv?Bad-Key=1")).status, 422);
 });

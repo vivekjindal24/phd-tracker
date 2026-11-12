@@ -5,7 +5,8 @@ import { useState } from "react";
 import { Owl } from "@/components/brand/Owl";
 import { listPath, useScholarFilter } from "@/components/ScholarFilter";
 import { StateBadge } from "@/components/items/StateBadge";
-import { ErrorText, Field, PageHeader, ShowMore, Table } from "@/components/ui/kit";
+import { ErrorText, Field, PageHeader, Table } from "@/components/ui/kit";
+import { ListFoot } from "@/components/ListFoot";
 import { useSession } from "@/lib/session";
 import { INDEXING_LABELS, PUB_TYPE_LABELS, STATE_LABELS } from "@/lib/types";
 import type { Indexing, ItemState, PublicationRow } from "@/lib/types";
@@ -19,7 +20,7 @@ export default function PublicationsPage() {
   const [indexing, setIndexing] = useState("");
   const filtered = filter.active || Boolean(state || year || indexing);
   const [sort, setSort] = useState("");
-  const { data, error, hasMore, more, total } = usePagedFetch<PublicationRow>(
+  const { data, error, hasMore, more, total, exportPath } = usePagedFetch<PublicationRow>(
     listPath("/publications", filter.params, { state, pub_year: year, indexing, sort }), 500);
   const isScholar = me?.scholar_id != null;
 
@@ -69,7 +70,7 @@ export default function PublicationsPage() {
           ))}
         </Table>
       )}
-      <ShowMore hasMore={hasMore} more={more} shown={data?.length} total={total} />
+      <ListFoot hasMore={hasMore} more={more} shown={data?.length} total={total} exportPath={exportPath} />
     </>
   );
 }

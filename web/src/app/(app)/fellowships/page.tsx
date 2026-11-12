@@ -6,7 +6,8 @@ import { Owl } from "@/components/brand/Owl";
 import { Ledger } from "@/components/Ledger";
 import { listPath, useScholarFilter } from "@/components/ScholarFilter";
 import { ScholarSearch } from "@/components/ScholarSearch";
-import { Button, Card, ErrorText, Field, PageHeader, ShowMore, Table } from "@/components/ui/kit";
+import { Button, Card, ErrorText, Field, PageHeader, Table } from "@/components/ui/kit";
+import { ListFoot } from "@/components/ListFoot";
 import { api } from "@/lib/api";
 import { formatDate, formatMoney } from "@/lib/format";
 import { useSession } from "@/lib/session";
@@ -111,7 +112,7 @@ export default function FellowshipsPage() {
   const { me } = useSession();
   const filter = useScholarFilter();
   const [sort, setSort] = useState("");
-  const { data, error, reload, hasMore, more, total } = usePagedFetch<Fellowship>(listPath("/fellowships", filter.params, { sort }), 200);
+  const { data, error, reload, hasMore, more, total, exportPath } = usePagedFetch<Fellowship>(listPath("/fellowships", filter.params, { sort }), 200);
   const [openId, setOpenId] = useState<string | null>(null);
   const canRecord = me ? me.office_roles.includes("research_office") || me.unit_roles.some((r) => r.role === "admin") : false;
   const open = data?.find((f) => f.id === openId) ?? null;
@@ -144,7 +145,7 @@ export default function FellowshipsPage() {
           ))}
         </Table>
       )}
-      <ShowMore hasMore={hasMore} more={more} shown={data?.length} total={total} />
+      <ListFoot hasMore={hasMore} more={more} shown={data?.length} total={total} exportPath={exportPath} />
       {open && (
         <Card>
           <h2>{open.scholar.name} · {SCHEME_LABELS[open.scheme]}</h2>

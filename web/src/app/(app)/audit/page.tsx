@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useState } from "react";
 import { ScholarSearch } from "@/components/ScholarSearch";
-import { Button, ErrorText, Field, PageHeader, ShowMore, Table } from "@/components/ui/kit";
+import { Button, ErrorText, Field, PageHeader, Table } from "@/components/ui/kit";
+import { ListFoot } from "@/components/ListFoot";
 import { RequireRole } from "@/components/ui/RequireRole";
 import { formatWhen } from "@/lib/format";
 import { ROLE_LABELS } from "@/lib/types";
@@ -41,7 +42,7 @@ function AuditLog() {
   if (from) params.set("date_from", from);
   if (to) params.set("date_to", to);
   if (sort) params.set("sort", sort);
-  const { data, error, hasMore, more, total } = usePagedFetch<AuditRow>(`/audit-log?${params}`, 100);
+  const { data, error, hasMore, more, total, exportPath } = usePagedFetch<AuditRow>(`/audit-log?${params}`, 100);
 
   return (
     <>
@@ -87,7 +88,7 @@ function AuditLog() {
           ))}
         </Table>
       )}
-      <ShowMore hasMore={hasMore} more={more} shown={data?.length} total={total} />
+      <ListFoot hasMore={hasMore} more={more} shown={data?.length} total={total} exportPath={exportPath} />
     </>
   );
 }

@@ -7,7 +7,8 @@ import { Owl } from "@/components/brand/Owl";
 import { DownloadButton } from "@/components/DownloadButton";
 import { PersonPicker } from "@/components/PersonPicker";
 import { MilestoneStatusBadge } from "@/components/MilestoneStatusBadge";
-import { Button, ErrorText, Field, PageHeader, ShowMore, Table } from "@/components/ui/kit";
+import { Button, ErrorText, Field, PageHeader, Table } from "@/components/ui/kit";
+import { ListFoot } from "@/components/ListFoot";
 import { api } from "@/lib/api";
 import { formatDate } from "@/lib/format";
 import { useSession } from "@/lib/session";
@@ -143,7 +144,7 @@ export default function RegisterPage() {
   if (status) params.set("status", status);
   if (type) params.set("milestone_type", type);
   if (sort) params.set("sort", sort);
-  const { data, error, reload, hasMore, more, total } = usePagedFetch<Milestone>(`/milestones?${params}`, 200);
+  const { data, error, reload, hasMore, more, total, exportPath } = usePagedFetch<Milestone>(`/milestones?${params}`, 200);
   const canRecord = me?.roles.some((r) => r === "admin" || r === "research_office") ?? false;
 
   return (
@@ -199,7 +200,7 @@ export default function RegisterPage() {
               ))}
             </Table>
           )}
-          <ShowMore hasMore={hasMore} more={more} shown={data?.length} total={total} />
+          <ListFoot hasMore={hasMore} more={more} shown={data?.length} total={total} exportPath={exportPath} />
         </div>
         {canRecord && <RecordDecision onSaved={reload} />}
       </div>

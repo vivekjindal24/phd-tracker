@@ -65,6 +65,8 @@ export function usePagedFetch<T>(path: string | null, pageSize: number) {
     hasMore: !end && (data?.length ?? 0) >= pageSize,
     more,
     total: page?.total ?? null,
+    // The same list as a file: /scholars?q=a -> /lists/scholars.csv?q=a (export service).
+    exportPath: path && `/lists${path.replace(/^\/[a-z-]+/, "$&.csv")}`,
   };
 }
 

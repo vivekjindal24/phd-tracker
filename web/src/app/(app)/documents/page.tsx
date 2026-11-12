@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { Owl } from "@/components/brand/Owl";
-import { Button, Card, ErrorText, Field, PageHeader, ShowMore, Table } from "@/components/ui/kit";
+import { Button, Card, ErrorText, Field, PageHeader, Table } from "@/components/ui/kit";
+import { ListFoot } from "@/components/ListFoot";
 import { api } from "@/lib/api";
 import { useSession } from "@/lib/session";
 import { DOC_KIND_LABELS } from "@/lib/types";
@@ -52,7 +53,7 @@ function NewDocument() {
 export default function DocumentsPage() {
   const { me } = useSession();
   const [sort, setSort] = useState("");
-  const { data, error, hasMore, more, total } = usePagedFetch<DocumentItem>(listPath("/documents", { sort }), 200);
+  const { data, error, hasMore, more, total, exportPath } = usePagedFetch<DocumentItem>(listPath("/documents", { sort }), 200);
   return (
     <>
       <PageHeader eyebrow="Documents & thesis" title="Drafts & chapters" />
@@ -74,7 +75,7 @@ export default function DocumentsPage() {
           ))}
         </Table>
       )}
-      <ShowMore hasMore={hasMore} more={more} shown={data?.length} total={total} />
+      <ListFoot hasMore={hasMore} more={more} shown={data?.length} total={total} exportPath={exportPath} />
     </>
   );
 }

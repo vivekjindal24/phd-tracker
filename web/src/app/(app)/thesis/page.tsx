@@ -7,7 +7,8 @@ import type { FormEvent } from "react";
 import { Owl } from "@/components/brand/Owl";
 import { listPath, useScholarFilter } from "@/components/ScholarFilter";
 import { StateBadge } from "@/components/items/StateBadge";
-import { Button, Card, ErrorText, PageHeader, ShowMore, Table } from "@/components/ui/kit";
+import { Button, Card, ErrorText, PageHeader, Table } from "@/components/ui/kit";
+import { ListFoot } from "@/components/ListFoot";
 import { api } from "@/lib/api";
 import { useSession } from "@/lib/session";
 import type { ItemView, NoDuesMine, ThesisRow } from "@/lib/types";
@@ -81,7 +82,7 @@ export default function ThesisPage() {
   const { me } = useSession();
   const filter = useScholarFilter();
   const [sort, setSort] = useState("");
-  const { data, error, hasMore, more, total } = usePagedFetch<ThesisRow>(listPath("/theses", filter.params, { sort }), 200);
+  const { data, error, hasMore, more, total, exportPath } = usePagedFetch<ThesisRow>(listPath("/theses", filter.params, { sort }), 200);
   const mine = me?.scholar_id ? data?.find((t) => t.scholar.id === me.scholar_id) : undefined;
   const others = data?.filter((t) => t.scholar.id !== me?.scholar_id) ?? [];
 
@@ -113,7 +114,7 @@ export default function ThesisPage() {
           ))}
         </Table>
       )}
-      <ShowMore hasMore={hasMore} more={more} shown={data?.length} total={total} />
+      <ListFoot hasMore={hasMore} more={more} shown={data?.length} total={total} exportPath={exportPath} />
     </>
   );
 }

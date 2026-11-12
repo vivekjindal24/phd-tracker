@@ -5,7 +5,8 @@ import { useState } from "react";
 import { Owl } from "@/components/brand/Owl";
 import { listPath, useScholarFilter } from "@/components/ScholarFilter";
 import { StateBadge } from "@/components/items/StateBadge";
-import { ErrorText, Field, PageHeader, ShowMore, Table } from "@/components/ui/kit";
+import { ErrorText, Field, PageHeader, Table } from "@/components/ui/kit";
+import { ListFoot } from "@/components/ListFoot";
 import { useSession } from "@/lib/session";
 import { STATE_LABELS } from "@/lib/types";
 import type { ItemState, ReportRow } from "@/lib/types";
@@ -16,7 +17,7 @@ export default function ReportsPage() {
   const [state, setState] = useState("");
   const filter = useScholarFilter();
   const [sort, setSort] = useState("");
-  const { data, error, hasMore, more, total } = usePagedFetch<ReportRow>(listPath("/reports", filter.params, { state, sort }), 500);
+  const { data, error, hasMore, more, total, exportPath } = usePagedFetch<ReportRow>(listPath("/reports", filter.params, { state, sort }), 500);
   const isScholar = me?.scholar_id != null;
 
   return (
@@ -65,7 +66,7 @@ export default function ReportsPage() {
           ))}
         </Table>
       )}
-      <ShowMore hasMore={hasMore} more={more} shown={data?.length} total={total} />
+      <ListFoot hasMore={hasMore} more={more} shown={data?.length} total={total} exportPath={exportPath} />
     </>
   );
 }

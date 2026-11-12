@@ -130,6 +130,10 @@ Browser (web)
   from each list's whitelist, applied before LIMIT/OFFSET with the row id as
   the last key so pages never repeat or skip rows. Also sends each list's
   total match count in `X-Total-Count`.
+- `routers/list_exports.py` — every paged list as a table for the export
+  service (`/internal/lists/<name>`): runs the list's own endpoint function,
+  so scope, filters, sort and redaction are the page's; only picks columns.
+  The export service pages through it and prints `/lists/<name>.csv`.
 - `errors.py` — one envelope everywhere: `{"error": {code, message,
   details}}`; constraint violations map to named 409s.
 - `seed.py` — idempotent demo data: a university tree (University → 2

@@ -263,6 +263,9 @@ thesis submissions, drafts, seminars, projects, admissions, the audit log)
 loads one page of rows and shows **Show more** while there are further rows,
 with **Showing 100 of 342**: the count of every row that matches the search
 and filters inside what the reader may see (API header `X-Total-Count`).
+**Export CSV**, beside it, downloads the whole list as it stands: the same
+search, filters and sort, every matching row (not only the rows loaded), and
+never a row the reader could not see on the page.
 The course catalogue is always sent whole, because it also fills the course
 picker.
 

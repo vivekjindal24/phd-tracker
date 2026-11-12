@@ -3,8 +3,8 @@
 import express from "express";
 import type { NextFunction, Request, Response } from "express";
 import { z } from "zod";
-import { certificateView, fetchView, naacView, registerView, reportView, reviewCopyView, ucView, UpstreamError } from "./api.ts";
-import { certificatePdf, naacCsv, registerCsv, registerPdf, reportPdf, ucPdf } from "./render.ts";
+import { certificateView, fetchList, fetchView, tableView, registerView, reportView, reviewCopyView, ucView, UpstreamError } from "./api.ts";
+import { certificatePdf, tableCsv, registerCsv, registerPdf, reportPdf, ucPdf } from "./render.ts";
 import { stampPdf, UnstampablePdf } from "./stamp.ts";
 
 export type Config = { apiUrl: string; corsOrigins: string[] };
@@ -32,6 +32,11 @@ const naacQuery = z.object({
   from_year: z.string().regex(/^\d{4}$/),
   to_year: z.string().regex(/^\d{4}$/),
 });
+
+const listName = z.enum(["scholars", "faculty", "milestones", "reports", "meetings", "seminars", "publications",
+  "theses", "conferences", "documents", "admissions", "fellowships", "projects", "audit-log"]);
+// The API validates each filter; here only the shape: plain short key=value pairs.
+const listQuery = z.record(z.string().regex(/^[a-z_]{1,40}$/), z.string().max(200));
 
 const registerQuery = z.object({
   unit_id: z.string().uuid().optional(),
@@ -121,8 +126,20 @@ export function createApp(config: Config) {
     try {
       const sheet = input(z.enum(["projects", "scholars", "publications", "books"]), req.params.sheet);
       const q = input(naacQuery, req.query);
-      const view = await fetchView(config.apiUrl, `/internal/naac/${sheet}?${new URLSearchParams(q)}`, auth(req), naacView);
-      send(res, "text/csv; charset=utf-8", `naac-${sheet}-${q.from_year}-${q.to_year}.csv`, naacCsv(view));
+      const view = await fetchView(config.apiUrl, `/internal/naac/${sheet}?${new URLSearchParams(q)}`, auth(req), tableView);
+      send(res, "text/csv; charset=utf-8", `naac-${sheet}-${q.from_year}-${q.to_year}.csv`, tableCsv(view));
+    } catch (e) {
+      next(e);
+    }
+  });
+
+  // Any list as the page shows it: the query (search, filters, sort) goes to the API as sent.
+  app.get("/lists/:name.csv", async (req, res, next) => {
+    try {
+      const name = input(listName, req.params.name);
+      const q = input(listQuery, req.query);
+      const query = new URLSearchParams(Object.entries(q).filter(([k]) => k !== "limit" && k !== "offset"));
+      send(res, "text/csv; charset=utf-8", `${name}.csv`, tableCsv(await fetchList(config.apiUrl, name, query, auth(req))));
     } catch (e) {
       next(e);
     }
