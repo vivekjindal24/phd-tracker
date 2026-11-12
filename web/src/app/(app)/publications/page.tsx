@@ -19,7 +19,7 @@ export default function PublicationsPage() {
   const [indexing, setIndexing] = useState("");
   const filtered = filter.active || Boolean(state || year || indexing);
   const [sort, setSort] = useState("");
-  const { data, error, hasMore, more } = usePagedFetch<PublicationRow>(
+  const { data, error, hasMore, more, total } = usePagedFetch<PublicationRow>(
     listPath("/publications", filter.params, { state, pub_year: year, indexing, sort }), 500);
   const isScholar = me?.scholar_id != null;
 
@@ -69,7 +69,7 @@ export default function PublicationsPage() {
           ))}
         </Table>
       )}
-      <ShowMore hasMore={hasMore} more={more} />
+      <ShowMore hasMore={hasMore} more={more} shown={data?.length} total={total} />
     </>
   );
 }

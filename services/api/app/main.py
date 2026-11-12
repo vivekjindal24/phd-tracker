@@ -45,6 +45,7 @@ from app.routers import (
     verify,
 )
 from app.routers import settings as settings_router
+from app.sorting import TOTAL_HEADER
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s %(message)s")
 
@@ -56,6 +57,7 @@ app.add_middleware(
     allow_credentials=False,  # bearer tokens, no cookies
     allow_methods=["GET", "POST", "PATCH", "PUT", "DELETE"],
     allow_headers=["Authorization", "Content-Type"],
+    expose_headers=[TOTAL_HEADER],  # the web reads list totals cross-origin
 )
 install_error_handlers(app)
 

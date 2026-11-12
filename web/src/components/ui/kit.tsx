@@ -97,9 +97,28 @@ export function Switch({
 }
 
 /** Registers and lists: one clay card, flat readable rows inside (DESIGN_SYSTEM.md §4). */
-export function ShowMore({ hasMore, more }: { hasMore: boolean; more: () => void }) {
-  if (!hasMore) return null;
-  return <div className="show-more"><Button kind="ghost" onClick={more}>Show more</Button></div>;
+export function ShowMore({
+  hasMore,
+  more,
+  shown,
+  total,
+}: {
+  hasMore: boolean;
+  more: () => void;
+  shown?: number;
+  total?: number | null;
+}) {
+  // The count of everything that matches the search and filters, not only the rows loaded.
+  const count = total != null && total > 0 && shown != null && (
+    <p className="muted" role="status">Showing {Math.min(shown, total)} of {total}</p>
+  );
+  if (!hasMore && !count) return null;
+  return (
+    <div className="show-more">
+      {count}
+      {hasMore && <Button kind="ghost" onClick={more}>Show more</Button>}
+    </div>
+  );
 }
 
 /** Server-side column sorting (API `sort=key` / `sort=-key`): `keys` gives each column's sort key,

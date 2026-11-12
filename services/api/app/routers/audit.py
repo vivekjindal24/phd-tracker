@@ -6,7 +6,7 @@ import uuid
 from datetime import date, datetime, time
 from typing import Any
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy import String, cast, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -17,7 +17,7 @@ from app.enums import AuditAction
 from app.models import AuditLog, Scholar, User
 from app.rbac import require_perm
 from app.schemas import AuditRow
-from app.sorting import Sort, ordered
+from app.sorting import Sort, ordered, page_of
 
 router = APIRouter(tags=["audit"])
 # Drafts and their versions are the scholar's and supervisor's alone (PRD M3): not even that
@@ -53,6 +53,7 @@ def _changed(row: AuditLog) -> list[str]:
 
 @router.get("/audit-log", response_model=list[AuditRow])
 async def read_audit_log(
+    response: Response,
     table_name: str | None = Query(default=None, max_length=60),
     action: AuditAction | None = None,
     actor_id: uuid.UUID | None = None,
@@ -95,7 +96,7 @@ async def read_audit_log(
         "record": AuditLog.table_name,
     }
     stmt = ordered(stmt, sort, columns, [AuditLog.at.desc()], AuditLog.id.desc())
-    rows = (await session.execute(stmt.limit(limit).offset(offset))).all()
+    rows = (await page_of(session, response, stmt, limit, offset)).all()
     ids = {
         r.record_id if r.table_name == "scholars" else (r.data or {}).get("scholar_id")
         for r, _ in rows

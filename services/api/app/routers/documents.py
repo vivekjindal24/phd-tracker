@@ -4,7 +4,7 @@ the supervisor gives feedback as comments. Versions are append-only."""
 import uuid
 from typing import Any
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy import Select, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -17,7 +17,7 @@ from app.models import Document, DocumentVersion, FileRow, Scholar, User
 from app.modules import require_module
 from app.rbac import require_perm
 from app.schemas.research import DocumentIn, DocumentOut, DocumentUpdate, VersionIn
-from app.sorting import Sort, ordered
+from app.sorting import Sort, ordered, page_of
 
 router = APIRouter(
     prefix="/documents", tags=["documents"], dependencies=[Depends(require_module("documents"))]
@@ -83,6 +83,7 @@ async def _own(session: AsyncSession, principal: Principal, document_id: uuid.UU
 
 @router.get("", response_model=list[DocumentOut])
 async def list_documents(
+    response: Response,
     scholar_id: uuid.UUID | None = None,
     sort: Sort = None,
     limit: int = Query(default=500, ge=1, le=500),
@@ -100,7 +101,7 @@ async def list_documents(
         "updated": Document.updated_at,
     }
     stmt = ordered(stmt, sort, columns, [Document.updated_at.desc()], Document.id)
-    rows = await session.execute(stmt.limit(limit).offset(offset))
+    rows = await page_of(session, response, stmt, limit, offset)
     return [await _out(session, principal, r) for r in rows]
 
 

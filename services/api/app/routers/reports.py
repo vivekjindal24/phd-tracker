@@ -3,7 +3,7 @@
 import uuid
 from typing import Any
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -16,13 +16,14 @@ from app.errors import ApiError
 from app.models import OrgUnit, ProgressReport, Scholar, User
 from app.rbac import require_perm
 from app.schemas import ItemView, PeriodActivity, ReportIn, ReportRow, ReportUpdate
-from app.sorting import Sort, ordered, ranked
+from app.sorting import Sort, ordered, page_of, ranked
 
 router = APIRouter(prefix="/reports", tags=["reports"])
 
 
 @router.get("", response_model=list[ReportRow])
 async def list_reports(
+    response: Response,
     q: str | None = Query(default=None, max_length=100),
     unit_id: uuid.UUID | None = None,
     state: ItemState | None = None,
@@ -56,7 +57,7 @@ async def list_reports(
     }
     default = [ProgressReport.report_year.desc(), ProgressReport.period.desc(), User.full_name]
     stmt = ordered(stmt, sort, columns, default, ProgressReport.id)
-    rows = await session.execute(stmt.limit(limit).offset(offset))
+    rows = await page_of(session, response, stmt, limit, offset)
     out = []
     for r, scholar, name in rows:
         kind = r.chain_snapshot[r.current_step]["kind"] if r.current_step is not None else None

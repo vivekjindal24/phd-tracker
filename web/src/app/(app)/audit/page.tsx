@@ -41,7 +41,7 @@ function AuditLog() {
   if (from) params.set("date_from", from);
   if (to) params.set("date_to", to);
   if (sort) params.set("sort", sort);
-  const { data, error, hasMore, more } = usePagedFetch<AuditRow>(`/audit-log?${params}`, 100);
+  const { data, error, hasMore, more, total } = usePagedFetch<AuditRow>(`/audit-log?${params}`, 100);
 
   return (
     <>
@@ -87,7 +87,7 @@ function AuditLog() {
           ))}
         </Table>
       )}
-      <ShowMore hasMore={hasMore} more={more} />
+      <ShowMore hasMore={hasMore} more={more} shown={data?.length} total={total} />
     </>
   );
 }

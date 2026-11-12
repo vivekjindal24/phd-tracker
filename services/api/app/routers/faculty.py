@@ -3,7 +3,7 @@ inside it. Edits need an admin over the faculty member's unit."""
 
 import uuid
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy import Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -17,7 +17,7 @@ from app.errors import forbidden
 from app.models import Faculty, OrgUnit, User
 from app.rbac import require_perm
 from app.schemas import FacultyOut, FacultyUpdate, Ref
-from app.sorting import Sort, ordered, ranked
+from app.sorting import Sort, ordered, page_of, ranked
 
 router = APIRouter(prefix="/faculty", tags=["directory"])
 
@@ -51,6 +51,7 @@ def _out(row) -> FacultyOut:
 
 @router.get("", response_model=list[FacultyOut])
 async def list_faculty(
+    response: Response,
     q: str | None = Query(default=None, max_length=100),
     unit_id: uuid.UUID | None = None,
     can_supervise: bool | None = None,
@@ -78,7 +79,7 @@ async def list_faculty(
         "load": _load,
     }
     stmt = ordered(stmt, sort, columns, [User.full_name], Faculty.id)
-    rows = await session.execute(stmt.limit(limit).offset(offset))
+    rows = await page_of(session, response, stmt, limit, offset)
     return [_out(r) for r in rows]
 
 

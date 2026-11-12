@@ -5,7 +5,7 @@ sees their own, a scholar the projects they belong to, heads their subtree."""
 import uuid
 from collections import defaultdict
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy import Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -21,7 +21,7 @@ from app.modules import module_enabled, require_module
 from app.rbac import not_only_office, require_perm
 from app.schemas import Ref
 from app.schemas.grants import MemberIn, MemberOut, ProjectIn, ProjectOut, ProjectUpdate
-from app.sorting import Sort, ordered, ranked
+from app.sorting import Sort, ordered, page_of, ranked
 
 router = APIRouter(
     prefix="/projects", tags=["projects"], dependencies=[Depends(require_module("projects"))]
@@ -100,6 +100,7 @@ async def _one(session: AsyncSession, principal: Principal, project_id: uuid.UUI
 
 @router.get("", response_model=list[ProjectOut])
 async def list_projects(
+    response: Response,
     unit_id: uuid.UUID | None = None,
     status: ProjectStatus | None = None,
     sort: Sort = None,
@@ -123,7 +124,7 @@ async def list_projects(
         "status": ranked(Project.status, PROJECT_STATUSES),
     }
     stmt = ordered(stmt, sort, columns, [Project.start_date.desc()], Project.id)
-    rows = await session.execute(stmt.limit(limit).offset(offset))
+    rows = await page_of(session, response, stmt, limit, offset)
     return await _outs(session, principal, rows)
 
 

@@ -16,7 +16,7 @@ export default function ReportsPage() {
   const [state, setState] = useState("");
   const filter = useScholarFilter();
   const [sort, setSort] = useState("");
-  const { data, error, hasMore, more } = usePagedFetch<ReportRow>(listPath("/reports", filter.params, { state, sort }), 500);
+  const { data, error, hasMore, more, total } = usePagedFetch<ReportRow>(listPath("/reports", filter.params, { state, sort }), 500);
   const isScholar = me?.scholar_id != null;
 
   return (
@@ -65,7 +65,7 @@ export default function ReportsPage() {
           ))}
         </Table>
       )}
-      <ShowMore hasMore={hasMore} more={more} />
+      <ShowMore hasMore={hasMore} more={more} shown={data?.length} total={total} />
     </>
   );
 }

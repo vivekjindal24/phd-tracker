@@ -27,7 +27,7 @@ export default function ScholarsPage() {
   if (query) params.set("q", query);
   if (stage) params.set("stage", stage);
   if (sort) params.set("sort", sort);
-  const { data, error, hasMore, more } = usePagedFetch<Scholar>(onlyScholar ? null : `/scholars?${params}`, 100);
+  const { data, error, hasMore, more, total } = usePagedFetch<Scholar>(onlyScholar ? null : `/scholars?${params}`, 100);
 
   if (onlyScholar) return null;
   return (
@@ -90,7 +90,7 @@ export default function ScholarsPage() {
           ))}
         </Table>
       )}
-      <ShowMore hasMore={hasMore} more={more} />
+      <ShowMore hasMore={hasMore} more={more} shown={data?.length} total={total} />
     </>
   );
 }

@@ -111,7 +111,7 @@ export default function FellowshipsPage() {
   const { me } = useSession();
   const filter = useScholarFilter();
   const [sort, setSort] = useState("");
-  const { data, error, reload, hasMore, more } = usePagedFetch<Fellowship>(listPath("/fellowships", filter.params, { sort }), 200);
+  const { data, error, reload, hasMore, more, total } = usePagedFetch<Fellowship>(listPath("/fellowships", filter.params, { sort }), 200);
   const [openId, setOpenId] = useState<string | null>(null);
   const canRecord = me ? me.office_roles.includes("research_office") || me.unit_roles.some((r) => r.role === "admin") : false;
   const open = data?.find((f) => f.id === openId) ?? null;
@@ -144,7 +144,7 @@ export default function FellowshipsPage() {
           ))}
         </Table>
       )}
-      <ShowMore hasMore={hasMore} more={more} />
+      <ShowMore hasMore={hasMore} more={more} shown={data?.length} total={total} />
       {open && (
         <Card>
           <h2>{open.scholar.name} · {SCHEME_LABELS[open.scheme]}</h2>

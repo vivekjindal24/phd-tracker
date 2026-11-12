@@ -61,7 +61,7 @@ function NewProject() {
 export default function ProjectsPage() {
   const { me } = useSession();
   const [sort, setSort] = useState("");
-  const { data, error, hasMore, more } = usePagedFetch<Project>(listPath("/projects", { sort }), 200);
+  const { data, error, hasMore, more, total } = usePagedFetch<Project>(listPath("/projects", { sort }), 200);
   const canRecord = me ? me.office_roles.includes("research_office") || me.unit_roles.some((r) => r.role === "admin") : false;
 
   return (
@@ -84,7 +84,7 @@ export default function ProjectsPage() {
           ))}
         </Table>
       )}
-      <ShowMore hasMore={hasMore} more={more} />
+      <ShowMore hasMore={hasMore} more={more} shown={data?.length} total={total} />
       {canRecord && <NewProject />}
     </>
   );

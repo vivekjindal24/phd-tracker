@@ -4,7 +4,7 @@ scholar with a login (the same create_person the Add-person form uses)."""
 
 import uuid
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy import Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -27,7 +27,7 @@ from app.schemas.administration import (
     ConvertIn,
     ConvertOut,
 )
-from app.sorting import Sort, ordered, ranked
+from app.sorting import Sort, ordered, page_of, ranked
 
 router = APIRouter(
     prefix="/admissions", tags=["admissions"], dependencies=[Depends(require_module("admissions"))]
@@ -76,6 +76,7 @@ async def _writable(session: AsyncSession, principal: Principal, admission_id: u
 
 @router.get("", response_model=list[AdmissionOut])
 async def list_admissions(
+    response: Response,
     unit_id: uuid.UUID | None = None,
     interview_result: InterviewResult | None = None,
     sort: Sort = None,
@@ -98,7 +99,7 @@ async def list_admissions(
         "result": ranked(Admission.interview_result, INTERVIEW_RESULTS),
     }
     stmt = ordered(stmt, sort, columns, [Admission.created_at.desc()], Admission.id)
-    rows = await session.execute(stmt.limit(limit).offset(offset))
+    rows = await page_of(session, response, stmt, limit, offset)
     return [_out(r, principal) for r in rows]
 
 

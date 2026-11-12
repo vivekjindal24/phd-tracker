@@ -81,7 +81,7 @@ export default function ThesisPage() {
   const { me } = useSession();
   const filter = useScholarFilter();
   const [sort, setSort] = useState("");
-  const { data, error, hasMore, more } = usePagedFetch<ThesisRow>(listPath("/theses", filter.params, { sort }), 200);
+  const { data, error, hasMore, more, total } = usePagedFetch<ThesisRow>(listPath("/theses", filter.params, { sort }), 200);
   const mine = me?.scholar_id ? data?.find((t) => t.scholar.id === me.scholar_id) : undefined;
   const others = data?.filter((t) => t.scholar.id !== me?.scholar_id) ?? [];
 
@@ -113,7 +113,7 @@ export default function ThesisPage() {
           ))}
         </Table>
       )}
-      <ShowMore hasMore={hasMore} more={more} />
+      <ShowMore hasMore={hasMore} more={more} shown={data?.length} total={total} />
     </>
   );
 }

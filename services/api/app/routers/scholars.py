@@ -2,7 +2,7 @@
 
 import uuid
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy import Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
@@ -17,7 +17,7 @@ from app.errors import forbidden
 from app.models import Faculty, OrgUnit, Scholar, User
 from app.rbac import require_perm
 from app.schemas import AssignIn, Ref, ScholarOut, ScholarUpdate
-from app.sorting import Sort, ordered, ranked
+from app.sorting import Sort, ordered, page_of, ranked
 
 router = APIRouter(prefix="/scholars", tags=["directory"])
 
@@ -74,6 +74,7 @@ async def _one(session: AsyncSession, principal: Principal, scholar_id: uuid.UUI
 
 @router.get("", response_model=list[ScholarOut])
 async def list_scholars(
+    response: Response,
     q: str | None = Query(default=None, max_length=100),
     unit_id: uuid.UUID | None = None,
     stage: Stage | None = None,
@@ -101,7 +102,7 @@ async def list_scholars(
         "supervisor": SupUser.full_name,
     }
     stmt = ordered(stmt, sort, columns, [User.full_name], Scholar.id)
-    rows = await session.execute(stmt.limit(limit).offset(offset))
+    rows = await page_of(session, response, stmt, limit, offset)
     return [_out(r, principal.co_supervision) for r in rows]
 
 

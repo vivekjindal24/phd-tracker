@@ -4,7 +4,7 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
@@ -29,7 +29,7 @@ from app.models import (
 from app.notify import notify
 from app.rbac import not_only_office
 from app.schemas import HardcopyIn, SeminarDetail, SeminarIn, SeminarRow, SeminarUpdate
-from app.sorting import Sort, ordered
+from app.sorting import Sort, ordered, page_of
 
 router = APIRouter(prefix="/seminars", tags=["seminars"])
 
@@ -54,6 +54,7 @@ def _row(s: Seminar, unit_name: str, scholar_count: int) -> dict[str, Any]:
 
 @router.get("", response_model=list[SeminarRow])
 async def list_seminars(
+    response: Response,
     upcoming: bool = False,
     sort: Sort = None,
     limit: int = Query(default=100, ge=1, le=500),
@@ -81,7 +82,7 @@ async def list_seminars(
     columns = {"date": Seminar.starts_at, "title": Seminar.title, "department": OrgUnit.name}
     default = [Seminar.starts_at.asc() if upcoming else Seminar.starts_at.desc()]
     stmt = ordered(stmt, sort, columns, default, Seminar.id)
-    rows = await session.execute(stmt.limit(limit).offset(offset))
+    rows = await page_of(session, response, stmt, limit, offset)
     return [_row(s, name, n) for s, name, n in rows]
 
 

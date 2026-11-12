@@ -4,7 +4,7 @@ step, through the publication approval chain. Workflow actions live on /items.""
 import uuid
 from typing import Any
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -19,7 +19,7 @@ from app.modules import require_module
 from app.rbac import require_perm
 from app.schemas import ItemView
 from app.schemas.research import PublicationIn, PublicationRow, PublicationUpdate, VerificationIn
-from app.sorting import Sort, ordered, ranked
+from app.sorting import Sort, ordered, page_of, ranked
 
 router = APIRouter(
     prefix="/publications",
@@ -30,6 +30,7 @@ router = APIRouter(
 
 @router.get("", response_model=list[PublicationRow])
 async def list_publications(
+    response: Response,
     q: str | None = Query(default=None, max_length=100),
     unit_id: uuid.UUID | None = None,
     state: ItemState | None = None,
@@ -69,7 +70,7 @@ async def list_publications(
     }
     default = [Publication.pub_year.desc(), Publication.updated_at.desc()]
     stmt = ordered(stmt, sort, columns, default, Publication.id)
-    rows = await session.execute(stmt.limit(limit).offset(offset))
+    rows = await page_of(session, response, stmt, limit, offset)
     out = []
     for p, sid, name in rows:
         step = p.chain_snapshot[p.current_step]["kind"] if p.current_step is not None else None

@@ -260,7 +260,9 @@ Science, UGC-CARE, Other).
 **Long lists.** No list stops silently. Every list page (scholars, faculty,
 the register, reports, meetings, publications, conferences, fellowships,
 thesis submissions, drafts, seminars, projects, admissions, the audit log)
-loads one page of rows and shows **Show more** while there are further rows.
+loads one page of rows and shows **Show more** while there are further rows,
+with **Showing 100 of 342**: the count of every row that matches the search
+and filters inside what the reader may see (API header `X-Total-Count`).
 The course catalogue is always sent whole, because it also fills the course
 picker.
 

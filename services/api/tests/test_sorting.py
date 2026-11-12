@@ -70,3 +70,24 @@ async def test_pages_continue_the_same_order(client, world):
 async def test_sort_text_is_validated(client, world):
     res = await _get(client, world.research_office, "scholars", sort="name; drop table")
     assert res.status_code == 422
+
+
+@pytest.mark.parametrize("path", PAGED)
+async def test_every_paged_list_reports_its_total(client, session, world, meeting, path):  # noqa: F811
+    await enable(session, *MODULE_KEYS)
+    reader = world.meera if path == "documents" else world.research_office
+    whole = await _get(client, reader, path)
+    one = await _get(client, reader, path, limit=1)
+    assert one.status_code == 200, one.text
+    # The total counts every matching row, not the page that was sent.
+    assert int(one.headers["X-Total-Count"]) == int(whole.headers["X-Total-Count"])
+    assert int(whole.headers["X-Total-Count"]) >= len(whole.json()) >= len(one.json())
+
+
+async def test_total_follows_the_filters_and_scope(client, world):
+    office, head_b1 = world.research_office, world.hod_b1
+    everyone = int((await _get(client, office, "scholars", limit=1)).headers["X-Total-Count"])
+    found = await _get(client, office, "scholars", q="phd-a1-001", limit=1)
+    assert int(found.headers["X-Total-Count"]) == 1 < everyone
+    scoped = await _get(client, head_b1, "scholars", limit=1)
+    assert int(scoped.headers["X-Total-Count"]) < everyone  # never counts what scope hides

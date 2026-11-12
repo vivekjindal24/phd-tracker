@@ -132,13 +132,26 @@ async function refresh(): Promise<boolean> {
   return refreshInFlight;
 }
 
-export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
+async function request(path: string, init: RequestInit): Promise<Response> {
   let res = await send(path, init, accessToken);
   if (res.status === 401 && (await refresh())) {
     res = await send(path, init, accessToken);
   }
   if (!res.ok) throw await toError(res);
+  return res;
+}
+
+export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const res = await request(path, init);
   return (res.status === 204 ? undefined : await res.json()) as T;
+}
+
+/** One page of a list plus how many rows match in all (the API's X-Total-Count header). */
+export type Page<T> = { rows: T[]; total: number | null };
+export async function apiPage<T>(path: string): Promise<Page<T>> {
+  const res = await request(path, {});
+  const total = res.headers.get("X-Total-Count");
+  return { rows: await res.json(), total: total === null ? null : Number(total) };
 }
 
 async function fetchFile(path: string, from: "export" | "api"): Promise<Response> {

@@ -143,7 +143,7 @@ export default function RegisterPage() {
   if (status) params.set("status", status);
   if (type) params.set("milestone_type", type);
   if (sort) params.set("sort", sort);
-  const { data, error, reload, hasMore, more } = usePagedFetch<Milestone>(`/milestones?${params}`, 200);
+  const { data, error, reload, hasMore, more, total } = usePagedFetch<Milestone>(`/milestones?${params}`, 200);
   const canRecord = me?.roles.some((r) => r === "admin" || r === "research_office") ?? false;
 
   return (
@@ -199,7 +199,7 @@ export default function RegisterPage() {
               ))}
             </Table>
           )}
-          <ShowMore hasMore={hasMore} more={more} />
+          <ShowMore hasMore={hasMore} more={more} shown={data?.length} total={total} />
         </div>
         {canRecord && <RecordDecision onSaved={reload} />}
       </div>

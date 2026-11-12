@@ -24,7 +24,7 @@ export default function FacultyPage() {
   const [q, setQ] = useState("");
   const query = useDebounced(q);
   const [sort, setSort] = useState("");
-  const { data, error, hasMore, more } = usePagedFetch<Faculty>(
+  const { data, error, hasMore, more, total } = usePagedFetch<Faculty>(
     listPath("/faculty", { q: query, sort }), 200,
   );
 
@@ -58,7 +58,7 @@ export default function FacultyPage() {
           ))}
         </Table>
       )}
-      <ShowMore hasMore={hasMore} more={more} />
+      <ShowMore hasMore={hasMore} more={more} shown={data?.length} total={total} />
     </>
   );
 }

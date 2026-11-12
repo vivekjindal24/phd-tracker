@@ -78,7 +78,7 @@ export default function ConferencesPage() {
   const { me } = useSession();
   const filter = useScholarFilter("Scholar name, roll number, event or title");
   const [sort, setSort] = useState("");
-  const { data, error, reload, hasMore, more } = usePagedFetch<Conference>(listPath("/conferences", filter.params, { sort }), 500);
+  const { data, error, reload, hasMore, more, total } = usePagedFetch<Conference>(listPath("/conferences", filter.params, { sort }), 500);
   const [open, setOpen] = useState<string | null>(null);
   const [actError, setActError] = useState<string | null>(null);
   const isScholar = me?.scholar_id != null;
@@ -128,7 +128,7 @@ export default function ConferencesPage() {
           ))}
         </Table>
       )}
-      <ShowMore hasMore={hasMore} more={more} />
+      <ShowMore hasMore={hasMore} more={more} shown={data?.length} total={total} />
       {selected && (
         <div style={{ marginTop: "var(--space-5)" }}>
           <Attachments table="conferences" recordId={selected.id} canUpload={selected.can_edit}

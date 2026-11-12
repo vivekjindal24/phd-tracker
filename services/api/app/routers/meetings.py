@@ -1,6 +1,6 @@
 import uuid
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy import Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
@@ -14,7 +14,7 @@ from app.models import Faculty, Meeting, OrgUnit, Scholar, User
 from app.notify import notify
 from app.rbac import require_perm
 from app.schemas import MeetingIn, MeetingOut, MeetingUpdate, Ref
-from app.sorting import Sort, ordered
+from app.sorting import Sort, ordered, page_of
 
 router = APIRouter(prefix="/meetings", tags=["meetings"])
 
@@ -69,6 +69,7 @@ async def _one(session: AsyncSession, principal: Principal, meeting_id: uuid.UUI
 
 @router.get("", response_model=list[MeetingOut])
 async def list_meetings(
+    response: Response,
     q: str | None = Query(default=None, max_length=100),
     unit_id: uuid.UUID | None = None,
     scholar_id: uuid.UUID | None = None,
@@ -91,7 +92,7 @@ async def list_meetings(
     }
     default = [Meeting.meeting_date.desc(), Meeting.created_at.desc()]
     stmt = ordered(stmt, sort, columns, default, Meeting.id)
-    rows = await session.execute(stmt.limit(limit).offset(offset))
+    rows = await page_of(session, response, stmt, limit, offset)
     return [_out(principal, r) for r in rows]
 
 

@@ -132,7 +132,7 @@ function ResultSelect({ a, onSaved }: { a: Admission; onSaved: () => void }) {
 export default function AdmissionsPage() {
   const { me } = useSession();
   const [sort, setSort] = useState("");
-  const { data, error, reload, hasMore, more } = usePagedFetch<Admission>(listPath("/admissions", { sort }), 200);
+  const { data, error, reload, hasMore, more, total } = usePagedFetch<Admission>(listPath("/admissions", { sort }), 200);
   const { data: units } = useFetch<OrgUnit[]>("/org-units");
   const emailOn = useFetch<SettingsData>("/settings").data?.email_configured ?? false;
   const isOffice = me?.office_roles.includes("research_office") ?? false;
@@ -164,7 +164,7 @@ export default function AdmissionsPage() {
           ))}
         </Table>
       )}
-      <ShowMore hasMore={hasMore} more={more} />
+      <ShowMore hasMore={hasMore} more={more} shown={data?.length} total={total} />
     </>
   );
 }

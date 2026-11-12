@@ -4,7 +4,7 @@ their scholars'. The money paid out sits in the ledger (routers/ledger.py)."""
 
 import uuid
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy import Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -19,7 +19,7 @@ from app.modules import module_enabled, require_module
 from app.rbac import require_perm
 from app.schemas import Ref
 from app.schemas.grants import FellowshipIn, FellowshipOut, FellowshipUpdate
-from app.sorting import Sort, ordered, ranked
+from app.sorting import Sort, ordered, page_of, ranked
 
 router = APIRouter(
     prefix="/fellowships",
@@ -77,6 +77,7 @@ async def _one(session: AsyncSession, principal: Principal, fellowship_id: uuid.
 
 @router.get("", response_model=list[FellowshipOut])
 async def list_fellowships(
+    response: Response,
     q: str | None = Query(default=None, max_length=100),
     unit_id: uuid.UUID | None = None,
     scholar_id: uuid.UUID | None = None,
@@ -101,7 +102,7 @@ async def list_fellowships(
     }
     default = [Fellowship.end_date.desc(), User.full_name]
     stmt = ordered(stmt, sort, columns, default, Fellowship.id)
-    rows = await session.execute(stmt.limit(limit).offset(offset))
+    rows = await page_of(session, response, stmt, limit, offset)
     ledger_on = await module_enabled(session, "ledger")
     return [_out(r, principal, ledger_on) for r in rows]
 

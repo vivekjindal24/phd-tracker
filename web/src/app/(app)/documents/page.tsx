@@ -52,7 +52,7 @@ function NewDocument() {
 export default function DocumentsPage() {
   const { me } = useSession();
   const [sort, setSort] = useState("");
-  const { data, error, hasMore, more } = usePagedFetch<DocumentItem>(listPath("/documents", { sort }), 200);
+  const { data, error, hasMore, more, total } = usePagedFetch<DocumentItem>(listPath("/documents", { sort }), 200);
   return (
     <>
       <PageHeader eyebrow="Documents & thesis" title="Drafts & chapters" />
@@ -74,7 +74,7 @@ export default function DocumentsPage() {
           ))}
         </Table>
       )}
-      <ShowMore hasMore={hasMore} more={more} />
+      <ShowMore hasMore={hasMore} more={more} shown={data?.length} total={total} />
     </>
   );
 }

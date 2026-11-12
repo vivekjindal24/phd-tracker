@@ -1,10 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { api, ApiError } from "./api";
+import { api, ApiError, apiPage } from "./api";
+import type { Page } from "./api";
 
 /** GET a resource; errors surface as a message, never as silently empty data. */
-export function useFetch<T>(path: string | null) {
+export function useFetch<T>(path: string | null, load: (path: string) => Promise<T> = api<T>) {
   const [data, setData] = useState<T | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(path !== null);
@@ -13,14 +14,14 @@ export function useFetch<T>(path: string | null) {
     if (path === null) return;
     setLoading(true);
     try {
-      setData(await api<T>(path));
+      setData(await load(path));
       setError(null);
     } catch (e) {
       setError(e instanceof ApiError ? e.message : String(e));
     } finally {
       setLoading(false);
     }
-  }, [path]);
+  }, [path, load]);
 
   useEffect(() => {
     reload();
@@ -29,30 +30,33 @@ export function useFetch<T>(path: string | null) {
   return { data, error, loading, reload, setData };
 }
 
-/** A list read page by page, so a long list is never silently cut off. */
+/** A list read page by page, so a long list is never silently cut off; `total` is how many
+ *  rows match in all. */
 export function usePagedFetch<T>(path: string | null, pageSize: number) {
   const sep = path?.includes("?") ? "&" : "?";
-  const first = useFetch<T[]>(path && `${path}${sep}limit=${pageSize}`);
+  const first = useFetch<Page<T>>(path && `${path}${sep}limit=${pageSize}`, apiPage<T>);
   const [end, setEnd] = useState(false);
   const [moreError, setMoreError] = useState<string | null>(null);
-  const { data, setData, reload } = first;
+  const { data: page, setData, reload } = first;
+  const data = page?.rows ?? null;
 
   useEffect(() => setEnd(false), [path]);
 
   const more = useCallback(async () => {
-    if (!data) return;
+    if (!page) return;
     try {
-      const next = await api<T[]>(`${path}${sep}limit=${pageSize}&offset=${data.length}`);
-      setData([...data, ...next]);
-      setEnd(next.length < pageSize);
+      const next = await apiPage<T>(`${path}${sep}limit=${pageSize}&offset=${page.rows.length}`);
+      setData({ rows: [...page.rows, ...next.rows], total: next.total });
+      setEnd(next.rows.length < pageSize);
       setMoreError(null);
     } catch (e) {
       setMoreError(errorText(e));
     }
-  }, [data, path, sep, pageSize, setData]);
+  }, [page, path, sep, pageSize, setData]);
 
   return {
-    ...first,
+    data,
+    loading: first.loading,
     error: first.error ?? moreError,
     reload: () => {
       setEnd(false);
@@ -60,6 +64,7 @@ export function usePagedFetch<T>(path: string | null, pageSize: number) {
     },
     hasMore: !end && (data?.length ?? 0) >= pageSize,
     more,
+    total: page?.total ?? null,
   };
 }
 

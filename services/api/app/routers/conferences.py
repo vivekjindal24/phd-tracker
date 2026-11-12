@@ -2,7 +2,7 @@
 
 import uuid
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy import Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -17,7 +17,7 @@ from app.modules import require_module
 from app.rbac import require_perm
 from app.schemas import Ref
 from app.schemas.research import ConferenceIn, ConferenceOut, ConferenceUpdate
-from app.sorting import Sort, ordered, ranked
+from app.sorting import Sort, ordered, page_of, ranked
 
 router = APIRouter(
     prefix="/conferences",
@@ -62,6 +62,7 @@ async def _own(session: AsyncSession, principal: Principal, conference_id: uuid.
 
 @router.get("", response_model=list[ConferenceOut])
 async def list_conferences(
+    response: Response,
     q: str | None = Query(default=None, max_length=100),
     unit_id: uuid.UUID | None = None,
     scholar_id: uuid.UUID | None = None,
@@ -83,7 +84,7 @@ async def list_conferences(
         "contribution": ranked(Conference.event_type, CONFERENCE_TYPES),
     }
     stmt = ordered(stmt, sort, columns, [Conference.event_date.desc()], Conference.id)
-    rows = await session.execute(stmt.limit(limit).offset(offset))
+    rows = await page_of(session, response, stmt, limit, offset)
     return [_out(r, principal) for r in rows]
 
 

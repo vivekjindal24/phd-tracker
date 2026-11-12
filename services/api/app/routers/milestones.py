@@ -3,7 +3,7 @@ the research office anywhere, or an admin over the scholar's unit."""
 
 import uuid
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy import Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -16,7 +16,7 @@ from app.errors import ApiError, forbidden
 from app.models import Milestone, OrgUnit, Scholar, User
 from app.rbac import require_perm
 from app.schemas import MilestoneIn, MilestoneOut, MilestoneUpdate, Ref
-from app.sorting import Sort, ordered, ranked
+from app.sorting import Sort, ordered, page_of, ranked
 
 router = APIRouter(prefix="/milestones", tags=["register"])
 
@@ -72,6 +72,7 @@ async def _one(session: AsyncSession, principal: Principal, milestone_id: uuid.U
 
 @router.get("", response_model=list[MilestoneOut])
 async def list_milestones(
+    response: Response,
     scholar_id: uuid.UUID | None = None,
     unit_id: uuid.UUID | None = None,
     milestone_type: MilestoneType | None = None,
@@ -99,7 +100,7 @@ async def list_milestones(
     }
     default = [Milestone.resolution_date.desc().nulls_last(), Milestone.created_at.desc()]
     stmt = ordered(stmt, sort, columns, default, Milestone.id)
-    rows = await session.execute(stmt.limit(limit).offset(offset))
+    rows = await page_of(session, response, stmt, limit, offset)
     return [_out(r) for r in rows]
 
 

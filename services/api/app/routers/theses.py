@@ -6,7 +6,7 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -42,7 +42,7 @@ from app.schemas.research import (
     VivaIn,
     VivaUpdate,
 )
-from app.sorting import Sort, ordered, ranked
+from app.sorting import Sort, ordered, page_of, ranked
 
 router = APIRouter(tags=["thesis"], dependencies=[Depends(require_module("documents"))])
 CAN_READ = require_perm("thesis_submissions", "read")
@@ -50,6 +50,7 @@ CAN_READ = require_perm("thesis_submissions", "read")
 
 @router.get("/theses", response_model=list[ThesisRow])
 async def list_theses(
+    response: Response,
     q: str | None = Query(default=None, max_length=100),
     unit_id: uuid.UUID | None = None,
     state: ItemState | None = None,
@@ -80,7 +81,7 @@ async def list_theses(
     }
     default = [ThesisSubmission.updated_at.desc()]
     stmt = ordered(stmt, sort, columns, default, ThesisSubmission.id)
-    rows = await session.execute(stmt.limit(limit).offset(offset))
+    rows = await page_of(session, response, stmt, limit, offset)
     out = []
     for t, sid, name in rows:
         step = t.chain_snapshot[t.current_step]["kind"] if t.current_step is not None else None
