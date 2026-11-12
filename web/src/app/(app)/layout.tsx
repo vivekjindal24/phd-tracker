@@ -6,7 +6,7 @@ import { useEffect } from "react";
 import type { ReactNode } from "react";
 import { Owl, OwlMark } from "@/components/brand/Owl";
 import { UniversityMark } from "@/components/brand/UniversityMark";
-import { Nav } from "@/components/Nav";
+import { Nav, NavSheet } from "@/components/Nav";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { BusyBar } from "@/components/ui/BusyBar";
 import { Button, ErrorText } from "@/components/ui/kit";
@@ -55,6 +55,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             <input id="topbar-q" name="q" type="search" placeholder="Search…" minLength={2} />
           </form>
           <div className="topbar-actions">
+            <NavSheet me={me} />
             <Link href="/notifications" className="btn btn-icon bell"
               aria-label={`Notifications, ${me.unread_notifications} unread`}>
               <span aria-hidden="true">🔔</span>

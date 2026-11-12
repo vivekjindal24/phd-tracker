@@ -140,7 +140,8 @@ for registers, `<dl class="kv">` for key-value, `<label>`-wrapped controls.
   Office, Settings — showing only the groups the user's roles and enabled
   modules allow. Below 1700px wide the menu takes its own row under the
   wordmark, search and actions (one row needs ~1600px for the widest menu).
-  On phones it collapses into a bottom sheet.
+  At 640px and below a Menu button replaces it and opens a bottom sheet (a
+  native modal `<dialog>`) listing the same links under their group names.
 - **Home:** one page stacking a section per role the user holds (queue
   first, then scholars, then unit overview, then admin), bento tiles inside
   each section.

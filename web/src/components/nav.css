@@ -75,3 +75,104 @@
     margin-left: 0;
   }
 }
+
+/* Phones: the inline menu gives way to a bottom sheet (NavSheet). */
+.nav-sheet-open {
+  display: none;
+}
+.nav-sheet {
+  inset: auto 0 0;
+  width: 100%;
+  max-width: none;
+  max-height: 85dvh;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--clay-shadow);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.nav-sheet[open] {
+  animation: sheet-up 0.3s var(--spring);
+}
+.nav-sheet::backdrop {
+  background: rgb(34 26 46 / 0.45);
+}
+body:has(.nav-sheet[open]) {
+  overflow: hidden;
+}
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+}
+.nav-sheet-body {
+  padding: var(--space-4) var(--gutter) calc(var(--space-6) + env(safe-area-inset-bottom));
+}
+.nav-sheet-head {
+  position: sticky; /* Close stays reachable while the list scrolls */
+  top: 0;
+  z-index: 1;
+  padding-block: var(--space-2);
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-2);
+}
+.nav-sheet-head h2 {
+  font-size: var(--text-lg);
+  margin: 0;
+}
+.nav-sheet nav {
+  display: grid;
+  gap: 2px;
+}
+.nav-sheet section {
+  display: grid;
+  gap: 2px;
+  margin-top: var(--space-3);
+}
+/* Ungrouped links after the last group must not read as part of it. */
+.nav-sheet section + a {
+  margin-top: var(--space-3);
+}
+.nav-sheet h3 {
+  margin: 0 0 var(--space-1);
+  padding: 0 14px;
+  font-family: inherit;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+.nav-sheet a {
+  display: block;
+  min-height: 44px;
+  padding: 11px 14px;
+  border-radius: var(--radius-sm);
+  color: var(--ink);
+  font-weight: 700;
+  text-decoration: none;
+}
+.nav-sheet a:hover {
+  background: var(--row-hover);
+}
+.nav-sheet a[aria-current="page"] {
+  background: var(--lilac);
+}
+@media (max-width: 640px) {
+  .nav {
+    display: none;
+  }
+  .nav-sheet-open {
+    display: inline-flex;
+  }
+  /* Menu + bell + theme + Log out are ~290px: at 320 wide Log out drops to its own line. */
+  .topbar-actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+}

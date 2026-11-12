@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
 import type { Me } from "@/lib/types";
+import { Button } from "./ui/kit";
 import "./nav.css";
 
 type Item = { href: string; label: string; show: (me: Me) => boolean };
@@ -62,11 +63,12 @@ const NAV: Entry[] = [
 ];
 
 const isGroup = (e: Entry): e is Group => "items" in e;
+const isActive = (pathname: string, href: string) => pathname === href || pathname.startsWith(`${href}/`);
 
 export function Nav({ me }: { me: Me }) {
   const pathname = usePathname();
   const navRef = useRef<HTMLElement>(null);
-  const active = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
+  const active = (href: string) => isActive(pathname, href);
 
   // Close open menus on navigation and on clicks outside.
   useEffect(() => {
@@ -109,5 +111,55 @@ export function Nav({ me }: { me: Me }) {
         );
       })}
     </nav>
+  );
+}
+
+/** Phones: the same menu as a bottom sheet (native modal dialog: focus trap, Esc, backdrop). */
+export function NavSheet({ me }: { me: Me }) {
+  const pathname = usePathname();
+  const sheet = useRef<HTMLDialogElement>(null);
+  const link = (i: Item) => (
+    <Link key={i.label} href={i.href} aria-current={isActive(pathname, i.href) ? "page" : undefined}>
+      {i.label}
+    </Link>
+  );
+
+  return (
+    <>
+      <Button className="nav-sheet-open" aria-haspopup="dialog" onClick={() => sheet.current?.showModal()}>
+        <span aria-hidden="true">☰</span> Menu
+      </Button>
+      <dialog
+        ref={sheet}
+        className="nav-sheet"
+        aria-labelledby="nav-sheet-title"
+        // The content wrapper fills the sheet, so a click landing on the dialog itself is the backdrop.
+        onClick={(e) => {
+          if (e.target === e.currentTarget || (e.target as Element).closest("a")) sheet.current?.close();
+        }}
+      >
+        <div className="nav-sheet-body">
+          <div className="nav-sheet-head">
+            <h2 id="nav-sheet-title">Menu</h2>
+            <Button kind="ghost" className="btn-icon" aria-label="Close menu" onClick={() => sheet.current?.close()}>
+              <span aria-hidden="true">✕</span>
+            </Button>
+          </div>
+          <nav aria-label="Main navigation">
+            {NAV.map((entry) => {
+              if (!isGroup(entry)) return entry.show(me) ? link(entry) : null;
+              const visible = entry.items.filter((i) => i.show(me));
+              if (visible.length === 0) return null;
+              return (
+                <section key={entry.label}>
+                  <h3>{entry.label}</h3>
+                  {visible.map(link)}
+                </section>
+              );
+            })}
+          </nav>
+        </div>
+      </dialog>
+    </>
   );
 }
