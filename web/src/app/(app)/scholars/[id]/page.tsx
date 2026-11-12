@@ -17,10 +17,12 @@ import { api } from "@/lib/api";
 import { formatDate } from "@/lib/format";
 import { useSession } from "@/lib/session";
 import { RequestMember } from "@/components/RequestMember";
-import { LEFT_LABELS, MILESTONE_LABELS, STAGES } from "@/lib/types";
+import { CATEGORY_LABELS, GENDER_LABELS, LEFT_LABELS, MILESTONE_LABELS, STAGES, STUDY_MODE_LABELS } from "@/lib/types";
 import type { Faculty, LeftReason, Milestone, Scholar, Stage } from "@/lib/types";
 import { errorText, useFetch } from "@/lib/useFetch";
 import "./profile.css";
+
+const NOT_RECORDED = <span className="muted">Not recorded</span>;
 
 function AssignCard({
   scholar,
@@ -148,6 +150,8 @@ export default function ScholarProfile() {
   const { data: scholar, error, setData } = useFetch<Scholar>(`/scholars/${id}`);
   const [stage, setStage] = useState<Stage>("Registered");
   const [title, setTitle] = useState("");
+  // "" = not recorded; sent as null.
+  const [profile, setProfile] = useState({ study_mode: "", gender: "", category: "", has_disability: "" });
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
@@ -155,6 +159,12 @@ export default function ScholarProfile() {
     if (!scholar) return;
     setStage(scholar.stage);
     setTitle(scholar.research_title ?? "");
+    setProfile({
+      study_mode: scholar.study_mode ?? "",
+      gender: scholar.gender ?? "",
+      category: scholar.category ?? "",
+      has_disability: scholar.has_disability === null ? "" : String(scholar.has_disability),
+    });
   }, [scholar]);
 
   // The UI offers edits to admins; the API decides whether this admin covers this unit.
@@ -173,7 +183,17 @@ export default function ScholarProfile() {
     try {
       setData(await api<Scholar>(`/scholars/${id}`, {
         method: "PATCH",
-        body: JSON.stringify({ stage, research_title: title || null }),
+        body: JSON.stringify({
+          stage,
+          research_title: title || null,
+          study_mode: profile.study_mode || null,
+          // Only someone shown the personal fields may overwrite them.
+          ...(scholar?.sees_personal && {
+            gender: profile.gender || null,
+            category: profile.category || null,
+            has_disability: profile.has_disability === "" ? null : profile.has_disability === "true",
+          }),
+        }),
       }));
       setSaved(true);
     } catch (err) {
@@ -202,6 +222,18 @@ export default function ScholarProfile() {
             <dd>{scholar.research_title ?? <span className="muted">Not set</span>}</dd>
             <dt>Admitted</dt>
             <dd>{scholar.admission_date ?? <span className="muted">Not recorded</span>}</dd>
+            <dt>Mode</dt>
+            <dd>{scholar.study_mode ? STUDY_MODE_LABELS[scholar.study_mode] : NOT_RECORDED}</dd>
+            {scholar.sees_personal && (
+              <>
+                <dt>Gender</dt>
+                <dd>{scholar.gender ? GENDER_LABELS[scholar.gender] : NOT_RECORDED}</dd>
+                <dt>Category</dt>
+                <dd>{scholar.category ? CATEGORY_LABELS[scholar.category] : NOT_RECORDED}</dd>
+                <dt>Person with disability</dt>
+                <dd>{scholar.has_disability === null ? NOT_RECORDED : scholar.has_disability ? "Yes" : "No"}</dd>
+              </>
+            )}
             <dt>Supervisor</dt>
             <dd>{scholar.supervisor?.name ?? <span className="muted">Not assigned</span>}</dd>
             {me?.co_supervision !== "off" && (
@@ -224,6 +256,35 @@ export default function ScholarProfile() {
               <Field label="Research title">
                 <input value={title} maxLength={500} onChange={(e) => setTitle(e.target.value)} />
               </Field>
+              <Field label="Mode">
+                <select value={profile.study_mode} onChange={(e) => setProfile({ ...profile, study_mode: e.target.value })}>
+                  <option value="">Not recorded</option>
+                  {Object.entries(STUDY_MODE_LABELS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+                </select>
+              </Field>
+              {scholar.sees_personal && (
+                <>
+                  <Field label="Gender">
+                    <select value={profile.gender} onChange={(e) => setProfile({ ...profile, gender: e.target.value })}>
+                      <option value="">Not recorded</option>
+                      {Object.entries(GENDER_LABELS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+                    </select>
+                  </Field>
+                  <Field label="Category">
+                    <select value={profile.category} onChange={(e) => setProfile({ ...profile, category: e.target.value })}>
+                      <option value="">Not recorded</option>
+                      {Object.entries(CATEGORY_LABELS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+                    </select>
+                  </Field>
+                  <Field label="Person with disability" hint="Seen only by the scholar, their department's admins and head, the Research Office and the Vice Chancellor — as are gender and category.">
+                    <select value={profile.has_disability} onChange={(e) => setProfile({ ...profile, has_disability: e.target.value })}>
+                      <option value="">Not recorded</option>
+                      <option value="true">Yes</option>
+                      <option value="false">No</option>
+                    </select>
+                  </Field>
+                </>
+              )}
               <ErrorText>{saveError}</ErrorText>
               {saved && <p className="muted" role="status">Saved.</p>}
               <Button kind="primary" type="submit">Save details</Button>

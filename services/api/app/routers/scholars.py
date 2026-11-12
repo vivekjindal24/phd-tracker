@@ -12,7 +12,7 @@ from app.auth.deps import current_principal
 from app.auth.principal import Principal
 from app.crud import update
 from app.db import get_session
-from app.enums import STAGES, Stage
+from app.enums import STAGES, Stage, StudyMode
 from app.errors import forbidden
 from app.models import Faculty, OrgUnit, Scholar, User
 from app.rbac import require_perm
@@ -30,7 +30,13 @@ CoUser = aliased(User)
 def _query(principal: Principal) -> Select:
     return (
         select(
-            Scholar, User.full_name, User.email, OrgUnit.name, SupUser.full_name, CoUser.full_name
+            Scholar,
+            User.full_name,
+            User.email,
+            OrgUnit.name,
+            SupUser.full_name,
+            CoUser.full_name,
+            OrgUnit.path,
         )
         .join(User, User.id == Scholar.user_id)
         .join(OrgUnit, OrgUnit.id == Scholar.unit_id)
@@ -42,8 +48,9 @@ def _query(principal: Principal) -> Select:
     )
 
 
-def _out(row, co_supervision: str) -> ScholarOut:
-    s, name, email, unit_name, sup_name, co_name = row
+def _out(row, principal: Principal) -> ScholarOut:
+    s, name, email, unit_name, sup_name, co_name, unit_path = row
+    personal = scope.sees_personal(principal, s.id, unit_path)
     return ScholarOut(
         id=s.id,
         user_id=s.user_id,
@@ -57,11 +64,16 @@ def _out(row, co_supervision: str) -> ScholarOut:
         supervisor=Ref(id=s.supervisor_id, name=sup_name) if s.supervisor_id else None,
         co_supervisor=(
             Ref(id=s.co_supervisor_id, name=co_name)
-            if s.co_supervisor_id and co_supervision != "off"
+            if s.co_supervisor_id and principal.co_supervision != "off"
             else None
         ),
         left_on=s.left_on,
         left_reason=s.left_reason,
+        study_mode=s.study_mode,
+        sees_personal=personal,
+        gender=s.gender if personal else None,
+        category=s.category if personal else None,
+        has_disability=s.has_disability if personal else None,
     )
 
 
@@ -69,7 +81,7 @@ async def _one(session: AsyncSession, principal: Principal, scholar_id: uuid.UUI
     row = (await session.execute(_query(principal).where(Scholar.id == scholar_id))).first()
     if row is None:
         raise forbidden()
-    return _out(row, principal.co_supervision)
+    return _out(row, principal)
 
 
 @router.get("", response_model=list[ScholarOut])
@@ -80,6 +92,7 @@ async def list_scholars(
     stage: Stage | None = None,
     supervisor_id: uuid.UUID | None = None,
     mine: bool = False,
+    study_mode: StudyMode | None = None,
     sort: Sort = None,
     limit: int = Query(default=100, ge=1, le=500),
     offset: int = Query(default=0, ge=0),
@@ -94,6 +107,8 @@ async def list_scholars(
         stmt = stmt.where(Scholar.supervisor_id == supervisor_id)
     if mine:
         stmt = stmt.where(scope.own_scholars(principal))
+    if study_mode:
+        stmt = stmt.where(Scholar.study_mode == study_mode)
     columns = {
         "name": User.full_name,
         "roll_number": Scholar.roll_number,
@@ -103,7 +118,7 @@ async def list_scholars(
     }
     stmt = ordered(stmt, sort, columns, [User.full_name], Scholar.id)
     rows = await page_of(session, response, stmt, limit, offset)
-    return [_out(r, principal.co_supervision) for r in rows]
+    return [_out(r, principal) for r in rows]
 
 
 @router.get("/{scholar_id}", response_model=ScholarOut)

@@ -21,11 +21,14 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from app.enums import (
     ASSIGNED_ROLES,
+    CATEGORIES,
     DESIGNATIONS,
+    GENDERS,
     LEFT_REASONS,
     NOTIFICATION_CATEGORIES,
     OFFICE_ROLES,
     STAGES,
+    STUDY_MODES,
     UNIT_ROLES,
     WHATSAPP_NUMBER_RE,
     sql_in,
@@ -171,6 +174,9 @@ class Scholar(DomainRow, Base):
             "co_supervisor_id IS NULL OR co_supervisor_id <> supervisor_id",
             name="ck_scholars_co_supervisor",
         ),
+        CheckConstraint(f"study_mode IN ({sql_in(STUDY_MODES)})", name="ck_scholars_study_mode"),
+        CheckConstraint(f"gender IN ({sql_in(GENDERS)})", name="ck_scholars_gender"),
+        CheckConstraint(f"category IN ({sql_in(CATEGORIES)})", name="ck_scholars_category"),
         CheckConstraint(
             f"(left_on IS NULL AND left_reason IS NULL) OR "
             f"(left_on IS NOT NULL AND left_reason IN ({sql_in(LEFT_REASONS)}))",
@@ -198,6 +204,12 @@ class Scholar(DomainRow, Base):
     research_title: Mapped[str | None] = mapped_column(Text)
     admission_date: Mapped[date | None] = mapped_column(Date)
     stage: Mapped[str] = mapped_column(Text, server_default=text("'Registered'"))
+    # Profile (PRD F6). NULL = not recorded. Gender, category and disability are personal data:
+    # read only through scope.sees_personal.
+    study_mode: Mapped[str | None] = mapped_column(Text)
+    gender: Mapped[str | None] = mapped_column(Text)
+    category: Mapped[str | None] = mapped_column(Text)
+    has_disability: Mapped[bool | None] = mapped_column(Boolean)
     supervisor_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("faculty.id"), index=True
     )

@@ -97,7 +97,9 @@ _add("scholars", "Scholars", scholars.list_scholars, None, (
     ("Scholar", "full_name"), ("Roll number", "roll_number"), ("Email", "email"),
     ("Department", "unit.name"), ("Stage", "stage"), ("Supervisor", "supervisor.name"),
     ("Co-supervisor", "co_supervisor.name"), ("Research title", "research_title"),
-    ("Admitted on", "admission_date"),
+    ("Admitted on", "admission_date"), ("Mode", "study_mode~"),
+    # Blank for a reader scope.sees_personal turns away, as on the page.
+    ("Gender", "gender"), ("Category", "category"), ("Person with disability", "has_disability"),
 ))  # fmt: skip
 _add("faculty", "Faculty", faculty.list_faculty, None, (
     ("Name", "full_name"), ("Email", "email"), ("Designation", "designation"),

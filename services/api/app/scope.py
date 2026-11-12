@@ -66,6 +66,18 @@ def _own_scholar_clauses(principal: Principal) -> list[ColumnElement[bool]]:
     return linked
 
 
+def sees_personal(principal: Principal, scholar_id: uuid.UUID, unit_path: str) -> bool:
+    """Who reads a scholar's gender, category and disability status (SECURITY.md §3): the
+    scholar, the admins and heads over their unit, the Research Office and the Vice Chancellor.
+    Supervisors and other faculty do not."""
+    return (
+        principal.scholar_id == scholar_id
+        or principal.reads_all
+        or principal.covers("admin", unit_path)
+        or principal.covers("unit_head", unit_path)
+    )
+
+
 def own_scholars(principal: Principal) -> ColumnElement[bool]:
     """The caller's own scholar record and the scholars they supervise: the parties to a
     meeting, whatever wider view an office or admin role also gives them."""

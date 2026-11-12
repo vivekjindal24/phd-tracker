@@ -11,10 +11,12 @@ from app.enums import (
     ApprovalBody,
     AssignedRole,
     AuditAction,
+    Category,
     CommentTarget,
     CoSupervision,
     Designation,
     FileOwner,
+    Gender,
     ItemState,
     ItemType,
     LeftReason,
@@ -30,6 +32,7 @@ from app.enums import (
     SeminarStatus,
     Stage,
     StepKind,
+    StudyMode,
     TodoPart,
     TodoStatus,
 )
@@ -421,6 +424,12 @@ class ScholarOut(BaseModel):
     co_supervisor: Ref | None
     left_on: date | None
     left_reason: LeftReason | None
+    study_mode: StudyMode | None
+    # Personal data: null unless `sees_personal` (scope.sees_personal), then null = not recorded.
+    sees_personal: bool
+    gender: Gender | None
+    category: Category | None
+    has_disability: bool | None
     directory_only: bool = False  # an opened department reading another unit's scholar
 
 
@@ -434,6 +443,10 @@ class ScholarUpdate(BaseModel):
     roll_number: (
         Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=50)] | None
     ) = None
+    study_mode: StudyMode | None = None
+    gender: Gender | None = None
+    category: Category | None = None
+    has_disability: bool | None = None
     # Withdrawn / cancelled: both together, or both null to undo (PRD Phase 4).
     left_on: date | None = None
     left_reason: LeftReason | None = None

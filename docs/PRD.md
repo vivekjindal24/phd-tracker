@@ -212,6 +212,17 @@ the whole university (SECURITY.md §3). Faculty outside a sender's view are
 reached by an emailed request they accept, for one seminar panel or co-supervision
 (never thesis examiners, UX_FLOWS.md Flow 5b).
 
+**Scholar profile** (Decided 2026-11-12). Each scholar also carries a study
+mode (full-time / part-time), gender (female / male / transgender), category
+(General / OBC / SC / ST / EWS) and whether they are a person with
+disability; each may be left "not recorded". The admin over the scholar's
+unit records them on the profile. The mode is seen by everyone who sees the
+scholar and filters the scholars list. Gender, category and disability are
+personal data: seen only by the scholar, the admins and heads over their unit,
+the Research Office and the Vice Chancellor — not by supervisors or other
+faculty — on the page, in the list and in exported files alike. They are
+recorded only; no rule (duration, caps) reads them yet.
+
 **Co-supervisor** (university setting `co_supervision`, set by the root
 admin): `off` — none; `view` — a scholar may have one co-supervisor (any
 faculty record, any unit — external co-supervisors are added as faculty; a

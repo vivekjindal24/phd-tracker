@@ -76,7 +76,11 @@ come from the profile tables below.
 role.
 
 **scholars** — `user_id` FK (UNIQUE), `unit_id` FK, `roll_number` (UNIQUE),
-`research_title`, `admission_date`, `stage` CHECK (Registered / Coursework /
+`research_title`, `admission_date`, `study_mode` CHECK (full_time /
+part_time), `gender` CHECK (female / male / transgender), `category` CHECK
+(general / obc / sc / st / ews), `has_disability` boolean — these four
+nullable, NULL = not recorded; the last three are personal data read only
+through `scope.sees_personal` — `stage` CHECK (Registered / Coursework /
 Proposal Approved / Pre-Synopsis / Thesis Submitted / Viva / Degree Awarded,
 default Registered), `supervisor_id` FK faculty (indexed, nullable),
 `co_supervisor_id` FK faculty (indexed, nullable; CHECK ≠ `supervisor_id`;

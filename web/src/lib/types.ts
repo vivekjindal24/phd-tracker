@@ -153,8 +153,20 @@ export type Scholar = {
   co_supervisor: Ref | null;
   left_on: string | null;
   left_reason: LeftReason | null;
+  study_mode: StudyMode | null;
+  // Personal data: null unless sees_personal (the API decides), then null = not recorded.
+  sees_personal: boolean;
+  gender: Gender | null;
+  category: Category | null;
+  has_disability: boolean | null;
   directory_only: boolean;
 };
+export type StudyMode = "full_time" | "part_time";
+export const STUDY_MODE_LABELS: Record<StudyMode, string> = { full_time: "Full-time", part_time: "Part-time" };
+export type Gender = "female" | "male" | "transgender";
+export const GENDER_LABELS: Record<Gender, string> = { female: "Female", male: "Male", transgender: "Transgender" };
+export type Category = "general" | "obc" | "sc" | "st" | "ews";
+export const CATEGORY_LABELS: Record<Category, string> = { general: "General", obc: "OBC", sc: "SC", st: "ST", ews: "EWS" };
 export type LeftReason = "withdrawn" | "cancelled";
 export const LEFT_LABELS: Record<LeftReason, string> = { withdrawn: "Withdrew", cancelled: "Registration cancelled" };
 

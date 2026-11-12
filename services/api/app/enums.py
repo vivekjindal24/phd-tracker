@@ -205,6 +205,14 @@ LedgerWarning = Literal["over_balance", "over_sanction", "future_date", "outside
 
 LeftReason = Literal["withdrawn", "cancelled"]
 LEFT_REASONS = get_args(LeftReason)
+
+# Scholar profile (PRD F6): the values AISHE and UGC returns ask for.
+StudyMode = Literal["full_time", "part_time"]
+STUDY_MODES = get_args(StudyMode)
+Gender = Literal["female", "male", "transgender"]
+GENDERS = get_args(Gender)
+Category = Literal["general", "obc", "sc", "st", "ews"]
+CATEGORIES = get_args(Category)
 # Time records against the UGC maximum duration (Phase 4): extensions and the women/PwD
 # relaxation move the limit; leave is recorded and checked against its own limit.
 TimeKind = Literal["extension", "relaxation", "maternity_leave", "medical_leave", "other_leave"]

@@ -151,6 +151,14 @@ record, which scholar, when, the state change of a chain action and the
 names or amounts its reader has no right to. Drafts and their versions
 (`documents`, `document_versions`) are left out altogether.
 
+**Scholar personal fields:** `gender`, `category` and `has_disability` are
+returned only to the scholar, admins and heads whose unit covers the
+scholar's, the Research Office and the Vice Chancellor
+(`scope.sees_personal`); for everyone else in scope the API sends null and
+`sees_personal: false`, in the record, the list and `/internal/lists/scholars`.
+The list has no filter on them, so their values cannot be probed. Only the
+admin over the unit writes them.
+
 \* **Meeting redaction:** a viewer in scope sees the full meeting only if
 their role group is in `meetings.shared_with` (`unit_heads`, `research_office`,
 `admins`); otherwise the API returns only `id`, `meeting_date`, scholar and

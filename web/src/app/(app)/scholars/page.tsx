@@ -7,7 +7,7 @@ import { Owl } from "@/components/brand/Owl";
 import { ErrorText, Field, PageHeader, Table } from "@/components/ui/kit";
 import { ListFoot } from "@/components/ListFoot";
 import { useSession } from "@/lib/session";
-import { STAGES } from "@/lib/types";
+import { STAGES, STUDY_MODE_LABELS } from "@/lib/types";
 import type { Scholar } from "@/lib/types";
 import { useDebounced, usePagedFetch } from "@/lib/useFetch";
 
@@ -17,6 +17,7 @@ export default function ScholarsPage() {
   const [q, setQ] = useState("");
   const query = useDebounced(q);
   const [stage, setStage] = useState("");
+  const [mode, setMode] = useState("");
   const onlyScholar = me?.roles.length === 1 && me.roles[0] === "scholar";
 
   useEffect(() => {
@@ -27,6 +28,7 @@ export default function ScholarsPage() {
   const params = new URLSearchParams();
   if (query) params.set("q", query);
   if (stage) params.set("stage", stage);
+  if (mode) params.set("study_mode", mode);
   if (sort) params.set("sort", sort);
   const { data, error, hasMore, more, total, exportPath } = usePagedFetch<Scholar>(onlyScholar ? null : `/scholars?${params}`, 100);
 
@@ -60,6 +62,12 @@ export default function ScholarsPage() {
             {STAGES.map((s) => (
               <option key={s}>{s}</option>
             ))}
+          </select>
+        </Field>
+        <Field label="Mode">
+          <select value={mode} onChange={(e) => setMode(e.target.value)}>
+            <option value="">Any</option>
+            {Object.entries(STUDY_MODE_LABELS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
           </select>
         </Field>
       </div>
