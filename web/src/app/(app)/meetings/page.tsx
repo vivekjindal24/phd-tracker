@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { Owl } from "@/components/brand/Owl";
 import { ErrorText, PageHeader, ShowMore, Table } from "@/components/ui/kit";
 import { formatDate } from "@/lib/format";
@@ -13,7 +14,8 @@ import "./meetings.css";
 export default function MeetingsPage() {
   const { me } = useSession();
   const filter = useScholarFilter();
-  const { data, error, hasMore, more } = usePagedFetch<Meeting>(listPath("/meetings", filter.params), 200);
+  const [sort, setSort] = useState("");
+  const { data, error, hasMore, more } = usePagedFetch<Meeting>(listPath("/meetings", filter.params, { sort }), 200);
   const canLog = me?.roles.some((r) => r === "scholar" || r === "supervisor") ?? false;
 
   return (
@@ -29,6 +31,7 @@ export default function MeetingsPage() {
         <Table
           label="Meetings"
           head={["Date", "Scholar", "Supervisor", "Agenda"]}
+          sort={{ by: sort, keys: ["date", "scholar", "supervisor", "agenda"], onChange: setSort }}
           empty={
             <div className="empty-state">
               <Owl pose="empty" size={96} />

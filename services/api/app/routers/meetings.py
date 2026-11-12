@@ -14,6 +14,7 @@ from app.models import Faculty, Meeting, OrgUnit, Scholar, User
 from app.notify import notify
 from app.rbac import require_perm
 from app.schemas import MeetingIn, MeetingOut, MeetingUpdate, Ref
+from app.sorting import Sort, ordered
 
 router = APIRouter(prefix="/meetings", tags=["meetings"])
 
@@ -71,6 +72,7 @@ async def list_meetings(
     q: str | None = Query(default=None, max_length=100),
     unit_id: uuid.UUID | None = None,
     scholar_id: uuid.UUID | None = None,
+    sort: Sort = None,
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
     principal: Principal = Depends(require_perm("meetings", "read")),
@@ -81,11 +83,15 @@ async def list_meetings(
     )
     if scholar_id:
         stmt = stmt.where(Meeting.scholar_id == scholar_id)
-    rows = await session.execute(
-        stmt.order_by(Meeting.meeting_date.desc(), Meeting.created_at.desc())
-        .limit(limit)
-        .offset(offset)
-    )
+    columns = {
+        "date": Meeting.meeting_date,
+        "scholar": ScholarUser.full_name,
+        "supervisor": SupUser.full_name,
+        "agenda": Meeting.agenda,
+    }
+    default = [Meeting.meeting_date.desc(), Meeting.created_at.desc()]
+    stmt = ordered(stmt, sort, columns, default, Meeting.id)
+    rows = await session.execute(stmt.limit(limit).offset(offset))
     return [_out(principal, r) for r in rows]
 
 

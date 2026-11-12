@@ -12,13 +12,14 @@ from app import grants, scope
 from app.auth.principal import Principal
 from app.crud import insert, soft_delete, update
 from app.db import get_session
-from app.enums import FellowshipStatus
+from app.enums import FELLOWSHIP_STATUSES, FellowshipStatus
 from app.errors import forbidden
 from app.models import Fellowship, OrgUnit, Scholar, User
 from app.modules import module_enabled, require_module
 from app.rbac import require_perm
 from app.schemas import Ref
 from app.schemas.grants import FellowshipIn, FellowshipOut, FellowshipUpdate
+from app.sorting import Sort, ordered, ranked
 
 router = APIRouter(
     prefix="/fellowships",
@@ -80,6 +81,7 @@ async def list_fellowships(
     unit_id: uuid.UUID | None = None,
     scholar_id: uuid.UUID | None = None,
     status: FellowshipStatus | None = None,
+    sort: Sort = None,
     limit: int = Query(default=500, ge=1, le=2000),
     offset: int = Query(default=0, ge=0),
     principal: Principal = Depends(require_perm("fellowships", "read")),
@@ -90,9 +92,16 @@ async def list_fellowships(
         stmt = stmt.where(Fellowship.scholar_id == scholar_id)
     if status:
         stmt = stmt.where(Fellowship.status == status)
-    rows = await session.execute(
-        stmt.order_by(Fellowship.end_date.desc(), User.full_name).limit(limit).offset(offset)
-    )
+    columns = {
+        "scholar": User.full_name,
+        "scheme": Fellowship.scheme,
+        "amount": Fellowship.amount_monthly,
+        "period": (Fellowship.start_date, Fellowship.end_date),
+        "status": ranked(Fellowship.status, FELLOWSHIP_STATUSES),
+    }
+    default = [Fellowship.end_date.desc(), User.full_name]
+    stmt = ordered(stmt, sort, columns, default, Fellowship.id)
+    rows = await session.execute(stmt.limit(limit).offset(offset))
     ledger_on = await module_enabled(session, "ledger")
     return [_out(r, principal, ledger_on) for r in rows]
 

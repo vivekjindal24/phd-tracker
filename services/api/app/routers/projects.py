@@ -14,13 +14,14 @@ from app.auth.deps import current_principal
 from app.auth.principal import Principal
 from app.crud import insert, soft_delete, update
 from app.db import get_session
-from app.enums import ProjectStatus
+from app.enums import PROJECT_STATUSES, ProjectStatus
 from app.errors import ApiError, forbidden
 from app.models import Faculty, OrgUnit, Project, ProjectMember, Scholar, User
 from app.modules import module_enabled, require_module
 from app.rbac import not_only_office, require_perm
 from app.schemas import Ref
 from app.schemas.grants import MemberIn, MemberOut, ProjectIn, ProjectOut, ProjectUpdate
+from app.sorting import Sort, ordered, ranked
 
 router = APIRouter(
     prefix="/projects", tags=["projects"], dependencies=[Depends(require_module("projects"))]
@@ -101,6 +102,7 @@ async def _one(session: AsyncSession, principal: Principal, project_id: uuid.UUI
 async def list_projects(
     unit_id: uuid.UUID | None = None,
     status: ProjectStatus | None = None,
+    sort: Sort = None,
     limit: int = Query(default=500, ge=1, le=2000),
     offset: int = Query(default=0, ge=0),
     principal: Principal = Depends(not_only_office),  # then scope decides (PIs, members)
@@ -112,9 +114,16 @@ async def list_projects(
         stmt = stmt.where(Project.unit_id.in_(scope.subtree_unit_ids((path,))))
     if status:
         stmt = stmt.where(Project.status == status)
-    rows = await session.execute(
-        stmt.order_by(Project.start_date.desc()).limit(limit).offset(offset)
-    )
+    columns = {
+        "title": Project.title,
+        "agency": Project.agency,
+        "pi": User.full_name,
+        "sanctioned": Project.amount_sanctioned,
+        "period": (Project.start_date, Project.end_date),
+        "status": ranked(Project.status, PROJECT_STATUSES),
+    }
+    stmt = ordered(stmt, sort, columns, [Project.start_date.desc()], Project.id)
+    rows = await session.execute(stmt.limit(limit).offset(offset))
     return await _outs(session, principal, rows)
 
 

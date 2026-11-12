@@ -11,11 +11,12 @@ from app import apr, items, scope, workflow
 from app.auth.principal import Principal
 from app.crud import insert, update
 from app.db import get_session
-from app.enums import ItemState
+from app.enums import ITEM_STATES, ItemState
 from app.errors import ApiError
 from app.models import OrgUnit, ProgressReport, Scholar, User
 from app.rbac import require_perm
 from app.schemas import ItemView, PeriodActivity, ReportIn, ReportRow, ReportUpdate
+from app.sorting import Sort, ordered, ranked
 
 router = APIRouter(prefix="/reports", tags=["reports"])
 
@@ -26,6 +27,7 @@ async def list_reports(
     unit_id: uuid.UUID | None = None,
     state: ItemState | None = None,
     scholar_id: uuid.UUID | None = None,
+    sort: Sort = None,
     limit: int = Query(default=100, ge=1, le=500),
     offset: int = Query(default=0, ge=0),
     principal: Principal = Depends(require_perm("progress_reports", "read")),
@@ -46,13 +48,15 @@ async def list_reports(
         stmt = stmt.where(ProgressReport.state == state)
     if scholar_id:
         stmt = stmt.where(ProgressReport.scholar_id == scholar_id)
-    rows = await session.execute(
-        stmt.order_by(
-            ProgressReport.report_year.desc(), ProgressReport.period.desc(), User.full_name
-        )
-        .limit(limit)
-        .offset(offset)
-    )
+    columns = {
+        "period": (ProgressReport.report_year, ProgressReport.period),
+        "scholar": User.full_name,
+        "state": ranked(ProgressReport.state, ITEM_STATES),
+        "updated": ProgressReport.updated_at,
+    }
+    default = [ProgressReport.report_year.desc(), ProgressReport.period.desc(), User.full_name]
+    stmt = ordered(stmt, sort, columns, default, ProgressReport.id)
+    rows = await session.execute(stmt.limit(limit).offset(offset))
     out = []
     for r, scholar, name in rows:
         kind = r.chain_snapshot[r.current_step]["kind"] if r.current_step is not None else None

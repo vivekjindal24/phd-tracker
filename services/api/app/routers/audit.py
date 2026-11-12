@@ -17,6 +17,7 @@ from app.enums import AuditAction
 from app.models import AuditLog, Scholar, User
 from app.rbac import require_perm
 from app.schemas import AuditRow
+from app.sorting import Sort, ordered
 
 router = APIRouter(tags=["audit"])
 # Drafts and their versions are the scholar's and supervisor's alone (PRD M3): not even that
@@ -58,6 +59,7 @@ async def read_audit_log(
     scholar_id: uuid.UUID | None = None,
     date_from: date | None = None,
     date_to: date | None = None,
+    sort: Sort = None,
     limit: int = Query(default=100, ge=1, le=500),
     offset: int = Query(default=0, ge=0),
     principal: Principal = Depends(require_perm("audit_log", "read")),
@@ -86,11 +88,14 @@ async def read_audit_log(
         stmt = stmt.where(AuditLog.at <= datetime.combine(date_to, time.max).astimezone())
     # ponytail: filters on `at` and the jsonb scholar_id scan without an index of their own;
     # add (at) and an expression index on data->>'scholar_id' when the log grows large.
-    rows = (
-        await session.execute(
-            stmt.order_by(AuditLog.at.desc(), AuditLog.id.desc()).limit(limit).offset(offset)
-        )
-    ).all()
+    columns = {
+        "when": AuditLog.at,
+        "who": User.full_name,
+        "what": AuditLog.action,
+        "record": AuditLog.table_name,
+    }
+    stmt = ordered(stmt, sort, columns, [AuditLog.at.desc()], AuditLog.id.desc())
+    rows = (await session.execute(stmt.limit(limit).offset(offset))).all()
     ids = {
         r.record_id if r.table_name == "scholars" else (r.data or {}).get("scholar_id")
         for r, _ in rows

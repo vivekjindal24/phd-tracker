@@ -80,7 +80,8 @@ function NoDues() {
 export default function ThesisPage() {
   const { me } = useSession();
   const filter = useScholarFilter();
-  const { data, error, hasMore, more } = usePagedFetch<ThesisRow>(listPath("/theses", filter.params), 200);
+  const [sort, setSort] = useState("");
+  const { data, error, hasMore, more } = usePagedFetch<ThesisRow>(listPath("/theses", filter.params, { sort }), 200);
   const mine = me?.scholar_id ? data?.find((t) => t.scholar.id === me.scholar_id) : undefined;
   const others = data?.filter((t) => t.scholar.id !== me?.scholar_id) ?? [];
 
@@ -100,6 +101,7 @@ export default function ThesisPage() {
       ) : <StartThesis />)}
       {data && (others.length > 0 || !me?.scholar_id) && (
         <Table label="Thesis submissions" head={["Thesis", "Scholar", "State", "Last change"]}
+          sort={{ by: sort, keys: ["title", "scholar", "state", "updated"], onChange: setSort }}
           empty={<div className="empty-state"><Owl pose="empty" size={96} /><h2>{filter.active ? "No submissions match" : "No submissions yet"}</h2></div>}>
           {others.map((t) => (
             <tr key={t.id}>

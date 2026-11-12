@@ -12,11 +12,12 @@ from app.auth.deps import current_principal
 from app.auth.principal import Principal
 from app.crud import update
 from app.db import get_session
-from app.enums import Stage
+from app.enums import STAGES, Stage
 from app.errors import forbidden
 from app.models import Faculty, OrgUnit, Scholar, User
 from app.rbac import require_perm
 from app.schemas import AssignIn, Ref, ScholarOut, ScholarUpdate
+from app.sorting import Sort, ordered, ranked
 
 router = APIRouter(prefix="/scholars", tags=["directory"])
 
@@ -78,6 +79,7 @@ async def list_scholars(
     stage: Stage | None = None,
     supervisor_id: uuid.UUID | None = None,
     mine: bool = False,
+    sort: Sort = None,
     limit: int = Query(default=100, ge=1, le=500),
     offset: int = Query(default=0, ge=0),
     principal: Principal = Depends(current_principal),
@@ -91,7 +93,15 @@ async def list_scholars(
         stmt = stmt.where(Scholar.supervisor_id == supervisor_id)
     if mine:
         stmt = stmt.where(scope.own_scholars(principal))
-    rows = await session.execute(stmt.order_by(User.full_name).limit(limit).offset(offset))
+    columns = {
+        "name": User.full_name,
+        "roll_number": Scholar.roll_number,
+        "department": OrgUnit.name,
+        "stage": ranked(Scholar.stage, STAGES),
+        "supervisor": SupUser.full_name,
+    }
+    stmt = ordered(stmt, sort, columns, [User.full_name], Scholar.id)
+    rows = await session.execute(stmt.limit(limit).offset(offset))
     return [_out(r, principal.co_supervision) for r in rows]
 
 

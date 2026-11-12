@@ -10,12 +10,14 @@ from app import scope
 from app.auth.principal import Principal
 from app.crud import insert, soft_delete, update
 from app.db import get_session
+from app.enums import CONFERENCE_TYPES
 from app.errors import ApiError, forbidden
 from app.models import Conference, Scholar, User
 from app.modules import require_module
 from app.rbac import require_perm
 from app.schemas import Ref
 from app.schemas.research import ConferenceIn, ConferenceOut, ConferenceUpdate
+from app.sorting import Sort, ordered, ranked
 
 router = APIRouter(
     prefix="/conferences",
@@ -63,6 +65,7 @@ async def list_conferences(
     q: str | None = Query(default=None, max_length=100),
     unit_id: uuid.UUID | None = None,
     scholar_id: uuid.UUID | None = None,
+    sort: Sort = None,
     limit: int = Query(default=200, ge=1, le=1000),
     offset: int = Query(default=0, ge=0),
     principal: Principal = Depends(require_perm("conferences", "read")),
@@ -73,9 +76,14 @@ async def list_conferences(
     )
     if scholar_id:
         stmt = stmt.where(Conference.scholar_id == scholar_id)
-    rows = await session.execute(
-        stmt.order_by(Conference.event_date.desc()).limit(limit).offset(offset)
-    )
+    columns = {
+        "date": Conference.event_date,
+        "event": Conference.event_name,
+        "scholar": User.full_name,
+        "contribution": ranked(Conference.event_type, CONFERENCE_TYPES),
+    }
+    stmt = ordered(stmt, sort, columns, [Conference.event_date.desc()], Conference.id)
+    rows = await session.execute(stmt.limit(limit).offset(offset))
     return [_out(r, principal) for r in rows]
 
 

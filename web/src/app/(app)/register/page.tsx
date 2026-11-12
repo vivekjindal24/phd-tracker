@@ -138,9 +138,11 @@ export default function RegisterPage() {
   const { me } = useSession();
   const [status, setStatus] = useState("");
   const [type, setType] = useState("");
+  const [sort, setSort] = useState("");
   const params = new URLSearchParams();
   if (status) params.set("status", status);
   if (type) params.set("milestone_type", type);
+  if (sort) params.set("sort", sort);
   const { data, error, reload, hasMore, more } = usePagedFetch<Milestone>(`/milestones?${params}`, 200);
   const canRecord = me?.roles.some((r) => r === "admin" || r === "research_office") ?? false;
 
@@ -174,6 +176,7 @@ export default function RegisterPage() {
             <Table
               label="RDC register"
               head={["Scholar", "Milestone", "Committee", "Resolution", "Decision"]}
+          sort={{ by: sort, keys: ["scholar", "milestone", "committee", "resolution", "decision"], onChange: setSort }}
               empty={<div className="empty-state"><Owl pose="empty" size={90} /><p>No decisions recorded yet.</p></div>}
             >
               {data.map((m) => (

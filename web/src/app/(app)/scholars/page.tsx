@@ -22,9 +22,11 @@ export default function ScholarsPage() {
     if (onlyScholar && me?.scholar_id) router.replace(`/scholars/${me.scholar_id}`);
   }, [onlyScholar, me, router]);
 
+  const [sort, setSort] = useState("");
   const params = new URLSearchParams();
   if (query) params.set("q", query);
   if (stage) params.set("stage", stage);
+  if (sort) params.set("sort", sort);
   const { data, error, hasMore, more } = usePagedFetch<Scholar>(onlyScholar ? null : `/scholars?${params}`, 100);
 
   if (onlyScholar) return null;
@@ -65,6 +67,7 @@ export default function ScholarsPage() {
         <Table
           label="Scholars"
           head={["Scholar", "Roll number", "Department", "Stage", "Supervisor"]}
+          sort={{ by: sort, keys: ["name", "roll_number", "department", "stage", "supervisor"], onChange: setSort }}
           empty={
             <div className="empty-state">
               <Owl pose="empty" size={96} />

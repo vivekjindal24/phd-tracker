@@ -15,7 +15,8 @@ export default function ReportsPage() {
   const { me } = useSession();
   const [state, setState] = useState("");
   const filter = useScholarFilter();
-  const { data, error, hasMore, more } = usePagedFetch<ReportRow>(listPath("/reports", filter.params, { state }), 500);
+  const [sort, setSort] = useState("");
+  const { data, error, hasMore, more } = usePagedFetch<ReportRow>(listPath("/reports", filter.params, { state, sort }), 500);
   const isScholar = me?.scholar_id != null;
 
   return (
@@ -41,6 +42,7 @@ export default function ReportsPage() {
         <Table
           label="Progress reports"
           head={["Period", "Scholar", "State", "Last change"]}
+          sort={{ by: sort, keys: ["period", "scholar", "state", "updated"], onChange: setSort }}
           empty={
             <div className="empty-state">
               <Owl pose="empty" size={96} />

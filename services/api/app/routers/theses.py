@@ -14,7 +14,7 @@ from app import certificate, items, scope, thesis, workflow
 from app.auth.principal import Principal
 from app.crud import insert, update
 from app.db import get_session
-from app.enums import ItemState
+from app.enums import ITEM_STATES, ItemState
 from app.errors import ApiError
 from app.models import (
     ExaminerReport,
@@ -42,6 +42,7 @@ from app.schemas.research import (
     VivaIn,
     VivaUpdate,
 )
+from app.sorting import Sort, ordered, ranked
 
 router = APIRouter(tags=["thesis"], dependencies=[Depends(require_module("documents"))])
 CAN_READ = require_perm("thesis_submissions", "read")
@@ -52,6 +53,7 @@ async def list_theses(
     q: str | None = Query(default=None, max_length=100),
     unit_id: uuid.UUID | None = None,
     state: ItemState | None = None,
+    sort: Sort = None,
     limit: int = Query(default=200, ge=1, le=1000),
     offset: int = Query(default=0, ge=0),
     principal: Principal = Depends(CAN_READ),
@@ -70,9 +72,15 @@ async def list_theses(
     stmt = await scope.narrow_to_scholars(session, stmt, q, unit_id)
     if state:
         stmt = stmt.where(ThesisSubmission.state == state)
-    rows = await session.execute(
-        stmt.order_by(ThesisSubmission.updated_at.desc()).limit(limit).offset(offset)
-    )
+    columns = {
+        "title": ThesisSubmission.title,
+        "scholar": User.full_name,
+        "state": ranked(ThesisSubmission.state, ITEM_STATES),
+        "updated": ThesisSubmission.updated_at,
+    }
+    default = [ThesisSubmission.updated_at.desc()]
+    stmt = ordered(stmt, sort, columns, default, ThesisSubmission.id)
+    rows = await session.execute(stmt.limit(limit).offset(offset))
     out = []
     for t, sid, name in rows:
         step = t.chain_snapshot[t.current_step]["kind"] if t.current_step is not None else None

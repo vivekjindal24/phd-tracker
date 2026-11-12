@@ -262,6 +262,13 @@ loads one page of rows and shows **Show more** while there are further rows.
 The course catalogue is always sent whole, because it also fills the course
 picker.
 
+**Sorting a list.** On the same lists, clicking a column heading sorts by it:
+ascending, then descending, then back to the list's own order (shown by an
+arrow and `aria-sort`). The server sorts before paging (`sort=key` or
+`sort=-key`, from a whitelist per list; anything else is a 422), so **Show
+more** continues the same order. Stages and states sort in workflow order,
+not alphabetically. Seminars, shown as cards, have a **Sort by** select.
+
 **Picking a person in a form.** Where a form asks for a scholar or a faculty
 member (log a meeting, record a decision, schedule a seminar, record a
 project) it lists twenty people at a time: type part of a name to narrow the

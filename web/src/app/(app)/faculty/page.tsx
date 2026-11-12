@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ErrorText, Field, PageHeader, ShowMore, Table } from "@/components/ui/kit";
 import type { Faculty } from "@/lib/types";
 import { useDebounced, usePagedFetch } from "@/lib/useFetch";
+import { listPath } from "@/components/ScholarFilter";
 
 function Load({ load, max }: { load: number; max: number }) {
   const full = load >= max;
@@ -22,8 +23,9 @@ function Load({ load, max }: { load: number; max: number }) {
 export default function FacultyPage() {
   const [q, setQ] = useState("");
   const query = useDebounced(q);
+  const [sort, setSort] = useState("");
   const { data, error, hasMore, more } = usePagedFetch<Faculty>(
-    `/faculty${query ? `?q=${encodeURIComponent(query)}` : ""}`, 200,
+    listPath("/faculty", { q: query, sort }), 200,
   );
 
   return (
@@ -37,6 +39,7 @@ export default function FacultyPage() {
       <ErrorText>{error}</ErrorText>
       {data && (
         <Table label="Faculty" head={["Name", "Designation", "Department", "Scholars (limit)"]}
+          sort={{ by: sort, keys: ["name", "designation", "department", "load"], onChange: setSort }}
           empty={<p className="empty-state">No faculty match.</p>}>
           {data.map((f) => (
             <tr key={f.id}>

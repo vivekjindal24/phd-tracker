@@ -77,7 +77,8 @@ function AddConference({ onAdded }: { onAdded: () => void }) {
 export default function ConferencesPage() {
   const { me } = useSession();
   const filter = useScholarFilter("Scholar name, roll number, event or title");
-  const { data, error, reload, hasMore, more } = usePagedFetch<Conference>(listPath("/conferences", filter.params), 500);
+  const [sort, setSort] = useState("");
+  const { data, error, reload, hasMore, more } = usePagedFetch<Conference>(listPath("/conferences", filter.params, { sort }), 500);
   const [open, setOpen] = useState<string | null>(null);
   const [actError, setActError] = useState<string | null>(null);
   const isScholar = me?.scholar_id != null;
@@ -101,6 +102,7 @@ export default function ConferencesPage() {
       <ErrorText>{error ?? actError}</ErrorText>
       {data && (
         <Table label="Conferences and talks" head={["Date", "Event", "Scholar", "Contribution", ""]}
+          sort={{ by: sort, keys: ["date", "event", "scholar", "contribution", null], onChange: setSort }}
           empty={
             <div className="empty-state">
               <Owl pose="empty" size={96} />

@@ -13,7 +13,7 @@ from app.auth import service as auth_service
 from app.auth.principal import Principal
 from app.crud import insert, soft_delete, update
 from app.db import get_session
-from app.enums import InterviewResult
+from app.enums import ENTRANCE_ROUTES, INTERVIEW_RESULTS, InterviewResult
 from app.errors import ApiError, forbidden
 from app.models import Admission, OrgUnit, Scholar
 from app.modules import require_module
@@ -27,6 +27,7 @@ from app.schemas.administration import (
     ConvertIn,
     ConvertOut,
 )
+from app.sorting import Sort, ordered, ranked
 
 router = APIRouter(
     prefix="/admissions", tags=["admissions"], dependencies=[Depends(require_module("admissions"))]
@@ -77,6 +78,7 @@ async def _writable(session: AsyncSession, principal: Principal, admission_id: u
 async def list_admissions(
     unit_id: uuid.UUID | None = None,
     interview_result: InterviewResult | None = None,
+    sort: Sort = None,
     limit: int = Query(default=500, ge=1, le=2000),
     offset: int = Query(default=0, ge=0),
     principal: Principal = Depends(require_perm("admissions", "read")),
@@ -88,9 +90,15 @@ async def list_admissions(
         stmt = stmt.where(Admission.unit_id.in_(scope.subtree_unit_ids((path,))))
     if interview_result:
         stmt = stmt.where(Admission.interview_result == interview_result)
-    rows = await session.execute(
-        stmt.order_by(Admission.created_at.desc()).limit(limit).offset(offset)
-    )
+    columns = {
+        "candidate": Admission.candidate_name,
+        "department": OrgUnit.name,
+        "route": ranked(Admission.entrance_route, ENTRANCE_ROUTES),
+        "interview": Admission.interview_date,
+        "result": ranked(Admission.interview_result, INTERVIEW_RESULTS),
+    }
+    stmt = ordered(stmt, sort, columns, [Admission.created_at.desc()], Admission.id)
+    rows = await session.execute(stmt.limit(limit).offset(offset))
     return [_out(r, principal) for r in rows]
 
 

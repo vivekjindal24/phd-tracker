@@ -33,12 +33,14 @@ function AuditLog() {
   const [table, setTable] = useState("");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
+  const [sort, setSort] = useState("");
   const params = new URLSearchParams();
   if (scholar) params.set("scholar_id", scholar.id);
   if (action) params.set("action", action);
   if (table.trim()) params.set("table_name", table.trim().toLowerCase().replace(/ /g, "_"));
   if (from) params.set("date_from", from);
   if (to) params.set("date_to", to);
+  if (sort) params.set("sort", sort);
   const { data, error, hasMore, more } = usePagedFetch<AuditRow>(`/audit-log?${params}`, 100);
 
   return (
@@ -68,6 +70,7 @@ function AuditLog() {
       <ErrorText>{error}</ErrorText>
       {data && (
         <Table label="Audit log" head={["When", "Who", "What", "Record", "Scholar", "Detail"]}
+          sort={{ by: sort, keys: ["when", "who", "what", "record", null, null], onChange: setSort }}
           empty={<div className="empty-state"><h2>Nothing matches</h2><p>Try a wider date range or fewer filters.</p></div>}>
           {data.map((r) => (
             <tr key={r.id}>

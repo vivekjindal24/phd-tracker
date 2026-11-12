@@ -11,6 +11,7 @@ import { useSession } from "@/lib/session";
 import { ENTRANCE_LABELS, RESULT_LABELS } from "@/lib/types";
 import type { Admission, EntranceRoute, InterviewResult, OrgUnit, SettingsData } from "@/lib/types";
 import { errorText, useFetch, usePagedFetch } from "@/lib/useFetch";
+import { listPath } from "@/components/ScholarFilter";
 
 function AddCandidate({ units, onAdded }: { units: OrgUnit[]; onAdded: () => void }) {
   const [v, setV] = useState({ candidate_name: "", email: "", phone: "", unit_id: "", entrance_route: "net_jrf" as EntranceRoute, entrance_score: "", interview_date: "", admitted_on: "" });
@@ -130,7 +131,8 @@ function ResultSelect({ a, onSaved }: { a: Admission; onSaved: () => void }) {
 
 export default function AdmissionsPage() {
   const { me } = useSession();
-  const { data, error, reload, hasMore, more } = usePagedFetch<Admission>("/admissions", 200);
+  const [sort, setSort] = useState("");
+  const { data, error, reload, hasMore, more } = usePagedFetch<Admission>(listPath("/admissions", { sort }), 200);
   const { data: units } = useFetch<OrgUnit[]>("/org-units");
   const emailOn = useFetch<SettingsData>("/settings").data?.email_configured ?? false;
   const isOffice = me?.office_roles.includes("research_office") ?? false;
@@ -145,6 +147,7 @@ export default function AdmissionsPage() {
       <ErrorText>{error}</ErrorText>
       {data && (
         <Table label="Admissions" head={["Candidate", "Department", "Route", "Interview", "Result", ""]}
+          sort={{ by: sort, keys: ["candidate", "department", "route", "interview", "result", null], onChange: setSort }}
           empty={<div className="empty-state"><Owl pose="empty" size={96} /><h2>No candidates yet</h2></div>}>
           {data.map((a) => (
             <tr key={a.id}>

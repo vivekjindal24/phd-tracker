@@ -581,3 +581,31 @@
   gap: var(--space-3);
   font-weight: 400;
 }
+
+/* Sortable column headers (Table `sort`): the whole heading is the button. */
+.th-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+}
+.th-sort-mark {
+  opacity: 0.35;
+  transition: opacity var(--duration-hover);
+}
+.th-sort:hover .th-sort-mark,
+[aria-sort] .th-sort-mark {
+  opacity: 1;
+}
+.th-sort:focus-visible {
+  outline: 2px solid var(--accent-strong);
+  outline-offset: 2px;
+  border-radius: 4px;
+}

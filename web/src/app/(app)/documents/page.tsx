@@ -11,6 +11,7 @@ import { useSession } from "@/lib/session";
 import { DOC_KIND_LABELS } from "@/lib/types";
 import type { DocKind, DocumentItem } from "@/lib/types";
 import { errorText, usePagedFetch } from "@/lib/useFetch";
+import { listPath } from "@/components/ScholarFilter";
 
 function NewDocument() {
   const router = useRouter();
@@ -50,7 +51,8 @@ function NewDocument() {
 
 export default function DocumentsPage() {
   const { me } = useSession();
-  const { data, error, hasMore, more } = usePagedFetch<DocumentItem>("/documents", 200);
+  const [sort, setSort] = useState("");
+  const { data, error, hasMore, more } = usePagedFetch<DocumentItem>(listPath("/documents", { sort }), 200);
   return (
     <>
       <PageHeader eyebrow="Documents & thesis" title="Drafts & chapters" />
@@ -59,6 +61,7 @@ export default function DocumentsPage() {
       <ErrorText>{error}</ErrorText>
       {data && (
         <Table label="Documents" head={["Document", "Scholar", "Kind", "Versions", "Last change"]}
+          sort={{ by: sort, keys: ["title", "scholar", "kind", null, "updated"], onChange: setSort }}
           empty={<div className="empty-state"><Owl pose="empty" size={96} /><h2>No documents yet</h2></div>}>
           {data.map((d) => (
             <tr key={d.id}>

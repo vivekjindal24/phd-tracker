@@ -11,11 +11,12 @@ from app import scope, thesis
 from app.auth.principal import Principal
 from app.crud import insert, soft_delete, update
 from app.db import get_session
-from app.enums import MilestoneStatus, MilestoneType
+from app.enums import MILESTONE_TYPES, MilestoneStatus, MilestoneType
 from app.errors import ApiError, forbidden
 from app.models import Milestone, OrgUnit, Scholar, User
 from app.rbac import require_perm
 from app.schemas import MilestoneIn, MilestoneOut, MilestoneUpdate, Ref
+from app.sorting import Sort, ordered, ranked
 
 router = APIRouter(prefix="/milestones", tags=["register"])
 
@@ -75,6 +76,7 @@ async def list_milestones(
     unit_id: uuid.UUID | None = None,
     milestone_type: MilestoneType | None = None,
     status: MilestoneStatus | None = None,
+    sort: Sort = None,
     limit: int = Query(default=200, ge=1, le=1000),
     offset: int = Query(default=0, ge=0),
     principal: Principal = Depends(require_perm("milestones", "read")),
@@ -88,11 +90,16 @@ async def list_milestones(
         stmt = stmt.where(Milestone.milestone_type == milestone_type)
     if status:
         stmt = stmt.where(Milestone.status == status)
-    rows = await session.execute(
-        stmt.order_by(Milestone.resolution_date.desc().nulls_last(), Milestone.created_at.desc())
-        .limit(limit)
-        .offset(offset)
-    )
+    columns = {
+        "scholar": User.full_name,
+        "milestone": ranked(Milestone.milestone_type, MILESTONE_TYPES),
+        "committee": Milestone.approval_body,
+        "resolution": Milestone.resolution_date,
+        "decision": Milestone.status,
+    }
+    default = [Milestone.resolution_date.desc().nulls_last(), Milestone.created_at.desc()]
+    stmt = ordered(stmt, sort, columns, default, Milestone.id)
+    rows = await session.execute(stmt.limit(limit).offset(offset))
     return [_out(r) for r in rows]
 
 

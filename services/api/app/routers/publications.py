@@ -12,13 +12,14 @@ from app import items, scope, workflow
 from app.auth.principal import Principal
 from app.crud import insert, update
 from app.db import get_session
-from app.enums import ItemState
+from app.enums import ITEM_STATES, ItemState
 from app.errors import ApiError
 from app.models import Publication, Scholar, User
 from app.modules import require_module
 from app.rbac import require_perm
 from app.schemas import ItemView
 from app.schemas.research import PublicationIn, PublicationRow, PublicationUpdate, VerificationIn
+from app.sorting import Sort, ordered, ranked
 
 router = APIRouter(
     prefix="/publications",
@@ -34,6 +35,7 @@ async def list_publications(
     state: ItemState | None = None,
     scholar_id: uuid.UUID | None = None,
     pub_year: int | None = Query(default=None, ge=1950, le=2100),
+    sort: Sort = None,
     limit: int = Query(default=200, ge=1, le=1000),
     offset: int = Query(default=0, ge=0),
     principal: Principal = Depends(require_perm("publications", "read")),
@@ -56,11 +58,15 @@ async def list_publications(
         stmt = stmt.where(Publication.scholar_id == scholar_id)
     if pub_year:
         stmt = stmt.where(Publication.pub_year == pub_year)
-    rows = await session.execute(
-        stmt.order_by(Publication.pub_year.desc(), Publication.updated_at.desc())
-        .limit(limit)
-        .offset(offset)
-    )
+    columns = {
+        "title": Publication.title,
+        "scholar": User.full_name,
+        "venue": Publication.venue,
+        "state": ranked(Publication.state, ITEM_STATES),
+    }
+    default = [Publication.pub_year.desc(), Publication.updated_at.desc()]
+    stmt = ordered(stmt, sort, columns, default, Publication.id)
+    rows = await session.execute(stmt.limit(limit).offset(offset))
     out = []
     for p, sid, name in rows:
         step = p.chain_snapshot[p.current_step]["kind"] if p.current_step is not None else None

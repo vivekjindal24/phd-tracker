@@ -29,6 +29,7 @@ from app.models import (
 from app.notify import notify
 from app.rbac import not_only_office
 from app.schemas import HardcopyIn, SeminarDetail, SeminarIn, SeminarRow, SeminarUpdate
+from app.sorting import Sort, ordered
 
 router = APIRouter(prefix="/seminars", tags=["seminars"])
 
@@ -54,6 +55,7 @@ def _row(s: Seminar, unit_name: str, scholar_count: int) -> dict[str, Any]:
 @router.get("", response_model=list[SeminarRow])
 async def list_seminars(
     upcoming: bool = False,
+    sort: Sort = None,
     limit: int = Query(default=100, ge=1, le=500),
     offset: int = Query(default=0, ge=0),
     principal: Principal = Depends(not_only_office),
@@ -76,11 +78,10 @@ async def list_seminars(
     )
     if upcoming:
         stmt = stmt.where(Seminar.starts_at >= datetime.now(UTC), Seminar.status == "scheduled")
-    rows = await session.execute(
-        stmt.order_by(Seminar.starts_at.asc() if upcoming else Seminar.starts_at.desc())
-        .limit(limit)
-        .offset(offset)
-    )
+    columns = {"date": Seminar.starts_at, "title": Seminar.title, "department": OrgUnit.name}
+    default = [Seminar.starts_at.asc() if upcoming else Seminar.starts_at.desc()]
+    stmt = ordered(stmt, sort, columns, default, Seminar.id)
+    rows = await session.execute(stmt.limit(limit).offset(offset))
     return [_row(s, name, n) for s, name, n in rows]
 
 

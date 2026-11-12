@@ -17,8 +17,9 @@ export default function PublicationsPage() {
   const [state, setState] = useState("");
   const [year, setYear] = useState("");
   const filtered = filter.active || Boolean(state || year);
+  const [sort, setSort] = useState("");
   const { data, error, hasMore, more } = usePagedFetch<PublicationRow>(
-    listPath("/publications", filter.params, { state, pub_year: year }), 500);
+    listPath("/publications", filter.params, { state, pub_year: year, sort }), 500);
   const isScholar = me?.scholar_id != null;
 
   return (
@@ -41,6 +42,7 @@ export default function PublicationsPage() {
       <ErrorText>{error}</ErrorText>
       {data && (
         <Table label="Publications" head={["Title", "Scholar", "Venue", "Indexed", "State"]}
+          sort={{ by: sort, keys: ["title", "scholar", "venue", null, "state"], onChange: setSort }}
           empty={
             <div className="empty-state">
               <Owl pose="empty" size={96} />

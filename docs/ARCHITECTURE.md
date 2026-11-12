@@ -126,6 +126,9 @@ Browser (web)
   then one transaction; templates generated with openpyxl.
 - `crud.py` — shared insert/update/soft-delete/list helpers; every mutation
   writes an `audit_log` row.
+- `sorting.py` — column sorting for paged lists: `sort=key` / `sort=-key`
+  from each list's whitelist, applied before LIMIT/OFFSET with the row id as
+  the last key so pages never repeat or skip rows.
 - `errors.py` — one envelope everywhere: `{"error": {code, message,
   details}}`; constraint violations map to named 409s.
 - `seed.py` — idempotent demo data: a university tree (University → 2

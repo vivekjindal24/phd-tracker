@@ -3,17 +3,20 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Owl } from "@/components/brand/Owl";
-import { Card, ErrorText, PageHeader, ShowMore } from "@/components/ui/kit";
+import { Card, ErrorText, Field, PageHeader, ShowMore } from "@/components/ui/kit";
 import { formatDate, formatWhen } from "@/lib/format";
 import { useSession } from "@/lib/session";
 import type { SeminarRow } from "@/lib/types";
 import { usePagedFetch } from "@/lib/useFetch";
+import { listPath } from "@/components/ScholarFilter";
 import "./seminars.css";
 
 export default function SeminarsPage() {
   const { me } = useSession();
   const [upcoming, setUpcoming] = useState(true);
-  const { data, error, hasMore, more } = usePagedFetch<SeminarRow>(`/seminars?upcoming=${upcoming}`, 100);
+  const [sort, setSort] = useState(""); // cards, not a table: a select stands in for column headers
+  const { data, error, hasMore, more } = usePagedFetch<SeminarRow>(
+    listPath("/seminars", { upcoming: String(upcoming), sort }), 100);
   const canSchedule = me?.roles.some((r) => r === "unit_head" || r === "admin") ?? false;
 
   return (
@@ -29,6 +32,15 @@ export default function SeminarsPage() {
           </div>
         }
       />
+      <div className="toolbar">
+        <Field label="Sort by">
+          <select value={sort} onChange={(e) => setSort(e.target.value)}>
+            <option value="">{upcoming ? "Soonest first" : "Latest first"}</option>
+            <option value="title">Title</option>
+            <option value="department">Department</option>
+          </select>
+        </Field>
+      </div>
       <ErrorText>{error}</ErrorText>
       {data && data.length === 0 && (
         <Card className="empty-state">

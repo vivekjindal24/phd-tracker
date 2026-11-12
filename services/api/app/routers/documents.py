@@ -17,6 +17,7 @@ from app.models import Document, DocumentVersion, FileRow, Scholar, User
 from app.modules import require_module
 from app.rbac import require_perm
 from app.schemas.research import DocumentIn, DocumentOut, DocumentUpdate, VersionIn
+from app.sorting import Sort, ordered
 
 router = APIRouter(
     prefix="/documents", tags=["documents"], dependencies=[Depends(require_module("documents"))]
@@ -83,6 +84,7 @@ async def _own(session: AsyncSession, principal: Principal, document_id: uuid.UU
 @router.get("", response_model=list[DocumentOut])
 async def list_documents(
     scholar_id: uuid.UUID | None = None,
+    sort: Sort = None,
     limit: int = Query(default=500, ge=1, le=500),
     offset: int = Query(default=0, ge=0),
     principal: Principal = Depends(require_perm("documents", "read")),
@@ -91,9 +93,14 @@ async def list_documents(
     stmt = _query(principal)
     if scholar_id:
         stmt = stmt.where(Document.scholar_id == scholar_id)
-    rows = await session.execute(
-        stmt.order_by(Document.updated_at.desc()).limit(limit).offset(offset)
-    )
+    columns = {
+        "title": Document.title,
+        "scholar": User.full_name,
+        "kind": Document.doc_kind,
+        "updated": Document.updated_at,
+    }
+    stmt = ordered(stmt, sort, columns, [Document.updated_at.desc()], Document.id)
+    rows = await session.execute(stmt.limit(limit).offset(offset))
     return [await _out(session, principal, r) for r in rows]
 
 

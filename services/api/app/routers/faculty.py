@@ -12,11 +12,12 @@ from app.auth.deps import current_principal
 from app.auth.principal import Principal
 from app.crud import update
 from app.db import get_session
-from app.enums import UGC_CAP
+from app.enums import DESIGNATIONS, UGC_CAP
 from app.errors import forbidden
 from app.models import Faculty, OrgUnit, User
 from app.rbac import require_perm
 from app.schemas import FacultyOut, FacultyUpdate, Ref
+from app.sorting import Sort, ordered, ranked
 
 router = APIRouter(prefix="/faculty", tags=["directory"])
 
@@ -54,6 +55,7 @@ async def list_faculty(
     unit_id: uuid.UUID | None = None,
     can_supervise: bool | None = None,
     with_capacity: bool = False,
+    sort: Sort = None,
     limit: int = Query(default=200, ge=1, le=500),
     offset: int = Query(default=0, ge=0),
     principal: Principal = Depends(current_principal),
@@ -69,7 +71,14 @@ async def list_faculty(
         stmt = stmt.where(Faculty.can_supervise.is_(can_supervise))
     if with_capacity:  # supervisor pickers list only people below their cap
         stmt = stmt.where(_load < Faculty.max_scholars)
-    rows = await session.execute(stmt.order_by(User.full_name).limit(limit).offset(offset))
+    columns = {
+        "name": User.full_name,
+        "designation": ranked(Faculty.designation, DESIGNATIONS),
+        "department": OrgUnit.name,
+        "load": _load,
+    }
+    stmt = ordered(stmt, sort, columns, [User.full_name], Faculty.id)
+    rows = await session.execute(stmt.limit(limit).offset(offset))
     return [_out(r) for r in rows]
 
 

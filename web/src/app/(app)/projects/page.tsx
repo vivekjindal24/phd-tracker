@@ -13,6 +13,7 @@ import { useSession } from "@/lib/session";
 import { PROJECT_STATUS_LABELS } from "@/lib/types";
 import type { Faculty, Project } from "@/lib/types";
 import { errorText, usePagedFetch } from "@/lib/useFetch";
+import { listPath } from "@/components/ScholarFilter";
 
 function NewProject() {
   const router = useRouter();
@@ -59,7 +60,8 @@ function NewProject() {
 
 export default function ProjectsPage() {
   const { me } = useSession();
-  const { data, error, hasMore, more } = usePagedFetch<Project>("/projects", 200);
+  const [sort, setSort] = useState("");
+  const { data, error, hasMore, more } = usePagedFetch<Project>(listPath("/projects", { sort }), 200);
   const canRecord = me ? me.office_roles.includes("research_office") || me.unit_roles.some((r) => r.role === "admin") : false;
 
   return (
@@ -68,6 +70,7 @@ export default function ProjectsPage() {
       <ErrorText>{error}</ErrorText>
       {data && (
         <Table label="Research projects" head={["Project", "Agency", "PI", "Sanctioned", "Period", "Status"]}
+          sort={{ by: sort, keys: ["title", "agency", "pi", "sanctioned", "period", "status"], onChange: setSort }}
           empty={<div className="empty-state"><Owl pose="empty" size={96} /><h2>No projects yet</h2></div>}>
           {data.map((p) => (
             <tr key={p.id}>

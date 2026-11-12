@@ -110,7 +110,8 @@ function Manage({ f, onSaved }: { f: Fellowship; onSaved: () => void }) {
 export default function FellowshipsPage() {
   const { me } = useSession();
   const filter = useScholarFilter();
-  const { data, error, reload, hasMore, more } = usePagedFetch<Fellowship>(listPath("/fellowships", filter.params), 200);
+  const [sort, setSort] = useState("");
+  const { data, error, reload, hasMore, more } = usePagedFetch<Fellowship>(listPath("/fellowships", filter.params, { sort }), 200);
   const [openId, setOpenId] = useState<string | null>(null);
   const canRecord = me ? me.office_roles.includes("research_office") || me.unit_roles.some((r) => r.role === "admin") : false;
   const open = data?.find((f) => f.id === openId) ?? null;
@@ -123,6 +124,7 @@ export default function FellowshipsPage() {
       <ErrorText>{error}</ErrorText>
       {data && (
         <Table label="Fellowships" head={["Scholar", "Scheme", "Per month", "Period", "Status", ""]}
+          sort={{ by: sort, keys: ["scholar", "scheme", "amount", "period", "status", null], onChange: setSort }}
           empty={<div className="empty-state"><Owl pose="empty" size={96} /><h2>{filter.active ? "No fellowships match" : "No fellowships recorded"}</h2></div>}>
           {data.map((f) => (
             <tr key={f.id}>

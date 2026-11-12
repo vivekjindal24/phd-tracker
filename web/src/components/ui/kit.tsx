@@ -102,16 +102,38 @@ export function ShowMore({ hasMore, more }: { hasMore: boolean; more: () => void
   return <div className="show-more"><Button kind="ghost" onClick={more}>Show more</Button></div>;
 }
 
+/** Server-side column sorting (API `sort=key` / `sort=-key`): `keys` gives each column's sort key,
+ *  null for a column that does not sort; "" is the list's default order. */
+export type ColumnSort = { by: string; keys: (string | null)[]; onChange: (by: string) => void };
+
+// Ascending, then descending, then back to the list's default order.
+const nextSort = (by: string, key: string) => (by === key ? `-${key}` : by === `-${key}` ? "" : key);
+
+function HeadCell({ title, sortKey, sort }: { title: string; sortKey?: string | null; sort?: ColumnSort }) {
+  if (!sort || !sortKey) return <th scope="col">{title}</th>;
+  const dir = sort.by === sortKey ? "ascending" : sort.by === `-${sortKey}` ? "descending" : undefined;
+  return (
+    <th scope="col" aria-sort={dir}>
+      <button type="button" className="th-sort" onClick={() => sort.onChange(nextSort(sort.by, sortKey))}>
+        {title}
+        <span aria-hidden="true" className="th-sort-mark">{dir === "ascending" ? "↑" : dir === "descending" ? "↓" : "↕"}</span>
+      </button>
+    </th>
+  );
+}
+
 export function Table({
   head,
   children,
   empty,
   label,
+  sort,
 }: {
   head: string[];
   children: ReactNode;
   empty?: ReactNode;
   label: string;
+  sort?: ColumnSort;
 }) {
   const hasRows = Array.isArray(children) ? children.length > 0 : Boolean(children);
   return (
@@ -120,10 +142,8 @@ export function Table({
         <table aria-label={label}>
           <thead>
             <tr>
-              {head.map((h) => (
-                <th key={h} scope="col">
-                  {h}
-                </th>
+              {head.map((h, i) => (
+                <HeadCell key={h || i} title={h} sortKey={sort?.keys[i]} sort={sort} />
               ))}
             </tr>
           </thead>
