@@ -268,8 +268,15 @@ clearance is in review or approved. Partial unique `uq_clearance_active
 send_back / resubmit), `to_step` int (send-back destination; NULL = back to
 initiator), `comment` (required for send_back — CHECK), `rating` (NULL, or on an approve
 of an assessed item: satisfactory / needs_improvement / unsatisfactory —
-`ck_actions_rating`), `actor_id` FK users,
+`ck_actions_rating`), `actor_id` FK users, `on_behalf_of` FK users (NULL, or
+the supervisor when a stand-in or the head acted at the supervisor step),
 `at`. Written only by `workflow.py`.
+
+**supervisor_stand_ins** — who acts for a supervisor while they are away
+(PRD F3): `faculty_id` FK faculty (the supervisor; one live row each,
+`uq_stand_ins_faculty`), `stand_in_id` FK faculty (indexed; CHECK ≠
+`faculty_id`), `starts_on`, `ends_on` dates (CHECK `ends_on >= starts_on`).
+Active when today falls in the dates; ended early by soft delete.
 
 ### 3.5 Research record (modules)
 

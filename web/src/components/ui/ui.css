@@ -614,3 +614,8 @@
   outline-offset: 2px;
   border-radius: 4px;
 }
+
+/* A card stacked under another on a plain page (My account). */
+.card-gap {
+  margin-top: var(--space-5);
+}

@@ -166,6 +166,26 @@ A chain may also carry a **Vice Chancellor** step (any holder of that role
 acts); no default chain has one — the root admin adds it where the
 university's ordinance wants the Vice Chancellor's decision.
 
+**Delegation and escalation** (Decided 2026-11-13). No item waits on one
+absent person:
+- **Stand-in:** a supervisor names another supervisor of their own
+  department, with a start and end date (at most 180 days), under My account.
+  In those dates the stand-in approves or sends back at that supervisor's
+  step and reads those scholars' records as the supervisor does; it ends by
+  itself on the end date, or when the supervisor ends it.
+- **Reminder at 7 days:** an item nobody has moved for 7 days is brought back
+  to the people of its step; at the supervisor step that is the supervisor,
+  the stand-in and the department's admins, with a note that a stand-in can
+  be named.
+- **Head steps in at 14 days:** after 14 days at the supervisor step the
+  heads over the scholar's unit are told and may approve or send back in the
+  supervisor's place.
+- Whatever a stand-in or the head does is recorded and shown as done **on
+  behalf of** the supervisor (item history and the report PDF). The other
+  rules are unchanged: nobody acts on an item about themselves or on two
+  steps in a row. Department and office steps need no stand-in: any head or
+  admin at or above the unit, or any holder of the office role, may act.
+
 Acceptance criteria:
 - Only the actor of the current step may approve or send back — enforced
   server-side by the workflow engine; anyone else → 422 `workflow_violation`.

@@ -2,15 +2,25 @@
 (DATABASE.md §3.4). State changes only through app/workflow.py."""
 
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, Integer, Text, func, text
+from sqlalchemy import (
+    CheckConstraint,
+    Date,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    Text,
+    func,
+    text,
+)
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.enums import APPROVAL_ACTIONS, ITEM_STATES, ITEM_TYPES, RATINGS, STEP_KINDS, sql_in
-from app.models.base import Base
+from app.models.base import Base, DomainRow
 
 
 class ApprovalColumns:
@@ -63,7 +73,34 @@ class ApprovalActionRow(Base):
     comment: Mapped[str | None] = mapped_column(Text)
     rating: Mapped[str | None] = mapped_column(Text)  # assessed item types only (items.py)
     actor_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"))
+    # Set when a stand-in or the head acted at the supervisor step: the supervisor's user.
+    on_behalf_of: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id")
+    )
     # clock_timestamp, not now(): several actions in one transaction must still order.
     at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.clock_timestamp()
     )
+
+
+class SupervisorStandIn(DomainRow, Base):
+    """A colleague a supervisor names to act at the supervisor step on their behalf, between two
+    dates (PRD F3). One live row per supervisor; read through Principal.stands_in_for."""
+
+    __tablename__ = "supervisor_stand_ins"
+    __table_args__ = (
+        CheckConstraint("stand_in_id <> faculty_id", name="ck_stand_ins_not_self"),
+        CheckConstraint("ends_on >= starts_on", name="ck_stand_ins_dates"),
+        Index(
+            "uq_stand_ins_faculty",
+            "faculty_id",
+            unique=True,
+            postgresql_where=text("deleted_at IS NULL"),
+        ),
+        Index("ix_stand_ins_stand_in", "stand_in_id"),
+    )
+
+    faculty_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("faculty.id"))
+    stand_in_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("faculty.id"))
+    starts_on: Mapped[date] = mapped_column(Date)
+    ends_on: Mapped[date] = mapped_column(Date)

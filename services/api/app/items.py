@@ -9,6 +9,7 @@ from typing import Any
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import aliased
 
 from app import apr, coursework, ethics, scope, workflow
 from app.auth.principal import Principal
@@ -363,9 +364,11 @@ async def view(session: AsyncSession, principal: Principal, ctx: ItemContext) ->
 
 
 async def history(session: AsyncSession, ctx: ItemContext) -> list[dict[str, Any]]:
+    behalf = aliased(User)
     rows = await session.execute(
-        select(ApprovalActionRow, User.full_name)
+        select(ApprovalActionRow, User.full_name, behalf.full_name)
         .join(User, User.id == ApprovalActionRow.actor_id)
+        .outerjoin(behalf, behalf.id == ApprovalActionRow.on_behalf_of)
         .where(
             ApprovalActionRow.item_type == ctx.item_type, ApprovalActionRow.item_id == ctx.item.id
         )
@@ -373,7 +376,7 @@ async def history(session: AsyncSession, ctx: ItemContext) -> list[dict[str, Any
     )
     steps = ctx.item.chain_snapshot or []
     out = []
-    for a, actor in rows:
+    for a, actor, on_behalf_of in rows:
         to = None
         if a.action == "send_back":
             to = (
@@ -385,6 +388,7 @@ async def history(session: AsyncSession, ctx: ItemContext) -> list[dict[str, Any
             {
                 "action": a.action,
                 "actor": actor,
+                "on_behalf_of": on_behalf_of,  # a stand-in or the head, for the supervisor
                 "step": STEP_LABELS[a.step_kind] if a.step_kind else None,
                 "to": to,
                 "comment": a.comment,

@@ -21,6 +21,7 @@ const brand = {
 const historyEntry = z.object({
   action: z.string(),
   actor: z.string(),
+  on_behalf_of: z.string().nullable().default(null), // a stand-in or the head, for the supervisor
   step: z.string().nullable(),
   to: z.string().nullable(),
   comment: z.string().nullable(),

@@ -254,7 +254,15 @@ regardless of role, and so does a NAAC sheet built from that module.
   are created by the exam office.
 - `can_act(user, item)`: the current step's kind resolves to
   - `supervisor` → the scholar's supervisor, or the co-supervisor when
-    `settings.co_supervision = 'approve'`;
+    `settings.co_supervision = 'approve'`; also the supervisor's named
+    stand-in between its dates (`supervisor_stand_ins`, loaded into
+    `Principal.stands_in_for` on every request), and a `unit_head` over the
+    scholar's unit once the item has not moved for 14 days. Either is
+    recorded in `approval_actions.on_behalf_of`. For its dates a stand-in
+    also reads that supervisor's scholars' records through
+    `scope.scholar_predicate`, as the supervisor does — but is not a party to
+    their meetings, and never sees the personal fields. A supervisor names
+    only a supervisor of their own department, and only for themself;
   - `department` → a `unit_head` or `admin` whose unit is the scholar's unit
     or an ancestor of it (nearest-first, but any of them may act). The
     notification goes to the nearest unit with a head/admin *other than the

@@ -3,12 +3,21 @@
 
 import uuid
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.enums import READ_ALL_ROLES
-from app.models import Faculty, OrgUnit, RoleAssignment, Scholar, Settings, User
+from app.models import (
+    Faculty,
+    OrgUnit,
+    RoleAssignment,
+    Scholar,
+    Settings,
+    SupervisorStandIn,
+    User,
+)
 
 
 @dataclass(frozen=True)
@@ -32,6 +41,15 @@ class Principal:
     scholar_id: uuid.UUID | None = None
     root_path: str | None = None
     is_reviewer: bool = False
+    # Supervisors (faculty ids) who named the caller as their stand-in for today.
+    stands_in_for: tuple[uuid.UUID, ...] = ()
+
+    @property
+    def supervises(self) -> tuple[uuid.UUID, ...]:
+        """Faculty ids whose scholars the caller reads and acts for as supervisor: their own,
+        and those they stand in for today."""
+        own = (self.faculty_id,) if self.faculty_id else ()
+        return (*own, *self.stands_in_for)
 
     @property
     def roles(self) -> frozenset[str]:
@@ -39,7 +57,9 @@ class Principal:
         held = set(self.office_roles) | {r.role for r in self.unit_roles}
         if self.scholar_id is not None:
             held.add("scholar")
-        if self.faculty_id is not None and (self.can_supervise or self.co_supervision != "off"):
+        if self.faculty_id is not None and (
+            self.can_supervise or self.co_supervision != "off" or self.stands_in_for
+        ):
             held.add("supervisor")
         return frozenset(held)
 
@@ -88,7 +108,21 @@ async def load_principal(session: AsyncSession, user: User) -> Principal:
     root_path = await session.scalar(
         select(OrgUnit.path).where(OrgUnit.parent_id.is_(None), OrgUnit.deleted_at.is_(None))
     )
+    today = datetime.now(UTC).date()
+    stands_in_for: tuple[uuid.UUID, ...] = ()
+    if faculty:
+        stands_in_for = tuple(
+            await session.scalars(
+                select(SupervisorStandIn.faculty_id).where(
+                    SupervisorStandIn.stand_in_id == faculty.id,
+                    SupervisorStandIn.deleted_at.is_(None),
+                    SupervisorStandIn.starts_on <= today,
+                    SupervisorStandIn.ends_on >= today,
+                )
+            )
+        )
     return Principal(
+        stands_in_for=stands_in_for,
         user_id=user.id,
         is_reviewer=user.is_reviewer,
         email=user.email,

@@ -85,6 +85,12 @@ non-initiator never sees the New button and the API 403s anyway.
 4. **Send back** → picker: "To the scholar" or any earlier step by name
    (e.g. "Supervisor"); comment required. The receiver is notified and sees
    the reason pinned at the top.
+4a. **Away or slow:** under **My account** a supervisor names a **stand-in**
+   (a supervisor of their department, from and until dates). The stand-in
+   finds the items in **Your queue** and acts as in steps 2-4. An item
+   untouched for 7 days is brought back to its step's people by notification;
+   after 14 days at the supervisor step the head finds it in **Your queue**
+   too. The history then reads "Dr X (on behalf of Dr Y) approved".
 5. Scholar edits a **Sent back** item → **Resubmit** → the chain restarts
    from step 1 with the snapshot taken at the original submit.
 

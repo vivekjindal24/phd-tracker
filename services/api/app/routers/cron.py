@@ -2,29 +2,34 @@
 X-Cron-Secret header, idempotent per day through job_runs. Off when CRON_SECRET is unset."""
 
 import hmac
+import uuid
 from datetime import UTC, date, datetime, timedelta
 
 from fastapi import APIRouter, Depends, Header
-from sqlalchemy import select
+from sqlalchemy import cast, func, literal, select
 from sqlalchemy.dialects.postgresql import distinct_on, insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import reviews
+from app import items, reviews, workflow
 from app.config import settings
 from app.dashboard import DUE_SOON_DAYS, SUBMITTED, deadlines_query
 from app.db import get_session
 from app.errors import ApiError
 from app.grants import pi_and_office_user_ids
 from app.models import (
+    ApprovalActionRow,
     EthicsClearance,
     Faculty,
     Fellowship,
     JobRun,
     Meeting,
+    OrgUnit,
     Project,
+    RoleAssignment,
     Scholar,
     Seminar,
 )
+from app.models.base import Ltree
 from app.modules import module_enabled
 from app.notify import notify
 
@@ -202,6 +207,73 @@ async def _meetings_tomorrow(session: AsyncSession, today: date) -> int:
     return count
 
 
+async def _waiting_approvals(session: AsyncSession, today: date) -> tuple[int, int]:
+    """PRD F3: an item nobody has moved for REMIND_AFTER_DAYS is brought back to the people of
+    its step (at the supervisor step also the department's admins, who can chase it); at
+    ESCALATE_AFTER_DAYS a supervisor-step item goes to the heads, who may now act on it."""
+    # ponytail: exact-day match like the other reminders here, and every in-review item is
+    # read; track reminded rows / push the day test into SQL if either starts to matter.
+    reminded = escalated = 0
+    nobody = uuid.UUID(int=0)
+    for item_type, kind in (await items.enabled_kinds(session)).items():
+        rows = await session.execute(
+            select(kind.model, Scholar, OrgUnit.path)
+            .join(Scholar, Scholar.id == kind.model.scholar_id)
+            .join(OrgUnit, OrgUnit.id == Scholar.unit_id)
+            .where(kind.model.state == "in_review", kind.model.deleted_at.is_(None))
+        )
+        for item, scholar, path in rows:
+            ctx = workflow.ItemContext(item_type, item, scholar, path)
+            step = workflow.current_kind(ctx)
+            since = await session.scalar(
+                select(func.max(ApprovalActionRow.at)).where(
+                    ApprovalActionRow.item_type == item_type,
+                    ApprovalActionRow.item_id == item.id,
+                )
+            )
+            if step is None or since is None:
+                continue
+            days = (today - since.astimezone(UTC).date()).days
+            label = f"{ctx.label} · {kind.title(item)}"
+            if days == workflow.REMIND_AFTER_DAYS:
+                ids = await workflow.step_actor_ids(session, ctx, step, nobody)
+                body = f"Waiting {days} days at the {workflow.STEP_LABELS[step]} step."
+                if step == "supervisor":
+                    ids += await _unit_role_holders(session, path, "admin")
+                    body += (
+                        " A supervisor who is away can name a stand-in under My account; after "
+                        f"{workflow.ESCALATE_AFTER_DAYS} days the head of department may act."
+                    )
+                notify(session, ids, "approval_waiting", f"Still waiting: {label}", body, ctx.link)
+                reminded += 1
+            elif days == workflow.ESCALATE_AFTER_DAYS and step == "supervisor":
+                notify(
+                    session,
+                    await _unit_role_holders(session, path, "unit_head"),
+                    "approval_waiting",
+                    f"Waiting {days} days: {label}",
+                    "The supervisor has not acted. As head you can now approve it or send it "
+                    "back in their place.",
+                    ctx.link,
+                )
+                escalated += 1
+    return reminded, escalated
+
+
+async def _unit_role_holders(session: AsyncSession, unit_path: str, role: str) -> list[uuid.UUID]:
+    """Users holding `role` on the unit or any unit above it."""
+    rows = await session.scalars(
+        select(RoleAssignment.user_id)
+        .join(OrgUnit, OrgUnit.id == RoleAssignment.unit_id)
+        .where(
+            RoleAssignment.deleted_at.is_(None),
+            RoleAssignment.role == role,
+            OrgUnit.path.op("@>")(cast(literal(unit_path), Ltree)),
+        )
+    )
+    return list(rows)
+
+
 @router.post("/daily")
 async def daily(
     x_cron_secret: str | None = Header(default=None),
@@ -227,6 +299,7 @@ async def daily(
     ethics_reminders = await _ethics_expiring(session, today)
     apr_soon, apr_late = await _apr_reminders(session, today)
     meetings = await _meetings_tomorrow(session, today)
+    approvals_reminded, approvals_escalated = await _waiting_approvals(session, today)
     review_counts = await reviews.daily(session, today)
     await session.commit()
     return {
@@ -237,5 +310,7 @@ async def daily(
         "apr_due_soon": apr_soon,
         "apr_overdue": apr_late,
         "meeting_reminders": meetings,
+        "approval_reminders": approvals_reminded,
+        "approval_escalations": approvals_escalated,
         **review_counts,
     }

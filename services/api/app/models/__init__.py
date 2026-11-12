@@ -47,7 +47,7 @@ from app.models.thesis import (
     ThesisSubmission,
     Viva,
 )
-from app.models.workflow import ApprovalActionRow
+from app.models.workflow import ApprovalActionRow, SupervisorStandIn
 
 __all__ = [
     "Admission",
@@ -94,6 +94,7 @@ __all__ = [
     "Settings",
     "ShodhgangaDeposit",
     "SsoState",
+    "SupervisorStandIn",
     "ThesisReview",
     "ThesisReviewComment",
     "ThesisReviewCopy",

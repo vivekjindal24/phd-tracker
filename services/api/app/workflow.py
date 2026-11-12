@@ -6,7 +6,7 @@ State changes ONLY here."""
 
 import uuid
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any, Protocol
 
 from sqlalchemy import cast, func, literal, select
@@ -24,6 +24,7 @@ from app.models import (
     RoleAssignment,
     Scholar,
     Settings,
+    SupervisorStandIn,
 )
 from app.models.base import Ltree
 from app.notify import notify
@@ -97,15 +98,28 @@ def is_guide(principal: Principal, ctx: ItemContext) -> bool:
     )
 
 
+# A waiting item: the step's people are reminded after REMIND_AFTER_DAYS (daily job); at the
+# supervisor step the head may act in the supervisor's place after ESCALATE_AFTER_DAYS (PRD F3).
+REMIND_AFTER_DAYS = 7
+ESCALATE_AFTER_DAYS = 14
+
+
+def _is_step_supervisor(principal: Principal, ctx: ItemContext) -> bool:
+    """The scholar's own supervisor, or co-supervisor where co-supervisors approve."""
+    fid = principal.faculty_id
+    return fid is not None and (
+        ctx.scholar.supervisor_id == fid
+        or (principal.co_supervision == "approve" and ctx.scholar.co_supervisor_id == fid)
+    )
+
+
 def holds_step(principal: Principal, ctx: ItemContext, kind: str) -> bool:
     """Role-level answer: does the caller fill a step of this kind for this scholar?"""
     if principal.user_id == ctx.scholar.user_id:
         return False  # no self-approval
     if kind == "supervisor":
-        fid = principal.faculty_id
-        return fid is not None and (
-            ctx.scholar.supervisor_id == fid
-            or (principal.co_supervision == "approve" and ctx.scholar.co_supervisor_id == fid)
+        return _is_step_supervisor(principal, ctx) or (
+            ctx.scholar.supervisor_id in principal.stands_in_for  # named stand-in, in its dates
         )
     if kind == "department":
         path = ctx.scholar_unit_path
@@ -125,11 +139,27 @@ async def _last_action(session: AsyncSession, ctx: ItemContext) -> ApprovalActio
     )
 
 
+def _head_steps_in(
+    principal: Principal, ctx: ItemContext, kind: str, last: ApprovalActionRow | None
+) -> bool:
+    """Escalation: a head over the scholar's unit acts at a supervisor step nobody has moved
+    for ESCALATE_AFTER_DAYS."""
+    return (
+        kind == "supervisor"
+        and last is not None
+        and principal.user_id != ctx.scholar.user_id
+        and principal.covers("unit_head", ctx.scholar_unit_path)
+        and datetime.now(UTC) - last.at >= timedelta(days=ESCALATE_AFTER_DAYS)
+    )
+
+
 async def can_act(session: AsyncSession, principal: Principal, ctx: ItemContext) -> bool:
     kind = current_kind(ctx)
-    if kind is None or not holds_step(principal, ctx, kind):
+    if kind is None:
         return False
     last = await _last_action(session, ctx)
+    if not (holds_step(principal, ctx, kind) or _head_steps_in(principal, ctx, kind, last)):
+        return False
     # No one approves two consecutive steps of the same item (SECURITY.md §4).
     return not (last and last.action == "approve" and last.actor_id == principal.user_id)
 
@@ -158,6 +188,16 @@ async def step_actor_ids(
         fids = [ctx.scholar.supervisor_id]
         if await _co_supervision(session) == "approve":
             fids.append(ctx.scholar.co_supervisor_id)
+        today = datetime.now(UTC).date()
+        stand_ins = await session.scalars(
+            select(SupervisorStandIn.stand_in_id).where(
+                SupervisorStandIn.faculty_id == ctx.scholar.supervisor_id,
+                SupervisorStandIn.deleted_at.is_(None),
+                SupervisorStandIn.starts_on <= today,
+                SupervisorStandIn.ends_on >= today,
+            )
+        )
+        fids.extend(stand_ins)
         rows = await session.scalars(
             select(Faculty.user_id).where(Faculty.id.in_([f for f in fids if f]))
         )
@@ -204,6 +244,7 @@ def _record(
     to_step: int | None = None,
     comment: str | None = None,
     rating: str | None = None,
+    on_behalf_of: uuid.UUID | None = None,
 ) -> None:
     kind = None
     if step_index is not None and ctx.item.chain_snapshot:
@@ -219,6 +260,7 @@ def _record(
             comment=comment,
             rating=rating,
             actor_id=principal.user_id,
+            on_behalf_of=on_behalf_of,
         )
     )
 
@@ -236,9 +278,19 @@ async def _transition(
 ) -> None:
     prev = snapshot(ctx.item)  # type: ignore[arg-type]
     from_state = ctx.item.state
+    # A stand-in or the head at the supervisor step: the record names whose place they took.
+    behalf = None
+    if (
+        step_index is not None
+        and current_kind(ctx) == "supervisor"
+        and not _is_step_supervisor(principal, ctx)
+    ):
+        behalf = await session.scalar(
+            select(Faculty.user_id).where(Faculty.id == ctx.scholar.supervisor_id)
+        )
     for key, value in changes.items():
         setattr(ctx.item, key, value)
-    _record(session, principal, ctx, action, step_index, to_step, comment, rating)
+    _record(session, principal, ctx, action, step_index, to_step, comment, rating, behalf)
     await session.flush()
     await session.refresh(ctx.item)
     audit(

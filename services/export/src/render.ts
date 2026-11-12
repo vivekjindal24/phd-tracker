@@ -134,7 +134,7 @@ export async function reportPdf(v: ReportView): Promise<Buffer> {
     const where = h.step && h.action !== "submit" ? ` at ${h.step}` : "";
     const to = h.to ? ` (to ${h.to})` : "";
     doc.font("Helvetica-Bold").text(`${ACTIONS[h.action] ?? h.action}${where}${to}`, { continued: true })
-      .font("Helvetica").text(` — ${h.actor}, ${stamp(h.at)}`);
+      .font("Helvetica").text(` — ${h.actor}${h.on_behalf_of ? ` (on behalf of ${h.on_behalf_of})` : ""}, ${stamp(h.at)}`);
     if (h.rating) doc.font("Helvetica-Bold").text(`Assessment: ${RATINGS[h.rating]}`, { indent: 14 }).font("Helvetica");
     if (h.comment) doc.fillColor("#333333").text(`“${h.comment}”`, { indent: 14 }).fillColor("black");
     doc.moveDown(0.3);

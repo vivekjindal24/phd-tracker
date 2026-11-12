@@ -214,7 +214,7 @@ export default function ItemPage() {
               <ol className="history">
                 {item.history.map((h, i) => (
                   <li key={i}>
-                    <strong>{h.actor}</strong> {ACTION_TEXT[h.action] ?? h.action}
+                    <strong>{h.actor}</strong>{h.on_behalf_of && <> (on behalf of {h.on_behalf_of})</>} {ACTION_TEXT[h.action] ?? h.action}
                     {h.step && h.action !== "submit" && ` at ${h.step}`}
                     {h.to && ` → ${h.to}`}
                     <time dateTime={h.at}>{new Date(h.at).toLocaleString()}</time>

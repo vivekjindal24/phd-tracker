@@ -433,6 +433,31 @@ class ScholarOut(BaseModel):
     directory_only: bool = False  # an opened department reading another unit's scholar
 
 
+class StandInIn(BaseModel):
+    stand_in_id: uuid.UUID
+    starts_on: date
+    ends_on: date
+
+
+class StandInOut(BaseModel):
+    stand_in: Ref
+    starts_on: date
+    ends_on: date
+
+
+class StandInFor(BaseModel):
+    supervisor: Ref
+    starts_on: date
+    ends_on: date
+
+
+class StandIns(BaseModel):
+    """The caller's own stand-in (if any) and the supervisors they currently stand in for."""
+
+    mine: StandInOut | None
+    standing_in_for: list[StandInFor]
+
+
 class ScholarOwnProfile(BaseModel):
     """What a scholar fills in about themself; only while a field is still not recorded."""
 
@@ -558,6 +583,7 @@ class SendBackTarget(BaseModel):
 class HistoryEntry(BaseModel):
     action: str
     actor: str
+    on_behalf_of: str | None = None
     step: str | None
     to: str | None
     comment: str | None

@@ -234,7 +234,7 @@ export type ItemView = {
   can_act: boolean;
   send_back_targets: { to_step: number | null; label: string }[];
   blocked_reason: string | null;
-  history: { action: string; actor: string; step: string | null; to: string | null; comment: string | null; rating: Rating | null; at: string }[];
+  history: { action: string; actor: string; on_behalf_of: string | null; step: string | null; to: string | null; comment: string | null; rating: Rating | null; at: string }[];
 };
 
 export type QueueEntry = {

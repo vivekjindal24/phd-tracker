@@ -40,7 +40,8 @@ def scholar_predicate(principal: Principal, entity: str) -> ColumnElement[bool]:
     if "scholar" in roles and principal.scholar_id:
         clauses.append(Scholar.id == principal.scholar_id)
     if "supervisor" in roles and principal.faculty_id:
-        clauses.append(Scholar.supervisor_id == principal.faculty_id)
+        # Their own scholars and those of a supervisor they stand in for today.
+        clauses.append(Scholar.supervisor_id.in_(principal.supervises))
         if principal.co_supervision != "off":
             clauses.append(Scholar.co_supervisor_id == principal.faculty_id)
     paths = _unit_paths(principal, roles)
