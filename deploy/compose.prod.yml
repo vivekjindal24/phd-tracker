@@ -28,7 +28,7 @@ services:
     volumes:
       - ./garage.toml:/etc/garage.toml:ro
       - ${DATA_DIR}/garage/meta:/var/lib/garage/meta
-      - ${DATA_DIR}/garage/data:/var/lib/garage/data
+      - ${GARAGE_DATA_DIR:-${DATA_DIR}/garage/data}:/var/lib/garage/data
 
   api:
     build: ../services/api
@@ -105,10 +105,13 @@ services:
       - "443:443/udp"
     environment:
       SCHEME: ${SCHEME:-https}
+      # What Caddy itself serves; differs from SCHEME only behind a tunnel (compose.tunnel.yml).
+      LISTEN_SCHEME: ${SCHEME:-https}
       DOMAIN: ${DOMAIN}
       FILES_DOMAIN: ${FILES_DOMAIN}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./sites:/etc/caddy/sites:ro
       - ${DATA_DIR}/caddy:/data
     networks:
       default:
