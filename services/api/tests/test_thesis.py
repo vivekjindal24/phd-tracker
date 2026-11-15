@@ -7,7 +7,7 @@ import pytest
 from sqlalchemy import select
 
 from app.models import FileRow, RoleAssignment, Scholar
-from tests.conftest import auth
+from tests.conftest import approved_stages, auth
 from tests.test_publications import enable
 
 
@@ -47,6 +47,7 @@ async def record_title(client, session, world, title="On graphs", **fields):
     scholar_id = await session.scalar(
         select(Scholar.id).where(Scholar.user_id == world.scholar_a1.id)
     )
+    await approved_stages(session, scholar_id, "coursework")  # the stage before the proposal
     return await client.post(
         "/api/v1/milestones",
         headers=auth(world.research_office.id),

@@ -51,7 +51,7 @@ from app.auth.service import create_access_token  # noqa: E402
 from app.db import SessionLocal, engine  # noqa: E402
 from app.enums import DEFAULT_CHAINS, MODULE_KEYS  # noqa: E402
 from app.main import app  # noqa: E402
-from app.models import ApprovalChain, Module  # noqa: E402
+from app.models import ApprovalChain, Milestone, Module  # noqa: E402
 from tests.world import World, build_world  # noqa: E402
 
 API_DIR = Path(__file__).resolve().parent.parent
@@ -130,3 +130,12 @@ APR_SECTIONS = [
     )
 ]
 ASSESS = {"rating": "satisfactory", "comment": "Good progress."}
+
+
+async def approved_stages(session, scholar_id, *stages: str) -> None:
+    """Register stages already approved, for tests that start further along the PhD."""
+    session.add_all(
+        Milestone(scholar_id=scholar_id, milestone_type=s, status="Approved", approval_body="RDC")
+        for s in stages
+    )
+    await session.commit()

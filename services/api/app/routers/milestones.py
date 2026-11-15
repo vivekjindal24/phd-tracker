@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy import Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import scope, thesis
+from app import register, scope, thesis
 from app.auth.principal import Principal
 from app.crud import insert, soft_delete, update
 from app.db import get_session
@@ -113,6 +113,8 @@ async def create_milestone(
     scholar = await scope.get_scholar_or_403(session, principal, body.scholar_id, "milestones")
     await _require_writer(session, principal, scholar)
     _check_title(body.milestone_type, body.approved_title)
+    if body.status == "Approved":
+        await register.check_approval(session, principal, scholar, body.milestone_type)
     m = await insert(session, principal, Milestone(**body.model_dump()))
     await thesis.sync_title(session, principal, scholar.id)
     await session.commit()
@@ -133,6 +135,9 @@ async def update_milestone(
         changes.get("milestone_type", m.milestone_type),
         changes.get("approved_title", m.approved_title),
     )
+    after = (changes.get("milestone_type", m.milestone_type), changes.get("status", m.status))
+    if after[1] == "Approved" and after != (m.milestone_type, m.status):
+        await register.check_approval(session, principal, scholar, after[0])
     await update(session, principal, m, changes)
     await thesis.sync_title(session, principal, scholar.id)
     await session.commit()

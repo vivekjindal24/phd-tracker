@@ -220,6 +220,7 @@ class UserCreate(BaseModel):
 
 
 class UserUpdate(BaseModel):
+    email: EmailStr | None = None
     full_name: Name | None = None
     is_active: bool | None = None
 

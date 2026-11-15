@@ -32,7 +32,10 @@
   toward the login throttle. University-account sign-in (SSO) is not asked: the
   provider guards that account. A set-password or reset link sets the password
   but does not log in while the setting is on (403 `login_required`), so an
-  emailed link cannot skip the code. An admin over the person resets a lost
+  emailed link cannot skip the code. An admin over the person changes their
+  login email (`PATCH /users/{id}`: audited, unique, ends their sessions; the
+  Research Office cannot, since a new email plus a set-password link is the
+  account) and resets a lost
   phone (`POST /users/{id}/two-factor/reset`, which ends their sessions); they
   set it up again at the next login. Known limits: whoever holds a not yet
   enrolled person's password can enrol their own phone, exactly as they could

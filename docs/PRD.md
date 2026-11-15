@@ -329,7 +329,13 @@ approval, RAC review, pre-synopsis, thesis submission, viva, degree awarded),
 status (Pending / Approved / Rejected), approval body (RDC/DPGC/DRC/RAC),
 resolution number and date, notes, and on a proposal approval the approved
 title. A scholar's current RDC status is shown on
-their profile and the head dashboards.
+their profile and the head dashboards. **Order is enforced (2026-11-16):** a
+stage can stand as Approved only when the stage before it in that list is
+Approved (422 `stage_out_of_order`); Pending and Rejected entries are free.
+Degree awarded is recorded as Approved only by the Research Office, and only
+for a scholar with a supervisor, a recorded committee (F9b) and at least one
+approved progress report (422 `award_not_ready`). Bulk import of past history
+is not gated.
 
 **F9b — Research Advisory Committee** (Decided 2026-11-10). Each scholar has a
 committee: the supervisor convenes it, and the other members are recorded per

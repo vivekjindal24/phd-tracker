@@ -28,7 +28,9 @@ async def change_title(client, world, milestone_id, title):
 
 
 async def only_milestone(session):
-    return await session.scalar(select(Milestone.id))
+    return await session.scalar(
+        select(Milestone.id).where(Milestone.milestone_type == "proposal_approval")
+    )
 
 
 async def test_no_thesis_without_an_approved_title(client, world, documents_on):

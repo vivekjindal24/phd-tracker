@@ -178,6 +178,35 @@ function LeftCard({ scholar, onSaved }: { scholar: Scholar; onSaved: (s: Scholar
   );
 }
 
+/** The email is the login name: an admin corrects it, and the scholar signs in with the new one. */
+function EmailCard({ scholar, onSaved }: { scholar: Scholar; onSaved: (s: Scholar) => void }) {
+  const [email, setEmail] = useState(scholar.email);
+  const [error, setError] = useState<string | null>(null);
+
+  async function save(e: FormEvent) {
+    e.preventDefault();
+    setError(null);
+    try {
+      const user = await api<{ email: string }>(`/users/${scholar.user_id}`, { method: "PATCH", body: JSON.stringify({ email }) });
+      onSaved({ ...scholar, email: user.email });
+    } catch (err) {
+      setError(errorText(err));
+    }
+  }
+
+  return (
+    <form className="assign" onSubmit={save}>
+      <div className="row">
+        <Field label="Login email" hint="Changing it signs the scholar out; they log in with the new address.">
+          <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+        </Field>
+        <Button kind="secondary" type="submit" disabled={email.trim() === scholar.email}>Change email</Button>
+      </div>
+      <ErrorText>{error}</ErrorText>
+    </form>
+  );
+}
+
 function Decisions({ scholarId }: { scholarId: string }) {
   const { data } = useFetch<Milestone[]>(`/milestones?scholar_id=${scholarId}`);
   if (!data) return null;
@@ -356,6 +385,7 @@ export default function ScholarProfile() {
               <RequestMember kind="co_supervisor" targetId={scholar.id} title="Ask someone from another department" />
             )}
             <LeftCard scholar={scholar} onSaved={setData} />
+            <EmailCard scholar={scholar} onSaved={setData} />
             <InviteButton userId={scholar.user_id} />
           </Card>
         )}

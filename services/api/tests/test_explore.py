@@ -95,7 +95,7 @@ async def test_timeline_merges_records_with_each_viewers_rights(client, world):
         headers=auth(world.research_office.id),
         json={
             "scholar_id": str(world.s_a1.id),
-            "milestone_type": "rac_review",
+            "milestone_type": "coursework",
             "status": "Approved",
             "approval_body": "RAC",
             "resolution_number": "RAC/26/3",

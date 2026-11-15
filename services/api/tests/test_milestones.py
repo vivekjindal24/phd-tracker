@@ -2,13 +2,15 @@
 
 import pytest
 
-from tests.conftest import auth
+from app.enums import MILESTONE_TYPES
+from app.models import CommitteeMember, ProgressReport
+from tests.conftest import approved_stages, auth
 
 
 def decision(scholar, **extra):
     return {
         "scholar_id": str(scholar.id),
-        "milestone_type": "proposal_approval",
+        "milestone_type": "coursework",
         "status": "Approved",
         "approval_body": "RDC",
         "resolution_number": "RDC/2026/14",
@@ -85,3 +87,48 @@ async def test_update_and_soft_delete(client, world):
 async def test_invalid_values_are_422(client, world):
     res = await _add(client, world.research_office, world.s_a1, approval_body="Senate")
     assert res.status_code == 422
+
+
+async def test_a_stage_needs_the_stage_before_it(client, world):
+    office = world.research_office
+    early = await _add(client, office, world.s_a1, milestone_type="viva")
+    assert (early.status_code, early.json()["error"]["code"]) == (422, "stage_out_of_order")
+    assert "Thesis submission" in early.json()["error"]["message"]
+    # Recording that it is before the committee is always allowed; approving it is not.
+    pending = await _add(client, office, world.s_a1, milestone_type="viva", status="Pending")
+    assert pending.status_code == 201
+    url = f"/api/v1/milestones/{pending.json()['id']}"
+    jump = await client.patch(url, json={"status": "Approved"}, headers=auth(office.id))
+    assert jump.json()["error"]["code"] == "stage_out_of_order"
+    notes = await client.patch(url, json={"notes": "Adjourned"}, headers=auth(office.id))
+    assert notes.status_code == 200
+    for stage in MILESTONE_TYPES[:5]:  # coursework … thesis submission, in order
+        res = await _add(client, office, world.s_a1, milestone_type=stage)
+        assert res.status_code == 201, (stage, res.text)
+    assert (
+        await client.patch(url, json={"status": "Approved"}, headers=auth(office.id))
+    ).status_code == 200
+
+
+async def test_degree_is_awarded_only_on_a_complete_record(client, world, session):
+    scholar = world.s_b1  # no committee, no approved report
+    await approved_stages(session, scholar.id, *MILESTONE_TYPES[:6])
+    award = {"milestone_type": "degree_awarded"}
+    admin = await _add(client, world.root_admin, scholar, **award)
+    assert admin.status_code == 403  # admins record the stages; the award is the office's
+    bare = await _add(client, world.research_office, scholar, **award)
+    assert (bare.status_code, bare.json()["error"]["code"]) == (422, "award_not_ready")
+    assert "committee" in bare.json()["error"]["message"]
+    assert "progress report" in bare.json()["error"]["message"]
+    session.add(CommitteeMember(scholar_id=scholar.id, name="Prof. R. Sen", institution="IIT"))
+    session.add(
+        ProgressReport(
+            scholar_id=scholar.id,
+            report_year=2026,
+            period="January-June",
+            summary="Done.",
+            state="approved",
+        )
+    )
+    await session.commit()
+    assert (await _add(client, world.research_office, scholar, **award)).status_code == 201

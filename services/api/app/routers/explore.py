@@ -14,7 +14,6 @@ from app import meetings, scope, seminars
 from app.auth.deps import current_principal
 from app.auth.principal import Principal
 from app.db import get_session
-from app.enums import MILESTONE_TYPES
 from app.models import (
     Conference,
     CourseworkClearance,
@@ -32,11 +31,11 @@ from app.models import (
 )
 from app.modules import module_enabled
 from app.rbac import can
+from app.register import MILESTONE_LABELS
 from app.workflow import STEP_LABELS
 
 router = APIRouter(tags=["explore"])
 GROUP_LIMIT = 8
-MILESTONE_LABELS = {k: k.replace("_", " ").capitalize() for k in MILESTONE_TYPES}
 
 
 def _as_dt(value) -> datetime:

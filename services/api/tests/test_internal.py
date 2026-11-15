@@ -37,7 +37,7 @@ async def test_register_view_is_scoped(client, world):
             headers=auth(world.research_office.id),
             json={
                 "scholar_id": str(s.id),
-                "milestone_type": "viva",
+                "milestone_type": "coursework",
                 "status": "Approved",
                 "approval_body": "RDC",
                 "resolution_number": f"R-{s.roll_number}",

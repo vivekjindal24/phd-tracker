@@ -190,3 +190,22 @@ async def test_cannot_deactivate_self(client, world):
         headers=auth(world.root_admin.id),
     )
     assert res.json()["error"]["code"] == "cannot_deactivate_self"
+
+
+async def test_admin_changes_a_login_email(client, world, session):
+    url = f"/api/v1/users/{world.scholar_a1.id}"
+    for user in (world.research_office, world.dean_a, world.scholar_a1):  # not admins over them
+        res = await client.patch(url, json={"email": "x@x.edu"}, headers=auth(user.id))
+        assert res.status_code == 403, user.email
+    taken = await client.patch(
+        url, json={"email": world.scholar_b1.email.upper()}, headers=auth(world.admin_a1.id)
+    )
+    assert (taken.status_code, taken.json()["error"]["code"]) == (409, "duplicate_email")
+    bad = await client.patch(url, json={"email": "not-an-email"}, headers=auth(world.admin_a1.id))
+    assert bad.status_code == 422
+    ok = await client.patch(url, json={"email": "new@x.edu"}, headers=auth(world.admin_a1.id))
+    assert ok.status_code == 200 and ok.json()["email"] == "new@x.edu"
+    logged = await session.scalar(
+        select(AuditLog).where(AuditLog.table_name == "users", AuditLog.action == "update")
+    )
+    assert logged.actor_id == world.admin_a1.id

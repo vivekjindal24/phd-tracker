@@ -166,7 +166,11 @@ async def update_user(
     await _require_admin_over_user(session, principal, user_id)
     if body.is_active is False and user_id == principal.user_id:
         raise ApiError(422, "cannot_deactivate_self", "You cannot deactivate your own account.")
-    await update(session, principal, user, body.model_dump(exclude_unset=True))
+    changes = body.model_dump(exclude_unset=True)
+    if changes.get("email", user.email) != user.email:
+        # The email is the login name: the old sessions end, the next login uses the new one.
+        await auth_service.revoke_all_refresh(session, user_id)
+    await update(session, principal, user, changes)
     await session.commit()
     return user
 
