@@ -23,6 +23,11 @@ CONSTRAINT_ERRORS: dict[str, tuple[int, str, str]] = {
         "A sibling unit already uses an equivalent code.",
     ),
     "uq_apr_active": (409, "duplicate_apr", "A progress report for this period already exists."),
+    "uq_fellowship_claim_month": (
+        409,
+        "duplicate_claim",
+        "This month has already been claimed.",
+    ),
     "uq_thesis_active": (409, "duplicate_thesis", "A thesis submission already exists."),
     "uq_thesis_review_active": (
         409,

@@ -113,6 +113,7 @@ role's scope (§2).
 | coursework clearances | R own | R | R, step (department) | R, step (department) | R, step | create, submit, step | — |
 | admissions | — | — | R | CRUD, convert | CRUD, convert | — | — |
 | fellowships | R own | R supervisees | R | CRUD | CRUD | — | — |
+| fellowship claims | CRU own (edit while draft / sent back), submit | R supervisees, step | R, step (department) | R, step (department) | R, step | — | — |
 | projects & members | R own membership | R own (as PI) | R | CRUD | CRUD | — | — |
 | ledger & UCs | — | R own projects, C expense on own projects | R | CRUD | CRUD | — | — |
 | faculty requests | — | CR for own scholars (co-supervisor, panel), answer own | CR panel in subtree, answer own | CR in subtree, answer own | — | — | — |

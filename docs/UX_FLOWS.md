@@ -354,6 +354,13 @@ new profile. Heads of the unit see the list read-only.
   scholars see their own (and the end date on Home), supervisors their
   scholars'; the daily job reminds the scholar and supervisor 60 days
   before the end.
+- **Monthly claims** (same page, under the fellowships): a scholar with an
+  active fellowship picks the month, enters days of leave and an optional
+  note, **Start claim** → the claim opens as a draft on `/items` →
+  **Submit for approval**. It then appears in each approver's queue in
+  turn; sent back, the scholar corrects leave days or the note and
+  resubmits. Everyone who sees the fellowship sees its claims listed with
+  their state, sortable and exportable like every list.
 - **Projects** (`/projects`, `/projects/<id>`): PI, agency, sanction, members
   (scholars from any unit); the PI and members see the project, heads their
   subtree.

@@ -15,6 +15,7 @@ LISTS = [
     "publications",
     "conferences",
     "fellowships",
+    "fellowship-claims",
     "theses",
 ]
 

@@ -23,6 +23,7 @@ from app.routers import (
     conferences,
     documents,
     faculty,
+    fellowship_claims,
     fellowships,
     meetings,
     milestones,
@@ -148,6 +149,11 @@ _add("fellowships", "Fellowships", fellowships.list_fellowships, "fellowships", 
     *SCHOLAR, ("Roll number", "roll_number"), ("Department", "unit.name"), ("Scheme", "scheme~"),
     ("Per month", "amount_monthly"), ("HRA", "hra_amount"), ("From", "start_date"),
     ("To", "end_date"), ("Status", "status"),
+))  # fmt: skip
+_add("fellowship-claims", "Fellowship claims", fellowship_claims.list_claims, "fellowships", (
+    ("Month", "month"), *SCHOLAR, ("Scheme", "scheme~"), ("Amount", "amount"),
+    ("Leave days", "leave_days"), ("State", "state~"), ("Waiting on", "waiting_on"),
+    ("Submitted", "submitted_at"), ("Approved", "approved_at"),
 ))  # fmt: skip
 _add("projects", "Research projects", projects.list_projects, "projects", (
     ("Project", "title"), ("Sanction number", "sanction_number"), ("Agency", "agency"),

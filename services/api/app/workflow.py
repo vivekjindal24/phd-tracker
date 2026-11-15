@@ -35,6 +35,7 @@ ITEM_LABELS = {
     "coursework_clearance": "Coursework clearance",
     "thesis_submission": "Thesis submission",
     "no_dues_clearance": "No-dues clearance",
+    "fellowship_claim": "Fellowship claim",
 }
 STEP_LABELS = {
     "supervisor": "Supervisor",

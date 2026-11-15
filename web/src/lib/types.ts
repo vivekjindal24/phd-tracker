@@ -10,7 +10,8 @@ export type ItemType =
   | "publication"
   | "coursework_clearance"
   | "thesis_submission"
-  | "no_dues_clearance";
+  | "no_dues_clearance"
+  | "fellowship_claim";
 export type ModuleKey =
   | "publications"
   | "conferences"
@@ -110,6 +111,7 @@ export const ITEM_LABELS: Record<ItemType, string> = {
   coursework_clearance: "Coursework clearance",
   thesis_submission: "Thesis submission",
   no_dues_clearance: "No-dues clearance",
+  fellowship_claim: "Fellowship claim",
 };
 
 export const MODULE_LABELS: Record<ModuleKey, string> = {
@@ -478,7 +480,8 @@ export type CommentTarget =
   | "documents"
   | "thesis_submissions"
   | "coursework_clearances"
-  | "no_dues_clearances";
+  | "no_dues_clearances"
+  | "fellowship_claims";
 export type FileItem = {
   id: string;
   file_name: string;
@@ -739,6 +742,20 @@ export type Fellowship = {
   status: FellowshipStatus;
   can_manage: boolean;
   sees_ledger: boolean;
+};
+export type ClaimContent = { fellowship_id: string; month: string; amount: number; leave_days: number; note: string };
+export type FellowshipClaim = {
+  id: string;
+  scholar: Ref;
+  fellowship_id: string;
+  scheme: FellowshipScheme;
+  month: string;
+  amount: number;
+  leave_days: number;
+  state: ItemState;
+  waiting_on: string | null;
+  submitted_at: string | null;
+  approved_at: string | null;
 };
 export type ProjectStatus = "ongoing" | "completed" | "closed";
 export const PROJECT_STATUS_LABELS: Record<ProjectStatus, string> = { ongoing: "Ongoing", completed: "Completed", closed: "Closed" };

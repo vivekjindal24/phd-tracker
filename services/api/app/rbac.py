@@ -159,6 +159,13 @@ MATRIX: dict[str, dict[str, frozenset[str]]] = {
         "admin": frozenset({R, C, U, D}),  # over the scholar's unit
         "research_office": frozenset({R, C, U, D}),
     },
+    "fellowship_claims": {  # the scholar claims a month; the chain certifies it
+        "scholar": frozenset({R, C, U}),
+        "supervisor": frozenset({R}),
+        "unit_head": frozenset({R}),
+        "admin": frozenset({R}),
+        "research_office": frozenset({R}),
+    },
     "projects": {
         "scholar": frozenset({R}),  # projects they are a member of
         "supervisor": frozenset({R}),

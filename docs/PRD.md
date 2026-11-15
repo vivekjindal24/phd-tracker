@@ -148,9 +148,9 @@ supervisees; scholar sees self; the three offices are university-wide.
 Acceptance: a HoD of Physics never sees a Chemistry scholar (403); a person
 with two roles sees the union of both scopes, never more.
 
-**F3 — Configurable approval chains.** Five item types go through approval
+**F3 — Configurable approval chains.** Six item types go through approval
 chains: **progress report, publication, thesis submission, coursework
-clearance, no-dues clearance**. The root admin configures one chain per item type **for the
+clearance, no-dues clearance, fellowship claim**. The root admin configures one chain per item type **for the
 whole university** (not per unit). Default chains:
 
 | Item | Initiator | Chain |
@@ -160,6 +160,7 @@ whole university** (not per unit). Default chains:
 | Coursework clearance | Exam Office (enters subjects + grades) | Department (confirms) → Exam Office (marks cleared) → Research Office (noted) |
 | Thesis submission | Scholar | Supervisor → Department → Library (plagiarism score) → Exam Office (receipt, examiners) → Research Office (final) |
 | No-dues clearance (when the university requires it, M3) | Scholar | Supervisor (lab dues) → Department → Library (books) → Research Office (fees) |
+| Fellowship claim (module Fellowships, M6) | Scholar | Supervisor (certifies the month) → Department → Research Office |
 
 "Department" step = the head **or** an admin of the scholar's own unit.
 A chain may also carry a **Vice Chancellor** step (any holder of that role
@@ -511,6 +512,15 @@ admission date. Converting an admission creates the scholar profile and login.
 **M6 — Fellowships.** Per scholar: scheme (UGC-JRF/SRF, CSIR, INSPIRE,
 institute, other), monthly amount, HRA, start/end, JRF→SRF upgrade date,
 status.
+- **Monthly claim** (built 2026-11-15): the scholar claims one month of their
+  own active fellowship — the month, days of leave taken, an optional note —
+  and it goes up the fellowship-claim chain (F3). One claim per fellowship
+  per month; only a month inside the fellowship that has already begun. The
+  claim carries the amount the fellowship pays for the month (fellowship +
+  HRA) as it stands when submitted; leave days are recorded for the
+  approvers and do not change the amount. An approved claim is a record of
+  who certified the month: it pays nothing and writes nothing to the ledger
+  (§7) — the office records the payment in the ledger as before.
 
 **M7 — Research projects.** Funded projects: PI (faculty), agency
 (DST/SERB/ICSSR/…), title, sanction number, amount sanctioned, duration,

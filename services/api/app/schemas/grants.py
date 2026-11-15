@@ -2,14 +2,15 @@
 with utilisation certificates (PRD M6-M8)."""
 
 import uuid
-from datetime import date
+from datetime import date, datetime
 from typing import Annotated
 
-from pydantic import BaseModel, Field, StringConstraints, model_validator
+from pydantic import BaseModel, Field, StringConstraints, field_validator, model_validator
 
 from app.enums import (
     FellowshipScheme,
     FellowshipStatus,
+    ItemState,
     LedgerHead,
     LedgerKind,
     LedgerWarning,
@@ -71,6 +72,48 @@ class FellowshipOut(BaseModel):
     status: FellowshipStatus
     can_manage: bool
     sees_ledger: bool
+
+
+LeaveDays = Annotated[int, Field(ge=0, le=31)]
+
+
+class ClaimIn(BaseModel):
+    """One month of a fellowship; `month` is YYYY-MM."""
+
+    fellowship_id: uuid.UUID
+    month: date
+    leave_days: LeaveDays = 0
+    note: Notes = ""
+
+    @field_validator("month", mode="before")
+    @classmethod
+    def _first_of_month(cls, value: object) -> object:
+        return f"{value}-01" if isinstance(value, str) and len(value) == 7 else value
+
+    @model_validator(mode="after")
+    def _whole_month(self) -> "ClaimIn":
+        if self.month.day != 1:
+            raise ValueError("a claim is for a whole month (YYYY-MM)")
+        return self
+
+
+class ClaimUpdate(BaseModel):
+    leave_days: LeaveDays | None = None
+    note: Notes | None = None
+
+
+class ClaimRow(BaseModel):
+    id: uuid.UUID
+    scholar: Ref
+    fellowship_id: uuid.UUID
+    scheme: FellowshipScheme
+    month: date
+    amount: float
+    leave_days: int
+    state: ItemState
+    waiting_on: str | None
+    submitted_at: datetime | None
+    approved_at: datetime | None
 
 
 # --- projects -------------------------------------------------------------------------------

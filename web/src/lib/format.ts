@@ -6,6 +6,10 @@ export const formatDate = (iso: string) =>
     year: "numeric",
   });
 
+/** "October 2026" from the first day of a month (YYYY-MM-01). */
+export const formatMonth = (iso: string) =>
+  new Date(`${iso}T00:00:00`).toLocaleDateString(undefined, { month: "long", year: "numeric" });
+
 /** "Fri, 20 Nov, 10:00" in the viewer's time zone. */
 export const formatWhen = (iso: string) =>
   new Date(iso).toLocaleString(undefined, {

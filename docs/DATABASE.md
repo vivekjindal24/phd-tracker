@@ -124,7 +124,7 @@ University-wide switches that are not modules live here.
 
 **approval_chains** — `item_type` PK CHECK (`progress_report`,
 `publication`, `coursework_clearance`, `thesis_submission`,
-`no_dues_clearance`), `steps` jsonb:
+`no_dues_clearance`, `fellowship_claim`), `steps` jsonb:
 ordered array of `{"kind": …}` where kind ∈ `supervisor` / `department` /
 `research_office` / `exam_office` / `library` / `vice_chancellor`; CHECK non-empty array (kinds
 validated by Pydantic). One chain per item type, university-wide. Seeded with
@@ -316,6 +316,14 @@ numeric(10,2), `hra_amount` numeric(10,2), `start_date`, `end_date`,
 completed / terminated); CHECKs `end_date >= start_date`, amounts ≥ 0. Scoped
 by the scholar (`scope.scholar_predicate`).
 
+**fellowship_claims** (module `fellowships`, migration 0033) — `scholar_id`,
+`fellowship_id`, `month` date (its first day, CHECK), `leave_days` int CHECK
+0–31 (default 0), `amount` numeric(12,2) ≥ 0 (fellowship + HRA for the month,
+refreshed at every submit), `note` text + approval columns (item type
+`fellowship_claim`). Partial unique `uq_fellowship_claim_month (fellowship_id,
+month) WHERE deleted_at IS NULL`: one claim a month. Scoped through
+`scholar_id` like every scholar record; never touches `ledger_entries`.
+
 **projects** (module `projects`) — `pi_id` FK faculty, `unit_id` FK (scope
 anchor; defaults to the PI's unit), `agency`, `title`, `sanction_number`
 (partial UNIQUE among live rows), `amount_sanctioned` numeric(12,2),
@@ -355,7 +363,8 @@ is the owner record's
 **comments** — flat threads; `(table_name, record_id)` polymorphic pair
 (indexed, CHECK whitelist of commentable tables — scholars, meetings,
 progress_reports, milestones, publications, conferences, documents,
-thesis_submissions, coursework_clearances, no_dues_clearances), `author_id`, `body`
+thesis_submissions, coursework_clearances, no_dues_clearances,
+fellowship_claims), `author_id`, `body`
 (1–4000 chars). Visibility = the target record's `get_or_403`.
 
 **notifications** — `user_id` (indexed), `category` CHECK

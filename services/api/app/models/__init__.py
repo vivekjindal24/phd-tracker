@@ -6,6 +6,7 @@ from app.models.duration import TimeAdjustment
 from app.models.files import FileRow
 from app.models.grants import (
     Fellowship,
+    FellowshipClaim,
     LedgerEntry,
     Project,
     ProjectMember,
@@ -68,6 +69,7 @@ __all__ = [
     "Faculty",
     "FacultyRequest",
     "Fellowship",
+    "FellowshipClaim",
     "FileRow",
     "JobRun",
     "LedgerEntry",

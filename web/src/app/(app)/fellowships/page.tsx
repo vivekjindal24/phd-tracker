@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { Owl } from "@/components/brand/Owl";
+import { FellowshipClaims } from "@/components/FellowshipClaims";
 import { Ledger } from "@/components/Ledger";
 import { listPath, useScholarFilter } from "@/components/ScholarFilter";
 import { ScholarSearch } from "@/components/ScholarSearch";
@@ -153,6 +154,7 @@ export default function FellowshipsPage() {
           {open.sees_ledger && <><h3>Ledger</h3><Ledger owner={{ fellowship_id: open.id }} /></>}
         </Card>
       )}
+      {data && <FellowshipClaims own={data.filter((f) => f.scholar.id === me?.scholar_id && f.status === "active")} params={filter.params} />}
     </>
   );
 }

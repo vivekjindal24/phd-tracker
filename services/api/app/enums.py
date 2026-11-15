@@ -52,6 +52,7 @@ ItemType = Literal[
     "coursework_clearance",
     "thesis_submission",
     "no_dues_clearance",
+    "fellowship_claim",
 ]
 ITEM_TYPES = get_args(ItemType)
 
@@ -234,6 +235,7 @@ CommentTarget = Literal[
     "thesis_submissions",
     "coursework_clearances",
     "no_dues_clearances",
+    "fellowship_claims",
 ]
 COMMENT_TARGETS = get_args(CommentTarget)
 
@@ -263,6 +265,7 @@ INITIATOR: dict[str, str] = {
     "thesis_submission": "scholar",
     "coursework_clearance": "exam_office",
     "no_dues_clearance": "scholar",
+    "fellowship_claim": "scholar",
 }
 DEFAULT_CHAINS: dict[str, tuple[str, ...]] = {
     "progress_report": ("supervisor", "department", "research_office"),
@@ -270,6 +273,8 @@ DEFAULT_CHAINS: dict[str, tuple[str, ...]] = {
     "coursework_clearance": ("department", "exam_office", "research_office"),
     # PRD M3: lab dues (supervisor), department, books (library), fees (research office)
     "no_dues_clearance": ("supervisor", "department", "library", "research_office"),
+    # PRD M6: the guide certifies the month, the department forwards, the office accepts
+    "fellowship_claim": ("supervisor", "department", "research_office"),
     "thesis_submission": (
         "supervisor",
         "department",

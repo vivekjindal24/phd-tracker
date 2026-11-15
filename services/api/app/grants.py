@@ -4,7 +4,7 @@ module only applies it. Writes: the research office anywhere, an admin over the 
 may add expenses to their own project (SECURITY.md §3)."""
 
 import uuid
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta, timezone
 from typing import Any
 
 from sqlalchemy import ColumnElement, cast, exists, func, literal, select
@@ -12,11 +12,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import scope
 from app.auth.principal import Principal
+from app.crud import update
 from app.enums import LEDGER_HEADS, ModuleKey
 from app.errors import ApiError, forbidden
 from app.models import (
     Faculty,
     Fellowship,
+    FellowshipClaim,
     LedgerEntry,
     OrgUnit,
     Project,
@@ -168,6 +170,33 @@ def check_dates(start: date, end: date, srf_upgrade_on: date | None = None) -> N
         raise ApiError(
             422, "invalid_dates", "The SRF upgrade date must fall within the fellowship."
         )
+
+
+def check_claim(fellowship: Fellowship, month: date) -> None:
+    """A month may be claimed while the fellowship runs, once that month has begun."""
+    if fellowship.status != "active":
+        raise ApiError(422, "fellowship_not_active", "This fellowship is no longer active.")
+    if not fellowship.start_date.replace(day=1) <= month <= fellowship.end_date:
+        raise ApiError(422, "invalid_month", "That month is outside the fellowship.")
+    if month > datetime.now(UTC).date():
+        raise ApiError(422, "invalid_month", "That month has not begun yet.")
+
+
+def claim_amount(fellowship: Fellowship) -> float:
+    return fellowship.amount_monthly + fellowship.hra_amount
+
+
+async def refresh_claim(
+    session: AsyncSession, principal: Principal, claim: FellowshipClaim
+) -> None:
+    """Before every submit: the fellowship must still cover the month, and the claim carries
+    the amount the fellowship pays now (an SRF upgrade may have come since the draft)."""
+    fellowship = await session.get(Fellowship, claim.fellowship_id)
+    if fellowship is None or fellowship.deleted_at is not None:
+        raise ApiError(422, "fellowship_not_active", "This fellowship is no longer on record.")
+    check_claim(fellowship, claim.month)
+    if claim.amount != claim_amount(fellowship):
+        await update(session, principal, claim, {"amount": claim_amount(fellowship)})
 
 
 async def _entries(session: AsyncSession, owned: ColumnElement[bool]) -> list[LedgerEntry]:

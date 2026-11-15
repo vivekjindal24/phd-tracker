@@ -11,7 +11,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
-from app import apr, coursework, ethics, scope, workflow
+from app import apr, coursework, ethics, grants, scope, workflow
 from app.auth.principal import Principal
 from app.crud import update
 from app.enums import STAGES
@@ -20,6 +20,7 @@ from app.models import (
     ApprovalActionRow,
     ApprovalChain,
     CourseworkClearance,
+    FellowshipClaim,
     FileRow,
     NoDuesClearance,
     OrgUnit,
@@ -163,6 +164,20 @@ def _publication_content(p: Publication, _: Principal) -> dict[str, Any]:
     }
 
 
+def _claim_content(c: FellowshipClaim, _: Principal) -> dict[str, Any]:
+    return {
+        "fellowship_id": c.fellowship_id,
+        "month": c.month,
+        "amount": c.amount,
+        "leave_days": c.leave_days,
+        "note": c.note,
+    }
+
+
+async def _claim_ready(session: AsyncSession, principal: Principal, ctx: ItemContext) -> None:
+    await grants.refresh_claim(session, principal, ctx.item)
+
+
 REGISTRY: dict[str, ItemKind] = {
     "progress_report": ItemKind(
         ProgressReport,
@@ -206,6 +221,14 @@ REGISTRY: dict[str, ItemKind] = {
         lambda _: "No-dues clearance",
         lambda _c, _p: {},
         "documents",
+    ),
+    "fellowship_claim": ItemKind(
+        FellowshipClaim,
+        "fellowship_claims",
+        lambda c: f"{c.month:%B %Y}",
+        _claim_content,
+        "fellowships",
+        before_submit=_claim_ready,
     ),
 }
 

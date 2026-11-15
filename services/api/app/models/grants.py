@@ -4,7 +4,7 @@ members, and a ledger that records money in and out — it does not pay (PRD §7
 import uuid
 from datetime import date
 
-from sqlalchemy import CheckConstraint, Date, ForeignKey, Index, Numeric, Text, text
+from sqlalchemy import CheckConstraint, Date, ForeignKey, Index, Integer, Numeric, Text, text
 from sqlalchemy.dialects.postgresql import ARRAY, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -18,6 +18,7 @@ from app.enums import (
 )
 from app.models.base import Base, DomainRow
 from app.models.org import LIVE
+from app.models.workflow import ApprovalColumns, approval_constraints
 
 Money = Numeric(12, 2, asdecimal=False)
 
@@ -43,6 +44,37 @@ class Fellowship(DomainRow, Base):
     end_date: Mapped[date] = mapped_column(Date)
     srf_upgrade_on: Mapped[date | None] = mapped_column(Date)
     status: Mapped[str] = mapped_column(Text, server_default=text("'active'"))
+
+
+class FellowshipClaim(ApprovalColumns, DomainRow, Base):
+    """One month of a fellowship, claimed by the scholar and certified up its approval chain.
+    It records who vouched for the month; what was paid stays in the ledger (PRD §7)."""
+
+    __tablename__ = "fellowship_claims"
+    __table_args__ = (
+        *approval_constraints("fellowship_claims"),
+        CheckConstraint("extract(day FROM month) = 1", name="ck_fellowship_claims_month"),
+        CheckConstraint("leave_days BETWEEN 0 AND 31", name="ck_fellowship_claims_leave"),
+        CheckConstraint("amount >= 0", name="ck_fellowship_claims_amount"),
+        Index(
+            "uq_fellowship_claim_month",
+            "fellowship_id",
+            "month",
+            unique=True,
+            postgresql_where=LIVE,
+        ),
+    )
+
+    scholar_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("scholars.id"), index=True
+    )
+    fellowship_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("fellowships.id")
+    )
+    month: Mapped[date] = mapped_column(Date)  # its first day
+    leave_days: Mapped[int] = mapped_column(Integer, server_default=text("0"))
+    amount: Mapped[float] = mapped_column(Money)  # fellowship + HRA for the month, at submit
+    note: Mapped[str] = mapped_column(Text, server_default=text("''"))
 
 
 class Project(DomainRow, Base):

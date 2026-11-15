@@ -7,6 +7,7 @@ import { Comments } from "@/components/Comments";
 import { DownloadButton } from "@/components/DownloadButton";
 import { Celebrate, firstTime } from "@/components/Celebrate";
 import { ChainSteps } from "@/components/items/ChainSteps";
+import { ClaimDetails } from "@/components/items/ClaimDetails";
 import { ClearanceDetails } from "@/components/items/ClearanceDetails";
 import { PublicationDetails } from "@/components/items/PublicationDetails";
 import { ReportDetails } from "@/components/items/ReportDetails";
@@ -37,6 +38,7 @@ const RECORD_TABLE: Partial<Record<ItemType, CommentTarget>> = {
   thesis_submission: "thesis_submissions",
   coursework_clearance: "coursework_clearances",
   no_dues_clearance: "no_dues_clearances",
+  fellowship_claim: "fellowship_claims",
 };
 
 /** The type-specific record card; the chain, actions and history around it are generic. */
@@ -45,6 +47,7 @@ function ItemContent({ item, onSaved }: { item: ItemView; onSaved: (v: ItemView)
   if (item.item_type === "publication") return <PublicationDetails item={item} onSaved={onSaved} />;
   if (item.item_type === "thesis_submission") return <ThesisDetails item={item} onSaved={onSaved} />;
   if (item.item_type === "coursework_clearance") return <ClearanceDetails item={item} />;
+  if (item.item_type === "fellowship_claim") return <ClaimDetails item={item} onSaved={onSaved} />;
   return null;
 }
 
