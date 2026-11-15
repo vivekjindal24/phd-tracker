@@ -9,7 +9,8 @@ design; this is the operator's checklist. Commands run from the repo root.
 
 - Two DNS names pointing at the server, e.g. `phd.univ.ac.in` (the app) and
   `files.phd.univ.ac.in` (file downloads/uploads), with ports 80 and 443 open to
-  them. Caddy gets and renews the certificates.
+  them. Caddy gets and renews the certificates. No public address or open ports?
+  See Behind a Cloudflare Tunnel below.
 - Full-disk encryption on the data disk and on the backup disk (SECURITY.md §8):
   the local backups are plain files.
 - Recommended: S3-compatible storage somewhere else for the encrypted off-site
@@ -32,6 +33,47 @@ the org tree in Settings. Check: `https://<DOMAIN>/api/v1/healthz` answers
 
 To trial the stack on a laptop: `SCHEME=http`, `DOMAIN=localhost`,
 `FILES_DOMAIN=files.localhost`, and `DATA_DIR`/`BACKUP_DIR` in your home folder.
+
+Uploaded files live in `DATA_DIR/garage/data` unless `GARAGE_DATA_DIR` points
+elsewhere, e.g. a larger disk; size `GARAGE_CAPACITY` to that disk.
+
+## Behind a Cloudflare Tunnel
+
+For a server that cannot take incoming connections (no public address, no ports
+80/443). `cloudflared` dials out to Cloudflare, which ends TLS and passes the
+requests to Caddy over plain http; no port is published on the host.
+
+1. In Cloudflare Zero Trust, create a tunnel (Networks → Tunnels, type
+   cloudflared) and add two public hostnames, `DOMAIN` and `FILES_DOMAIN`, both
+   to the service `http://caddy:80`. Use names one level below your zone
+   (`phd.example.org`, `phd-files.example.org`): the free certificate does not
+   cover deeper names.
+2. Add a Cache Rule that bypasses the cache for `FILES_DOMAIN`: presigned
+   links end in the real file name, so Cloudflare would otherwise cache files
+   and serve them past the link's expiry.
+3. In `deploy/.env`: `SCHEME=https`, the tunnel's token in `TUNNEL_TOKEN`, and
+   `MAX_UPLOAD_MB` below Cloudflare's request limit (100 MB on the free plan).
+4. Add `-f deploy/compose.tunnel.yml` after `-f deploy/compose.prod.yml` on
+   every compose command in this file (`garage-init.sh` works unchanged):
+
+```bash
+C="docker compose -f deploy/compose.prod.yml -f deploy/compose.tunnel.yml --env-file deploy/.env"
+$C up -d --build
+```
+
+The public URLs stay https; inside, the API reaches the file store through
+Cloudflare at `https://<FILES_DOMAIN>` like browsers do, so presigned
+signatures still match.
+
+To keep an old name working, e.g. after moving `DOMAIN`, add a tunnel hostname
+for it and a site block in `deploy/sites/<name>.caddy` (not committed; Caddy
+imports every `*.caddy` there):
+
+```
+{$LISTEN_SCHEME}://old.example.org {
+	redir {$SCHEME}://{$DOMAIN}{uri} permanent
+}
+```
 
 ## Upgrade
 

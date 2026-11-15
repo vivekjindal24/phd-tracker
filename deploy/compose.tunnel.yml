@@ -1,0 +1,20 @@
+# Behind a Cloudflare Tunnel (deploy/README.md): no open ports, TLS ends at Cloudflare.
+# A second -f file on top of compose.prod.yml, on every compose command:
+#   docker compose -f deploy/compose.prod.yml -f deploy/compose.tunnel.yml --env-file deploy/.env up -d --build
+# Public URLs stay SCHEME (https); Caddy serves plain http to cloudflared on the compose network.
+services:
+  caddy:
+    environment:
+      LISTEN_SCHEME: http
+    ports: !reset []
+    # No FILES_DOMAIN alias: TLS for that name lives at Cloudflare now, so the API reaches
+    # the file store through its public https URL, the same one browsers use.
+    networks: !reset {}
+
+  cloudflared:
+    image: cloudflare/cloudflared:2026.10.7
+    restart: unless-stopped
+    command: tunnel run
+    environment:
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN:?set TUNNEL_TOKEN in deploy/.env}
+    depends_on: [caddy]

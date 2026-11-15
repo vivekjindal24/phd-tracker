@@ -1,6 +1,8 @@
 # One origin for the app (web, /api, /export) and one for presigned file URLs.
 # Automatic HTTPS when SCHEME=https; SCHEME=http only for a local trial.
-{$SCHEME}://{$DOMAIN} {
+# Caddy serves LISTEN_SCHEME, which is SCHEME except behind a tunnel that ends TLS
+# (compose.tunnel.yml): there public URLs stay SCHEME and Caddy serves plain http.
+{$LISTEN_SCHEME}://{$DOMAIN} {
 	encode zstd gzip
 	header {
 		Strict-Transport-Security "max-age=31536000; includeSubDomains"
@@ -23,7 +25,7 @@
 
 # Browsers PUT/GET file bytes here with short-lived presigned URLs (SECURITY.md §6).
 # Garage has no per-bucket CORS of its own here, so Caddy answers for it.
-{$SCHEME}://{$FILES_DOMAIN} {
+{$LISTEN_SCHEME}://{$FILES_DOMAIN} {
 	header {
 		Access-Control-Allow-Origin "{$SCHEME}://{$DOMAIN}"
 		Access-Control-Expose-Headers ETag
@@ -41,3 +43,7 @@
 		reverse_proxy garage:3900
 	}
 }
+
+# Site-local extra blocks, e.g. an old name that redirects to DOMAIN; none by default
+# (deploy/README.md, "Behind a Cloudflare Tunnel"). Files here are not committed.
+import sites/*.caddy

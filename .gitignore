@@ -14,3 +14,4 @@ node_modules/
 
 # generated knowledge graph (rebuild with /graphify)
 graphify-out/
+deploy/sites/*.caddy
