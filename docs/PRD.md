@@ -306,6 +306,17 @@ it while still unsubmitted. No seminar scheduled → no deadline shown.
   criteria, each with a maximum (one criterion = a single score; default:
   Progress, Presentation, Understanding, Plan — each out of 10). Each grader
   gives a score per criterion and a free-text comment per scholar.
+- **Kinds of seminar** (Decided 2026-11-19): **progress** (the six-monthly
+  review above, with its report period and due date), **registration** (the
+  research proposal) and **pre-synopsis**; the last two review no report
+  period. Universities mark these differently, so each kind is marked, per
+  university setting `seminar_forms`, either by the **rubric** or by the
+  university's **own form**: its name ("Form VII") and its questions, each
+  answered yes or no with a remark, then a **recommendation** (recommended /
+  recommended with changes / not recommended). Defaults: progress by rubric;
+  registration and pre-synopsis by a generic form the university rewrites.
+  One codebase, chosen per install: a university can be offered either or
+  both.
 - **Supervisor review:** once grading closes, the scholar's main supervisor
   opens the review. **AI** drafts to-do points from all graders' comments,
   each tagged with one standard part; the supervisor edits, accepts, rejects or

@@ -8,8 +8,8 @@ import { Celebrate, firstTime } from "@/components/Celebrate";
 import { Button, Card, ErrorText, Field, PageHeader } from "@/components/ui/kit";
 import { api, ApiError } from "@/lib/api";
 import { useSession } from "@/lib/session";
-import { PART_LABELS } from "@/lib/types";
-import type { Point, ReviewView, TodoPart } from "@/lib/types";
+import { PART_LABELS, SEMINAR_RECOMMENDATION_LABELS } from "@/lib/types";
+import type { FormAnswer, GradeView, Point, ReviewView, SeminarRecommendation, TodoPart } from "@/lib/types";
 import { errorText } from "@/lib/useFetch";
 import "../../../seminars.css";
 import "./review.css";
@@ -55,6 +55,106 @@ function GradeForm({ review, onSaved }: { review: ReviewView; onSaved: (r: Revie
       {saved && <p className="muted" role="status">Marks saved.</p>}
       <Button kind="primary" onClick={submit}>{review.my_grade ? "Update marks" : "Submit marks"}</Button>
     </Card>
+  );
+}
+
+/** A seminar the university marks by its own form (PRD F15): every question yes or no, with a
+ *  remark, then the recommendation. */
+function FormGradeForm({ review, onSaved }: { review: ReviewView; onSaved: (r: ReviewView) => void }) {
+  const mine = review.my_grade?.answers;
+  const [answers, setAnswers] = useState<FormAnswer[]>(() =>
+    review.form.questions.map((q) => mine?.find((a) => a.question === q) ?? { question: q, answer: "yes", remark: "" }));
+  const [recommendation, setRecommendation] = useState<SeminarRecommendation | "">(review.my_grade?.recommendation ?? "");
+  const [comment, setComment] = useState(review.my_grade?.comment ?? "");
+  const [error, setError] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
+  const edit = (i: number, patch: Partial<FormAnswer>) => setAnswers(answers.map((a, j) => (j === i ? { ...a, ...patch } : a)));
+
+  async function submit() {
+    setError(null);
+    setSaved(false);
+    try {
+      onSaved(await api<ReviewView>(`/seminars/${review.seminar_id}/scholars/${review.scholar.id}/grade`, {
+        method: "PUT",
+        body: JSON.stringify({ answers, recommendation: recommendation || null, comment }),
+      }));
+      setSaved(true);
+    } catch (e) {
+      setError(errorText(e));
+    }
+  }
+
+  return (
+    <Card className="grade-form">
+      <h2>{review.form.form_name || "Your assessment"}{review.my_grade && " (you can still change it)"}</h2>
+      <ol className="form-answers">
+        {answers.map((a, i) => (
+          <li key={a.question}>
+            <fieldset>
+              <legend>{a.question}</legend>
+              <div className="row">
+                {(["yes", "no"] as const).map((v) => (
+                  <label key={v}>
+                    <input type="radio" name={`q${i}`} checked={a.answer === v} onChange={() => edit(i, { answer: v })} />
+                    {v === "yes" ? "Yes" : "No"}
+                  </label>
+                ))}
+              </div>
+              <input aria-label={`Remark on: ${a.question}`} placeholder="Remark (optional)" maxLength={1000}
+                value={a.remark} onChange={(e) => edit(i, { remark: e.target.value })} />
+            </fieldset>
+          </li>
+        ))}
+      </ol>
+      <Field label="Recommendation">
+        <select required value={recommendation} onChange={(e) => setRecommendation(e.target.value as SeminarRecommendation | "")}>
+          <option value="">Choose…</option>
+          {(Object.keys(SEMINAR_RECOMMENDATION_LABELS) as SeminarRecommendation[]).map((r) => (
+            <option key={r} value={r}>{SEMINAR_RECOMMENDATION_LABELS[r]}</option>
+          ))}
+        </select>
+      </Field>
+      <Field label="Comments for the scholar" hint="Concrete suggestions work best — the supervisor turns them into to-do points.">
+        <textarea value={comment} maxLength={8000} onChange={(e) => setComment(e.target.value)} />
+      </Field>
+      <ErrorText>{error}</ErrorText>
+      {saved && <p className="muted" role="status">Saved.</p>}
+      <Button kind="primary" disabled={!recommendation} onClick={submit}>{review.my_grade ? "Update" : "Submit"}</Button>
+    </Card>
+  );
+}
+
+/** One grader's marking: rubric scores, or the form's answers and recommendation. */
+function GradeCard({ g }: { g: GradeView }) {
+  if (g.answers) {
+    return (
+      <article className="grade-card">
+        <header>
+          <strong>{g.grader}</strong>
+          {g.recommendation && <span className="badge">{SEMINAR_RECOMMENDATION_LABELS[g.recommendation]}</span>}
+        </header>
+        <dl className="kv">
+          {g.answers.map((a) => (
+            <Fragment key={a.question}>
+              <dt>{a.question}</dt>
+              <dd>{a.answer === "yes" ? "Yes" : "No"}{a.remark && <span className="muted"> — {a.remark}</span>}</dd>
+            </Fragment>
+          ))}
+        </dl>
+        {g.comment && <blockquote>{g.comment}</blockquote>}
+      </article>
+    );
+  }
+  return (
+    <article className="grade-card">
+      <header><strong>{g.grader}</strong><span className="badge">{g.total} / {g.max_total}</span></header>
+      <dl className="kv">
+        {g.rubric.map((c) => (
+          <Fragment key={c.name}><dt>{c.name}</dt><dd>{g.scores[c.name]} / {c.max}</dd></Fragment>
+        ))}
+      </dl>
+      {g.comment && <blockquote>{g.comment}</blockquote>}
+    </article>
   );
 }
 
@@ -161,22 +261,14 @@ export default function ReviewPage() {
         actions={review.finalised_at ? <span className="badge badge-approved">Finalised</span> : undefined} />
       <div className="review-grid">
         <div className="review-main">
-          {review.can_grade && <GradeForm review={review} onSaved={setReview} />}
+          {review.can_grade && (review.form.marking === "questions"
+            ? <FormGradeForm review={review} onSaved={setReview} />
+            : <GradeForm review={review} onSaved={setReview} />)}
           <Card>
-            <h2>Marks{review.average_percent !== null && ` · average ${review.average_percent}%`}</h2>
+            <h2>{review.form.marking === "questions" ? "Assessments" : "Marks"}{review.average_percent !== null && ` · average ${review.average_percent}%`}</h2>
             {review.grades.length === 0 ? <p className="muted">No marks submitted yet.</p> : (
               <div className="grade-cards">
-                {review.grades.map((g) => (
-                  <article key={g.grader} className="grade-card">
-                    <header><strong>{g.grader}</strong><span className="badge">{g.total} / {g.max_total}</span></header>
-                    <dl className="kv">
-                      {g.rubric.map((c) => (
-                        <Fragment key={c.name}><dt>{c.name}</dt><dd>{g.scores[c.name]} / {c.max}</dd></Fragment>
-                      ))}
-                    </dl>
-                    {g.comment && <blockquote>{g.comment}</blockquote>}
-                  </article>
-                ))}
+                {review.grades.map((g) => <GradeCard key={g.grader} g={g} />)}
               </div>
             )}
           </Card>

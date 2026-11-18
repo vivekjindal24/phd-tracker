@@ -65,6 +65,7 @@ export type SettingsData = {
   apr_template: AprSection[];
   seminar_graders: "panel" | "panel_and_attending";
   seminar_rubric: { name: string; max: number }[];
+  seminar_forms: Record<SeminarKind, SeminarForm>;
   min_coursework_credits: number;
   min_coursework_cgpa: number;
   max_duration_years: number;
@@ -295,15 +296,33 @@ export type Milestone = {
   updated_at: string;
 };
 
+/** PRD F15: progress seminars review a report period; the other kinds do not. */
+export type SeminarKind = "progress" | "registration" | "pre_synopsis";
+export const SEMINAR_KIND_LABELS: Record<SeminarKind, string> = {
+  progress: "Progress seminar",
+  registration: "Registration seminar",
+  pre_synopsis: "Pre-synopsis seminar",
+};
+/** How a kind is marked at this university: rubric scores, or its own form questions. */
+export type SeminarForm = { marking: "rubric" | "questions"; form_name: string; questions: string[] };
+export type SeminarRecommendation = "recommended" | "recommended_with_changes" | "not_recommended";
+export const SEMINAR_RECOMMENDATION_LABELS: Record<SeminarRecommendation, string> = {
+  recommended: "Recommended",
+  recommended_with_changes: "Recommended with changes",
+  not_recommended: "Not recommended",
+};
+export type FormAnswer = { question: string; answer: "yes" | "no"; remark: string };
+
 export type SeminarRow = {
   id: string;
   unit: Ref;
+  kind: SeminarKind;
   title: string;
   starts_at: string;
   venue: string;
-  report_due: string;
-  report_year: number;
-  period: Period;
+  report_due: string | null;
+  report_year: number | null;
+  period: Period | null;
   status: "scheduled" | "cancelled";
   scholar_count: number;
 };
@@ -352,13 +371,17 @@ export type GradeView = {
   rubric: RubricCriterion[];
   total: number;
   max_total: number;
+  answers: FormAnswer[] | null;
+  recommendation: SeminarRecommendation | null;
   comment: string;
   submitted_at: string;
 };
 export type ReviewView = {
   seminar_id: string;
   seminar_title: string;
+  seminar_kind: SeminarKind;
   scholar: Ref;
+  form: SeminarForm;
   rubric: RubricCriterion[];
   grades: GradeView[];
   average_percent: number | null;

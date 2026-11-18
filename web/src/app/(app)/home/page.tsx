@@ -32,7 +32,7 @@ type Dashboard = {
   queue_count: number;
   queue_oldest_days: number | null;
   queue: { item_type: string; id: string; label: string; title: string; scholar: Ref; step: string; days_waiting: number }[];
-  upcoming_seminars: { id: string; title: string; starts_at: string; report_due: string; unit: string }[];
+  upcoming_seminars: { id: string; title: string; starts_at: string; report_due: string | null; unit: string }[];
   scholar?: {
     stage: string;
     supervisor: string | null;
@@ -300,7 +300,7 @@ export default function HomePage() {
               <ul className="plain-list">
                 {d.upcoming_seminars.map((s) => (
                   <li key={s.id}><Link href={`/seminars/${s.id}`}>{formatWhen(s.starts_at)} · {s.title}</Link>
-                    <span className="muted"> · {s.unit} · report due {formatDate(s.report_due)}</span></li>
+                    <span className="muted"> · {s.unit}{s.report_due && ` · report due ${formatDate(s.report_due)}`}</span></li>
                 ))}
               </ul>
             </section>

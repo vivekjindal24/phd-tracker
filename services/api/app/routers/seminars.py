@@ -14,6 +14,7 @@ from app.auth.deps import current_principal
 from app.auth.principal import Principal
 from app.crud import insert, soft_delete, update
 from app.db import get_session
+from app.enums import SEMINAR_KIND_LABELS
 from app.errors import ApiError
 from app.models import (
     Faculty,
@@ -41,6 +42,7 @@ def _row(s: Seminar, unit_name: str, scholar_count: int) -> dict[str, Any]:
     return {
         "id": s.id,
         "unit": {"id": s.unit_id, "name": unit_name},
+        "kind": s.kind,
         "title": s.title,
         "starts_at": s.starts_at,
         "venue": s.venue,
@@ -205,12 +207,14 @@ async def _set_members(
 async def _announce(session: AsyncSession, seminar: Seminar, path: str, verb: str) -> None:
     when = seminar.starts_at.astimezone().strftime("%d %b %Y, %H:%M")
     venue = seminar.venue or "venue to be announced"
-    body = f"{when} · {venue} · report due {seminar.report_due:%d %b %Y}"
+    body = f"{when} · {venue}"
+    if seminar.report_due:
+        body += f" · report due {seminar.report_due:%d %b %Y}"
     notify(
         session,
         await seminars.recipients(session, seminar, path),
         "seminar",
-        f"Progress seminar {verb}: {seminar.title}",
+        f"{SEMINAR_KIND_LABELS[seminar.kind]} {verb}: {seminar.title}",
         body,
         f"/seminars/{seminar.id}",
     )
@@ -224,7 +228,8 @@ async def schedule(
 ) -> dict[str, Any]:
     path = await scope.unit_path(session, body.unit_id)
     seminars.require_manager(principal, path)
-    seminars.check_report_due(body.report_due, body.starts_at)
+    if body.report_due:
+        seminars.check_report_due(body.report_due, body.starts_at)
     await seminars.check_scholars_in_unit(session, path, body.scholar_ids)
     await seminars.check_faculty(session, body.panel_faculty_ids)
     seminar = await insert(
@@ -232,6 +237,7 @@ async def schedule(
         principal,
         Seminar(
             unit_id=body.unit_id,
+            kind=body.kind,
             title=body.title,
             starts_at=body.starts_at,
             venue=body.venue,
@@ -261,10 +267,16 @@ async def edit(
     if seminar.status == "cancelled":
         raise ApiError(422, "seminar_cancelled", "A cancelled seminar cannot be changed.")
     changes = body.model_dump(exclude_unset=True, exclude={"scholar_ids", "panel_faculty_ids"})
-    seminars.check_report_due(
-        changes.get("report_due", seminar.report_due),
-        changes.get("starts_at", seminar.starts_at),
-    )
+    report_fields = {"report_due", "report_year", "period"}
+    if seminar.kind == "progress":
+        if any(changes.get(f, True) is None for f in report_fields):
+            raise ApiError(422, "report_required", "A progress seminar reviews a report period.")
+        seminars.check_report_due(
+            changes.get("report_due", seminar.report_due),
+            changes.get("starts_at", seminar.starts_at),
+        )
+    elif report_fields & changes.keys():
+        raise ApiError(422, "no_report", "Only a progress seminar reviews a report period.")
     if body.scholar_ids is not None:
         await seminars.check_scholars_in_unit(session, path, body.scholar_ids)
     if body.panel_faculty_ids is not None:

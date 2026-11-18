@@ -7,6 +7,7 @@ import { Card, ErrorText, Field, PageHeader } from "@/components/ui/kit";
 import { ListFoot } from "@/components/ListFoot";
 import { formatDate, formatWhen } from "@/lib/format";
 import { useSession } from "@/lib/session";
+import { SEMINAR_KIND_LABELS } from "@/lib/types";
 import type { SeminarRow } from "@/lib/types";
 import { usePagedFetch } from "@/lib/useFetch";
 import { listPath } from "@/components/ScholarFilter";
@@ -23,8 +24,8 @@ export default function SeminarsPage() {
   return (
     <>
       <PageHeader
-        eyebrow="Six-monthly review"
-        title="Progress seminars"
+        eyebrow="Progress, registration and pre-synopsis"
+        title="Seminars"
         actions={
           <div className="row">
             <button type="button" className={`btn ${upcoming ? "btn-secondary" : ""}`} onClick={() => setUpcoming(true)}>Upcoming</button>
@@ -59,7 +60,8 @@ export default function SeminarsPage() {
             <span className="muted">{s.unit.name} · {s.venue || "Venue to be announced"}</span>
             <span>
               <span className="badge">{s.scholar_count} scholar{s.scholar_count === 1 ? "" : "s"}</span>{" "}
-              <span className="badge badge-draft">Report due {formatDate(s.report_due)}</span>{" "}
+              {s.kind !== "progress" && <><span className="badge">{SEMINAR_KIND_LABELS[s.kind]}</span>{" "}</>}
+              {s.report_due && <><span className="badge badge-draft">Report due {formatDate(s.report_due)}</span>{" "}</>}
               {s.status === "cancelled" && <span className="badge badge-sent_back">Cancelled</span>}
             </span>
           </Link>

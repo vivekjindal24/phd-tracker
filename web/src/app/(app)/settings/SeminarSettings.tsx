@@ -18,7 +18,7 @@ export function SeminarSettings({ data, save }: { data: SettingsData; save: Save
 
   return (
     <Card className="settings-seminars">
-      <h2>Progress seminars</h2>
+      <h2>Seminars</h2>
       <ul className="module-list">
         <li>
           <span>Require a hardcopy of the report</span>

@@ -64,6 +64,7 @@ def deadlines_query(scholar_filter):
         .where(
             Seminar.deleted_at.is_(None),
             Seminar.status == "scheduled",
+            Seminar.kind == "progress",  # only these review a report period
             SeminarScholar.deleted_at.is_(None),
             Scholar.deleted_at.is_(None),
             Scholar.left_on.is_(None),

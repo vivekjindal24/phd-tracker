@@ -24,10 +24,10 @@ from app.schemas import DraftIn, FinaliseIn, GradeIn, ReviewView, TodoOut, TodoU
 router = APIRouter(tags=["seminar grading"])
 
 
-async def _rubric(session: AsyncSession) -> list[dict[str, Any]]:
+async def _settings(session: AsyncSession) -> Settings:
     settings = await session.get(Settings, 1)
     assert settings is not None
-    return settings.seminar_rubric
+    return settings
 
 
 async def _review(
@@ -51,6 +51,8 @@ async def _review(
             "rubric": g.rubric,
             "total": sum(g.scores.values()),
             "max_total": sum(c["max"] for c in g.rubric),
+            "answers": g.answers,
+            "recommendation": g.recommendation,
             "comment": g.comment,
             "submitted_at": g.submitted_at,
         }
@@ -70,11 +72,14 @@ async def _review(
     is_grader = await grading.is_grader(session, principal, seminar.id)
     finaliser = grading.can_finalise(principal, scholar)
     name = await session.scalar(select(User.full_name).where(User.id == scholar.user_id))
+    settings = await _settings(session)
     return {
         "seminar_id": seminar.id,
         "seminar_title": seminar.title,
+        "seminar_kind": seminar.kind,
         "scholar": {"id": scholar.id, "name": name},
-        "rubric": await _rubric(session),
+        "form": grading.form_for(settings, seminar.kind),
+        "rubric": settings.seminar_rubric,
         "grades": grades,
         "average_percent": round(sum(pct) / len(pct), 1) if pct else None,
         "draft_points": (entry.draft_points or []) if finaliser else [],
@@ -149,8 +154,18 @@ async def grade(
     entry, _scholar = await grading.load_entry(session, seminar.id, scholar_id)
     if entry.finalised_at is not None:
         raise ApiError(422, "already_finalised", "Grades are locked once the review is finalised.")
-    rubric = await _rubric(session)
-    scores = grading.validate_scores(rubric, body.scores)
+    settings = await _settings(session)
+    form = grading.form_for(settings, seminar.kind)
+    if form["marking"] == "rubric":
+        rubric = settings.seminar_rubric
+        scores, answers, recommendation = grading.validate_scores(rubric, body.scores), None, None
+    else:
+        if body.recommendation is None:
+            raise ApiError(422, "recommendation_required", "Give the panel's recommendation.")
+        rubric, scores, recommendation = [], {}, body.recommendation
+        answers = grading.validate_answers(
+            form["questions"], [a.model_dump() for a in body.answers or []]
+        )
     existing = await session.scalar(
         select(SeminarGrade).where(
             SeminarGrade.seminar_scholar_id == entry.id,
@@ -161,6 +176,8 @@ async def grade(
     values = {
         "scores": scores,
         "rubric": rubric,
+        "answers": answers,
+        "recommendation": recommendation,
         "comment": body.comment,
         "submitted_at": datetime.now(UTC),
     }

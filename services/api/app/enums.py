@@ -111,6 +111,45 @@ MILESTONE_STATUSES = get_args(MilestoneStatus)
 ApprovalBody = Literal["RDC", "DPGC", "DRC", "RAC", "Other"]
 APPROVAL_BODIES = get_args(ApprovalBody)
 
+# The kinds of seminar (PRD F15): the six-monthly progress review, and the registration (proposal)
+# and pre-synopsis seminars. Each kind is marked by rubric scores or by the university's own form
+# questions with a recommendation (settings.seminar_forms).
+SeminarKind = Literal["progress", "registration", "pre_synopsis"]
+SEMINAR_KINDS = get_args(SeminarKind)
+SEMINAR_KIND_LABELS = {
+    "progress": "Progress seminar",
+    "registration": "Registration seminar",
+    "pre_synopsis": "Pre-synopsis seminar",
+}
+SeminarMarking = Literal["rubric", "questions"]
+FormAnswer = Literal["yes", "no"]
+SeminarRecommendation = Literal["recommended", "recommended_with_changes", "not_recommended"]
+SEMINAR_RECOMMENDATIONS = get_args(SeminarRecommendation)
+DEFAULT_SEMINAR_FORMS = {
+    "progress": {"marking": "rubric", "form_name": "", "questions": []},
+    "registration": {
+        "marking": "questions",
+        "form_name": "Registration seminar report",
+        "questions": [
+            "Is the research problem clearly formulated?",
+            "Is the review of literature adequate?",
+            "Are the objectives clearly stated?",
+            "Is the proposed methodology appropriate?",
+            "Can the work be completed within the time allowed?",
+        ],
+    },
+    "pre_synopsis": {
+        "marking": "questions",
+        "form_name": "Pre-synopsis seminar report",
+        "questions": [
+            "Have the objectives of the research been met?",
+            "Are the results adequate for a thesis?",
+            "Does the scholar meet the publication requirement?",
+            "Is the synopsis in the prescribed format?",
+            "Have earlier comments of the committee been addressed?",
+        ],
+    },
+}
 SeminarStatus = Literal["scheduled", "cancelled"]
 SEMINAR_STATUSES = get_args(SeminarStatus)
 SeminarGraders = Literal["panel", "panel_and_attending"]

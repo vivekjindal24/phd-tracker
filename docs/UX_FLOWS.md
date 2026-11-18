@@ -257,17 +257,21 @@ when the university has switched that rule on in Settings → UGC rules; a
 scholar who then submits a thesis without a record is told to ask the
 department or Research Office to record it.
 
-## Flow 6b — Progress seminar (PRD F15)
+## Flow 6b — Seminars: progress, registration, pre-synopsis (PRD F15)
 
-1. HoD / department admin → **Seminars → Schedule**: title, date & time,
-   venue/link, report due date, period, pick scholars (their unit) and panel.
-   Everyone concerned is notified.
+1. HoD / department admin → **Seminars → Schedule**: kind of seminar, title,
+   date & time, venue/link, (progress only) report due date and period, pick
+   scholars (their unit) and panel. Everyone concerned is notified.
 2. Scholars see the seminar and their report deadline on Home; the report
    page shows "Due 30 Nov" / "Overdue".
 3. If the university requires a hardcopy, the department ticks "hardcopy
    received" per scholar.
 4. On the day, each panel member (and attending faculty, if allowed) opens
-   the seminar → per scholar: rubric scores + comment → **Submit grades**.
+   the seminar → per scholar: rubric scores + comment → **Submit grades**; or,
+   for a kind the university marks by its own form, each question yes/no with
+   a remark, a recommendation and a comment.
+4a. Root admin → **Settings → How each seminar is marked**: per kind, rubric
+   scores or form questions; the form's name and its questions.
 5. Supervisor → **Review**: sees all grades; **Suggest points with AI** fills
    a draft list (part + point); edits, accepts, adds → **Finalise**.
 6. Scholar is notified, sees all marks and comments, and the points appear in

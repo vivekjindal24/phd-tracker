@@ -8,6 +8,7 @@ import { RequestMember } from "@/components/RequestMember";
 import { Button, Card, ErrorText, PageHeader, Table } from "@/components/ui/kit";
 import { api } from "@/lib/api";
 import { formatDate, formatWhen } from "@/lib/format";
+import { SEMINAR_KIND_LABELS } from "@/lib/types";
 import type { SeminarDetail } from "@/lib/types";
 import { errorText, useFetch } from "@/lib/useFetch";
 import "../seminars.css";
@@ -29,9 +30,10 @@ export default function SeminarPage() {
   if (error) return <ErrorText>{error}</ErrorText>;
   if (!s) return null;
   const cancelled = s.status === "cancelled";
+  const progress = s.kind === "progress"; // only these review a progress report
   return (
     <>
-      <PageHeader eyebrow={`${s.unit.name} · progress seminar`} title={s.title}
+      <PageHeader eyebrow={`${s.unit.name} · ${SEMINAR_KIND_LABELS[s.kind].toLowerCase()}`} title={s.title}
         actions={cancelled ? <span className="badge badge-sent_back">Cancelled</span> : undefined} />
       <ErrorText>{actError}</ErrorText>
       <div className="seminar-detail">
@@ -40,13 +42,15 @@ export default function SeminarPage() {
             <span className="seminar-when">{formatWhen(s.starts_at)}</span>
             <dl className="kv" style={{ marginTop: "var(--space-4)" }}>
               <dt>Venue</dt><dd>{s.venue || <span className="muted">To be announced</span>}</dd>
-              <dt>Reviews</dt><dd>{s.period.replace("-", "–")} {s.report_year}</dd>
-              <dt>Report due</dt><dd><strong>{formatDate(s.report_due)}</strong></dd>
+              {s.period && s.report_due && (<>
+                <dt>Reviews</dt><dd>{s.period.replace("-", "–")} {s.report_year}</dd>
+                <dt>Report due</dt><dd><strong>{formatDate(s.report_due)}</strong></dd>
+              </>)}
               {s.notes && (<><dt>Notes</dt><dd>{s.notes}</dd></>)}
             </dl>
           </Card>
           <Table label="Scholars presenting"
-            head={["Scholar", "Supervisor", "Progress report", ...(s.require_hardcopy ? ["Hardcopy"] : []), "Feedback"]}>
+            head={["Scholar", "Supervisor", ...(progress ? ["Progress report"] : []), ...(s.require_hardcopy ? ["Hardcopy"] : []), "Feedback"]}>
             {s.scholars.map((x) => (
               <tr key={x.scholar.id}>
                 <td>
@@ -54,7 +58,7 @@ export default function SeminarPage() {
                   <br /><span className="mono">{x.roll_number}</span>
                 </td>
                 <td>{x.supervisor ?? <span className="muted">—</span>}</td>
-                <td>{x.report_state ? <StateBadge state={x.report_state} /> : <span className="badge badge-sent_back">Not started</span>}</td>
+                {progress && <td>{x.report_state ? <StateBadge state={x.report_state} /> : <span className="badge badge-sent_back">Not started</span>}</td>}
                 {s.require_hardcopy && (
                   <td className="hardcopy">
                     {s.can_manage && !cancelled ? (

@@ -11,6 +11,8 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.enums import (
     PANEL_KINDS,
     PERIODS,
+    SEMINAR_KINDS,
+    SEMINAR_RECOMMENDATIONS,
     SEMINAR_STATUSES,
     TODO_PARTS,
     TODO_STATUSES,
@@ -25,19 +27,27 @@ class Seminar(DomainRow, Base):
     __tablename__ = "seminars"
     __table_args__ = (
         CheckConstraint(f"status IN ({sql_in(SEMINAR_STATUSES)})", name="ck_seminars_status"),
+        CheckConstraint(f"kind IN ({sql_in(SEMINAR_KINDS)})", name="ck_seminars_kind"),
         CheckConstraint(f"period IN ({sql_in(PERIODS)})", name="ck_seminars_period"),
         CheckConstraint("report_year BETWEEN 2000 AND 2100", name="ck_seminars_year"),
+        # Only a progress seminar reviews a report period, and it always does.
+        CheckConstraint(
+            "(kind = 'progress') = (report_due IS NOT NULL AND report_year IS NOT NULL "
+            "AND period IS NOT NULL)",
+            name="ck_seminars_report",
+        ),
     )
 
     unit_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("org_units.id"), index=True
     )
+    kind: Mapped[str] = mapped_column(Text, server_default=text("'progress'"))
     title: Mapped[str] = mapped_column(Text)
     starts_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     venue: Mapped[str] = mapped_column(Text, server_default=text("''"))
-    report_due: Mapped[date] = mapped_column(Date)
-    report_year: Mapped[int] = mapped_column(Integer)
-    period: Mapped[str] = mapped_column(Text)
+    report_due: Mapped[date | None] = mapped_column(Date)
+    report_year: Mapped[int | None] = mapped_column(Integer)
+    period: Mapped[str | None] = mapped_column(Text)
     notes: Mapped[str] = mapped_column(Text, server_default=text("''"))
     status: Mapped[str] = mapped_column(Text, server_default=text("'scheduled'"))
     created_by: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"))
@@ -80,8 +90,18 @@ class SeminarPanel(DomainRow, Base):
 
 
 class SeminarGrade(DomainRow, Base):
+    """One grader's marking of one scholar: rubric `scores` (with the rubric snapshot), or, for a
+    kind marked by form questions, `answers` (questions snapshot included) and a recommendation."""
+
     __tablename__ = "seminar_grades"
     __table_args__ = (
+        CheckConstraint(
+            f"recommendation IS NULL OR recommendation IN ({sql_in(SEMINAR_RECOMMENDATIONS)})",
+            name="ck_seminar_grades_recommendation",
+        ),
+        CheckConstraint(
+            "(answers IS NULL) = (recommendation IS NULL)", name="ck_seminar_grades_form"
+        ),
         Index(
             "uq_seminar_grade",
             "seminar_scholar_id",
@@ -97,6 +117,9 @@ class SeminarGrade(DomainRow, Base):
     grader_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("faculty.id"))
     scores: Mapped[dict[str, Any]] = mapped_column(JSONB)
     rubric: Mapped[list[dict[str, Any]]] = mapped_column(JSONB)  # snapshot at grading time
+    # [{"question", "answer": yes|no, "remark"}], in the form's order at grading time.
+    answers: Mapped[list[dict[str, Any]] | None] = mapped_column(JSONB(none_as_null=True))
+    recommendation: Mapped[str | None] = mapped_column(Text)
     comment: Mapped[str] = mapped_column(Text, server_default=text("''"))
     submitted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
 

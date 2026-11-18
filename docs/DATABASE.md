@@ -125,6 +125,8 @@ while true, PRD F17b), `apr_custom_template` bool (default
 false) and `apr_sections` jsonb (ordered `[{"name", "hint"}]`, non-empty: the
 university's own progress report sections, used only while the toggle is on), `seminar_graders` CHECK (`panel` / `panel_and_attending`, default
 `panel`), `seminar_rubric` jsonb (ordered `[{"name", "max"}]`, non-empty),
+`seminar_forms` jsonb (CHECK object; per seminar kind `{"marking": rubric |
+questions, "form_name", "questions": [...]}`, PRD F15; a PATCH merges per kind),
 `min_coursework_credits` numeric(3,1) (default 12, CHECK 0–40) and
 `min_coursework_cgpa` numeric(4,2) (default 5.5, CHECK 0–10),
 `max_duration_years` (default 6, CHECK 3–12), `max_extension_days` (730),
@@ -173,8 +175,10 @@ carries only a non-empty `notes` (the reason); every other kind needs
 
 ### 3.3b Progress seminars (PRD F15)
 
-**seminars** — `unit_id` FK (scope anchor), `title`, `starts_at`
-timestamptz, `venue`, `report_due` date, `report_year`, `period`, `notes`,
+**seminars** — `unit_id` FK (scope anchor), `kind` CHECK (progress /
+registration / pre_synopsis, default progress), `title`, `starts_at`
+timestamptz, `venue`, `report_due` date, `report_year`, `period` (all three
+set exactly when `kind` = progress: `ck_seminars_report`), `notes`,
 `status` CHECK (scheduled / cancelled), `created_by`. Cancelling sets status;
 rows are never deleted.
 **seminar_scholars** — `seminar_id`, `scholar_id` (UNIQUE pair),
@@ -184,8 +188,11 @@ before finalising), `finalised_at`, `finalised_by`.
 (panel / attending).
 **seminar_grades** — `seminar_scholar_id`, `grader_id` FK faculty (UNIQUE
 pair), `scores` jsonb (`{criterion: score}`, validated against the rubric
-snapshot), `rubric` jsonb (snapshot at grading time), `comment`,
-`submitted_at`.
+snapshot), `rubric` jsonb (snapshot at grading time), `answers` jsonb +
+`recommendation` (a kind marked by form questions: `[{"question", "answer":
+yes|no, "remark"}]` in the form's order, and recommended /
+recommended_with_changes / not_recommended; both or neither, CHECK; `scores`
+and `rubric` are then empty), `comment`, `submitted_at`.
 **todos** — `scholar_id` (indexed), `part` CHECK (introduction /
 literature_review / methodology / experiments_results / discussion /
 writing_presentation / other), `text`, `status` CHECK (open / done),

@@ -9,8 +9,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import seminars
 from app.auth.principal import Principal
+from app.enums import DEFAULT_SEMINAR_FORMS
 from app.errors import ApiError, forbidden
-from app.models import Scholar, Seminar, SeminarPanel, SeminarScholar
+from app.models import Scholar, Seminar, SeminarPanel, SeminarScholar, Settings
 
 
 async def is_grader(session: AsyncSession, principal: Principal, seminar_id: uuid.UUID) -> bool:
@@ -109,3 +110,24 @@ def validate_scores(rubric: list[dict[str, Any]], scores: dict[str, Any]) -> dic
             )
         clean[c["name"]] = float(value)
     return clean
+
+
+def validate_answers(questions: list[str], answers: list[dict[str, Any]] | None) -> list[dict]:
+    """Every form question answered, in the form's order, and nothing else."""
+    given = [a["question"] for a in answers or []]
+    if given != questions:
+        raise ApiError(
+            422,
+            "answers_mismatch",
+            "Answer every question on the form, and only those.",
+            {"questions": questions},
+        )
+    return [
+        {"question": a["question"], "answer": a["answer"], "remark": a.get("remark", "")}
+        for a in answers or []
+    ]
+
+
+def form_for(settings: Settings, kind: str) -> dict[str, Any]:
+    """How this kind of seminar is marked at this university (settings.seminar_forms)."""
+    return settings.seminar_forms.get(kind) or DEFAULT_SEMINAR_FORMS[kind]

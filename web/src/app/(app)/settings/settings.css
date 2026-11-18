@@ -235,3 +235,16 @@
 .offices-form .row {
   margin-block: var(--space-3);
 }
+
+/* seminar forms: rubric or the university's own questions, per kind */
+.seminar-marking {
+  display: grid;
+  gap: var(--space-3);
+  padding-top: var(--space-4);
+  margin-top: var(--space-4);
+  border-top: 1px dashed var(--lilac);
+}
+.form-questions input {
+  flex: 1;
+  min-width: 0;
+}

@@ -16,6 +16,7 @@ from app.enums import (
     CoSupervision,
     Designation,
     FileOwner,
+    FormAnswer,
     Gender,
     ItemState,
     ItemType,
@@ -29,6 +30,9 @@ from app.enums import (
     Period,
     Rating,
     SeminarGraders,
+    SeminarKind,
+    SeminarMarking,
+    SeminarRecommendation,
     SeminarStatus,
     SigningAction,
     Stage,
@@ -288,6 +292,27 @@ class RubricCriterion(BaseModel):
 
 
 Rubric = Annotated[list[RubricCriterion], Field(min_length=1, max_length=10)]
+FormQuestion = Annotated[
+    str, StringConstraints(strip_whitespace=True, min_length=1, max_length=300)
+]
+
+
+class SeminarForm(BaseModel):
+    """How one kind of seminar is marked (PRD F15): rubric scores, or the university's own form
+    questions answered yes/no with a recommendation. `form_name` is what its report is called
+    there ("Form VII")."""
+
+    marking: SeminarMarking
+    form_name: Annotated[str, StringConstraints(strip_whitespace=True, max_length=100)] = ""
+    questions: list[FormQuestion] = Field(default_factory=list, max_length=20)
+
+    @model_validator(mode="after")
+    def _questions_when_asked(self) -> "SeminarForm":
+        if self.marking == "questions" and not self.questions:
+            raise ValueError("a form needs at least one question")
+        if len({q.lower() for q in self.questions}) != len(self.questions):
+            raise ValueError("form questions must be different")
+        return self
 
 
 class AprSection(BaseModel):
@@ -313,6 +338,7 @@ class SettingsOut(BaseModel):
     apr_template: list[AprSection]  # what scholars fill today
     seminar_graders: SeminarGraders
     seminar_rubric: list[RubricCriterion]
+    seminar_forms: dict[SeminarKind, SeminarForm]
     min_coursework_credits: float
     min_coursework_cgpa: float
     max_duration_years: int
@@ -336,6 +362,7 @@ class SettingsUpdate(BaseModel):
     apr_sections: AprTemplate | None = None
     seminar_graders: SeminarGraders | None = None
     seminar_rubric: Rubric | None = None
+    seminar_forms: dict[SeminarKind, SeminarForm] | None = None  # merged per kind
     min_coursework_credits: float | None = Field(default=None, ge=0, le=40)
     min_coursework_cgpa: float | None = Field(default=None, ge=0, le=10)
     max_duration_years: int | None = Field(default=None, ge=3, le=12)
@@ -768,15 +795,26 @@ Venue = Annotated[str, StringConstraints(strip_whitespace=True, max_length=500)]
 
 class SeminarIn(BaseModel):
     unit_id: uuid.UUID
+    kind: SeminarKind = "progress"
     title: Title
     starts_at: datetime
     venue: Venue = ""
-    report_due: date
-    report_year: int = Field(ge=2000, le=2100)
-    period: Period
+    # The report period a progress seminar reviews; the other kinds have none.
+    report_due: date | None = None
+    report_year: int | None = Field(default=None, ge=2000, le=2100)
+    period: Period | None = None
     notes: Notes = ""
     scholar_ids: list[uuid.UUID] = Field(min_length=1, max_length=200)
     panel_faculty_ids: list[uuid.UUID] = Field(default_factory=list, max_length=30)
+
+    @model_validator(mode="after")
+    def _report_only_for_progress(self) -> "SeminarIn":
+        given = [self.report_due, self.report_year, self.period]
+        if self.kind == "progress" and None in given:
+            raise ValueError("a progress seminar needs the report due date, year and period")
+        if self.kind != "progress" and any(v is not None for v in given):
+            raise ValueError("only a progress seminar reviews a report period")
+        return self
 
 
 class SeminarUpdate(BaseModel):
@@ -794,12 +832,13 @@ class SeminarUpdate(BaseModel):
 class SeminarRow(BaseModel):
     id: uuid.UUID
     unit: Ref
+    kind: SeminarKind
     title: str
     starts_at: datetime
     venue: str
-    report_due: date
-    report_year: int
-    period: Period
+    report_due: date | None
+    report_year: int | None
+    period: Period | None
     status: SeminarStatus
     scholar_count: int
 
@@ -837,8 +876,19 @@ class HardcopyIn(BaseModel):
 # --- seminar grading & to-dos -----------------------------------------------------------
 
 
+class FormAnswerIn(BaseModel):
+    question: FormQuestion
+    answer: FormAnswer
+    remark: Annotated[str, StringConstraints(strip_whitespace=True, max_length=1000)] = ""
+
+
 class GradeIn(BaseModel):
-    scores: dict[str, float] = Field(min_length=1, max_length=10)
+    """Rubric `scores`, or, for a seminar marked by form questions, `answers` to every question
+    and a `recommendation` (settings.seminar_forms)."""
+
+    scores: dict[str, float] = Field(default_factory=dict, max_length=10)
+    answers: list[FormAnswerIn] | None = Field(default=None, max_length=20)
+    recommendation: SeminarRecommendation | None = None
     comment: Annotated[str, StringConstraints(strip_whitespace=True, max_length=8000)] = ""
 
 
@@ -861,6 +911,8 @@ class GradeView(BaseModel):
     rubric: list[RubricCriterion]
     total: float
     max_total: int
+    answers: list[FormAnswerIn] | None = None
+    recommendation: SeminarRecommendation | None = None
     comment: str
     submitted_at: datetime
 
@@ -882,7 +934,9 @@ class TodoUpdate(BaseModel):
 class ReviewView(BaseModel):
     seminar_id: uuid.UUID
     seminar_title: str
+    seminar_kind: SeminarKind
     scholar: Ref
+    form: SeminarForm  # how this kind is marked here
     rubric: list[RubricCriterion]
     grades: list[GradeView]
     average_percent: float | None

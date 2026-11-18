@@ -8,7 +8,8 @@ import type { FormEvent } from "react";
 import { Button, ErrorText, Field, PageHeader } from "@/components/ui/kit";
 import { api } from "@/lib/api";
 import { useSession } from "@/lib/session";
-import type { Faculty, OrgUnit, Period, Scholar, SeminarDetail } from "@/lib/types";
+import { SEMINAR_KIND_LABELS } from "@/lib/types";
+import type { Faculty, OrgUnit, Period, Scholar, SeminarDetail, SeminarKind } from "@/lib/types";
 import { errorText, useFetch } from "@/lib/useFetch";
 import "../seminars.css";
 
@@ -21,7 +22,10 @@ function ScheduleSeminarForm() {
   const myUnits = (units ?? []).filter((u) => myPaths.some((p) => u.path === p || u.path.startsWith(`${p}.`)));
 
   const [unitId, setUnitId] = useState("");
-  const [title, setTitle] = useState("Six-monthly progress seminar");
+  const [kind, setKind] = useState<SeminarKind>("progress");
+  const [typedTitle, setTypedTitle] = useState<string | null>(null);
+  const title = typedTitle ?? (kind === "progress" ? "Six-monthly progress seminar" : SEMINAR_KIND_LABELS[kind]);
+  const reviewsReport = kind === "progress"; // only a progress seminar reviews a report period
   const [startsAt, setStartsAt] = useState("");
   const [venue, setVenue] = useState("");
   const [reportDue, setReportDue] = useState("");
@@ -45,8 +49,8 @@ function ScheduleSeminarForm() {
       const s = await api<SeminarDetail>("/seminars", {
         method: "POST",
         body: JSON.stringify({
-          unit_id: unitId, title, starts_at: new Date(startsAt).toISOString(), venue,
-          report_due: reportDue, report_year: year, period,
+          unit_id: unitId, kind, title, starts_at: new Date(startsAt).toISOString(), venue,
+          ...(reviewsReport ? { report_due: reportDue, report_year: year, period } : {}),
           scholar_ids: scholarIds, panel_faculty_ids: panelIds,
         }),
       });
@@ -59,8 +63,15 @@ function ScheduleSeminarForm() {
 
   return (
     <>
-      <PageHeader eyebrow="Six-monthly review" title="Schedule a progress seminar" />
+      <PageHeader eyebrow="Seminars" title="Schedule a seminar" />
       <form className="clay card seminar-form" onSubmit={submit}>
+        <Field label="Kind of seminar">
+          <select value={kind} onChange={(e) => setKind(e.target.value as SeminarKind)}>
+            {(Object.keys(SEMINAR_KIND_LABELS) as SeminarKind[]).map((k) => (
+              <option key={k} value={k}>{SEMINAR_KIND_LABELS[k]}</option>
+            ))}
+          </select>
+        </Field>
         <div className="two">
           <Field label="Department / unit">
             <select required value={unitId} onChange={(e) => setUnitId(e.target.value)}>
@@ -68,7 +79,7 @@ function ScheduleSeminarForm() {
             </select>
           </Field>
           <Field label="Title">
-            <input required maxLength={200} value={title} onChange={(e) => setTitle(e.target.value)} />
+            <input required maxLength={200} value={title} onChange={(e) => setTypedTitle(e.target.value)} />
           </Field>
         </div>
         <div className="two">
@@ -79,7 +90,7 @@ function ScheduleSeminarForm() {
             <input maxLength={500} value={venue} onChange={(e) => setVenue(e.target.value)} placeholder="e.g. Seminar hall 2" />
           </Field>
         </div>
-        <div className="two">
+        {reviewsReport && <div className="two">
           <Field label="Report due date" hint="Scholars must submit their progress report in Anveshan by this date.">
             <input type="date" required value={reportDue} onChange={(e) => setReportDue(e.target.value)} />
           </Field>
@@ -92,7 +103,7 @@ function ScheduleSeminarForm() {
               <input type="number" min={2000} max={2100} value={year} onChange={(e) => setYear(Number(e.target.value))} />
             </div>
           </Field>
-        </div>
+        </div>}
         <PersonChecks<Scholar> legend="Scholars presenting" path={unitId ? `/scholars?unit_id=${unitId}` : null}
           value={scholarIds} onChange={setScholarIds} detail={(s) => s.roll_number} />
         <PersonChecks<Faculty> legend="Panel" path="/faculty" value={panelIds} onChange={setPanelIds}
