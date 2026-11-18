@@ -391,7 +391,7 @@ record, visible exactly when the record is. Files live in S3-compatible object
 storage; upload cap configurable (default 100 MB — theses are large).
 
 **F14 — Exports.** APR PDF, RDC register PDF/CSV, scholar complete-record
-PDF, unit summary PDF (heads). Anyone may export what they can see. PDFs stay
+PDF, the PhD file (F17), unit summary PDF (heads). Anyone may export what they can see. PDFs stay
 print-like and readable in grayscale.
 
 **F16 — Bulk import.** Decided 2026-10-24. So that a department starts with
@@ -419,6 +419,78 @@ Acceptance criteria:
   reported as "already present" and skipped, never overwritten.
 - Each created record writes its `audit_log` row; imported people get the
   set-password email (F2) only when the admin ticks "send invitations".
+
+**F17 — The PhD file** (Decided 2026-11-18). Universities keep one paper file
+per candidate: an index of annexures, then every form, circular, attendance
+sheet, report and certificate from admission to award, typed again on each form
+and filed by hand. Anveshan generates that file as one PDF per scholar, on
+demand, from what is already recorded.
+- **Index first:** S. No., annexure, date, page. Annexures follow one fixed
+  order, the order of the career: admission and entrance record (M5); employer
+  NOC (upload, for employed candidates); supervisor and co-supervisor
+  appointment; advisory committee formation, every version (F9b); coursework,
+  grades and clearance (M4); comprehensive examination report; registration
+  seminar; committee decisions (F9); each period's progress report and progress
+  seminar (F8, F15); publications and conferences with their certificates (M1,
+  M2); pre-synopsis seminar; thesis submission, plagiarism score, no-dues and
+  fee (M3); examiner panel, invitations, acceptances and reports; corrections
+  made for the examiners; viva — approval to hold it, the board, the notice,
+  attendance and the report; provisional certificate and Shodhganga deposit;
+  copies of the thesis, synopsis and registration seminar report.
+- **Each annexure** is a form generated from the record, an uploaded scan, or
+  both (see F17b). An annexure with nothing recorded is listed in the index as
+  "Not on record", never left out silently.
+- **Seminars and the viva** each get a generated circular (date, time, venue,
+  scholar, topic, signatories, "copy to" list) and a pre-filled attendance sheet
+  (scholar, topic, date, blank rows to sign) to print; the signed sheet is
+  scanned back in.
+- **Names are the university's:** each annexure's title and form number (e.g.
+  "Form V — Formation of RAC") is a university setting with a plain default, as
+  the certificate wording is; the "copy to" list of circulars likewise.
+- **Who:** anyone who may read the scholar's whole record generates it; what
+  they may not read is left out exactly as on screen (examiner names before the
+  viva, unshared meeting minutes — SECURITY.md §3). Signed scans are uploaded by
+  an admin over the scholar's unit or the Research Office.
+- **Needs, built with it:** seminar types (registration / progress /
+  pre-synopsis); advisory committee roles (chairperson, member, VC nominee,
+  secretary), formation date and history; the department committee's
+  membership; viva arrangements (approval to hold it, board, examiner invitation,
+  notice, report); supervisor appointment date and reference number; national /
+  international examiner; comprehensive examination attempt and month; the "may
+  continue with / without assistantship" line on the progress report.
+
+**F17b — Signatures on forms** (Decided 2026-11-18). A wet signature stays the
+legal proof; the electronic approval is the record of it.
+- **Every generated form carries, at its foot, the electronic approval
+  record:** each step's approver, their role, the action and its date and time,
+  from the approval chain and the audit log (F3, F11b). Forms with no approval
+  chain carry who recorded them and when.
+- **And a wet-signature block** for each signatory the form names (supervisor,
+  committee members, chairperson, Dean …), to be signed on paper.
+- **Signed scan:** the signed paper is scanned and uploaded against that
+  annexure. In the file, the signed scan stands in place of the generated form;
+  the generated form stays downloadable. The index marks each annexure "signed"
+  or "unsigned", so a missing signature shows.
+- **The signature is the main mark** (stakeholder requirement): on a generated
+  form each signatory's signature stands where their wet signature would, with
+  the electronic approval record below it as detail.
+- **Signing inside the portal** (Decided 2026-11-18): an approval is a
+  signature, not a click — a session left open on a shared computer must not
+  be enough. Each signer keeps a **specimen signature**, a drawing on screen or
+  a scan of their wet signature, given in one of two ways: they upload it
+  themselves and an admin over their unit (the Research Office for office
+  staff) confirms it before it can be used; or they sign on paper at their
+  department and that admin uploads it for them, which confirms it. A new
+  specimen goes through the same again. Every approve, send-back or reject —
+  and every form a person signs — asks for a **fresh code**; a code that does
+  not match signs nothing. The code comes from the signer's authenticator app
+  (Microsoft Authenticator, Google Authenticator or any standard app) when they
+  have set one up, otherwise it is **emailed** to them: six digits, valid for
+  ten minutes, usable once and only for the action it was sent for; five wrong
+  codes end it and a new one must be sent. Without email configured (F5),
+  signing needs the authenticator app. The specimen is stamped on the form
+  with the signer, time and step, and the signing is audited. Later, when a
+  university asks: a code by text message, and Aadhaar eSign.
 
 ### 6.3 Optional modules
 
@@ -661,6 +733,16 @@ Each phase ends with a check-in with the owner before the next starts.
   (Default: both stay on.)
 - NIRF / AISHE reporting pack: a non-goal today; revisit after the pilot with
   real data in hand.
+- ~~Signing inside the portal (F17b): what proves the signer is present?~~
+  Resolved 2026-11-18: a fresh authenticator code at each signature, then the
+  admin-confirmed specimen signature is stamped.
+- ~~A signer without a smartphone?~~ Resolved 2026-11-18: an emailed code
+  is accepted for now (F17b); a code by text message comes later if a
+  university needs it. Accepted risk: email may be open on the same computer.
+- ~~A legally recognised e-signature?~~ Resolved 2026-11-18: Aadhaar eSign
+  later, not in the first build.
+- Will the pilot university accept the PhD file (F17) with electronic approval
+  records and signed scans, or does it still need every page signed on paper?
 - ~~Grant ledger: may a PI enter expenses on their own project?~~ Resolved
   2026-10-21: yes, on their own projects only (SECURITY.md §3).
 
