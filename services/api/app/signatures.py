@@ -26,11 +26,15 @@ async def current(session: AsyncSession, user_id: uuid.UUID) -> Signature | None
     )
 
 
+def data_url(sig: Signature) -> str:
+    return f"data:{sig.content_type};base64,{base64.b64encode(sig.content).decode()}"
+
+
 def view(sig: Signature | None) -> dict[str, Any] | None:
     if sig is None:
         return None
     return {
-        "image": f"data:{sig.content_type};base64,{base64.b64encode(sig.content).decode()}",
+        "image": data_url(sig),
         "uploaded_at": sig.created_at,
         "uploaded_by_self": sig.uploaded_by == sig.user_id,
         "confirmed_at": sig.confirmed_at,

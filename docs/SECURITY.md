@@ -53,7 +53,9 @@
   keeper confirms it (`POST …/signature/confirm`); uploaded by a keeper (the
   paper signature handed in at the department), it is confirmed at once. Nobody
   confirms their own (403 `own_signature`, and a CHECK). A new upload replaces
-  the old one and needs confirming again. Unit heads are not keepers.
+  the old one and needs confirming again. Unit heads are not keepers. Once it
+  signs an action, it is stamped on that item: whoever may read the item sees
+  it in the history and on its PDF, as on a signed paper form.
 - **Signing approvals** (PRD F17b; university setting `require_signing`,
   default off; `signing.py`): while on, every approve and send-back needs a
   confirmed specimen signature (422 `signature_required`) and a fresh code

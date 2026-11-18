@@ -246,6 +246,7 @@ def _record(
     comment: str | None = None,
     rating: str | None = None,
     on_behalf_of: uuid.UUID | None = None,
+    signature_id: uuid.UUID | None = None,
 ) -> None:
     kind = None
     if step_index is not None and ctx.item.chain_snapshot:
@@ -262,6 +263,7 @@ def _record(
             rating=rating,
             actor_id=principal.user_id,
             on_behalf_of=on_behalf_of,
+            signature_id=signature_id,
         )
     )
 
@@ -276,6 +278,7 @@ async def _transition(
     to_step: int | None = None,
     comment: str | None = None,
     rating: str | None = None,
+    signature_id: uuid.UUID | None = None,
 ) -> None:
     prev = snapshot(ctx.item)  # type: ignore[arg-type]
     from_state = ctx.item.state
@@ -291,7 +294,9 @@ async def _transition(
         )
     for key, value in changes.items():
         setattr(ctx.item, key, value)
-    _record(session, principal, ctx, action, step_index, to_step, comment, rating, behalf)
+    _record(
+        session, principal, ctx, action, step_index, to_step, comment, rating, behalf, signature_id
+    )
     await session.flush()
     await session.refresh(ctx.item)
     audit(
@@ -363,7 +368,9 @@ async def approve(
     ctx: ItemContext,
     comment: str | None = None,
     rating: str | None = None,
+    signature_id: uuid.UUID | None = None,
 ) -> None:
+    """signature_id: the specimen that signed it, while signing is required (signing.py)."""
     if not await can_act(session, principal, ctx):
         raise violation("You cannot approve this item at its current step.")
     step = ctx.item.current_step
@@ -378,6 +385,7 @@ async def approve(
             step_index=step,
             comment=comment,
             rating=rating,
+            signature_id=signature_id,
         )
         await _notify_step(session, principal, ctx)
         return
@@ -394,6 +402,7 @@ async def approve(
         step_index=step,
         comment=comment,
         rating=rating,
+        signature_id=signature_id,
     )
     notify(session, [ctx.scholar.user_id], "approved", f"{ctx.label} approved", link=ctx.link)
 
@@ -404,6 +413,7 @@ async def send_back(
     ctx: ItemContext,
     comment: str,
     to_step: int | None = None,
+    signature_id: uuid.UUID | None = None,
 ) -> None:
     """to_step=None sends back to the initiator; otherwise to any earlier step."""
     if not comment.strip():
@@ -421,6 +431,7 @@ async def send_back(
             {"state": "sent_back", "current_step": None},
             step_index=step,
             comment=comment,
+            signature_id=signature_id,
         )
         # Whoever resubmits hears about it: the scholar, or the office that started the item.
         initiator = INITIATOR[ctx.item_type]
@@ -441,6 +452,7 @@ async def send_back(
         step_index=step,
         to_step=to_step,
         comment=comment,
+        signature_id=signature_id,
     )
     kind = ctx.item.chain_snapshot[to_step]["kind"]  # type: ignore[index]
     ids = await step_actor_ids(session, ctx, kind, principal.user_id)

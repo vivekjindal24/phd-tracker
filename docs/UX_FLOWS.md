@@ -110,7 +110,8 @@ non-initiator never sees the New button and the API 403s anyway.
    the six-digit code from the authenticator app, or **Email me a code** for
    those without one. A correct code completes the action; a wrong one says so
    and keeps the box open. No confirmed signature on file: the API says so and
-   points to **My account**.
+   points to **My account**. The signature then shows under that step in the
+   item's **History** and on its PDF.
 5. Scholar edits a **Sent back** item → **Resubmit** → the chain restarts
    from step 1 with the snapshot taken at the original submit.
 

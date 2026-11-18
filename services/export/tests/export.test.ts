@@ -4,7 +4,8 @@ import type { AddressInfo } from "node:net";
 import { after, before, test } from "node:test";
 import express from "express";
 import { createApp, loadConfig } from "../src/server.ts";
-import { certificatePdf, csvCell, tableCsv } from "../src/render.ts";
+import { reportView } from "../src/api.ts";
+import { certificatePdf, csvCell, reportPdf, tableCsv } from "../src/render.ts";
 
 const REPORT_ID = "6f1c2a7e-3b4d-4e5f-8a9b-0c1d2e3f4a5b";
 const JUNK_ID = "00000000-0000-4000-8000-000000000000";
@@ -163,6 +164,21 @@ test("certificate PDF is rendered from the export view, with the token forwarded
 
 test("a broken logo is logged and never blocks the PDF", async () => {
   const res = await certificatePdf({ ...certificate, address: "Sector 1", logo: Buffer.from("not an image").toString("base64") });
+  assert.equal(res.subarray(0, 5).toString(), "%PDF-");
+});
+
+const DOT_PNG = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
+
+test("signed steps carry the signature; a broken one never blocks the PDF", async () => {
+  const signed = { action: "approve", actor: "Meera", step: "Supervisor", to: null, comment: null, rating: null, at: "2026-10-02T10:00:00Z" };
+  const res = await reportPdf(reportView.parse({
+    ...report,
+    history: [
+      ...report.history,
+      { ...signed, signature: `data:image/png;base64,${DOT_PNG}` },
+      { ...signed, signature: "data:image/png;base64,bm90IGFuIGltYWdl" },
+    ],
+  }));
   assert.equal(res.subarray(0, 5).toString(), "%PDF-");
 });
 

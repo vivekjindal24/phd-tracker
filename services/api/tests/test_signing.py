@@ -183,3 +183,36 @@ async def test_send_back_is_signed_too(session, client, world, pub, outbox):
 async def test_no_bulk_approval_while_signing_is_on(client, world, pub):
     res = await client.get(f"{API}/queue", headers=auth(world.meera.id))
     assert [e["quick_approve"] for e in res.json()] == [False]
+
+
+async def test_the_signature_is_stamped_on_the_history_and_kept(session, client, world, pub):
+    await specimen(session, world.meera, world.research_office)
+    secret = totp.new_secret()
+    await session.execute(
+        update(User)
+        .where(User.id == world.meera.id)
+        .values(totp_secret=secret, totp_enabled_at=datetime.now(UTC))
+    )
+    await session.commit()
+    res = await act(client, world.meera, pub, code=totp.code(secret, time.time()))
+    signed = [h for h in res.json()["history"] if h["action"] == "approve"]
+    assert signed[0]["signature"].startswith("data:image/png;base64,")
+
+    # A new specimen later does not change what was signed.
+    res = await client.put(
+        f"{API}/users/{world.meera.id}/signature",
+        headers={**auth(world.meera.id), "Content-Type": "image/jpeg"},
+        content=b"\xff\xd8\xff\xe0" + b"\x00" * 8,
+    )
+    assert res.status_code == 204
+    view = await client.get(f"{API}/items/publication/{pub}", headers=auth(world.meera.id))
+    signed = [h for h in view.json()["history"] if h["action"] == "approve"]
+    assert signed[0]["signature"].startswith("data:image/png;base64,")
+
+
+async def test_unsigned_while_signing_is_off(session, client, world, pub):
+    await session.execute(update(Settings).where(Settings.id == 1).values(require_signing=False))
+    await session.commit()
+    res = await act(client, world.meera, pub)
+    assert res.status_code == 200, res.text
+    assert all(h["signature"] is None for h in res.json()["history"])

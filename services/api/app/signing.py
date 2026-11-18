@@ -9,6 +9,7 @@ of their own; an emailed code dies after five wrong tries."""
 import hashlib
 import hmac
 import secrets
+import uuid
 from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import func, select, update
@@ -112,10 +113,11 @@ async def send_code(
 
 async def verify(
     session: AsyncSession, principal: Principal, ctx: ItemContext, action: str, code: str | None
-) -> None:
-    """Raises unless the caller may sign this action now. A no-op while signing is off."""
+) -> uuid.UUID | None:
+    """Raises unless the caller may sign this action now; returns the specimen that signs it.
+    None while signing is off."""
     if not await required(session):
-        return
+        return None
     sig = await signatures.current(session, principal.user_id)
     if sig is None or sig.confirmed_at is None:
         raise ApiError(
@@ -137,7 +139,7 @@ async def verify(
         if not step:
             raise await count_failure(session, _throttle_key(user), INVALID)
         user.totp_last_step = step
-        return
+        return sig.id
     row = await session.scalar(
         select(SigningCode)
         .where(
@@ -162,3 +164,4 @@ async def verify(
         await session.commit()  # the wrong try counts even though the action fails
         raise INVALID
     row.used_at = now
+    return sig.id

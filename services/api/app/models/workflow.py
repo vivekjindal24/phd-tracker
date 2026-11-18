@@ -77,6 +77,10 @@ class ApprovalActionRow(Base):
     on_behalf_of: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id")
     )
+    # The specimen signature that signed this action, while signing was required (PRD F17b).
+    signature_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("signatures.id")
+    )
     # clock_timestamp, not now(): several actions in one transaction must still order.
     at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.clock_timestamp()

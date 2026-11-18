@@ -280,7 +280,9 @@ initiator), `comment` (required for send_back — CHECK), `rating` (NULL, or on 
 of an assessed item: satisfactory / needs_improvement / unsatisfactory —
 `ck_actions_rating`), `actor_id` FK users, `on_behalf_of` FK users (NULL, or
 the supervisor when a stand-in or the head acted at the supervisor step),
-`at`. Written only by `workflow.py`.
+`signature_id` FK signatures (the specimen that signed an approve or send-back
+while signing was required, PRD F17b; NULL otherwise — kept even after the
+person replaces their signature), `at`. Written only by `workflow.py`.
 
 **supervisor_stand_ins** — who acts for a supervisor while they are away
 (PRD F3): `faculty_id` FK faculty (the supervisor; one live row each,

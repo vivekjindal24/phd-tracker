@@ -49,6 +49,18 @@ function toBuffer(doc: PDFKit.PDFDocument): Promise<Buffer> {
 type Brand = Pick<ReportView, "university" | "address" | "logo">;
 const LOGO_SIZE = 52;
 
+const SIGNATURE_BOX: [number, number] = [120, 40];
+
+/** The specimen that signed a step (PRD F17b), under the line naming the signer. */
+function drawSignature(doc: PDFKit.PDFDocument, dataUrl: string) {
+  try {
+    doc.image(Buffer.from(dataUrl.slice(dataUrl.indexOf(",") + 1), "base64"), doc.page.margins.left + 14, doc.y, { fit: SIGNATURE_BOX });
+    doc.y += SIGNATURE_BOX[1] + 4;
+  } catch (e) {
+    console.error("a signature could not be drawn:", e); // the record above still names the signer
+  }
+}
+
 function drawLogo(doc: PDFKit.PDFDocument, logo: string) {
   try {
     doc.image(Buffer.from(logo, "base64"), (doc.page.width - LOGO_SIZE) / 2, doc.y, { fit: [LOGO_SIZE, LOGO_SIZE], align: "center" });
@@ -137,6 +149,7 @@ export async function reportPdf(v: ReportView): Promise<Buffer> {
       .font("Helvetica").text(` — ${h.actor}${h.on_behalf_of ? ` (on behalf of ${h.on_behalf_of})` : ""}, ${stamp(h.at)}`);
     if (h.rating) doc.font("Helvetica-Bold").text(`Assessment: ${RATINGS[h.rating]}`, { indent: 14 }).font("Helvetica");
     if (h.comment) doc.fillColor("#333333").text(`“${h.comment}”`, { indent: 14 }).fillColor("black");
+    if (h.signature) drawSignature(doc, h.signature);
     doc.moveDown(0.3);
   }
   footer(doc, v.generated_by, v.generated_at);

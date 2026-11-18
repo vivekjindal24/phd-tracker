@@ -18,11 +18,16 @@ router = APIRouter(tags=["items"])
 
 
 async def _signed(
-    session, principal, ctx, action: str, code: str | None, act: Callable[[], Awaitable[None]]
+    session,
+    principal,
+    ctx,
+    action: str,
+    code: str | None,
+    act: Callable[[uuid.UUID | None], Awaitable[None]],
 ) -> None:
-    """The action runs only once the signing check passes (a no-op while signing is off)."""
-    await signing.verify(session, principal, ctx, action, code)
-    await act()
+    """The action runs only once the signing check passes, given the signature that signed it
+    (None while signing is off)."""
+    await act(await signing.verify(session, principal, ctx, action, code))
 
 
 async def _act_and_view(session, principal, item_type, item_id, action) -> dict[str, Any]:
@@ -90,12 +95,13 @@ async def approve(
             ctx,
             "approve",
             body.code if body else None,
-            lambda: items.approve(
+            lambda sig: items.approve(
                 session,
                 principal,
                 ctx,
                 body.comment if body else None,
                 body.rating if body else None,
+                sig,
             ),
         ),
     )
@@ -120,7 +126,9 @@ async def send_back(
             ctx,
             "send_back",
             body.code,
-            lambda: workflow.send_back(session, principal, ctx, body.comment, body.to_step),
+            lambda sig: workflow.send_back(
+                session, principal, ctx, body.comment, body.to_step, sig
+            ),
         ),
     )
 

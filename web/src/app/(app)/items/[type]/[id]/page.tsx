@@ -290,6 +290,7 @@ export default function ItemPage() {
                     <time dateTime={h.at}>{new Date(h.at).toLocaleString()}</time>
                     {h.rating && <> <span className={`badge ${h.rating === "satisfactory" ? "badge-approved" : "badge-sent_back"}`}>{RATING_LABELS[h.rating]}</span></>}
                     {h.comment && <blockquote>{h.comment}</blockquote>}
+                    {h.signature && <img className="history-signature" src={h.signature} alt={`Signature of ${h.actor}`} />}
                   </li>
                 ))}
               </ol>

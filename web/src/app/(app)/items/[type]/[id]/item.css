@@ -42,6 +42,16 @@
   padding-top: var(--space-4);
   border-top: 1px dashed var(--lilac);
 }
+.history-signature {
+  display: block;
+  max-width: 180px;
+  max-height: 64px;
+  object-fit: contain;
+  background: #fff; /* ink on paper, in either theme */
+  padding: var(--space-1);
+  border-radius: var(--radius-sm);
+  margin-top: var(--space-2);
+}
 @media (max-width: 900px) {
   .item-grid {
     grid-template-columns: 1fr;

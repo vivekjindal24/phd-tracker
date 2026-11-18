@@ -607,6 +607,7 @@ class HistoryEntry(BaseModel):
     comment: str | None
     rating: Rating | None
     at: datetime
+    signature: str | None = None  # data: URL of the specimen that signed it (PRD F17b)
 
 
 class ItemView(BaseModel):

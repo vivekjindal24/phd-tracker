@@ -11,7 +11,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
-from app import apr, coursework, ethics, grants, scope, signing, workflow
+from app import apr, coursework, ethics, grants, scope, signatures, signing, workflow
 from app.auth.principal import Principal
 from app.crud import update
 from app.enums import STAGES
@@ -28,6 +28,7 @@ from app.models import (
     Publication,
     Scholar,
     Settings,
+    Signature,
     ThesisSubmission,
     User,
 )
@@ -263,6 +264,7 @@ async def approve(
     ctx: ItemContext,
     comment: str | None,
     rating: str | None = None,
+    signature_id: uuid.UUID | None = None,
 ) -> None:
     kind = kind_of(ctx.item_type)
     missing = missing_fields(kind, ctx)
@@ -272,7 +274,7 @@ async def approve(
         rating = None
     elif not (rating and comment) and await workflow.can_act(session, principal, ctx):
         raise workflow.violation("Give a rating and written remarks before approving.")
-    await workflow.approve(session, principal, ctx, comment, rating)
+    await workflow.approve(session, principal, ctx, comment, rating, signature_id)
     if ctx.item.state == "approved" and kind.on_approved:
         await kind.on_approved(session, principal, ctx)
 
@@ -389,9 +391,11 @@ async def view(session: AsyncSession, principal: Principal, ctx: ItemContext) ->
 async def history(session: AsyncSession, ctx: ItemContext) -> list[dict[str, Any]]:
     behalf = aliased(User)
     rows = await session.execute(
-        select(ApprovalActionRow, User.full_name, behalf.full_name)
+        select(ApprovalActionRow, User.full_name, behalf.full_name, Signature)
         .join(User, User.id == ApprovalActionRow.actor_id)
         .outerjoin(behalf, behalf.id == ApprovalActionRow.on_behalf_of)
+        # the specimen that signed it, kept even after the person replaces it (PRD F17b)
+        .outerjoin(Signature, Signature.id == ApprovalActionRow.signature_id)
         .where(
             ApprovalActionRow.item_type == ctx.item_type, ApprovalActionRow.item_id == ctx.item.id
         )
@@ -399,7 +403,7 @@ async def history(session: AsyncSession, ctx: ItemContext) -> list[dict[str, Any
     )
     steps = ctx.item.chain_snapshot or []
     out = []
-    for a, actor, on_behalf_of in rows:
+    for a, actor, on_behalf_of, sig in rows:
         to = None
         if a.action == "send_back":
             to = (
@@ -417,6 +421,7 @@ async def history(session: AsyncSession, ctx: ItemContext) -> list[dict[str, Any
                 "comment": a.comment,
                 "rating": a.rating,
                 "at": a.at,
+                "signature": signatures.data_url(sig) if sig else None,
             }
         )
     return out

@@ -27,6 +27,7 @@ const historyEntry = z.object({
   comment: z.string().nullable(),
   rating: z.enum(["satisfactory", "needs_improvement", "unsatisfactory"]).nullable(),
   at: z.string(),
+  signature: z.string().nullable().default(null), // data: URL of the specimen that signed it (PRD F17b)
 });
 
 export const reportView = z.object({
