@@ -41,8 +41,8 @@ returns them to log in with the new password.
 
 1. Root admin → **Settings → UGC rules** → switch "Require two-factor login".
 2. At their next password login each person sees **Set up two-factor login**:
-   a key to add to an authenticator app (typed, or opened by a link on the
-   phone) and a box for the six-digit code. A correct code shows **Save your
+   a QR code to scan into an authenticator app (or the key, typed or opened by
+   a link on the phone) and a box for the six-digit code. A correct code shows **Save your
    recovery codes** once; "I have saved them, continue" enters the app.
 3. Every later login asks for **Enter your code** after the password; a
    recovery code works there too, once.

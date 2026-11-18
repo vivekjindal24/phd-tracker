@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import QRCode from "qrcode";
 import { Suspense, useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { Owl, OwlMark } from "@/components/brand/Owl";
@@ -69,6 +70,24 @@ function ForgotPassword({ onBack }: { onBack: () => void }) {
       <Button kind="ghost" onClick={onBack}>← Back to log in</Button>
     </form>
   );
+}
+
+/** The setup key as a QR code an authenticator app scans; drawn here, so the key never leaves the page. */
+function SetupQr({ uri }: { uri: string }) {
+  const [src, setSrc] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let current = true;
+    QRCode.toDataURL(uri, { margin: 1, width: 200 }).then(
+      (url) => current && setSrc(url),
+      () => current && setFailed(true),
+    );
+    return () => { current = false; };
+  }, [uri]);
+
+  if (failed) return <p className="muted">The QR code could not be drawn — type the key below instead.</p>;
+  return src ? <img className="setup-qr" src={src} width={200} height={200} alt="QR code of your two-factor key" /> : null;
 }
 
 function LoginForm() {
@@ -143,7 +162,9 @@ function LoginForm() {
         <h2 id="code-title">{setup ? "Set up two-factor login" : "Enter your code"}</h2>
         {setup ? (
           <>
-            <p>Your university requires a second step. In an authenticator app (Google Authenticator, Microsoft Authenticator, Authy), add an account and enter this key:</p>
+            <p>Your university requires a second step. In an authenticator app (Microsoft Authenticator, Google Authenticator, Authy), add an account and scan this code:</p>
+            <SetupQr uri={setup.otpauth_uri} />
+            <p className="muted">Can’t scan? Enter this key instead:</p>
             <p><code className="setup-key">{setup.secret.replace(/(.{4})/g, "$1 ").trim()}</code></p>
             <p className="muted">On this phone? <a href={setup.otpauth_uri}>Open it in your authenticator app</a>. Choose “time based” if asked.</p>
           </>

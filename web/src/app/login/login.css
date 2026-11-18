@@ -95,6 +95,13 @@
   letter-spacing: 0.08em;
   word-spacing: 0.3em; /* groups of four stay whole when the line wraps */
 }
+.login-card .setup-qr {
+  display: block;
+  margin-inline: auto;
+  background: #fff; /* scanners need dark-on-light, in either theme */
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+}
 .login-card .recovery-codes {
   list-style: none;
   padding: 0;

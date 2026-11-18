@@ -65,6 +65,16 @@ async def test_first_login_sets_it_up(client, world):
     assert bad.json()["error"]["code"] == "invalid_credentials"
 
 
+async def test_setup_keeps_one_key_until_it_is_confirmed(client, world):
+    # Going back and logging in again must not change the key already added to the app.
+    await switch_on(client, world)
+    first = (await login(client, world.scholar_a1)).json()["error"]["details"]["secret"]
+    again = (await login(client, world.scholar_a1)).json()["error"]["details"]["secret"]
+    assert again == first
+    done = await login(client, world.scholar_a1, totp.code(first, time.time()))
+    assert done.status_code == 200, done.text
+
+
 async def test_later_logins_need_a_fresh_code(client, world):
     secret, recovery = await enrolled(client, world, world.meera)
     bare = await login(client, world.meera)

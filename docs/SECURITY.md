@@ -26,7 +26,8 @@
   step of clock drift either way; a code works once). Nobody may opt out. The
   first password login after the switch sets it up: with the password proven
   and no code sent, the API answers 401 `two_factor_setup_required` with the
-  key; the first correct code enables it and returns eight single-use recovery
+  key (the same key on every attempt until it is confirmed; an admin reset
+  discards it); the first correct code enables it and returns eight single-use recovery
   codes, shown once and stored only as sha256. Later logins without a code get
   401 `two_factor_required`; a wrong code is 401 `invalid_code` and counts
   toward the login throttle. University-account sign-in (SSO) is not asked: the
@@ -39,8 +40,9 @@
   phone (`POST /users/{id}/two-factor/reset`, which ends their sessions); they
   set it up again at the next login. Known limits: whoever holds a not yet
   enrolled person's password can enrol their own phone, exactly as they could
-  log in before the switch; the key is shown as text and a tap-to-open link,
-  not a QR code; the secret is stored unwrapped in `users.totp_secret`, redacted
+  log in before the switch; the key is shown as a QR code (drawn in the
+  browser, never sent elsewhere), as text and as a tap-to-open link; the
+  secret is stored unwrapped in `users.totp_secret`, redacted
   from `audit_log` like the hashes, relying on the disk encryption of §8.
 - **Access token:** HS256 JWT, 30-minute expiry, held in browser memory
   (never localStorage, never a cookie). Claims carry only `sub` — roles and

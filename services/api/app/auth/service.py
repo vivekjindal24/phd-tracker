@@ -117,12 +117,14 @@ async def _failed(session: AsyncSession, email: str, error: ApiError) -> ApiErro
 async def _second_step(session: AsyncSession, user: User, code: str | None) -> list[str] | None:
     """The authenticator step of a password login, while the university requires it. The first
     login after the switch sets it up: the secret goes out once the password is proven, and the
-    first correct code enables it and returns the recovery codes. Returns those codes, or None."""
+    first correct code enables it and returns the recovery codes. Returns those codes, or None.
+    A pending secret is kept until confirmed, so logging in again shows the same key."""
     now = datetime.now(UTC)
     if user.totp_enabled_at is None:
         if code is None:
-            user.totp_secret = totp.new_secret()
-            await session.commit()
+            if user.totp_secret is None:
+                user.totp_secret = totp.new_secret()
+                await session.commit()
             raise ApiError(
                 401,
                 "two_factor_setup_required",
