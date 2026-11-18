@@ -89,7 +89,8 @@ non-initiator never sees the New button and the API 403s anyway.
    rating, no step-only field left empty; the API reports this per item)
    carry a checkbox: **Approve selected** asks once, then approves each
    through the same endpoint as the item page, with no comment, and lists
-   any the server refused with its reason.
+   any the server refused with its reason. While the university requires
+   signing (PRD F17b) there are no checkboxes: each item is signed on its page.
 2. Opens an item: content, files, comments, full approval history.
 3. **Approve** (optional comment; on a progress report a rating —
    Satisfactory / Needs improvement / Unsatisfactory — and written remarks are
@@ -104,6 +105,12 @@ non-initiator never sees the New button and the API 403s anyway.
    untouched for 7 days is brought back to its step's people by notification;
    after 14 days at the supervisor step the head finds it in **Your queue**
    too. The history then reads "Dr X (on behalf of Dr Y) approved".
+4b. **Signing** (when the university requires it): pressing Approve or Send
+   back opens **Sign to approve** / **Sign to send back** above the decision:
+   the six-digit code from the authenticator app, or **Email me a code** for
+   those without one. A correct code completes the action; a wrong one says so
+   and keeps the box open. No confirmed signature on file: the API says so and
+   points to **My account**.
 5. Scholar edits a **Sent back** item → **Resubmit** → the chain restarts
    from step 1 with the snapshot taken at the original submit.
 

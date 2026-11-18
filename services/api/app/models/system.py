@@ -10,6 +10,7 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     Index,
+    Integer,
     Text,
     UniqueConstraint,
     func,
@@ -21,8 +22,10 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.enums import (
     AUDIT_ACTIONS,
     DELIVERY_STATUSES,
+    ITEM_TYPES,
     NOTIFICATION_CATEGORIES,
     PASSWORD_TOKEN_PURPOSES,
+    SIGNING_ACTIONS,
     SSO_PROVIDERS,
     sql_in,
 )
@@ -84,6 +87,29 @@ class PasswordToken(Base):
     )
     token_hash: Mapped[str] = mapped_column(Text, unique=True)
     purpose: Mapped[str] = mapped_column(Text)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class SigningCode(Base):
+    """An emailed code that signs one action on one item (PRD F17b): six digits, ten minutes,
+    used once, five wrong tries end it. Only the sha256 is stored."""
+
+    __tablename__ = "signing_codes"
+    __table_args__ = (
+        CheckConstraint(f"item_type IN ({sql_in(ITEM_TYPES)})", name="ck_signing_codes_item"),
+        CheckConstraint(f"action IN ({sql_in(SIGNING_ACTIONS)})", name="ck_signing_codes_action"),
+        Index("ix_signing_codes_user", "user_id", "created_at"),
+    )
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"))
+    item_type: Mapped[str] = mapped_column(Text)
+    item_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True))
+    action: Mapped[str] = mapped_column(Text)
+    code_hash: Mapped[str] = mapped_column(Text)
+    attempts: Mapped[int] = mapped_column(Integer, server_default=text("0"))
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

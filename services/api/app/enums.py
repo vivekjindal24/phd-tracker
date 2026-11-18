@@ -55,6 +55,8 @@ ItemType = Literal[
     "fellowship_claim",
 ]
 ITEM_TYPES = get_args(ItemType)
+SigningAction = Literal["approve", "send_back"]
+SIGNING_ACTIONS = get_args(SigningAction)
 
 StepKind = Literal[
     "supervisor", "department", "research_office", "exam_office", "library", "vice_chancellor"

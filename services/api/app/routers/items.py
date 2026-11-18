@@ -1,19 +1,28 @@
 """Generic approvable-item endpoints: view, act, queue (PRD F3, UX Flows 1-2)."""
 
 import uuid
+from collections.abc import Awaitable, Callable
 from typing import Any
 
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import items, workflow
+from app import items, signing, workflow
 from app.auth.deps import current_principal
 from app.auth.principal import Principal
 from app.db import get_session
 from app.enums import ItemType
-from app.schemas import ApproveIn, ItemView, QueueEntry, SendBackIn
+from app.schemas import ApproveIn, ItemView, QueueEntry, SendBackIn, SigningCodeIn
 
 router = APIRouter(tags=["items"])
+
+
+async def _signed(
+    session, principal, ctx, action: str, code: str | None, act: Callable[[], Awaitable[None]]
+) -> None:
+    """The action runs only once the signing check passes (a no-op while signing is off)."""
+    await signing.verify(session, principal, ctx, action, code)
+    await act()
 
 
 async def _act_and_view(session, principal, item_type, item_id, action) -> dict[str, Any]:
@@ -75,12 +84,19 @@ async def approve(
         principal,
         item_type,
         item_id,
-        lambda ctx: items.approve(
+        lambda ctx: _signed(
             session,
             principal,
             ctx,
-            body.comment if body else None,
-            body.rating if body else None,
+            "approve",
+            body.code if body else None,
+            lambda: items.approve(
+                session,
+                principal,
+                ctx,
+                body.comment if body else None,
+                body.rating if body else None,
+            ),
         ),
     )
 
@@ -98,8 +114,28 @@ async def send_back(
         principal,
         item_type,
         item_id,
-        lambda ctx: workflow.send_back(session, principal, ctx, body.comment, body.to_step),
+        lambda ctx: _signed(
+            session,
+            principal,
+            ctx,
+            "send_back",
+            body.code,
+            lambda: workflow.send_back(session, principal, ctx, body.comment, body.to_step),
+        ),
     )
+
+
+@router.post("/items/{item_type}/{item_id}/signing-code", status_code=204)
+async def send_signing_code(
+    item_type: ItemType,
+    item_id: uuid.UUID,
+    body: SigningCodeIn,
+    principal: Principal = Depends(current_principal),
+    session: AsyncSession = Depends(get_session),
+) -> None:
+    """Emails a code for one action on this item (PRD F17b), when there is no authenticator."""
+    ctx = await items.load_ctx(session, principal, item_type, item_id, lock=True)
+    await signing.send_code(session, principal, ctx, body.action)
 
 
 @router.get("/queue", response_model=list[QueueEntry])

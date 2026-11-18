@@ -33,6 +33,7 @@ from app.models.system import (
     Notification,
     PasswordToken,
     RefreshToken,
+    SigningCode,
     SsoState,
 )
 from app.models.thesis import (
@@ -96,6 +97,7 @@ __all__ = [
     "Settings",
     "ShodhgangaDeposit",
     "Signature",
+    "SigningCode",
     "SsoState",
     "SupervisorStandIn",
     "ThesisReview",

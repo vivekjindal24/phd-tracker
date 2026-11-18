@@ -64,6 +64,7 @@ class Settings(Timestamps, Base):
     require_no_dues: Mapped[bool] = mapped_column(Boolean, server_default=text("false"))
     require_ethics: Mapped[bool] = mapped_column(Boolean, server_default=text("false"))
     require_two_factor: Mapped[bool] = mapped_column(Boolean, server_default=text("false"))
+    require_signing: Mapped[bool] = mapped_column(Boolean, server_default=text("false"))
     seminar_graders: Mapped[str] = mapped_column(Text, server_default=text("'panel'"))
     seminar_rubric: Mapped[list[dict[str, Any]]] = mapped_column(
         JSONB, server_default=text(f"'{json.dumps(list(DEFAULT_RUBRIC))}'::jsonb")

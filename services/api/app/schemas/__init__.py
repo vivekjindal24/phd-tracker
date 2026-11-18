@@ -30,6 +30,7 @@ from app.enums import (
     Rating,
     SeminarGraders,
     SeminarStatus,
+    SigningAction,
     Stage,
     StepKind,
     StudyMode,
@@ -306,6 +307,7 @@ class SettingsOut(BaseModel):
     require_no_dues: bool
     require_ethics: bool
     require_two_factor: bool
+    require_signing: bool
     apr_custom_template: bool
     apr_sections: list[AprSection]  # the university's own list, kept while the toggle is off
     apr_template: list[AprSection]  # what scholars fill today
@@ -329,6 +331,7 @@ class SettingsUpdate(BaseModel):
     require_no_dues: bool | None = None
     require_ethics: bool | None = None
     require_two_factor: bool | None = None
+    require_signing: bool | None = None
     apr_custom_template: bool | None = None
     apr_sections: AprTemplate | None = None
     seminar_graders: SeminarGraders | None = None
@@ -633,14 +636,23 @@ class NoDuesMine(BaseModel):
     item: ItemView | None
 
 
+SigningCodeText = Annotated[str, StringConstraints(strip_whitespace=True, max_length=20)]
+
+
 class ApproveIn(BaseModel):
     comment: Comment | None = None
     rating: Rating | None = None  # required with the comment on assessed items (PRD F8)
+    code: SigningCodeText | None = None  # while signing is required (PRD F17b)
+
+
+class SigningCodeIn(BaseModel):
+    action: SigningAction
 
 
 class SendBackIn(BaseModel):
     comment: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=4000)]
     to_step: int | None = Field(default=None, ge=0)
+    code: SigningCodeText | None = None
 
 
 class QueueEntry(BaseModel):

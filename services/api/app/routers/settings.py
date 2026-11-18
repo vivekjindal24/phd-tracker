@@ -32,6 +32,7 @@ async def _read(session: AsyncSession) -> SettingsOut:
             "require_no_dues": settings.require_no_dues,
             "require_ethics": settings.require_ethics,
             "require_two_factor": settings.require_two_factor,
+            "require_signing": settings.require_signing,
             "apr_custom_template": settings.apr_custom_template,
             "apr_sections": settings.apr_sections,
             "apr_template": apr.effective(settings),

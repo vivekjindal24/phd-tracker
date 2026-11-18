@@ -85,7 +85,7 @@ async def _issue_refresh(session: AsyncSession, user_id: uuid.UUID) -> str:
     return raw
 
 
-async def _check_throttle(session: AsyncSession, email: str) -> None:
+async def check_throttle(session: AsyncSession, email: str) -> None:
     since = datetime.now(UTC) - THROTTLE_WINDOW
     failures = await session.scalar(
         select(func.count())
@@ -107,7 +107,7 @@ async def two_factor_required(session: AsyncSession) -> bool:
     return bool(await session.scalar(select(Settings.require_two_factor).where(Settings.id == 1)))
 
 
-async def _failed(session: AsyncSession, email: str, error: ApiError) -> ApiError:
+async def count_failure(session: AsyncSession, email: str, error: ApiError) -> ApiError:
     """Every failed step counts toward the throttle, a wrong code like a wrong password."""
     session.add(LoginAttempt(email=email.lower()))
     await session.commit()
@@ -138,7 +138,7 @@ async def _second_step(session: AsyncSession, user: User, code: str | None) -> l
             user.totp_secret, code, now.timestamp(), None
         )
         if not step:
-            raise await _failed(session, user.email, _INVALID_CODE)
+            raise await count_failure(session, user.email, _INVALID_CODE)
         recovery = totp.new_recovery_codes()
         await audited_update(
             session,
@@ -167,18 +167,18 @@ async def _second_step(session: AsyncSession, user: User, code: str | None) -> l
             {"recovery_hashes": [h for h in user.recovery_hashes if h != hashed]},
         )
         return None
-    raise await _failed(session, user.email, _INVALID_CODE)
+    raise await count_failure(session, user.email, _INVALID_CODE)
 
 
 async def login(
     session: AsyncSession, email: str, password: str, code: str | None = None
 ) -> tuple[str, str, list[str] | None]:
     """Tokens, plus the recovery codes when this login set two-factor up."""
-    await _check_throttle(session, email)
+    await check_throttle(session, email)
     user = await session.scalar(select(User).where(User.email == email, User.deleted_at.is_(None)))
     password_ok = verify_password(user.password_hash if user else None, password)
     if user is None or not user.is_active or not password_ok:
-        raise await _failed(session, email, _INVALID)
+        raise await count_failure(session, email, _INVALID)
     recovery = None
     if await two_factor_required(session):
         recovery = await _second_step(session, user, code)
@@ -280,7 +280,7 @@ async def forgot_password(session: AsyncSession, email: str) -> None:
     """Same answer whether or not the account exists; shares the login throttle."""
     if not email_configured():
         raise EMAIL_NOT_CONFIGURED
-    await _check_throttle(session, email)
+    await check_throttle(session, email)
     session.add(LoginAttempt(email=email.lower()))
     user = await session.scalar(select(User).where(User.email == email, User.deleted_at.is_(None)))
     raw = None

@@ -11,7 +11,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
-from app import apr, coursework, ethics, grants, scope, workflow
+from app import apr, coursework, ethics, grants, scope, signing, workflow
 from app.auth.principal import Principal
 from app.crud import update
 from app.enums import STAGES
@@ -427,6 +427,7 @@ async def queue(session: AsyncSession, principal: Principal) -> list[dict[str, A
     # ponytail: loads every visible in-review item then filters with can_act in Python —
     # fine at university scale (hundreds); push the step resolution into SQL if it grows.
     out = []
+    signed = await signing.required(session)  # each signature needs its own code: no bulk
     for item_type, kind in (await enabled_kinds(session)).items():
         rows = await session.execute(
             select(kind.model, Scholar, OrgUnit.path, User.full_name)
@@ -464,7 +465,9 @@ async def queue(session: AsyncSession, principal: Principal) -> list[dict[str, A
                     "waiting_since": since,
                     "days_waiting": (datetime.now(UTC) - since).days,
                     # Approvable from the queue in bulk: nothing for approve() to ask for first.
-                    "quick_approve": not kind.assessed and not missing_fields(kind, ctx),
+                    "quick_approve": not signed
+                    and not kind.assessed
+                    and not missing_fields(kind, ctx),
                 }
             )
     return sorted(out, key=lambda q: q["waiting_since"])

@@ -2,6 +2,7 @@
 
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import type { FormEvent } from "react";
 import { Attachments } from "@/components/Attachments";
 import { Comments } from "@/components/Comments";
 import { DownloadButton } from "@/components/DownloadButton";
@@ -15,7 +16,7 @@ import { ThesisDetails } from "@/components/items/ThesisDetails";
 import { ThesisEvaluation } from "@/components/items/ThesisEvaluation";
 import { StateBadge } from "@/components/items/StateBadge";
 import { Button, Card, ErrorText, Field, PageHeader } from "@/components/ui/kit";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 import { useSession } from "@/lib/session";
 import { RATING_LABELS } from "@/lib/types";
 import type { CommentTarget, ItemType, ItemView, Rating } from "@/lib/types";
@@ -64,7 +65,65 @@ function SentBackReason({ item }: { item: ItemView }) {
   );
 }
 
-function Actions({ item, run }: { item: ItemView; run: (action: string, body?: object) => Promise<void> }) {
+type Run = (action: string, body?: object) => Promise<boolean>;
+type Signing = { action: string; body: object; method: "email" | "authenticator" };
+
+/** PRD F17b, while the university requires signing: the decision waits here for a fresh code. */
+function SignBox({ sign, itemPath, run, onCancel }: { sign: Signing; itemPath: string; run: Run; onCancel: () => void }) {
+  const [code, setCode] = useState("");
+  const [sent, setSent] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const verb = sign.action === "approve" ? "approve" : "send back";
+
+  async function emailCode() {
+    setError(null);
+    try {
+      await api(`${itemPath}/signing-code`, {
+        method: "POST",
+        body: JSON.stringify({ action: sign.action === "approve" ? "approve" : "send_back" }),
+      });
+      setSent(true);
+    } catch (e) {
+      setError(errorText(e));
+    }
+  }
+
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    await run(sign.action, { ...sign.body, code });
+    setBusy(false);
+  }
+
+  return (
+    <Card className="act">
+      <h2>Sign to {verb}</h2>
+      {sign.method === "email" ? (
+        <>
+          <p className="muted">We email you a six-digit code for this one action. It works once, for 10 minutes.</p>
+          <Button kind="secondary" onClick={emailCode}>{sent ? "Send a new code" : "Email me a code"}</Button>
+          {sent && <p role="status">The code is on its way to your email.</p>}
+        </>
+      ) : (
+        <p className="muted">Type the six-digit code your authenticator app shows for Anveshan now.</p>
+      )}
+      <form className="act" onSubmit={submit}>
+        <Field label="Code">
+          <input inputMode="numeric" autoComplete="one-time-code" required pattern="[0-9]{6}" maxLength={6}
+            autoFocus value={code} onChange={(e) => setCode(e.target.value.trim())} />
+        </Field>
+        <ErrorText>{error}</ErrorText>
+        <div className="row">
+          <Button kind="primary" type="submit" disabled={busy}>{busy ? "Signing…" : `Sign and ${verb}`}</Button>
+          <Button kind="ghost" onClick={onCancel}>Cancel</Button>
+        </div>
+      </form>
+    </Card>
+  );
+}
+
+function Actions({ item, run }: { item: ItemView; run: Run }) {
   const [comment, setComment] = useState("");
   const [rating, setRating] = useState<Rating | "">("");
   const [target, setTarget] = useState<string>("initiator");
@@ -74,8 +133,7 @@ function Actions({ item, run }: { item: ItemView; run: (action: string, body?: o
   async function go(action: string, body?: object) {
     setBusy(true);
     try {
-      await run(action, body);
-      setComment("");
+      if (await run(action, body)) setComment("");
     } finally {
       setBusy(false);
     }
@@ -153,6 +211,7 @@ export default function ItemPage() {
   const { data: item, error, setData } = useFetch<ItemView>(`/items/${type}/${id}`);
   const [actError, setActError] = useState<string | null>(null);
   const [celebrate, setCelebrate] = useState<{ message?: string } | null>(null);
+  const [sign, setSign] = useState<Signing | null>(null);
   const isOwn = !!item && item.scholar.id === me?.scholar_id;
 
   // The scholar sees the celebration once, the first time they open their approved item.
@@ -160,7 +219,7 @@ export default function ItemPage() {
     if (item && isOwn && item.state === "approved" && firstTime(item.id)) setCelebrate(APPROVED);
   }, [item, isOwn]);
 
-  async function run(action: string, body?: object) {
+  async function run(action: string, body?: object): Promise<boolean> {
     setActError(null);
     try {
       const next = await api<ItemView>(`/items/${type}/${id}/${action}`, {
@@ -171,8 +230,15 @@ export default function ItemPage() {
       // Every approve gets a small burst; the final step gets the full one with the owl.
       if (action === "approve") setCelebrate(next.state === "approved" ? APPROVED : {});
       reloadMe(); // queue / notification counts changed
+      setSign(null);
+      return true;
     } catch (e) {
-      setActError(errorText(e));
+      if (e instanceof ApiError && e.code === "signing_code_required") {
+        setSign({ action, body: body ?? {}, method: e.details.method === "authenticator" ? "authenticator" : "email" });
+      } else {
+        setActError(errorText(e));
+      }
+      return false;
     }
   }
 
@@ -208,6 +274,7 @@ export default function ItemPage() {
         </div>
         <div className="item-side">
           <ErrorText>{actError}</ErrorText>
+          {sign && <SignBox sign={sign} itemPath={`/items/${type}/${id}`} run={run} onCancel={() => setSign(null)} />}
           <Actions item={item} run={run} />
           <Card>
             <h2>History</h2>

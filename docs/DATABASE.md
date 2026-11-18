@@ -119,7 +119,9 @@ no row (always on).
 false), `require_no_dues` bool (default false: a thesis waits for an approved
 no-dues clearance while true), `require_ethics` bool (default false: a thesis
 waits for an ethics record while true), `require_two_factor` bool (default false: every password login needs an
-authenticator code while true), `apr_custom_template` bool (default
+authenticator code while true), `require_signing` bool (default false: every
+approve and send-back needs a confirmed specimen signature and a fresh code
+while true, PRD F17b), `apr_custom_template` bool (default
 false) and `apr_sections` jsonb (ordered `[{"name", "hint"}]`, non-empty: the
 university's own progress report sections, used only while the toggle is on), `seminar_graders` CHECK (`panel` / `panel_and_attending`, default
 `panel`), `seminar_rubric` jsonb (ordered `[{"name", "max"}]`, non-empty),
@@ -399,6 +401,13 @@ never stored), `expires_at`, `revoked_at`. Single-use, rotating.
 (sha256, UNIQUE), `purpose` CHECK (invite / reset), `expires_at` (72 h),
 `used_at`. Issuing a link marks every older unused link of that user used.
 
+**signing_codes** — an emailed code that signs one action on one item (PRD
+F17b): `user_id` FK users, `item_type` CHECK (the item types), `item_id`,
+`action` CHECK (approve / send_back), `code_hash` (sha256), `attempts` (5 wrong
+tries end it), `expires_at` (10 min), `used_at`, `created_at` (indexed with
+`user_id`: one code a minute). Sending a code marks the open ones for the same
+user, item and action used.
+
 **sso_states** — one single sign-on attempt: `provider` CHECK (google /
 microsoft), `state_hash` (UNIQUE), `nonce`, `code_verifier` (PKCE),
 `expires_at` (10 min at start, then 60 s for the exchange), `callback_at`
@@ -409,7 +418,8 @@ the browser), `exchanged_at`.
 
 **login_attempts** — `email`, `at` (indexed pair). One row per failed login;
 5 rows for an email inside 15 minutes → 429 (SECURITY.md §1). Rows outside
-the window are inert.
+the window are inert. A wrong authenticator code when signing counts under
+`signing:<email>`, apart from logins.
 
 ## 4. Constraints & Invariants
 

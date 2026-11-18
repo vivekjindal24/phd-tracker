@@ -61,6 +61,11 @@ export function RulesSettings({ data, save }: { data: SettingsData; save: Save }
           <Switch checked={data.require_two_factor} label="Require two-factor login"
             onChange={(v) => save("/settings", "PATCH", { require_two_factor: v }).catch(() => {})} />
         </li>
+        <li>
+          <span>Every approve and send-back is signed: the signer needs their signature on file, confirmed by their department admin or the Research Office, and a fresh code from their authenticator app or by email. Switch this on for a live university once signatures are collected.</span>
+          <Switch checked={data.require_signing} label="Require signing approvals"
+            onChange={(v) => save("/settings", "PATCH", { require_signing: v }).catch(() => {})} />
+        </li>
       </ul>
     </Card>
   );

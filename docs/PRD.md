@@ -489,7 +489,9 @@ legal proof; the electronic approval is the record of it.
   ten minutes, usable once and only for the action it was sent for; five wrong
   codes end it and a new one must be sent. Without email configured (F5),
   signing needs the authenticator app. The specimen is stamped on the form
-  with the signer, time and step, and the signing is audited. Later, when a
+  with the signer, time and step, and the signing is audited. A university
+  setting, off by default (the demo) and switched on for a live install;
+  while it is on, nothing is approved in bulk from the queue. Later, when a
   university asks: a code by text message, and Aadhaar eSign.
 
 ### 6.3 Optional modules

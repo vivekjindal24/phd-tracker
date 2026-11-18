@@ -54,6 +54,21 @@
   paper signature handed in at the department), it is confirmed at once. Nobody
   confirms their own (403 `own_signature`, and a CHECK). A new upload replaces
   the old one and needs confirming again. Unit heads are not keepers.
+- **Signing approvals** (PRD F17b; university setting `require_signing`,
+  default off; `signing.py`): while on, every approve and send-back needs a
+  confirmed specimen signature (422 `signature_required`) and a fresh code
+  (422 `signing_code_required`, details `method`). With two-factor set up, the
+  code comes from the authenticator app (the same key; a code works once;
+  wrong codes count toward a throttle of their own, `signing:<email>`, so a
+  guesser cannot also lock the person out of logging in). Otherwise `POST
+  /items/{type}/{id}/signing-code` emails one, only to someone who can act on
+  the item now: six digits, 10 minutes, one use, bound to that user, item and
+  action, sha256 at rest, five wrong tries end it, one email a minute. A wrong
+  code is 403 `invalid_code` (not 401, which the web treats as an expired
+  session). With no email configured, signing needs the authenticator app.
+  Bulk approval from the queue is off while signing is on. Known limits: a
+  code from an inbox open on the same shared computer proves nothing more
+  than the session; the authenticator app is the stronger choice.
 - **Access token:** HS256 JWT, 30-minute expiry, held in browser memory
   (never localStorage, never a cookie). Claims carry only `sub` — roles and
   scope are loaded from the DB per request, so a revoked role takes effect
