@@ -12,6 +12,7 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
+    LargeBinary,
     Text,
     false,
     text,
@@ -116,6 +117,29 @@ class User(DomainRow, Base):
     @property
     def has_password(self) -> bool:
         return self.password_hash is not None
+
+
+class Signature(DomainRow, Base):
+    """A person's specimen signature (PRD F17b): one live row each. Usable for signing only
+    once confirmed by someone else — an admin over the person's unit or the Research Office."""
+
+    __tablename__ = "signatures"
+    __table_args__ = (
+        Index("uq_signatures_user", "user_id", unique=True, postgresql_where=LIVE),
+        CheckConstraint(
+            "(confirmed_by IS NULL) = (confirmed_at IS NULL) AND confirmed_by <> user_id",
+            name="ck_signatures_confirmed",
+        ),
+    )
+
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"))
+    content: Mapped[bytes] = mapped_column(LargeBinary)
+    content_type: Mapped[str] = mapped_column(Text)
+    uploaded_by: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"))
+    confirmed_by: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id")
+    )
+    confirmed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class RoleAssignment(DomainRow, Base):

@@ -77,7 +77,7 @@ async def set_logo(
     principal: Principal = Depends(require_root_admin),
     session: AsyncSession = Depends(get_session),
 ) -> None:
-    content, content_type = await branding.read_logo_upload(request)
+    content, content_type = await branding.read_image_upload(request, "logo")
     await branding.replace_logo(session, principal, content, content_type)
     await session.commit()
 

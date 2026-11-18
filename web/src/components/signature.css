@@ -1,0 +1,26 @@
+.signature-specimen {
+  display: block;
+  max-width: 260px;
+  max-height: 110px;
+  object-fit: contain;
+  background: #fff; /* the scan is ink on paper, in either theme */
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+}
+.signature-queue {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: var(--space-4);
+}
+.signature-queue li {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: var(--space-4);
+}
+@media (max-width: 640px) {
+  .signature-queue li {
+    grid-template-columns: 1fr;
+  }
+}

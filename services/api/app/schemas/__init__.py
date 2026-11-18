@@ -234,6 +234,20 @@ class UserOut(Out):
     created_at: datetime
 
 
+class SignatureOut(BaseModel):
+    image: str  # a data: URL, small enough to send inline
+    uploaded_at: datetime
+    uploaded_by_self: bool
+    confirmed_at: datetime | None
+
+
+class PendingSignatureOut(BaseModel):
+    user_id: uuid.UUID
+    full_name: str
+    email: str
+    signature: SignatureOut
+
+
 class RoleAssignmentIn(BaseModel):
     user_id: uuid.UUID
     role: AssignedRole

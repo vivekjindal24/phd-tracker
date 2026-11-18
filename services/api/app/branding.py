@@ -14,10 +14,8 @@ from app.crud import insert, soft_delete
 from app.errors import ApiError
 from app.models import OrgUnit, Settings, UniversityLogo
 
-MAX_LOGO_BYTES = 500_000
+MAX_IMAGE_BYTES = 500_000
 MAGIC_TYPES = {b"\x89PNG\r\n\x1a\n": "image/png", b"\xff\xd8\xff": "image/jpeg"}
-TOO_LARGE = ApiError(413, "logo_too_large", "The logo can be at most 500 KB.")
-INVALID = ApiError(422, "invalid_logo", "Upload the logo as a PNG or JPEG image.")
 
 
 async def _name(session: AsyncSession) -> str:
@@ -61,20 +59,21 @@ async def export_fields(session: AsyncSession) -> dict[str, Any]:
     }
 
 
-async def read_logo_upload(request: Request) -> tuple[bytes, str]:
-    """The raw request body, refused once past the cap. The type comes from the bytes: the
-    Content-Type header is the sender's claim, and SVG (which can carry script) never passes."""
+async def read_image_upload(request: Request, noun: str) -> tuple[bytes, str]:
+    """The raw request body (the logo, a specimen signature), refused once past the cap. The
+    type comes from the bytes: the Content-Type header is the sender's claim, and SVG (which can
+    carry script) never passes."""
     chunks, size = [], 0
     async for chunk in request.stream():
         size += len(chunk)
-        if size > MAX_LOGO_BYTES:
-            raise TOO_LARGE
+        if size > MAX_IMAGE_BYTES:
+            raise ApiError(413, f"{noun}_too_large", f"The {noun} can be at most 500 KB.")
         chunks.append(chunk)
     content = b"".join(chunks)
     for magic, content_type in MAGIC_TYPES.items():
         if content.startswith(magic):
             return content, content_type
-    raise INVALID
+    raise ApiError(422, f"invalid_{noun}", f"Upload the {noun} as a PNG or JPEG image.")
 
 
 async def replace_logo(

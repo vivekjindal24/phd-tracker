@@ -160,20 +160,32 @@ def user_predicate(principal: Principal) -> ColumnElement[bool]:
     scoped heads/admins the users whose profile or role assignment sits in their subtree."""
     if principal.is_root_admin or principal.reads_all:
         return true()
-    clauses: list[ColumnElement[bool]] = [User.id == principal.user_id]
     paths = _unit_paths(principal, frozenset({"unit_head", "admin"}))
-    if paths:
-        units = subtree_unit_ids(paths)
-        clauses += [
-            User.id.in_(select(Scholar.user_id).where(Scholar.unit_id.in_(units))),
-            User.id.in_(select(Faculty.user_id).where(Faculty.unit_id.in_(units))),
-            User.id.in_(
-                select(RoleAssignment.user_id).where(
-                    RoleAssignment.unit_id.in_(units), RoleAssignment.deleted_at.is_(None)
-                )
-            ),
-        ]
-    return or_(*clauses)
+    return or_(User.id == principal.user_id, _users_under(paths))
+
+
+def _users_under(paths: tuple[str, ...]) -> ColumnElement[bool]:
+    """Users whose profile or role assignment sits at or below any of `paths`."""
+    if not paths:
+        return false()
+    units = subtree_unit_ids(paths)
+    return or_(
+        User.id.in_(select(Scholar.user_id).where(Scholar.unit_id.in_(units))),
+        User.id.in_(select(Faculty.user_id).where(Faculty.unit_id.in_(units))),
+        User.id.in_(
+            select(RoleAssignment.user_id).where(
+                RoleAssignment.unit_id.in_(units), RoleAssignment.deleted_at.is_(None)
+            )
+        ),
+    )
+
+
+def signature_keeper_predicate(principal: Principal) -> ColumnElement[bool]:
+    """Users whose specimen signature the caller confirms or uploads for them (PRD F17b): anyone
+    for the root admin and the Research Office, else the people under the caller's admin units."""
+    if principal.is_root_admin or "research_office" in principal.office_roles:
+        return true()
+    return _users_under(principal.unit_paths("admin"))
 
 
 async def unit_path(session: AsyncSession, unit_id: uuid.UUID) -> str:

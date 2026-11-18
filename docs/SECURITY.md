@@ -44,6 +44,16 @@
   browser, never sent elsewhere), as text and as a tap-to-open link; the
   secret is stored unwrapped in `users.totp_secret`, redacted
   from `audit_log` like the hashes, relying on the disk encryption of §8.
+- **Specimen signatures** (PRD F17b; `signatures.py`): each person keeps one,
+  a PNG or JPEG of their wet signature (type read from the bytes, 500 KB at
+  most; never SVG). Its **keepers** are the root admin, the Research Office
+  (anyone's) and an admin over a unit the person belongs to
+  (`scope.signature_keeper_predicate`). Only the person and their keepers see
+  it (`GET /users/{id}/signature`). Uploaded by the person, it waits until a
+  keeper confirms it (`POST …/signature/confirm`); uploaded by a keeper (the
+  paper signature handed in at the department), it is confirmed at once. Nobody
+  confirms their own (403 `own_signature`, and a CHECK). A new upload replaces
+  the old one and needs confirming again. Unit heads are not keepers.
 - **Access token:** HS256 JWT, 30-minute expiry, held in browser memory
   (never localStorage, never a cookie). Claims carry only `sub` — roles and
   scope are loaded from the DB per request, so a revoked role takes effect

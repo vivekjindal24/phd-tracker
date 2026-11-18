@@ -476,11 +476,11 @@ legal proof; the electronic approval is the record of it.
   the electronic approval record below it as detail.
 - **Signing inside the portal** (Decided 2026-11-18): an approval is a
   signature, not a click — a session left open on a shared computer must not
-  be enough. Each signer keeps a **specimen signature**, a drawing on screen or
-  a scan of their wet signature, given in one of two ways: they upload it
-  themselves and an admin over their unit (the Research Office for office
-  staff) confirms it before it can be used; or they sign on paper at their
-  department and that admin uploads it for them, which confirms it. A new
+  be enough. Each signer keeps a **specimen signature**, a scan or phone photo
+  of their wet signature, given in one of two ways: they upload it themselves
+  and an admin over their unit or the Research Office confirms it before it
+  can be used; or they sign on paper at their department and that admin or
+  the Research Office uploads it for them, which confirms it. A new
   specimen goes through the same again. Every approve, send-back or reject —
   and every form a person signs — asks for a **fresh code**; a code that does
   not match signs nothing. The code comes from the signer's authenticator app

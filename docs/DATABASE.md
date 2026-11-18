@@ -61,6 +61,14 @@ no WhatsApp; set only by the person themself, which is the opt-in; CHECK E.164
 `^\+[1-9][0-9]{7,14}$`), `whatsapp_muted` text[] (as `email_muted`, for
 WhatsApp).
 
+**signatures** — a person's specimen signature (PRD F17b): `user_id` FK users
+(partial UNIQUE `uq_signatures_user`: one live row each), `content` bytea (PNG
+or JPEG, 500 KB at most), `content_type`, `uploaded_by` FK users,
+`confirmed_by` FK users + `confirmed_at` (CHECK `ck_signatures_confirmed`: both
+or neither, and never the person themself). Usable for signing only once
+confirmed. A new upload soft-deletes the old row. The bytes stay out of
+`audit_log`.
+
 **role_assignments** — `user_id` FK, `role` CHECK (`unit_head` / `admin` /
 `research_office` / `exam_office` / `library` / `vice_chancellor`), `unit_id` FK org_units.
 CHECK `ck_role_scope`: `unit_head` and `admin` require `unit_id`; the four

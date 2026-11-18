@@ -50,6 +50,19 @@ returns them to log in with the new password.
    **Reset two-factor login**; the person sets it up again at the next login.
    A password reset link saves the new password and returns to the login page.
 
+## Flow 0c — Specimen signature (PRD F17b)
+
+1. Anyone → **My account → My signature** → upload a scan or a clear photo of
+   their signature on white paper (a large photo is shrunk in the browser).
+   It shows "Waiting … to confirm"; it cannot be used to sign yet.
+2. Their department admin or the Research Office → **People → Signatures** →
+   **Waiting for you to confirm** lists each upload with the image; they check
+   it against the wet signature and press **Confirm**.
+3. Signed on paper instead: the admin or the Research Office, on the same page,
+   **Hand in a paper signature** → choose the person → upload the scan; it is
+   confirmed at once.
+4. A new upload replaces the old one and waits for confirming again.
+
 ## Flow 1 — Scholar submits a progress report (APR chain)
 
 1. Scholar → **Reports** → **New report**: period + year, a short summary and

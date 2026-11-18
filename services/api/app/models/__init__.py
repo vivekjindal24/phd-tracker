@@ -14,7 +14,7 @@ from app.models.grants import (
 )
 from app.models.meetings import Meeting
 from app.models.milestones import CommitteeMember, Milestone
-from app.models.org import Faculty, OrgUnit, RoleAssignment, Scholar, User
+from app.models.org import Faculty, OrgUnit, RoleAssignment, Scholar, Signature, User
 from app.models.reports import ProgressReport
 from app.models.requests import FacultyRequest
 from app.models.research import Conference, EthicsClearance, Publication
@@ -95,6 +95,7 @@ __all__ = [
     "SeminarScholar",
     "Settings",
     "ShodhgangaDeposit",
+    "Signature",
     "SsoState",
     "SupervisorStandIn",
     "ThesisReview",

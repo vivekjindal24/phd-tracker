@@ -2,6 +2,7 @@
 
 import { type FormEvent, useState } from "react";
 import { Button, Card, ErrorText, Field, PageHeader } from "@/components/ui/kit";
+import { SignatureCard } from "@/components/SignatureCard";
 import { StandInCard } from "@/components/StandInCard";
 import { api, logout } from "@/lib/api";
 import { useSession } from "@/lib/session";
@@ -59,6 +60,7 @@ export default function AccountPage() {
           <Button kind="primary" type="submit" disabled={busy}>{busy ? "Saving…" : "Save new password"}</Button>
         </form>
       </Card>
+      {me && <div className="card-gap"><SignatureCard userId={me.id} self /></div>}
       {me?.faculty_id && <div className="card-gap"><StandInCard /></div>}
     </>
   );
