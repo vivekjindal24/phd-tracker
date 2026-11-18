@@ -10,7 +10,7 @@
     "test": "node --experimental-strip-types --test src/lib/safeNext.test.ts"
   },
   "dependencies": {
-    "next": "16.4.2",
+    "next": "16.4.5",
     "pdfjs-dist": "5.4.149",
     "qrcode": "1.5.4",
     "react": "19.3.1",
