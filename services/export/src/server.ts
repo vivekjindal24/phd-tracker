@@ -4,7 +4,9 @@ import express from "express";
 import type { NextFunction, Request, Response } from "express";
 import { z } from "zod";
 import { certificateView, fetchList, fetchView, phdFileView, tableView, registerView, reportView, reviewCopyView, ucView, UpstreamError } from "./api.ts";
+import type { PhdFileView } from "./api.ts";
 import { certificatePdf, phdFilePdf, tableCsv, registerCsv, registerPdf, reportPdf, ucPdf } from "./render.ts";
+import type { Scan } from "./render.ts";
 import { stampPdf, UnstampablePdf } from "./stamp.ts";
 
 export type Config = { apiUrl: string; corsOrigins: string[] };
@@ -44,6 +46,23 @@ const registerQuery = z.object({
     "thesis_submission", "viva", "degree_awarded"]).optional(),
   status: z.enum(["Pending", "Approved", "Rejected"]).optional(),
 });
+
+/** The approved signed copies' scans, from their short-lived links. One that cannot be fetched is
+ *  left out (the file says so on its page) rather than failing the whole file. */
+async function fetchScans(view: PhdFileView): Promise<Map<string, Scan>> {
+  const copies = view.annexures.flatMap((a) => a.entries.map((e) => e.signed_copy)).filter((c) => c?.scan_url);
+  const scans = new Map<string, Scan>();
+  await Promise.all(copies.map(async (c) => {
+    try {
+      const res = await fetch(c!.scan_url!);
+      if (!res.ok) throw new Error(`status ${res.status}`);
+      scans.set(c!.id, { bytes: await res.bytes(), type: c!.content_type });
+    } catch (e) {
+      console.error("a signed copy could not be fetched:", e);
+    }
+  }));
+  return scans;
+}
 
 export function createApp(config: Config) {
   const app = express();
@@ -114,7 +133,7 @@ export function createApp(config: Config) {
     try {
       const id = input(z.string().uuid(), req.params.id);
       const view = await fetchView(config.apiUrl, `/internal/scholars/${id}/phd-file`, auth(req), phdFileView);
-      send(res, "application/pdf", `phd-file-${view.roll_number}.pdf`, await phdFilePdf(view));
+      send(res, "application/pdf", `phd-file-${view.roll_number}.pdf`, await phdFilePdf(view, await fetchScans(view)));
     } catch (e) {
       next(e);
     }

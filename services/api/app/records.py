@@ -6,7 +6,7 @@ import uuid
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import grants, items, meetings, reviews, scope, thesis, workflow
+from app import grants, items, meetings, reviews, scope, signed_copies, thesis, workflow
 from app.auth.principal import Principal
 from app.errors import ApiError, forbidden
 from app.models import (
@@ -115,6 +115,9 @@ async def require_file_read(
     if table == "thesis_reviews":
         await reviews.own_review(session, principal, record_id)
         return
+    if table == "signed_copies":
+        await signed_copies.require_read(session, principal, record_id)
+        return
     await require_read(session, principal, table, record_id)
 
 
@@ -186,6 +189,9 @@ async def require_write(
     """403/422 unless the caller may change the record (attach or remove its files)."""
     if table == "thesis_reviews":
         reviews.require_open(await reviews.own_review(session, principal, record_id))
+        return
+    if table == "signed_copies":  # removed only as a whole copy (signed_copies.remove)
+        await signed_copies.require_upload(session, principal, record_id)
         return
     if table == "scholars":
         scholar = await scope.get_scholar_or_403(session, principal, record_id)

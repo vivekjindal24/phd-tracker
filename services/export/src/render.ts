@@ -1,5 +1,6 @@
 /** Print-like documents (DESIGN_SYSTEM.md §7): black on white, rules not shadows, readable
  *  when photocopied in grayscale. No claymorphism here. */
+import { PDFDocument as PDFLibDocument, StandardFonts } from "pdf-lib";
 import PDFDocument from "pdfkit";
 import QRCode from "qrcode";
 import type { CertificateView, PhdFileView, TableView, RegisterView, ReportView, UcView } from "./api.ts";
@@ -196,7 +197,62 @@ const INDEX_COLUMNS: [string, number][] = [["S. No.", 38], ["Annexure", 232], ["
 
 /** The PhD file (PRD F17): the index first, then each recorded annexure from a new page. An
  *  annexure with nothing to show is listed with the reason, never left out. */
-export async function phdFilePdf(v: PhdFileView): Promise<Buffer> {
+/** A signed copy's scan, fetched by the server from its short-lived link, keyed by the copy's id. */
+export type Scan = { bytes: Uint8Array; type: string };
+type Placeholder = { page: number; src: PDFLibDocument; index: number };
+
+/** Puts each approved signed copy after the entry it stands for (PRD F17b): an image on a page of
+ *  its own; a PDF's pages on blank pages kept for them, drawn in afterwards with pdf-lib. A scan
+ *  that cannot be read leaves a note, never a failed file. */
+async function drawScan(doc: PDFKit.PDFDocument, heading: string, scan: Scan | undefined, slots: Placeholder[]) {
+  const unreadable = () => {
+    doc.addPage().font("Helvetica-Oblique").fontSize(10)
+      .text(`The signed copy of "${heading}" could not be read here; open it in the portal.`);
+  };
+  if (!scan) return unreadable();
+  if (scan.type === "application/pdf") {
+    const src = await PDFLibDocument.load(scan.bytes).catch(() => null);
+    if (!src || src.getPageCount() === 0) return unreadable();
+    for (let index = 0; index < src.getPageCount(); index++) {
+      doc.addPage();
+      slots.push({ page: doc.bufferedPageRange().count - 1, src, index });
+    }
+    return;
+  }
+  try {
+    doc.addPage();
+    const { left, right, top, bottom } = doc.page.margins;
+    doc.image(Buffer.from(scan.bytes), left, top,
+      { fit: [doc.page.width - left - right, doc.page.height - top - bottom], align: "center" });
+  } catch (e) {
+    console.error("a signed copy could not be drawn:", e);
+    doc.text(`The signed copy of "${heading}" could not be read here; open it in the portal.`);
+  }
+}
+
+async function fillPlaceholders(pdf: Buffer, slots: Placeholder[], margin: number): Promise<Buffer> {
+  if (slots.length === 0) return pdf;
+  const out = await PDFLibDocument.load(pdf);
+  const font = await out.embedFont(StandardFonts.HelveticaOblique);
+  for (const { page, src, index } of slots) {
+    const target = out.getPage(page);
+    const { width, height } = target.getSize();
+    if (!src.getPage(index).node.Contents()) { // nothing pdf-lib can embed (it would fail on save)
+      target.drawText(`Page ${index + 1} of this signed copy could not be read here; open it in the portal.`,
+        { x: margin, y: height - margin - 10, size: 10, font });
+      continue;
+    }
+    const [embedded] = await out.embedPdf(src, [index]);
+    if (!embedded) continue;
+    const scale = Math.min((width - 2 * margin) / embedded.width, (height - 2 * margin) / embedded.height);
+    const w = embedded.width * scale;
+    const h = embedded.height * scale;
+    target.drawPage(embedded, { x: (width - w) / 2, y: margin + (height - 2 * margin - h) / 2, width: w, height: h });
+  }
+  return Buffer.from(await out.save());
+}
+
+export async function phdFilePdf(v: PhdFileView, scans: Map<string, Scan> = new Map()): Promise<Buffer> {
   const doc = new PDFDocument({ size: "A4", margin: 56, bufferPages: true, info: { Title: `PhD file – ${v.scholar}` } });
   header(doc, v, "PhD File", `${v.scholar} · ${v.roll_number} · ${v.unit}`);
   keyValues(doc, [
@@ -208,8 +264,12 @@ export async function phdFilePdf(v: PhdFileView): Promise<Buffer> {
   const left = doc.page.margins.left;
 
   const pages: (number | null)[] = [];
-  v.annexures.forEach((a, n) => {
-    if (a.entries.length === 0) return void pages.push(null);
+  const slots: Placeholder[] = [];
+  for (const [n, a] of v.annexures.entries()) {
+    if (a.entries.length === 0) {
+      pages.push(null);
+      continue;
+    }
     doc.addPage();
     pages.push(doc.bufferedPageRange().count);
     doc.font("Helvetica-Bold").fontSize(13).text(`Annexure ${n + 1} — ${a.title}`);
@@ -221,13 +281,19 @@ export async function phdFilePdf(v: PhdFileView): Promise<Buffer> {
       if (e.date) doc.font("Helvetica").fontSize(9).fillColor("#444444").text(day(e.date)).fillColor("black");
       doc.moveDown(0.3);
       keyValues(doc, e.lines);
-      if (e.signed !== null) {
+      const copy = e.signed_copy?.scan_url ? e.signed_copy : null;
+      if (copy) {
+        doc.font("Helvetica-Oblique").fontSize(9).text("The signed copy follows.", left);
+      } else if (e.signed !== null) {
         doc.font("Helvetica-Oblique").fontSize(9)
           .text(e.signed ? "Approved with signatures on record." : "Approved in the portal without a signature.", left);
       }
       doc.moveDown(0.8);
     }
-  });
+    for (const e of a.entries) {
+      if (e.signed_copy?.scan_url) await drawScan(doc, e.heading, scans.get(e.signed_copy.id), slots);
+    }
+  }
 
   doc.switchToPage(0);
   const drawRow = (cells: string[], y: number, bold = false) => {
@@ -247,7 +313,7 @@ export async function phdFilePdf(v: PhdFileView): Promise<Buffer> {
     y = Math.max(doc.y, y + 14) + 4;
   });
   footer(doc, v.generated_by, v.generated_at);
-  return toBuffer(doc);
+  return fillPlaceholders(await toBuffer(doc), slots, 56); // above the footer
 }
 
 const REGISTER_COLUMNS: [string, number][] = [

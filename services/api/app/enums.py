@@ -325,6 +325,7 @@ FileOwner = Literal[
     "utilisation_certificates",
     "thesis_reviews",
     "ethics_clearances",
+    "signed_copies",
 ]
 FILE_OWNER_TABLES = get_args(FileOwner)
 FileStatus = Literal["pending", "ready"]
@@ -332,6 +333,26 @@ FILE_STATUSES = get_args(FileStatus)
 # Named places for a scholar's own documents in the PhD file (files.slot, owner `scholars`).
 FileSlot = Literal["employer_noc", "entrance_minutes"]
 FILE_SLOTS = get_args(FileSlot)
+# The PhD file's annexures, in the order of the career (PRD F17; titles in phd_file.py).
+PhdAnnexure = Literal[
+    "admission",
+    "employer_noc",
+    "supervision",
+    "advisory_committee",
+    "coursework",
+    "comprehensive",
+    "registration_seminar",
+    "decisions",
+    "progress",
+    "publications",
+    "pre_synopsis_seminar",
+    "submission",
+    "examiners",
+    "viva",
+    "award",
+    "copies",
+]
+PHD_ANNEXURES = get_args(PhdAnnexure)
 
 # PRD F3 defaults: who starts an item, and the default chain.
 INITIATOR: dict[str, str] = {

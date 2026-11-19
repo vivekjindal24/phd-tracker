@@ -436,9 +436,20 @@ place on a scholar's record — `employer_noc` / `entrance_minutes`, only with
 pair `(table_name, record_id)` with a CHECK whitelist that each phase widens by
 migration (Phase 1: `scholars`; Phase 3 adds `publications`, `conferences`,
 `documents`, `thesis_submissions`, `examiner_reports`, `vivas`,
-`shodhganga_deposits`; Phase 5 adds `utilisation_certificates`). Visibility
+`shodhganga_deposits`; Phase 5 adds `utilisation_certificates`; migration 0045
+adds `signed_copies`, whose files must be PDF, PNG or JPEG). Visibility
 is the owner record's
 `get_or_403`. Soft delete keeps the object in the bucket (retention).
+
+**signed_copies** — the scan of a form signed on paper, standing for one entry of
+the PhD file (PRD F17b; migration 0045): `scholar_id` FK scholars, `annexure`
+(CHECK one of the file's annexure keys, `enums.PHD_ANNEXURES`), `record_id` (the
+row behind the entry — a progress report, a seminar's scholar row, a committee
+formation …; not a FK, it spans tables), `uploaded_by` FK users, `approved_by` FK
+users + `approved_at` (set together, `ck_signed_copies_approved`). The scan is a
+`files` row with `table_name = 'signed_copies'`, one per copy. The copy in use for
+an entry is the newest with its scan ready; older ones stay as history. Index
+`ix_signed_copies_scholar` (live rows).
 
 **comments** — flat threads; `(table_name, record_id)` polymorphic pair
 (indexed, CHECK whitelist of commentable tables — scholars, meetings,

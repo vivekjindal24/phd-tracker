@@ -29,6 +29,9 @@ ALLOWED_CONTENT_TYPES = frozenset(
     }
 )
 
+# A signed copy goes into the PhD file as pages, so only what the export can draw (PRD F17b).
+SCAN_TYPES = frozenset({"application/pdf", "image/png", "image/jpeg"})
+
 
 async def start_upload(
     session: AsyncSession,
@@ -46,6 +49,8 @@ async def start_upload(
             "unsupported_file_type",
             "Upload a PDF, Office document, image, text/CSV or zip file.",
         )
+    if table == "signed_copies" and content_type not in SCAN_TYPES:
+        raise ApiError(415, "unsupported_file_type", "Upload the signed copy as a PDF or a photo.")
     limit = settings.s3.max_upload_bytes
     if size_bytes > limit:
         raise ApiError(413, "file_too_large", f"Files can be at most {limit // (1024 * 1024)} MB.")

@@ -3,7 +3,7 @@ from app.models.base import Base
 from app.models.comments import Comment
 from app.models.coursework import Course, CourseworkClearance, Enrolment
 from app.models.duration import TimeAdjustment
-from app.models.files import FileRow
+from app.models.files import FileRow, SignedCopy
 from app.models.grants import (
     Fellowship,
     FellowshipClaim,
@@ -109,6 +109,7 @@ __all__ = [
     "Settings",
     "ShodhgangaDeposit",
     "Signature",
+    "SignedCopy",
     "SigningCode",
     "SsoState",
     "SupervisorAppointment",

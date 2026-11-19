@@ -56,6 +56,17 @@
   the old one and needs confirming again. Unit heads are not keepers. Once it
   signs an action, it is stamped on that item: whoever may read the item sees
   it in the history and on its PDF, as on a signed paper form.
+- **Signed copies** (PRD F17b; `signed_copies.py`): the scan of a form signed
+  on paper, for one entry of a scholar's PhD file. Uploaded by the scholar's
+  supervisor (co-supervisor where co-supervision is on), an admin over the
+  scholar's unit or the Research Office — and only for an entry the uploader
+  sees in their own copy of the file (404 otherwise). Approved only by that
+  admin or the Research Office (`scope.can_record`); their own uploads are
+  approved at once, a supervisor's wait and the keepers are notified. The
+  scholar cannot upload or approve. Removed by its uploader until approved, by
+  the admin or Research Office at any time. Its scan is read exactly as its
+  entry: whoever sees that entry in the PhD file (`phd_file.sees_entry`). One
+  scan per copy (409 `already_uploaded`), PDF/PNG/JPEG only (415).
 - **Signing approvals** (PRD F17b; university setting `require_signing`,
   default off; `signing.py`): while on, every approve and send-back needs a
   confirmed specimen signature (422 `signature_required`) and a fresh code

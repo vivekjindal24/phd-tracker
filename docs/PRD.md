@@ -555,6 +555,14 @@ legal proof; the electronic approval is the record of it.
   annexure. In the file, the signed scan stands in place of the generated form;
   the generated form stays downloadable. The index marks each annexure "signed"
   or "unsigned", so a missing signature shows.
+  *Built (owner, 2026-11-19):* "Signed copies of forms" on the scholar's page
+  lists every entry of the PhD file; for each, the scholar's supervisor, the
+  department admin or the Research Office uploads the scan (PDF or photo). The
+  admin's and the Research Office's uploads count at once; a supervisor's waits
+  until the department admin or the Research Office approves it, and they are
+  notified. Every upload, approval and removal is in the audit log. An approved
+  copy marks its entry signed, and in the downloaded PhD file its pages follow
+  the entry. A new upload replaces the copy in use; the old one stays on record.
 - **The signature is the main mark** (stakeholder requirement): on a generated
   form each signatory's signature stands where their wet signature would, with
   the electronic approval record below it as detail.

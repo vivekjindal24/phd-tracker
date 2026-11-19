@@ -500,7 +500,8 @@ export type FileOwner =
   | "shodhganga_deposits"
   | "utilisation_certificates"
   | "ethics_clearances"
-  | "progress_reports";
+  | "progress_reports"
+  | "signed_copies";
 export type CommentTarget =
   | "scholars"
   | "meetings"

@@ -11,7 +11,19 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
-from app import apr, branding, certificate, committee, grants, items, naac, phd_file, reviews, scope
+from app import (
+    apr,
+    branding,
+    certificate,
+    committee,
+    grants,
+    items,
+    naac,
+    phd_file,
+    reviews,
+    scope,
+    signed_copies,
+)
 from app.auth.deps import current_principal, current_reviewer
 from app.auth.principal import Principal
 from app.db import get_session
@@ -88,6 +100,8 @@ async def phd_file_view(
             .where(Scholar.id == scholar.id)
         )
     ).one()
+    annexures = await phd_file.build(session, principal, scholar)
+    signed_copies.attach(annexures, await signed_copies.in_use(session, scholar.id))
     return {
         **await branding.export_fields(session),
         "scholar": name,
@@ -95,7 +109,10 @@ async def phd_file_view(
         "unit": unit,
         "supervisor": await committee.convener(session, scholar),
         "admission_date": scholar.admission_date,
-        "annexures": await phd_file.build(session, principal, scholar),
+        "annexures": annexures,
+        # What the caller may do with signed copies of its forms (PRD F17b).
+        "may_upload_copies": await signed_copies.may_upload(session, principal, scholar),
+        "may_approve_copies": await scope.can_record(session, principal, scholar),
         "generated_at": datetime.now(UTC),
         "generated_by": principal.full_name,
     }

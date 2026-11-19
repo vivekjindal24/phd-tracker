@@ -10,6 +10,7 @@ import { CourseworkCard } from "@/components/CourseworkCard";
 import { CommitteeCard } from "@/components/CommitteeCard";
 import { ComprehensiveCard } from "@/components/ComprehensiveCard";
 import { ScholarDocuments } from "@/components/ScholarDocuments";
+import { SignedCopiesCard } from "@/components/SignedCopiesCard";
 import { SupervisionCard } from "@/components/SupervisionCard";
 import { EthicsCard } from "@/components/EthicsCard";
 import { DownloadButton } from "@/components/DownloadButton";
@@ -439,6 +440,7 @@ function Records({ scholar, canEdit }: { scholar: Scholar; canEdit: boolean }) {
           <div style={{ marginTop: "var(--space-5)" }}><DurationCard scholarId={scholar.id} /></div>
           <div style={{ marginTop: "var(--space-5)" }}><ComprehensiveCard scholarId={scholar.id} /></div>
           <div style={{ marginTop: "var(--space-5)" }}><ScholarDocuments scholarId={scholar.id} canUpload={canEdit} /></div>
+          <div style={{ marginTop: "var(--space-5)" }}><SignedCopiesCard scholarId={scholar.id} /></div>
         </>
       )}
       {me?.modules.coursework && !me.roles.every((r) => r === "library") && (

@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import type { AddressInfo } from "node:net";
 import { after, before, test } from "node:test";
 import express from "express";
+import { PDFDocument as PDFLibDocument } from "pdf-lib";
 import { createApp, loadConfig } from "../src/server.ts";
 import { phdFileView, reportView } from "../src/api.ts";
 import { certificatePdf, csvCell, phdFilePdf, reportPdf, tableCsv } from "../src/render.ts";
@@ -227,6 +228,27 @@ test("the PhD file: the index page, then one page per recorded annexure", async 
   const pdf = Buffer.from(await res.arrayBuffer());
   assert.equal(pageCount(pdf), 3); // index + two annexures with entries; the empty two are only listed
   assert.equal(pageCount(await phdFilePdf(phdFileView.parse({ ...phdFile, annexures: [] }))), 1);
+});
+
+test("approved signed copies stand after their entries: a PDF's pages, a photo, a note for a bad one", async () => {
+  const two = await PDFLibDocument.create();
+  two.addPage([300, 400]).drawText("Signed: Dr. Meera", { x: 20, y: 200 });
+  two.addPage([300, 400]); // blank: cannot be embedded, so the page carries a note instead
+  const copy = (id: string, content_type: string) => ({ id, content_type, scan_url: `https://bucket/${id}` });
+  const view = phdFileView.parse({ ...phdFile, annexures: [{ key: "progress", title: "Progress", date: null, note: null,
+    entries: [
+      { ...entry("Report 1", true), signed_copy: copy("a", "application/pdf") },
+      { ...entry("Report 2", true), signed_copy: copy("b", "image/png") },
+      { ...entry("Report 3", true), signed_copy: copy("c", "application/pdf") }, // not fetched
+      { ...entry("Report 4"), signed_copy: { id: "d", content_type: "image/png", scan_url: null } }, // waiting
+    ] }] });
+  const scans = new Map([
+    ["a", { bytes: await two.save(), type: "application/pdf" }],
+    ["b", { bytes: Buffer.from(DOT_PNG, "base64"), type: "image/png" }],
+  ]);
+  const pdf = await phdFilePdf(view, scans);
+  // index + the annexure page + two scanned pages + the photo + a note for the one not fetched
+  assert.equal((await PDFLibDocument.load(pdf)).getPageCount(), 6);
 });
 
 test("NAAC CSV keeps numbers and neutralises formulas", () => {

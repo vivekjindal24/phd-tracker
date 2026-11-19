@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import committee, coursework, scope, seminars, supervision, thesis
 from app.auth.principal import Principal
-from app.enums import LOCAL_TZ
+from app.enums import LOCAL_TZ, PHD_ANNEXURES
 from app.models import (
     Admission,
     ApprovalActionRow,
@@ -58,12 +58,20 @@ def _day(at: date | datetime | None) -> date | None:
     return at.astimezone(LOCAL_TZ).date() if isinstance(at, datetime) else at
 
 
-def _entry(at: date | datetime | None, heading: str, lines: list[tuple[str, Any]], signed=None):
+def _entry(
+    at: date | datetime | None,
+    heading: str,
+    lines: list[tuple[str, Any]],
+    signed=None,
+    record: uuid.UUID | None = None,
+):
+    """`record`: the row behind the entry, which a signed copy of its form attaches to (F17b)."""
     return {
         "date": _day(at),
         "heading": heading,
         "lines": [[k, str(v)] for k, v in lines if v not in (None, "")],
         "signed": signed,
+        "record": record,
     }
 
 
@@ -142,6 +150,7 @@ class _File:
                         ("Result", a.interview_result),
                         ("Admitted on", _d(a.admitted_on) if a.admitted_on else None),
                     ],
+                    record=a.id,
                 )
                 for a in rows
             ]
@@ -165,6 +174,7 @@ class _File:
                     ("Order", a["order_ref"]),
                     ("Ended on", _d(a["ended_on"]) if a["ended_on"] else None),
                 ],
+                record=a["id"],
             )
             for a in rows
         ]
@@ -183,6 +193,7 @@ class _File:
                     (m["name"], f"{m['institution']} · {committee.ROLE_LABELS[m['role']]}")
                     for m in f["members"]
                 ],
+                record=f["id"],
             )
             for f in reversed(versions)  # oldest first, as filed
         ]
@@ -213,6 +224,7 @@ class _File:
                         "Coursework clearance",
                         [("State", c.state), ("Credits", c.credits), ("CGPA", c.cgpa)],
                         await self.signed("coursework_clearance", c),
+                        c.id,
                     )
                 )
         if not out and not await self.reads("enrolments"):
@@ -228,6 +240,7 @@ class _File:
                 e.held_in,
                 f"Attempt {e.attempt}, {e.held_in:%B %Y}",
                 [("Result", e.result.capitalize()), ("Notes", e.notes)],
+                record=e.id,
             )
             for e in rows
         ]
@@ -269,6 +282,7 @@ class _File:
                             _d(entry.finalised_at) if entry.finalised_at else None,
                         ),
                     ],
+                    record=entry.id,
                 )
             )
         return out
@@ -295,6 +309,7 @@ class _File:
                     ("Approved title", m.approved_title),
                     ("Notes", m.notes),
                 ],
+                record=m.id,
             )
             for m in rows
         ]
@@ -318,6 +333,7 @@ class _File:
                             ),
                         ],
                         await self.signed("progress_report", r),
+                        r.id,
                     )
                 )
         out += await self._seminars("progress")
@@ -339,6 +355,7 @@ class _File:
                             ("Verified", p.state.replace("_", " ")),
                         ],
                         await self.signed("publication", p),
+                        p.id,
                     )
                 )
         if await module_enabled(self.session, "conferences") and await self.reads("conferences"):
@@ -348,6 +365,7 @@ class _File:
                         c.event_date,
                         c.event_name,
                         [("Type", c.event_type), ("Place", c.place), ("Paper", c.title)],
+                        record=c.id,
                     )
                 )
         return out
@@ -378,6 +396,7 @@ class _File:
                         ),
                     ],
                     await self.signed("thesis_submission", t),
+                    t.id,
                 )
             )
         if await self.reads("no_dues_clearances"):
@@ -388,6 +407,7 @@ class _File:
                         "No-dues clearance",
                         [("State", n.state.replace("_", " "))],
                         await self.signed("no_dues_clearance", n),
+                        n.id,
                     )
                 )
         return out
@@ -415,6 +435,7 @@ class _File:
                     ("Recommendation", r["recommendation"].replace("_", " ")),
                     ("Received", _d(r["received_on"])),
                 ],
+                record=r["id"],
             )
             for r in ev["reports"]
         ]
@@ -437,6 +458,7 @@ class _File:
                             ("State", a.state.replace("_", " ")),
                         ],
                         await self.signed("viva_arrangement", a),
+                        a.id,
                     )
                 )
         ev = await self._evaluation()
@@ -451,6 +473,7 @@ class _File:
                         ("Outcome", v["outcome"]),
                         ("Notes", v["notes"]),
                     ],
+                    record=v["id"],
                 )
             )
         return out
@@ -467,13 +490,19 @@ class _File:
                     ("Revoked", _d(c["revoked_at"]) if c["revoked_at"] else None),
                     ("Reason", c["revoked_reason"]),
                 ],
+                record=c["id"],
             )
             for c in reversed(ev["certificates"])
         ]
         if ev["deposit"]:
             d = ev["deposit"]
             out.append(
-                _entry(d["deposited_on"], "Shodhganga deposit", [("Handle", d["handle_url"])])
+                _entry(
+                    d["deposited_on"],
+                    "Shodhganga deposit",
+                    [("Handle", d["handle_url"])],
+                    record=d["id"],
+                )
             )
         return out
 
@@ -498,7 +527,10 @@ class _File:
             latest.setdefault(
                 doc.id,
                 _entry(
-                    v.created_at, doc.title, [("Kind", doc.doc_kind), ("Version", v.version_no)]
+                    v.created_at,
+                    doc.title,
+                    [("Kind", doc.doc_kind), ("Version", v.version_no)],
+                    record=doc.id,
                 ),
             )
         return list(latest.values())
@@ -535,6 +567,23 @@ ANNEXURES: list[tuple[str, str, Callable[[_File], Awaitable[list[Entry]]]]] = [
     ("award", "Provisional certificate and Shodhganga deposit", _File.award),
     ("copies", "Copies of the synopsis and proposal", _File.copies),
 ]
+
+
+assert tuple(k for k, _, _ in ANNEXURES) == PHD_ANNEXURES  # one list of keys, in the DB too
+
+
+async def sees_entry(
+    session: AsyncSession, principal: Principal, scholar: Scholar, annexure: str, record: uuid.UUID
+) -> bool:
+    """The caller's copy of the file holds this entry (a signed copy follows its entry)."""
+    gather = next((g for k, _, g in ANNEXURES if k == annexure), None)
+    if gather is None:
+        return False
+    try:
+        entries = await gather(_File(session, principal, scholar))
+    except (_Hidden, _Off):
+        return False
+    return any(e["record"] == record for e in entries)
 
 
 async def build(session: AsyncSession, principal: Principal, scholar: Scholar) -> list[Entry]:
