@@ -61,6 +61,26 @@ function drawSignature(doc: PDFKit.PDFDocument, dataUrl: string) {
   }
 }
 
+/** Lines to sign above, up to three to a row, each signer named under the line (and a date blank when asked). */
+function signatureLines(doc: PDFKit.PDFDocument, who: string[], room: number, dated = false) {
+  const left = doc.page.margins.left;
+  const per = Math.min(3, who.length);
+  const col = (doc.page.width - left - doc.page.margins.right) / per;
+  for (let r = 0; r < who.length; r += per) {
+    if (doc.y + room + 50 > doc.page.height - doc.page.margins.bottom) doc.addPage();
+    const y = doc.y + room;
+    let bottom = y;
+    who.slice(r, r + per).forEach((name, i) => {
+      doc.moveTo(left + i * col + 12, y).lineTo(left + (i + 1) * col - 12, y).lineWidth(0.6).stroke();
+      doc.font("Helvetica").fontSize(9).text(name, left + i * col, y + 4, { width: col, align: "center" });
+      if (dated) doc.text("Date: ______________", left + i * col, doc.y + 3, { width: col, align: "center" });
+      bottom = Math.max(bottom, doc.y);
+    });
+    doc.x = left;
+    doc.y = bottom + 4;
+  }
+}
+
 function drawLogo(doc: PDFKit.PDFDocument, logo: string) {
   try {
     doc.image(Buffer.from(logo, "base64"), (doc.page.width - LOGO_SIZE) / 2, doc.y, { fit: [LOGO_SIZE, LOGO_SIZE], align: "center" });
@@ -107,7 +127,8 @@ function keyValues(doc: PDFKit.PDFDocument, rows: [string, string][]) {
   doc.x = left;
 }
 
-export async function reportPdf(v: ReportView): Promise<Buffer> {
+/** `signed`: the signatures on record drawn in; unsigned, blank lines for signing the printed copy by hand. */
+export async function reportPdf(v: ReportView, signed = true): Promise<Buffer> {
   const doc = new PDFDocument({ size: "A4", margin: 56, bufferPages: true, info: { Title: `Progress report – ${v.scholar}` } });
   header(doc, v, "Six-monthly Progress Report",
     `${v.period.replace("-", "–")} ${v.report_year}${v.unit ? ` · ${v.unit}` : ""}`);
@@ -152,8 +173,13 @@ export async function reportPdf(v: ReportView): Promise<Buffer> {
       .font("Helvetica").text(` — ${h.actor}${h.on_behalf_of ? ` (on behalf of ${h.on_behalf_of})` : ""}, ${stamp(h.at)}`);
     if (h.rating) doc.font("Helvetica-Bold").text(`Assessment: ${RATINGS[h.rating]}`, { indent: 14 }).font("Helvetica");
     if (h.comment) doc.fillColor("#333333").text(`“${h.comment}”`, { indent: 14 }).fillColor("black");
-    if (h.signature) drawSignature(doc, h.signature);
+    if (signed && h.signature) drawSignature(doc, h.signature);
     doc.moveDown(0.3);
+  }
+  if (!signed) {
+    doc.moveDown(0.9).font("Helvetica-Bold").fontSize(11).text("Signatures");
+    const committee = v.committee.length ? v.committee : [`${v.supervisor ?? "Supervisor"}, Supervisor`];
+    signatureLines(doc, [`${v.scholar}, Scholar`, ...committee], 40, true);
   }
   footer(doc, v.generated_by, v.generated_at);
   return toBuffer(doc);
@@ -325,14 +351,7 @@ export async function ucPdf(v: UcView): Promise<Buffer> {
     "duly fulfilled / are being fulfilled, and that I have exercised the following checks to see that the money " +
     "was actually utilised for the purpose for which it was sanctioned: the expenditure above is recorded " +
     "against the sanctioned heads, supported by vouchers held by the institution.", { align: "justify", lineGap: 2 });
-  if (doc.y + 90 > doc.page.height - doc.page.margins.bottom) doc.addPage();
-  const y = doc.y + 50; // room to sign above the lines
-  const left = doc.page.margins.left;
-  const col = (doc.page.width - left - doc.page.margins.right) / 3;
-  ["Principal Investigator", "Finance Officer / Registrar", "Head of the Institution"].forEach((who, i) => {
-    doc.moveTo(left + i * col + 8, y).lineTo(left + (i + 1) * col - 8, y).lineWidth(0.6).stroke();
-    doc.font("Helvetica").fontSize(9).text(who, left + i * col, y + 4, { width: col, align: "center" });
-  });
+  signatureLines(doc, ["Principal Investigator", "Finance Officer / Registrar", "Head of the Institution"], 50);
   footer(doc, v.generated_by, v.generated_at);
   return toBuffer(doc);
 }
@@ -351,17 +370,12 @@ export async function certificatePdf(v: CertificateView): Promise<Buffer> {
   doc.moveDown(1).fontSize(10.5).text(`Date of issue: ${day(v.issued_on)}`);
 
   const left = doc.page.margins.left;
-  const y = doc.y + 70; // room to sign above the lines
   const span = doc.page.width - left - doc.page.margins.right;
-  const col = span / v.signatories.length;
-  v.signatories.forEach((who, i) => {
-    doc.moveTo(left + i * col + 16, y).lineTo(left + (i + 1) * col - 16, y).lineWidth(0.6).stroke();
-    doc.font("Helvetica").fontSize(9).text(who, left + i * col, y + 4, { width: col, align: "center" });
-  });
+  signatureLines(doc, v.signatories, 70);
 
   const qr = await QRCode.toBuffer(v.verify_url, { errorCorrectionLevel: "M", margin: 1, width: 300 });
   const size = 92;
-  const qrY = y + 44;
+  const qrY = doc.y + 22;
   doc.image(qr, (doc.page.width - size) / 2, qrY, { width: size });
   doc.fontSize(8).fillColor("#555555")
     .text("Scan to verify this certificate", left, qrY + size + 4, { width: span, align: "center" })

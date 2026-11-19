@@ -199,6 +199,18 @@ test("signed steps carry the signature; a broken one never blocks the PDF", asyn
   assert.equal(res.subarray(0, 5).toString(), "%PDF-");
 });
 
+test("the unsigned copy leaves the signatures out, for signing the print by hand", async () => {
+  const view = reportView.parse({ ...report, history: [...report.history, { action: "approve", actor: "Meera",
+    step: "Supervisor", to: null, comment: null, rating: null, at: "2026-10-02T10:00:00Z",
+    signature: `data:image/png;base64,${DOT_PNG}` }] });
+  const image = /\/Subtype \/Image/;
+  assert.match((await reportPdf(view)).toString("latin1"), image);
+  assert.doesNotMatch((await reportPdf(view, false)).toString("latin1"), image);
+  const res = await get(`/reports/${REPORT_ID}.pdf?signed=0`);
+  assert.match(res.headers.get("content-disposition") ?? "", /-2026-unsigned\.pdf/);
+  assert.equal((await get(`/reports/${REPORT_ID}.pdf?signed=maybe`)).status, 422);
+});
+
 test("the assistantship line parses and renders; an old view without it still does", async () => {
   for (const view of [{ ...report, assistantship: "without" }, report]) {
     const res = await reportPdf(reportView.parse(view));

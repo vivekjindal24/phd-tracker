@@ -268,7 +268,7 @@ export default function ItemPage() {
         actions={<>
           <StateBadge state={item.state} waitingOn={item.waiting_on} />
           {item.item_type === "progress_report" && (
-            <DownloadButton path={`/reports/${item.id}.pdf`}>Download PDF</DownloadButton>
+            <DownloadButton path={`/reports/${item.id}.pdf`} signable>Download PDF</DownloadButton>
           )}
         </>} />
       <div className="item-grid">

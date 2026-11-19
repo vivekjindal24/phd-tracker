@@ -474,5 +474,5 @@ the reviewer's name. Rules: PRD M3.
 
 Admin or head downloads PDFs (APR, scholar record, register, unit summary)
 and emails them. **Download PhD file** on a scholar's page gives the whole
-file: the index of annexures, then each recorded annexure (PRD F17). Empty states export as a cover page with "No records" —
+file: the index of annexures, then each recorded annexure (PRD F17). A form that carries signatures (the progress report) asks "Download signed or unsigned?" first; unsigned leaves signature and date lines for signing the print by hand (PRD F17b). Empty states export as a cover page with "No records" —
 never a blank PDF.

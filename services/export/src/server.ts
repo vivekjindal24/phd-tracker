@@ -79,9 +79,11 @@ export function createApp(config: Config) {
   app.get("/reports/:id.pdf", async (req, res, next) => {
     try {
       const id = input(z.string().uuid(), req.params.id);
+      const signed = input(z.enum(["0", "1"]).default("1"), req.query.signed) === "1";
       const view = await fetchView(config.apiUrl, `/internal/reports/${id}/export-view`, auth(req), reportView);
-      send(res, "application/pdf", `progress-report-${view.roll_number}-${view.period}-${view.report_year}.pdf`,
-        await reportPdf(view));
+      send(res, "application/pdf",
+        `progress-report-${view.roll_number}-${view.period}-${view.report_year}${signed ? "" : "-unsigned"}.pdf`,
+        await reportPdf(view, signed));
     } catch (e) {
       next(e);
     }

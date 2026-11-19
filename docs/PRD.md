@@ -558,6 +558,13 @@ legal proof; the electronic approval is the record of it.
 - **The signature is the main mark** (stakeholder requirement): on a generated
   form each signatory's signature stands where their wet signature would, with
   the electronic approval record below it as detail.
+- **Signed or unsigned copy** (owner, 2026-11-19): downloading a form that
+  carries signatures first asks "Download signed or unsigned?". Signed prints
+  the signatures on record; unsigned leaves them out and gives a signature and
+  date line for each signatory, so the printed copy is signed by hand and its
+  scan uploaded. Live on the progress report (the scholar and the advisory
+  committee, or the supervisor when no committee is recorded); the PhD file's
+  forms follow in its next part.
 - **Signing inside the portal** (Decided 2026-11-18): an approval is a
   signature, not a click — a session left open on a shared computer must not
   be enough. Each signer keeps a **specimen signature**, a scan or phone photo
