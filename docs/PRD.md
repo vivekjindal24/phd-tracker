@@ -348,16 +348,26 @@ for a scholar with a supervisor, a recorded committee (F9b) and at least one
 approved progress report (422 `award_not_ready`). Bulk import of past history
 is not gated.
 
-**F9b — Research Advisory Committee** (Decided 2026-11-10). Each scholar has a
-committee: the supervisor convenes it, and the other members are recorded per
-scholar — faculty of this university (picked from the directory) or an outside
-expert by name and institution. An admin over the scholar's unit or the
+**F9b — Research Advisory Committee** (Decided 2026-11-10; versions and roles
+2026-11-19). Each scholar has a committee, recorded as formations: each one a
+version with the date it was formed and the order or resolution number. The
+latest is the current committee; re-forming it (a new chair, say) records a new
+version that starts as a copy of the current members, and the earlier one stays
+as frozen history — the PhD file prints every version (F17). The supervisor is
+always its Secretary & Member, shown automatically; the other members are
+recorded per version, each with a role (Chairperson — at most one, Member, or
+Member nominated by the Vice Chancellor) — faculty of this university (picked
+from the directory) or an outside expert by name and institution. Only the
+current version changes: an earlier one refuses edits (409
+`formation_superseded`); a new version may not be dated before the last (422
+`formation_out_of_order`); a second chairperson is refused (409
+`chairperson_taken`). An admin over the scholar's unit or the
 Research Office keeps the list; the scholar, supervisor, heads above and the
 Vice Chancellor read it. It shows on the scholar's page and prints on the
 progress report PDF. A record only: membership opens no records and adds no
 approval step, and outside members get no login (§7). The supervisor cannot be
-added as a member (409 `supervisor_is_convener`); nobody twice (409
-`duplicate_member`).
+added as a member (409 `supervisor_is_convener`); nobody twice in one version
+(409 `duplicate_member`).
 
 **F9c — Research ethics clearance** (Decided 2026-11-10). Per scholar, an
 admin over their unit or the Research Office records either one or more

@@ -158,12 +158,22 @@ pre_synopsis / thesis_submission / viva / degree_awarded), `status` CHECK
 `notes`, `approved_title` (proposal approvals only: the latest approved one is
 the thesis title, copied onto the live `thesis_submissions.title`).
 
-**committee_members** (Research Advisory Committee, PRD F9b) — `scholar_id`
-(indexed), then either `faculty_id` FK faculty (a member from this university;
-name and unit are read live) or `name` + `institution` (an outside expert) —
-exactly one kind (`ck_committee_member_kind`). Partial unique
-`uq_committee_member (scholar_id, faculty_id) WHERE deleted_at IS NULL`. The
-convener is the scholar's `supervisor_id`, never a row here.
+**committee_formations** (Research Advisory Committee versions, PRD F9b,
+migration 0039) — `scholar_id` (indexed), `formed_on` date, `reference` (order
+or resolution number), `notes`, `secretary_id` FK faculty (the supervisor when
+it was formed: the secretary on that version's form). The latest live row by
+`formed_on`, then `created_at`, is the current committee; earlier ones are
+frozen history (enforced in `routers/committee.py`).
+
+**committee_members** (members of a formation, PRD F9b) — `scholar_id`
+(indexed), `formation_id` FK committee_formations (indexed), `role` CHECK
+(chairperson / member / vc_nominee, default member;
+`ck_committee_member_role`), then either `faculty_id` FK faculty (a member from
+this university; name and unit are read live) or `name` + `institution` (an
+outside expert) — exactly one kind (`ck_committee_member_kind`). Partial unique
+`uq_committee_member (formation_id, faculty_id)` and `uq_committee_chair
+(formation_id) WHERE role = 'chairperson'`, both on live rows. The secretary is
+the supervisor, never a row here.
 
 **ethics_clearances** (PRD F9c) — `scholar_id` (indexed), `kind` CHECK (human
 / animal / biosafety / not_required), `committee`, `approval_number`,

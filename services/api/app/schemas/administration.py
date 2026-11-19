@@ -8,6 +8,7 @@ from typing import Annotated, Literal
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, StringConstraints, model_validator
 
 from app.enums import (
+    CommitteeRole,
     EntranceRoute,
     EthicsKind,
     InterviewResult,
@@ -253,12 +254,21 @@ class LeadershipView(BaseModel):
 # --- research advisory committee ---------------------------------------------------------
 
 
+class FormationIn(BaseModel):
+    """One version of the committee: when it was formed, and the order that formed it."""
+
+    formed_on: date
+    reference: Resolution | None = None
+    notes: Notes = ""
+
+
 class CommitteeMemberIn(BaseModel):
     """Faculty of this university by id, or an outside expert by name and institution."""
 
     faculty_id: uuid.UUID | None = None
     name: Name | None = None
     institution: Name | None = None
+    role: CommitteeRole = "member"
 
     @model_validator(mode="after")
     def _one_kind(self) -> "CommitteeMemberIn":
@@ -270,16 +280,30 @@ class CommitteeMemberIn(BaseModel):
         raise ValueError("give a faculty member, or an outside expert's name and institution")
 
 
+class CommitteeRoleIn(BaseModel):
+    role: CommitteeRole
+
+
 class CommitteeMemberOut(BaseModel):
     id: uuid.UUID
     name: str
     institution: str
     external: bool
+    role: CommitteeRole
+
+
+class FormationOut(BaseModel):
+    id: uuid.UUID
+    formed_on: date
+    reference: str | None
+    notes: str
+    secretary: str | None  # the supervisor when it was formed
+    members: list[CommitteeMemberOut]
 
 
 class CommitteeView(BaseModel):
-    convener: str | None  # the supervisor
-    members: list[CommitteeMemberOut]
+    convener: str | None  # today's supervisor
+    formations: list[FormationOut]  # newest (the current committee) first
     can_manage: bool
 
 

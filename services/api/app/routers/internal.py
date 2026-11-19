@@ -42,10 +42,7 @@ async def report_export_view(
         "scholar": view["scholar"]["name"],
         "roll_number": ctx.scholar.roll_number,
         "supervisor": sup_name,
-        "committee": [
-            f"{m['name']} ({m['institution']})"
-            for m in await committee.members(session, ctx.scholar)
-        ],
+        "committee": await committee.printed(session, ctx.scholar),
         "period": view["content"]["period"],
         "report_year": view["content"]["report_year"],
         "summary": view["content"]["summary"],

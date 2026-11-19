@@ -836,8 +836,23 @@ export type FacultyRequest = {
 
 export type FacultyRequests = { incoming: FacultyRequest[]; sent: FacultyRequest[] };
 
-export type CommitteeMember = { id: string; name: string; institution: string; external: boolean };
-export type CommitteeView = { convener: string | null; members: CommitteeMember[]; can_manage: boolean };
+export type CommitteeRole = "chairperson" | "member" | "vc_nominee";
+export const COMMITTEE_ROLE_LABELS: Record<CommitteeRole, string> = {
+  chairperson: "Chairperson",
+  member: "Member",
+  vc_nominee: "Member (nominee of the Vice Chancellor)",
+};
+export type CommitteeMember = { id: string; name: string; institution: string; external: boolean; role: CommitteeRole };
+export type CommitteeFormation = {
+  id: string;
+  formed_on: string;
+  reference: string | null;
+  notes: string;
+  secretary: string | null; // the supervisor when it was formed
+  members: CommitteeMember[];
+};
+/** `formations` newest first: the first is the current committee, the rest are history. */
+export type CommitteeView = { convener: string | null; formations: CommitteeFormation[]; can_manage: boolean };
 
 export type EthicsKind = "human" | "animal" | "biosafety" | "not_required";
 export const ETHICS_KIND_LABELS: Record<EthicsKind, string> = {

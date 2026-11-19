@@ -244,11 +244,19 @@ Thesis examiners are not requested here (Exam Office only, Flow 8).
 2. **Register PDF / CSV** for the committee meeting.
 3. The scholar's RDC status updates on their profile and on head dashboards.
 
-On the scholar's page the **Research Advisory Committee** card lists the
-supervisor as convener and the other members. The same admin or Research Office
-adds a member by finding a faculty member, or ticks "from outside this
-university" and types a name and institution; Remove takes one off. The list
-prints on the progress report PDF.
+On the scholar's page the **Research Advisory Committee** card shows the
+current committee: when it was formed and the order that formed it, the
+supervisor as Secretary & Member, and each other member with a role
+(Chairperson, Member, or Member nominated by the Vice Chancellor). With no
+committee yet, the same admin or Research Office records its formation (date,
+order number) first. They add a member by finding a faculty member, or tick
+"from outside this university" and type a name and institution, picking the
+role; a member's role changes in place, Remove takes one off. **Re-form the
+committee** records a new version with its own date, starting as a copy of the
+current members; the earlier version moves under **Earlier versions** and is
+frozen. **Correct date or order** fixes the current version; **Withdraw**
+removes a version recorded by mistake, making the one before it current again.
+The current committee, with roles, prints on the progress report PDF.
 
 The **Research ethics** card beside it holds the clearances: kind, committee,
 approval number, dates and the certificate file, or "Not required" with the

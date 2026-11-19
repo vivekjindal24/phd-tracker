@@ -211,6 +211,10 @@ PUB_STATUSES = get_args(PubStatus)
 ConferenceType = Literal["paper_presented", "poster", "attended", "invited_talk", "workshop"]
 CONFERENCE_TYPES = get_args(ConferenceType)
 
+# Advisory committee roles (PRD F9b); the supervisor is always the secretary, never a row.
+CommitteeRole = Literal["chairperson", "member", "vc_nominee"]
+COMMITTEE_ROLES = get_args(CommitteeRole)
+
 # Ethics clearances (PRD F9c): a committee's approval, or a recorded "not required".
 EthicsKind = Literal["human", "animal", "biosafety", "not_required"]
 ETHICS_KINDS = get_args(EthicsKind)

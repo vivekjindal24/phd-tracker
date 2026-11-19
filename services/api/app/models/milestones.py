@@ -7,7 +7,13 @@ from sqlalchemy import CheckConstraint, Date, ForeignKey, Index, Text, text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.enums import APPROVAL_BODIES, MILESTONE_STATUSES, MILESTONE_TYPES, sql_in
+from app.enums import (
+    APPROVAL_BODIES,
+    COMMITTEE_ROLES,
+    MILESTONE_STATUSES,
+    MILESTONE_TYPES,
+    sql_in,
+)
 from app.models.base import Base, DomainRow
 from app.models.org import LIVE
 
@@ -41,9 +47,27 @@ class Milestone(DomainRow, Base):
     approved_title: Mapped[str | None] = mapped_column(Text)
 
 
+class CommitteeFormation(DomainRow, Base):
+    """One version of a scholar's Research Advisory Committee (PRD F9b). The latest is the
+    current committee; earlier ones are frozen history, each printed as its own form."""
+
+    __tablename__ = "committee_formations"
+
+    scholar_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("scholars.id"), index=True
+    )
+    formed_on: Mapped[date] = mapped_column(Date)
+    reference: Mapped[str | None] = mapped_column(Text)
+    notes: Mapped[str] = mapped_column(Text, server_default=text("''"))
+    # The supervisor when it was formed: the secretary on this version's form.
+    secretary_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("faculty.id")
+    )
+
+
 class CommitteeMember(DomainRow, Base):
-    """One member of a scholar's Research Advisory Committee besides the supervisor, who
-    convenes it: faculty of this university, or an outside expert by name (PRD F9b)."""
+    """One member of a committee formation besides the supervisor, who is its secretary:
+    faculty of this university, or an outside expert by name (PRD F9b)."""
 
     __tablename__ = "committee_members"
     __table_args__ = (
@@ -52,14 +76,29 @@ class CommitteeMember(DomainRow, Base):
             " OR (faculty_id IS NULL AND name IS NOT NULL AND institution IS NOT NULL)",
             name="ck_committee_member_kind",
         ),
+        CheckConstraint(f"role IN ({sql_in(COMMITTEE_ROLES)})", name="ck_committee_member_role"),
         Index(
-            "uq_committee_member", "scholar_id", "faculty_id", unique=True, postgresql_where=LIVE
+            "uq_committee_member",
+            "formation_id",
+            "faculty_id",
+            unique=True,
+            postgresql_where=LIVE,
+        ),
+        Index(
+            "uq_committee_chair",
+            "formation_id",
+            unique=True,
+            postgresql_where=text("role = 'chairperson' AND deleted_at IS NULL"),
         ),
     )
 
     scholar_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("scholars.id"), index=True
     )
+    formation_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("committee_formations.id"), index=True
+    )
+    role: Mapped[str] = mapped_column(Text, server_default=text("'member'"))
     faculty_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("faculty.id")
     )

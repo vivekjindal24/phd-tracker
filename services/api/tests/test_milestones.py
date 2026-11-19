@@ -1,9 +1,11 @@
 """RDC register: scoped reads; writes by research office anywhere, admins in their unit."""
 
+from datetime import date
+
 import pytest
 
 from app.enums import MILESTONE_TYPES
-from app.models import CommitteeMember, ProgressReport
+from app.models import CommitteeFormation, CommitteeMember, ProgressReport
 from tests.conftest import approved_stages, auth
 
 
@@ -120,7 +122,14 @@ async def test_degree_is_awarded_only_on_a_complete_record(client, world, sessio
     assert (bare.status_code, bare.json()["error"]["code"]) == (422, "award_not_ready")
     assert "committee" in bare.json()["error"]["message"]
     assert "progress report" in bare.json()["error"]["message"]
-    session.add(CommitteeMember(scholar_id=scholar.id, name="Prof. R. Sen", institution="IIT"))
+    formation = CommitteeFormation(scholar_id=scholar.id, formed_on=date(2026, 1, 5))
+    session.add(formation)
+    await session.flush()
+    session.add(
+        CommitteeMember(
+            scholar_id=scholar.id, formation_id=formation.id, name="Prof. R. Sen", institution="IIT"
+        )
+    )
     session.add(
         ProgressReport(
             scholar_id=scholar.id,
