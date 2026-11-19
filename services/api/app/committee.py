@@ -83,6 +83,7 @@ async def members(session: AsyncSession, formation_id: uuid.UUID) -> list[dict[s
             "id": m.id,
             "name": m.name or faculty_name or scholar_name,
             "institution": m.institution or faculty_unit or scholar_unit,
+            "email": m.email,
             "external": m.name is not None,
             "role": m.role,
             "seat": m.seat,

@@ -130,6 +130,7 @@ function Actions({ item, run }: { item: ItemView; run: Run }) {
   const [comment, setComment] = useState("");
   const [rating, setRating] = useState<Rating | "">("");
   const [target, setTarget] = useState<string>("initiator");
+  const [sign, setSign] = useState(false); // while signing is optional (PRD F17b)
   const assessed = item.item_type === "progress_report"; // the API refuses a bare approval
   const [busy, setBusy] = useState(false);
 
@@ -178,9 +179,21 @@ function Actions({ item, run }: { item: ItemView; run: Run }) {
             : "Optional when approving; required when sending back."}>
           <textarea value={comment} maxLength={4000} onChange={(e) => setComment(e.target.value)} />
         </Field>
+        {item.signing === "required" && (
+          <p className="muted">Your university requires your signature: you will be asked for a code.</p>
+        )}
+        {item.signing === "optional" && (
+          <label className="check">
+            <input type="checkbox" checked={sign} onChange={(e) => setSign(e.target.checked)} />
+            Sign this with my signature (you will be asked for a code)
+          </label>
+        )}
+        {item.signing === "off" && (
+          <p className="muted">To sign your decisions, add your signature under My account; your department&apos;s admin confirms it.</p>
+        )}
         <div className="row">
           <Button kind="primary" disabled={busy || (assessed && (!rating || !comment.trim()))}
-            onClick={() => go("approve", { comment: comment || null, rating: rating || null })}>
+            onClick={() => go("approve", { comment: comment || null, rating: rating || null, sign })}>
             {assessed ? "Approve with this assessment" : "Approve"}
           </Button>
         </div>
@@ -195,7 +208,7 @@ function Actions({ item, run }: { item: ItemView; run: Run }) {
             </select>
           </Field>
           <Button kind="danger" disabled={busy || !comment.trim()}
-            onClick={() => go("send-back", { comment, to_step: toStep })}>
+            onClick={() => go("send-back", { comment, to_step: toStep, sign })}>
             Send back
           </Button>
         </div>

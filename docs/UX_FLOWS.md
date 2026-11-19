@@ -255,7 +255,7 @@ role; a member's role changes in place, Remove takes one off. **Re-form the
 committee** records a new version with its own date, starting as a copy of the
 current members; the earlier version moves under **Earlier versions**, its members
 and roles frozen. **Correct date or order** fixes any version's date, order
-number or notes, and **Fix name** an outside expert's name or institution on any
+number or notes, and **Correct details** an outside expert's name, institution or email on any
 version; **Withdraw**
 removes a version recorded by mistake, making the one before it current again.
 The current committee, with roles, prints on the progress report PDF.

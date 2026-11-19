@@ -55,8 +55,6 @@ async def _user(session: AsyncSession, principal: Principal) -> User:
 async def send_code(
     session: AsyncSession, principal: Principal, ctx: ItemContext, action: str
 ) -> None:
-    if not await required(session):
-        raise ApiError(422, "signing_not_required", "Signing is not switched on.")
     if not await workflow.can_act(session, principal, ctx):
         raise workflow.violation("You cannot act on this item at its current step.")
     user = await _user(session, principal)
@@ -112,11 +110,18 @@ async def send_code(
 
 
 async def verify(
-    session: AsyncSession, principal: Principal, ctx: ItemContext, action: str, code: str | None
+    session: AsyncSession,
+    principal: Principal,
+    ctx: ItemContext,
+    action: str,
+    code: str | None,
+    *,
+    wanted: bool = False,
 ) -> uuid.UUID | None:
     """Raises unless the caller may sign this action now; returns the specimen that signs it.
-    None while signing is off."""
-    if not await required(session):
+    None when signing is off and the caller did not choose to sign (`wanted`): a signature,
+    asked for or chosen, always needs the same fresh code."""
+    if not (wanted or await required(session)):
         return None
     sig = await signatures.current(session, principal.user_id)
     if sig is None or sig.confirmed_at is None:

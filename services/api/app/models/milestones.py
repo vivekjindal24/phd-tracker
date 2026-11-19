@@ -4,7 +4,7 @@ import uuid
 from datetime import date
 
 from sqlalchemy import CheckConstraint, Date, ForeignKey, Index, Text, text
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import CITEXT, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.enums import (
@@ -33,6 +33,13 @@ class Milestone(DomainRow, Base):
             postgresql_using="gin",
             postgresql_ops={"resolution_number": "gin_trgm_ops"},
         ),
+        Index(
+            "uq_milestone_seminar",
+            "scholar_id",
+            "seminar_id",
+            unique=True,
+            postgresql_where=text("seminar_id IS NOT NULL AND deleted_at IS NULL"),
+        ),
     )
 
     scholar_id: Mapped[uuid.UUID] = mapped_column(
@@ -46,6 +53,10 @@ class Milestone(DomainRow, Base):
     notes: Mapped[str] = mapped_column(Text, server_default=text("''"))
     # On proposal approvals only: the one title the thesis and certificate use (thesis.py).
     approved_title: Mapped[str | None] = mapped_column(Text)
+    # The registration or pre-synopsis seminar whose recommendation opened this entry (3f).
+    seminar_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("seminars.id")
+    )
 
 
 class CommitteeFormation(DomainRow, Base):
@@ -132,5 +143,7 @@ class CommitteeMember(DomainRow, Base):
     scholar_member_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("scholars.id")
     )
+    # An outside member's email, to reach them; null on members from this university.
+    email: Mapped[str | None] = mapped_column(CITEXT)
     name: Mapped[str | None] = mapped_column(Text)
     institution: Mapped[str | None] = mapped_column(Text)

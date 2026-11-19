@@ -232,6 +232,7 @@ function Decisions({ scholarId }: { scholarId: string }) {
               {m.resolution_number && ` · ${m.resolution_number}`}
               {m.resolution_date && ` · ${formatDate(m.resolution_date)}`}
               <MilestoneStatusBadge status={m.status} />
+              {m.seminar_id && <> · <Link href={`/seminars/${m.seminar_id}/review/${scholarId}`}>from the seminar</Link></>}
             </li>
           ))}
         </ul>
@@ -421,6 +422,12 @@ function Records({ scholar, canEdit }: { scholar: Scholar; canEdit: boolean }) {
   const { me } = useSession();
   return (
     <>
+      {me?.roles.some((r) => r === "unit_head" || r === "admin") && (
+        <p className="muted">
+          Seminars (progress, registration, pre-synopsis) are scheduled by the department&apos;s head or admin:{" "}
+          <Link href="/seminars/new">Schedule a seminar</Link>. The panel marks them; the supervisor finalises the review.
+        </p>
+      )}
       <Decisions scholarId={scholar.id} />
       <div style={{ marginTop: "var(--space-5)" }}><SupervisionCard key={`${scholar.supervisor?.id}-${scholar.co_supervisor?.id}`} scholarId={scholar.id} /></div>
       {me?.roles.some((r) => r !== "exam_office" && r !== "library") && (

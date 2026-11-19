@@ -160,7 +160,10 @@ pre_synopsis / thesis_submission / viva / degree_awarded), `status` CHECK
 (Pending / Approved / Rejected, default Pending), `approval_body` CHECK
 (RDC / DPGC / DRC / RAC / Other), `resolution_number`, `resolution_date`,
 `notes`, `approved_title` (proposal approvals only: the latest approved one is
-the thesis title, copied onto the live `thesis_submissions.title`).
+the thesis title, copied onto the live `thesis_submissions.title`), `seminar_id`
+FK seminars (the registration / pre-synopsis seminar whose finalised review opened
+the entry; partial unique `uq_milestone_seminar (scholar_id, seminar_id)`;
+migration 0043).
 
 **committee_formations** (committee versions, PRD F9b, migrations 0039-0040) —
 whose committee: `scholar_id` (a Research Advisory Committee) or `unit_id` FK
@@ -182,7 +185,8 @@ vc_nominee, a department's chairperson / secretary / member — enforced in
 vc_nominee / scholar; department committees only, required there), then one of
 `faculty_id` FK faculty (a member from this university), `scholar_member_id` FK
 scholars (a scholar of that department, in the scholar's seat) — names and
-units of both read live — or `name` + `institution` (an outside expert):
+units of both read live — or `name` + `institution` (an outside expert, with
+`email` citext — required for new outside members, migration 0044):
 exactly one kind (`ck_committee_member_kind`). Partial unique on live rows:
 `uq_committee_member (formation_id, faculty_id)`, `uq_committee_scholar_member
 (formation_id, scholar_member_id)`, `uq_committee_chair (formation_id) WHERE

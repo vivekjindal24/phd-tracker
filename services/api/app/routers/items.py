@@ -12,6 +12,7 @@ from app.auth.deps import current_principal
 from app.auth.principal import Principal
 from app.db import get_session
 from app.enums import ItemType
+from app.notify import mark_read_link
 from app.schemas import ApproveIn, ItemView, QueueEntry, SendBackIn, SigningCodeIn
 
 router = APIRouter(tags=["items"])
@@ -23,16 +24,19 @@ async def _signed(
     ctx,
     action: str,
     code: str | None,
+    wanted: bool,
     act: Callable[[uuid.UUID | None], Awaitable[None]],
 ) -> None:
     """The action runs only once the signing check passes, given the signature that signed it
-    (None while signing is off)."""
-    await act(await signing.verify(session, principal, ctx, action, code))
+    (None when signing is off and the actor did not choose to sign)."""
+    await act(await signing.verify(session, principal, ctx, action, code, wanted=wanted))
 
 
 async def _act_and_view(session, principal, item_type, item_id, action) -> dict[str, Any]:
     ctx = await items.load_ctx(session, principal, item_type, item_id, lock=True)
     await action(ctx)
+    # Handled: the actor's notifications about this item are done with, wherever they acted.
+    await mark_read_link(session, principal.user_id, ctx.link)
     await session.commit()
     return await items.view(session, principal, ctx)
 
@@ -95,6 +99,7 @@ async def approve(
             ctx,
             "approve",
             body.code if body else None,
+            bool(body and body.sign),
             lambda sig: items.approve(
                 session,
                 principal,
@@ -126,6 +131,7 @@ async def send_back(
             ctx,
             "send_back",
             body.code,
+            body.sign,
             lambda sig: workflow.send_back(
                 session, principal, ctx, body.comment, body.to_step, sig
             ),

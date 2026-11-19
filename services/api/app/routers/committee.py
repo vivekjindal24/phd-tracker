@@ -61,12 +61,13 @@ async def _view(session: AsyncSession, principal: Principal, owner: Owner) -> di
     else:
         title = await session.scalar(select(Settings.department_committee_name))
         convener = None
-    return {
-        "title": title,
-        "convener": convener,
-        "formations": await committee.formations(session, owner.clause),
-        "can_manage": await _keeps(session, principal, owner),
-    }
+    keeps = await _keeps(session, principal, owner)
+    formations = await committee.formations(session, owner.clause)
+    if not keeps:  # outside members' emails reach only those who keep the committee
+        for f in formations:
+            for m in f["members"]:
+                m["email"] = None
+    return {"title": title, "convener": convener, "formations": formations, "can_manage": keeps}
 
 
 async def _readable_unit(session: AsyncSession, principal: Principal, unit_id: uuid.UUID) -> Owner:
@@ -234,6 +235,7 @@ async def _form(
                     scholar_member_id=m.scholar_member_id,
                     name=m.name,
                     institution=m.institution,
+                    email=m.email,
                     role=m.role,
                     seat=m.seat,
                 ),
@@ -364,7 +366,7 @@ async def correct_member(
         )
     else:
         owner, _ = await _formation(session, principal, row.formation_id)
-    if row.name is None and (body.name or body.institution):
+    if row.name is None and (body.name or body.institution or body.email):
         raise ApiError(422, "directory_name", "A member's name and unit come from the directory.")
     await update(session, principal, row, changes)
     await session.commit()

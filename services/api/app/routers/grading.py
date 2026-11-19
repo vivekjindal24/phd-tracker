@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import ai, grading, scope, seminars
+from app import ai, grading, register, scope, seminars
 from app.auth.deps import current_principal
 from app.auth.principal import Principal
 from app.crud import insert, update
@@ -278,6 +278,15 @@ async def finalise(
             "draft_points": [p.model_dump() for p in body.points],
         },
     )
+    # A registration / pre-synopsis seminar goes on to the committee: its register entry.
+    recommendations = await session.scalars(
+        select(SeminarGrade.recommendation).where(
+            SeminarGrade.seminar_scholar_id == entry.id,
+            SeminarGrade.deleted_at.is_(None),
+            SeminarGrade.recommendation.is_not(None),
+        )
+    )
+    await register.from_seminar(session, principal, seminar, scholar.id, list(recommendations))
     link = f"/seminars/{seminar.id}/review/{scholar.id}"
     notify(
         session,

@@ -49,6 +49,7 @@ def _out(row) -> MilestoneOut:
         resolution_date=m.resolution_date,
         notes=m.notes,
         approved_title=m.approved_title,
+        seminar_id=m.seminar_id,
         updated_at=m.updated_at,
     )
 

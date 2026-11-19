@@ -112,6 +112,23 @@
   outline: none;
   box-shadow: var(--clay-shadow-pressed), 0 0 0 3px var(--accent);
 }
+/* A select standing alone in a row of a list (a member's role or seat): the field's look, compact. */
+.inline-select {
+  font: 400 var(--text-sm) / 1.3 var(--font-body), system-ui, sans-serif;
+  color: var(--ink);
+  background: var(--bg);
+  border: 0;
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  margin-inline: var(--space-1);
+  max-width: 100%;
+  box-shadow: var(--clay-shadow-pressed);
+  transition: box-shadow var(--duration-hover);
+}
+.inline-select:focus-visible {
+  outline: none;
+  box-shadow: var(--clay-shadow-pressed), 0 0 0 3px var(--accent);
+}
 .field-hint {
   font-weight: 400;
   color: var(--ink-soft);

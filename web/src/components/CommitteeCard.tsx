@@ -18,7 +18,7 @@ const FACULTY_SEATS = SEATS.filter((s) => s !== "scholar");
 
 function RoleSelect({ roles, value, onChange }: { roles: CommitteeRole[]; value: CommitteeRole; onChange: (r: CommitteeRole) => void }) {
   return (
-    <select aria-label="Role" value={value} onChange={(e) => onChange(e.target.value as CommitteeRole)}>
+    <select className="inline-select" aria-label="Role" value={value} onChange={(e) => onChange(e.target.value as CommitteeRole)}>
       {roles.map((r) => <option key={r} value={r}>{COMMITTEE_ROLE_LABELS[r]}</option>)}
     </select>
   );
@@ -26,7 +26,7 @@ function RoleSelect({ roles, value, onChange }: { roles: CommitteeRole[]; value:
 
 function SeatSelect({ value, onChange }: { value: CommitteeSeat; onChange: (s: CommitteeSeat) => void }) {
   return (
-    <select aria-label="Seat" value={value} onChange={(e) => onChange(e.target.value as CommitteeSeat)}>
+    <select className="inline-select" aria-label="Seat" value={value} onChange={(e) => onChange(e.target.value as CommitteeSeat)}>
       {FACULTY_SEATS.map((s) => <option key={s} value={s}>{COMMITTEE_SEAT_LABELS[s]}</option>)}
     </select>
   );
@@ -71,6 +71,7 @@ function AddMember({ formationId, department, save }: { formationId: string; dep
   const [q, setQ] = useState("");
   const [name, setName] = useState("");
   const [institution, setInstitution] = useState("");
+  const [email, setEmail] = useState("");
   const { data: found } = useFetch<Faculty[]>(who === "faculty" && q.length >= 2 ? `/faculty?q=${encodeURIComponent(q)}&limit=10` : null);
   const path = `/committee-formations/${formationId}/members`;
   // A department's members sit in a seat; a scholar always in the scholar's seat.
@@ -82,7 +83,8 @@ function AddMember({ formationId, department, save }: { formationId: string; dep
 
   async function addOutside(e: FormEvent) {
     e.preventDefault();
-    if (!(await save(path, "POST", placed({ name, institution })))) return;
+    if (!(await save(path, "POST", placed({ name, institution, email })))) return;
+    setEmail("");
     setName("");
     setInstitution("");
   }
@@ -106,6 +108,7 @@ function AddMember({ formationId, department, save }: { formationId: string; dep
           <div className="row">
             <Field label="Name"><input required maxLength={200} value={name} onChange={(e) => setName(e.target.value)} /></Field>
             <Field label="Institution"><input required maxLength={200} value={institution} onChange={(e) => setInstitution(e.target.value)} /></Field>
+            <Field label="Email" hint="How the committee reaches them."><input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} /></Field>
           </div>
           <Button kind="secondary" type="submit">Add</Button>
         </form>
@@ -134,22 +137,25 @@ function AddMember({ formationId, department, save }: { formationId: string; dep
   );
 }
 
-/** Correct an outside expert's name or institution, on any version. */
+/** Correct an outside expert's name, institution or email, on any version. */
 function FixName({ member, save }: { member: CommitteeMember; save: Save }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(member.name);
   const [institution, setInstitution] = useState(member.institution);
-  if (!open) return <Button kind="ghost" onClick={() => setOpen(true)}>Fix name</Button>;
+  const [email, setEmail] = useState(member.email ?? "");
+  if (!open) return <Button kind="ghost" onClick={() => setOpen(true)}>Correct details</Button>;
 
   async function submit(e: FormEvent) {
     e.preventDefault();
-    if (await save(`/committee-members/${member.id}`, "PATCH", { name, institution })) setOpen(false);
+    const body = { name, institution, ...(email && { email }) };
+    if (await save(`/committee-members/${member.id}`, "PATCH", body)) setOpen(false);
   }
 
   return (
     <form className="row" onSubmit={submit}>
       <Field label="Name"><input required maxLength={200} value={name} onChange={(e) => setName(e.target.value)} /></Field>
       <Field label="Institution"><input required maxLength={200} value={institution} onChange={(e) => setInstitution(e.target.value)} /></Field>
+      <Field label="Email"><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} /></Field>
       <Button kind="secondary" type="submit">Save</Button>
       <Button kind="ghost" onClick={() => setOpen(false)}>Cancel</Button>
     </form>
@@ -175,6 +181,7 @@ function Members({ formation, department, save, current }: {
       {formation.members.map((m) => (
         <li key={m.id}>
           <strong>{m.name}</strong> · {m.institution}{m.external && <span className="muted"> · outside expert</span>}
+          {m.email && <> · <a href={`mailto:${m.email}`}>{m.email}</a></>}
           {" · "}
           {save && current ? (
             <>

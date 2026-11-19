@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import type { ReactNode } from "react";
 import { Owl, OwlMark } from "@/components/brand/Owl";
@@ -10,12 +10,23 @@ import { Nav, NavSheet } from "@/components/Nav";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { BusyBar } from "@/components/ui/BusyBar";
 import { Button, ErrorText } from "@/components/ui/kit";
+import { api } from "@/lib/api";
 import { useSession } from "@/lib/session";
 import "./shell.css";
 
 export default function AppLayout({ children }: { children: ReactNode }) {
-  const { me, loading, error, loggedOut, expired, logout } = useSession();
+  const { me, loading, error, loggedOut, expired, logout, reload } = useSession();
   const router = useRouter();
+  const pathname = usePathname();
+  const unread = me?.unread_notifications ?? 0;
+
+  // Opening a page reads the notifications that point to it, however the person got there.
+  useEffect(() => {
+    if (unread === 0) return;
+    api<{ unread: number }>("/notifications/opened", { method: "POST", body: JSON.stringify({ link: pathname }) })
+      .then((r) => { if (r.unread !== unread) reload(); })
+      .catch(() => undefined); // ponytail: a missed read-mark only leaves the bell as it was
+  }, [pathname]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (me?.is_reviewer) router.replace("/review");

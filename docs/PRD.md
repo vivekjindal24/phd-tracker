@@ -209,7 +209,10 @@ returns 404 `module_disabled`.
 **F5 — Notifications.** In-app inbox plus email (SMTP): item waiting for your
 step, item sent back to you, item approved, APR due in 14 days / overdue,
 meeting tomorrow, fellowship ending in 60 days. A user can mute email per
-category; in-app is always on.
+category; in-app is always on. A notification is read once its person opens
+the page it points to, however they got there, or acts on the item it is about
+(from the item, the queue or anywhere else) — not only by clicking it in the
+inbox (Decided 2026-11-19).
 
 **WhatsApp** (Decided 2026-10-31; when the installation configures the Meta
 WhatsApp Cloud API): each person may add their own WhatsApp number in
@@ -344,7 +347,10 @@ title. A scholar's current RDC status is shown on
 their profile and the head dashboards. **Order is enforced (2026-11-16):** a
 stage can stand as Approved only when the stage before it in that list is
 Approved (422 `stage_out_of_order`); Pending and Rejected entries are free.
-Degree awarded is recorded as Approved only by the Research Office, and only
+A finalised registration or pre-synopsis seminar (F15) opens the matching
+entry (proposal approval / pre-synopsis) as Pending, noting the panel's
+recommendations and linking the seminar; the committee's decision is then
+recorded on it (Decided 2026-11-19). Degree awarded is recorded as Approved only by the Research Office, and only
 for a scholar with a supervisor, a recorded committee (F9b) and at least one
 approved progress report (422 `award_not_ready`). Bulk import of past history
 is not gated.
@@ -358,7 +364,8 @@ as frozen history — the PhD file prints every version (F17). The supervisor is
 always its Secretary & Member, shown automatically; the other members are
 recorded per version, each with a role (Chairperson — at most one, Member, or
 Member nominated by the Vice Chancellor) — faculty of this university (picked
-from the directory) or an outside expert by name and institution. Members and
+from the directory) or an outside expert by name, institution and email (the
+email shown only to those who keep the committee; Decided 2026-11-19). Members and
 roles change only on the current version (409 `formation_superseded` on an
 earlier one); any version's wording may be corrected — its date, order number
 and notes, an outside expert's name or institution (an internal member's come
@@ -543,7 +550,8 @@ legal proof; the electronic approval is the record of it.
   be enough. Each signer keeps a **specimen signature**, a scan or phone photo
   of their wet signature, given in one of two ways: they upload it themselves
   and an admin over their unit or the Research Office confirms it before it
-  can be used; or they sign on paper at their department and that admin or
+  can be used — the admins of the nearest unit above them are notified, else
+  the Research Office; or they sign on paper at their department and that admin or
   the Research Office uploads it for them, which confirms it. A new
   specimen goes through the same again. Every approve, send-back or reject —
   and every form a person signs — asks for a **fresh code**; a code that does
@@ -555,7 +563,10 @@ legal proof; the electronic approval is the record of it.
   signing needs the authenticator app. The specimen is stamped on the form
   with the signer, time and step, and the signing is audited. A university
   setting, off by default (the demo) and switched on for a live install;
-  while it is on, nothing is approved in bulk from the queue. Later, when a
+  while it is on, nothing is approved in bulk from the queue. While it is off,
+  an approver whose specimen is confirmed may still choose to sign a decision
+  (the same fresh code); otherwise the decision carries no signature
+  (Decided 2026-11-19). Later, when a
   university asks: a code by text message, and Aadhaar eSign.
 
 ### 6.3 Optional modules

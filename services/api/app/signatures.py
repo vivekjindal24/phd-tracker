@@ -10,14 +10,16 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import cast, func, literal, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import scope
 from app.auth.principal import Principal
 from app.crud import insert, soft_delete, update
 from app.errors import ApiError, forbidden
-from app.models import Signature, User
+from app.models import Faculty, OrgUnit, RoleAssignment, Scholar, Signature, User
+from app.models.base import Ltree
+from app.notify import notify
 
 
 async def current(session: AsyncSession, user_id: uuid.UUID) -> Signature | None:
@@ -67,10 +69,19 @@ async def replace(
     content: bytes,
     content_type: str,
 ) -> None:
-    """The caller is the person (waits for a keeper) or a keeper, already checked, handing in
-    the paper signature (confirmed now)."""
+    """The caller is the person (waits for a keeper, who is told) or a keeper, already checked,
+    handing in the paper signature (confirmed now)."""
     await remove(session, principal, user_id)
     keeper = principal.user_id != user_id
+    if not keeper:
+        notify(
+            session,
+            await keepers(session, user_id),
+            "system",
+            f"{principal.full_name}'s signature waits for your confirmation",
+            "Compare it with their paper signature, then confirm it.",
+            "/people/signatures",
+        )
     await insert(
         session,
         principal,
@@ -124,3 +135,41 @@ async def pending(session: AsyncSession, principal: Principal) -> list[dict[str,
         {"user_id": u.id, "full_name": u.full_name, "email": u.email, "signature": view(s)}
         for s, u in rows
     ]
+
+
+async def keepers(session: AsyncSession, user_id: uuid.UUID) -> list[uuid.UUID]:
+    """Who should confirm this person's signature: the admins of the nearest unit at or above
+    theirs (as a scholar or faculty member), else the Research Office."""
+    units = (
+        select(Scholar.unit_id)
+        .where(Scholar.user_id == user_id)
+        .union(select(Faculty.unit_id).where(Faculty.user_id == user_id))
+    )
+    own = await session.scalars(select(OrgUnit.path).where(OrgUnit.id.in_(units)))
+    paths = list(own)
+    rows = []
+    if paths:
+        rows = (
+            await session.execute(
+                select(RoleAssignment.user_id, func.nlevel(OrgUnit.path))
+                .join(OrgUnit, OrgUnit.id == RoleAssignment.unit_id)
+                .where(
+                    RoleAssignment.deleted_at.is_(None),
+                    RoleAssignment.role == "admin",
+                    RoleAssignment.user_id != user_id,
+                    or_(*[OrgUnit.path.op("@>")(cast(literal(p), Ltree)) for p in paths]),
+                )
+            )
+        ).all()
+    if rows:
+        nearest = max(level for _, level in rows)
+        return [uid for uid, level in rows if level == nearest]
+    return list(
+        await session.scalars(
+            select(RoleAssignment.user_id).where(
+                RoleAssignment.role == "research_office",
+                RoleAssignment.deleted_at.is_(None),
+                RoleAssignment.user_id != user_id,
+            )
+        )
+    )

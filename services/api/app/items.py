@@ -417,10 +417,18 @@ async def view(session: AsyncSession, principal: Principal, ctx: ItemContext) ->
         "can_submit": item.state == "draft" and is_init,
         "can_resubmit": item.state == "sent_back" and is_init,
         "can_act": can_act,
+        "signing": await _signing(session, principal, can_act),
         "send_back_targets": targets,
         "blocked_reason": blocked_reason,
         "history": await history(session, ctx),
     }
+
+
+async def _signing(session: AsyncSession, principal: Principal, can_act: bool) -> str:
+    if await signing.required(session):
+        return "required"
+    sig = await signatures.current(session, principal.user_id)
+    return "optional" if can_act and sig is not None and sig.confirmed_at else "off"
 
 
 async def history(session: AsyncSession, ctx: ItemContext) -> list[dict[str, Any]]:

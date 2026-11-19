@@ -395,6 +395,16 @@ class ModuleUpdate(BaseModel):
 # --- notifications ----------------------------------------------------------------------
 
 
+class OpenedIn(BaseModel):
+    """A page the person opened, as a path: notifications pointing there are read."""
+
+    link: Annotated[str, StringConstraints(min_length=1, max_length=500, pattern=r"^/")]
+
+
+class UnreadOut(BaseModel):
+    unread: int
+
+
 class NotificationOut(Out):
     id: uuid.UUID
     category: str
@@ -689,6 +699,9 @@ class ItemView(BaseModel):
     can_submit: bool
     can_resubmit: bool
     can_act: bool
+    # How this viewer's action is signed (PRD F17b): required by the university, optional (they
+    # may choose to sign: signing is off but their signature is confirmed), or off.
+    signing: Literal["required", "optional", "off"]
     send_back_targets: list[SendBackTarget]
     blocked_reason: str | None
     history: list[HistoryEntry]
@@ -706,6 +719,7 @@ class ApproveIn(BaseModel):
     comment: Comment | None = None
     rating: Rating | None = None  # required with the comment on assessed items (PRD F8)
     code: SigningCodeText | None = None  # while signing is required (PRD F17b)
+    sign: bool = False  # sign anyway, while signing is not required
 
 
 class SigningCodeIn(BaseModel):
@@ -716,6 +730,7 @@ class SendBackIn(BaseModel):
     comment: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=4000)]
     to_step: int | None = Field(default=None, ge=0)
     code: SigningCodeText | None = None
+    sign: bool = False
 
 
 class QueueEntry(BaseModel):
@@ -823,6 +838,7 @@ class MilestoneOut(BaseModel):
     resolution_date: date | None
     notes: str
     approved_title: str | None
+    seminar_id: uuid.UUID | None  # the seminar whose recommendation opened this entry
     updated_at: datetime
 
 

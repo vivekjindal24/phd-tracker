@@ -10,7 +10,8 @@ from app.auth.principal import Principal
 from app.db import get_session
 from app.errors import forbidden
 from app.models import Notification
-from app.schemas import NotificationOut
+from app.notify import mark_read_link, unread_count
+from app.schemas import NotificationOut, OpenedIn, UnreadOut
 
 router = APIRouter(prefix="/notifications", tags=["notifications"])
 
@@ -54,3 +55,15 @@ async def mark_all_read(
         .values(read_at=datetime.now(UTC))
     )
     await session.commit()
+
+
+@router.post("/opened", response_model=UnreadOut)
+async def mark_opened(
+    body: OpenedIn,
+    principal: Principal = Depends(current_principal),
+    session: AsyncSession = Depends(get_session),
+) -> dict[str, int]:
+    """The person opened a page: notifications pointing to it are read, however they got there."""
+    await mark_read_link(session, principal.user_id, body.link)
+    await session.commit()
+    return {"unread": await unread_count(session, principal.user_id)}

@@ -4,7 +4,7 @@ nominee, VC nominee, scholar). Kept by an admin over the department or the Resea
 
 from tests.conftest import auth
 
-OUTSIDER = {"name": "Dr. V. Ganeshan", "institution": "IIT Indore"}
+OUTSIDER = {"name": "Dr. V. Ganeshan", "institution": "IIT Indore", "email": "vg@iiti.example"}
 
 
 def url(unit) -> str:

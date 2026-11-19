@@ -4,7 +4,7 @@ keeps it, the scholar reads it, and earlier versions stay as frozen history."""
 
 from tests.conftest import auth
 
-SEN = {"name": "Prof. R. Sen", "institution": "IIT Delhi"}
+SEN = {"name": "Prof. R. Sen", "institution": "IIT Delhi", "email": "sen@iitd.example"}
 
 
 def url(world) -> str:
@@ -123,7 +123,9 @@ async def test_re_forming_keeps_the_earlier_version_as_history(client, world):
     # The earlier version's members and roles are frozen.
     sen, sup_a2 = (m["id"] for m in old["members"])
     for res in (
-        await add(client, world, first, {"name": "Late", "institution": "X"}),
+        await add(
+            client, world, first, {"name": "Late", "institution": "X", "email": "late@x.example"}
+        ),
         await client.delete(f"/api/v1/committee-members/{sen}", headers=admin),
         await client.patch(
             f"/api/v1/committee-members/{sen}", headers=admin, json={"role": "member"}

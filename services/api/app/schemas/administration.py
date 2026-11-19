@@ -273,11 +273,14 @@ class CommitteeMemberIn(BaseModel):
     scholar_member_id: uuid.UUID | None = None
     name: Name | None = None
     institution: Name | None = None
+    email: EmailStr | None = None  # required for an outside member: how to reach them
     role: CommitteeRole = "member"
     seat: CommitteeSeat | None = None
 
     @model_validator(mode="after")
     def _one_kind(self) -> "CommitteeMemberIn":
+        if (self.email is None) == (self.name is not None):
+            raise ValueError("an outside member needs an email; others take none")
         outside = (self.name, self.institution)
         kinds = (
             self.faculty_id is not None,
@@ -292,18 +295,20 @@ class CommitteeMemberIn(BaseModel):
 
 
 class CommitteeMemberPatch(BaseModel):
-    """A role or seat change (current version only), or a corrected outside expert's name
-    or institution (any version)."""
+    """A role or seat change (current version only), or a corrected outside expert's name,
+    institution or email (any version)."""
 
     role: CommitteeRole | None = None
     seat: CommitteeSeat | None = None
     name: Name | None = None
     institution: Name | None = None
+    email: EmailStr | None = None
 
     @model_validator(mode="after")
     def _something(self) -> "CommitteeMemberPatch":
-        if all(v is None for v in (self.role, self.seat, self.name, self.institution)):
-            raise ValueError("give a role, a seat, a name or an institution")
+        given = (self.role, self.seat, self.name, self.institution, self.email)
+        if all(v is None for v in given):
+            raise ValueError("give a role, a seat, a name, an institution or an email")
         return self
 
 
@@ -311,6 +316,7 @@ class CommitteeMemberOut(BaseModel):
     id: uuid.UUID
     name: str
     institution: str
+    email: str | None  # an outside member's; shown only to those who keep the committee
     external: bool
     role: CommitteeRole
     seat: CommitteeSeat | None

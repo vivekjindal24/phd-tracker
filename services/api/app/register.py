@@ -7,9 +7,17 @@ from sqlalchemy import exists, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.principal import Principal
-from app.enums import MILESTONE_TYPES
+from app.crud import insert
+from app.enums import LOCAL_TZ, MILESTONE_TYPES, SEMINAR_KIND_LABELS
 from app.errors import ApiError
-from app.models import CommitteeFormation, CommitteeMember, Milestone, ProgressReport, Scholar
+from app.models import (
+    CommitteeFormation,
+    CommitteeMember,
+    Milestone,
+    ProgressReport,
+    Scholar,
+    Seminar,
+)
 
 MILESTONE_LABELS = {k: k.replace("_", " ").capitalize() for k in MILESTONE_TYPES}
 
@@ -74,3 +82,50 @@ async def _check_award(
             "award_not_ready",
             "The degree cannot be awarded yet: this scholar has no " + ", no ".join(missing) + ".",
         )
+
+
+# A seminar whose recommendation goes to the committee as the matching register entry.
+SEMINAR_MILESTONE = {"registration": "proposal_approval", "pre_synopsis": "pre_synopsis"}
+RECOMMENDATION_WORDS = {
+    "recommended": "recommended",
+    "recommended_with_changes": "recommended with changes",
+    "not_recommended": "not recommended",
+}
+
+
+async def from_seminar(
+    session: AsyncSession,
+    principal: Principal,
+    seminar: Seminar,
+    scholar_id: uuid.UUID,
+    recommendations: list[str],
+) -> None:
+    """When a registration or pre-synopsis seminar's review is finalised, the register gets the
+    matching entry as Pending, noting the panel's recommendations; the Research Office or the
+    unit's admin records the committee's decision on it. Once per scholar per seminar."""
+    milestone_type = SEMINAR_MILESTONE.get(seminar.kind)
+    if milestone_type is None or await _has(
+        session,
+        Milestone.scholar_id == scholar_id,
+        Milestone.seminar_id == seminar.id,
+        Milestone.deleted_at.is_(None),
+    ):
+        return
+    held = f"{seminar.starts_at.astimezone(LOCAL_TZ):%d %b %Y}"
+    counted = [
+        f"{recommendations.count(k)} {words}"
+        for k, words in RECOMMENDATION_WORDS.items()
+        if k in recommendations
+    ]
+    panel = f"panel: {', '.join(counted)}" if counted else "marked by rubric"
+    await insert(
+        session,
+        principal,
+        Milestone(
+            scholar_id=scholar_id,
+            milestone_type=milestone_type,
+            approval_body="RDC",
+            notes=f"From the {SEMINAR_KIND_LABELS[seminar.kind].lower()} of {held} ({panel}).",
+            seminar_id=seminar.id,
+        ),
+    )

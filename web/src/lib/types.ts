@@ -240,6 +240,8 @@ export type ItemView = {
   can_submit: boolean;
   can_resubmit: boolean;
   can_act: boolean;
+  /** How this viewer's decision is signed: required by the university, optional, or off. */
+  signing: "required" | "optional" | "off";
   send_back_targets: { to_step: number | null; label: string }[];
   blocked_reason: string | null;
   history: { action: string; actor: string; on_behalf_of: string | null; step: string | null; to: string | null; comment: string | null; rating: Rating | null; at: string; signature: string | null }[];
@@ -297,6 +299,7 @@ export type Milestone = {
   resolution_date: string | null;
   notes: string;
   approved_title: string | null;
+  seminar_id: string | null; // the seminar whose recommendation opened this entry
   updated_at: string;
 };
 
@@ -874,6 +877,7 @@ export type CommitteeMember = {
   id: string;
   name: string;
   institution: string;
+  email: string | null; // an outside member's; only for those who keep the committee
   external: boolean;
   role: CommitteeRole;
   seat: CommitteeSeat | null;

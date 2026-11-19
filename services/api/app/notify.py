@@ -11,7 +11,7 @@ from email.utils import formataddr
 
 import aiosmtplib
 import httpx
-from sqlalchemy import func, inspect, select
+from sqlalchemy import func, inspect, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
@@ -51,6 +51,19 @@ def notify(
         row = Notification(user_id=user_id, category=category, title=title, body=body, link=link)
         session.add(row)
         pending.append(row)
+
+
+async def mark_read_link(session: AsyncSession, user_id: uuid.UUID, link: str) -> None:
+    """The person has opened or handled what these notifications point to."""
+    await session.execute(
+        update(Notification)
+        .where(
+            Notification.user_id == user_id,
+            Notification.link == link,
+            Notification.read_at.is_(None),
+        )
+        .values(read_at=func.now())
+    )
 
 
 async def unread_count(session: AsyncSession, user_id: uuid.UUID) -> int:
