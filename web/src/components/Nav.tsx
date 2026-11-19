@@ -44,6 +44,7 @@ const NAV: Entry[] = [
       { href: "/scholars", label: "Scholars", show: (me) => !onlyScholar(me) },
       { href: "/scholars", label: "My profile", show: onlyScholar }, // redirects to own profile
       { href: "/faculty", label: "Faculty", show: (me) => me.roles.some((r) => r !== "scholar" && r !== "supervisor") },
+      { href: "/committees", label: "Department committees", show: notOnlyOffice },
       { href: "/people/signatures", label: "Signatures", show: (me) => me.roles.some((r) => r === "admin" || r === "research_office") },
       { href: "/admissions", label: "Admissions", show: (me) => me.modules.admissions && me.roles.some((r) => r === "admin" || r === "unit_head" || r === "research_office" || r === "vice_chancellor") },
     ],

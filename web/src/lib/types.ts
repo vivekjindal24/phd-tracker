@@ -54,6 +54,7 @@ export type OrgUnit = {
 
 export type SettingsData = {
   university_address: string;
+  department_committee_name: string;
   co_supervision: CoSupervision;
   require_hardcopy: boolean;
   require_no_dues: boolean;
@@ -836,13 +837,32 @@ export type FacultyRequest = {
 
 export type FacultyRequests = { incoming: FacultyRequest[]; sent: FacultyRequest[] };
 
-export type CommitteeRole = "chairperson" | "member" | "vc_nominee";
+export type CommitteeRole = "chairperson" | "secretary" | "member" | "vc_nominee";
 export const COMMITTEE_ROLE_LABELS: Record<CommitteeRole, string> = {
   chairperson: "Chairperson",
+  secretary: "Member and Secretary",
   member: "Member",
   vc_nominee: "Member (nominee of the Vice Chancellor)",
 };
-export type CommitteeMember = { id: string; name: string; institution: string; external: boolean; role: CommitteeRole };
+/** Which roles each kind of committee takes (PRD F9b); department members also sit in a seat. */
+export const ADVISORY_ROLES: CommitteeRole[] = ["chairperson", "member", "vc_nominee"];
+export const DEPARTMENT_ROLES: CommitteeRole[] = ["chairperson", "secretary", "member"];
+export type CommitteeSeat = "hod" | "dean_nominee" | "faculty_nominee" | "vc_nominee" | "scholar";
+export const COMMITTEE_SEAT_LABELS: Record<CommitteeSeat, string> = {
+  hod: "Head of the Department (ex officio)",
+  dean_nominee: "Dean's nominee",
+  faculty_nominee: "Faculty nominated by the department",
+  vc_nominee: "Vice Chancellor's nominee",
+  scholar: "PhD scholar",
+};
+export type CommitteeMember = {
+  id: string;
+  name: string;
+  institution: string;
+  external: boolean;
+  role: CommitteeRole;
+  seat: CommitteeSeat | null;
+};
 export type CommitteeFormation = {
   id: string;
   formed_on: string;
@@ -852,7 +872,12 @@ export type CommitteeFormation = {
   members: CommitteeMember[];
 };
 /** `formations` newest first: the first is the current committee, the rest are history. */
-export type CommitteeView = { convener: string | null; formations: CommitteeFormation[]; can_manage: boolean };
+export type CommitteeView = {
+  title: string; // "Research Advisory Committee", or the university's name for a department's
+  convener: string | null;
+  formations: CommitteeFormation[];
+  can_manage: boolean;
+};
 
 export type EthicsKind = "human" | "animal" | "biosafety" | "not_required";
 export const ETHICS_KIND_LABELS: Record<EthicsKind, string> = {

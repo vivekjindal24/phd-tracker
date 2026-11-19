@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.principal import Principal
 from app.enums import MILESTONE_TYPES
 from app.errors import ApiError
-from app.models import CommitteeMember, Milestone, ProgressReport, Scholar
+from app.models import CommitteeFormation, CommitteeMember, Milestone, ProgressReport, Scholar
 
 MILESTONE_LABELS = {k: k.replace("_", " ").capitalize() for k in MILESTONE_TYPES}
 
@@ -54,7 +54,11 @@ async def _check_award(
     if supervisor_id is None:
         missing.append("a supervisor")
     if not await _has(
-        session, CommitteeMember.scholar_id == scholar_id, CommitteeMember.deleted_at.is_(None)
+        session,
+        CommitteeMember.formation_id == CommitteeFormation.id,
+        CommitteeFormation.scholar_id == scholar_id,
+        CommitteeFormation.deleted_at.is_(None),
+        CommitteeMember.deleted_at.is_(None),
     ):
         missing.append("a recorded committee")
     if not await _has(

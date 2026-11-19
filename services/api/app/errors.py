@@ -58,6 +58,12 @@ CONSTRAINT_ERRORS: dict[str, tuple[int, str, str]] = {
     ),
     "uq_committee_member": (409, "duplicate_member", "This person is already on the committee."),
     "uq_committee_chair": (409, "chairperson_taken", "The committee already has a chairperson."),
+    "uq_committee_secretary": (409, "secretary_taken", "The committee already has a secretary."),
+    "uq_committee_scholar_member": (
+        409,
+        "duplicate_member",
+        "This person is already on the committee.",
+    ),
     "uq_project_members": (409, "duplicate_member", "This scholar is already a member."),
     "uq_role_assignment_active": (409, "duplicate_role", "This role is already assigned."),
     "uq_faculty_user": (409, "duplicate_profile", "This user already has a faculty profile."),

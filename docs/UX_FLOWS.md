@@ -260,6 +260,13 @@ version; **Withdraw**
 removes a version recorded by mistake, making the one before it current again.
 The current committee, with roles, prints on the progress report PDF.
 
+**People → Department committees** shows a department's research committee
+(called as the university names it in Settings). Pick the department; the card
+works like the advisory committee's, except each member also sits in a seat
+(HoD ex officio, Dean's nominee, faculty nominee, VC nominee) and "Who" also
+offers a PhD scholar of the department, who takes the scholar's seat. The
+re-form button reads **Re-constitute the committee**.
+
 The **Research ethics** card beside it holds the clearances: kind, committee,
 approval number, dates and the certificate file, or "Not required" with the
 reason. Its badge reads Recorded, Not recorded, or "Needed before the thesis"

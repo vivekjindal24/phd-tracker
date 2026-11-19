@@ -327,6 +327,7 @@ AprTemplate = Annotated[list[AprSection], Field(min_length=1, max_length=10)]
 
 class SettingsOut(BaseModel):
     university_address: str
+    department_committee_name: str
     co_supervision: CoSupervision
     require_hardcopy: bool
     require_no_dues: bool
@@ -352,6 +353,7 @@ class SettingsOut(BaseModel):
 
 class SettingsUpdate(BaseModel):
     university_address: str | None = Field(default=None, max_length=500)
+    department_committee_name: Name | None = None
     co_supervision: CoSupervision | None = None
     require_hardcopy: bool | None = None
     require_no_dues: bool | None = None

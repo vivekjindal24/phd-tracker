@@ -211,9 +211,16 @@ PUB_STATUSES = get_args(PubStatus)
 ConferenceType = Literal["paper_presented", "poster", "attended", "invited_talk", "workshop"]
 CONFERENCE_TYPES = get_args(ConferenceType)
 
-# Advisory committee roles (PRD F9b); the supervisor is always the secretary, never a row.
-CommitteeRole = Literal["chairperson", "member", "vc_nominee"]
+# Committee roles (PRD F9b). A scholar's advisory committee: chairperson, member, VC nominee
+# (the supervisor is always its secretary, never a row). A department's committee:
+# chairperson, secretary, member, each also in a seat. Listed in print order.
+CommitteeRole = Literal["chairperson", "secretary", "member", "vc_nominee"]
 COMMITTEE_ROLES = get_args(CommitteeRole)
+ADVISORY_ROLES = frozenset({"chairperson", "member", "vc_nominee"})
+DEPARTMENT_ROLES = frozenset({"chairperson", "secretary", "member"})
+CommitteeSeat = Literal["hod", "dean_nominee", "faculty_nominee", "vc_nominee", "scholar"]
+COMMITTEE_SEATS = get_args(CommitteeSeat)
+DEFAULT_DEPARTMENT_COMMITTEE = "Department Research Committee (DRC)"
 
 # Ethics clearances (PRD F9c): a committee's approval, or a recorded "not required".
 EthicsKind = Literal["human", "animal", "biosafety", "not_required"]

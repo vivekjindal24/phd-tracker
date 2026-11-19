@@ -123,6 +123,7 @@ role's scope (§2).
 | progress reports | CRU own draft/sent_back, submit | R, step | R, step (department) | R, step (department) | R, step | — | — |
 | milestones (RDC register) | R own | R | R | CRUD | CRUD | R | — |
 | committee formations & members (RAC) | R own | R | R | CUD (earlier versions: wording only) | CUD (earlier versions: wording only) | — | — |
+| department committee (DRC/DPGC) | R own department | R | R | CUD over own subtree (earlier versions: wording only) | CUD (earlier versions: wording only) | — | — |
 | ethics clearances | R own | R | R | CD | CD | — | — |
 | seminars (schedule, hardcopy) | R own | R (own scholars') | CRUD in subtree | CRUD in subtree | R | — | — |
 | seminar grades | R own after finalise | R own scholars'; finalise own scholars | R | R | R | — | — |

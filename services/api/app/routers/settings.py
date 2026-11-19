@@ -27,6 +27,7 @@ async def _read(session: AsyncSession) -> SettingsOut:
     return SettingsOut.model_validate(
         {
             "university_address": settings.university_address,
+            "department_committee_name": settings.department_committee_name,
             "co_supervision": settings.co_supervision,
             "require_hardcopy": settings.require_hardcopy,
             "require_no_dues": settings.require_no_dues,

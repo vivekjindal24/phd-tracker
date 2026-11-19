@@ -9,6 +9,7 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field, StringConstraints, 
 
 from app.enums import (
     CommitteeRole,
+    CommitteeSeat,
     EntranceRoute,
     EthicsKind,
     InterviewResult,
@@ -251,7 +252,7 @@ class LeadershipView(BaseModel):
     as_of: date
 
 
-# --- research advisory committee ---------------------------------------------------------
+# --- committees: a scholar's advisory committee, a department's research committee --------
 
 
 class FormationIn(BaseModel):
@@ -263,35 +264,45 @@ class FormationIn(BaseModel):
 
 
 class CommitteeMemberIn(BaseModel):
-    """Faculty of this university by id, or an outside expert by name and institution."""
+    """Faculty of this university by id, a scholar by id (department committees), or an
+    outside expert by name and institution. Which roles, and whether a seat is needed,
+    depends on the committee (routers/committee.py)."""
 
     faculty_id: uuid.UUID | None = None
+    scholar_member_id: uuid.UUID | None = None
     name: Name | None = None
     institution: Name | None = None
     role: CommitteeRole = "member"
+    seat: CommitteeSeat | None = None
 
     @model_validator(mode="after")
     def _one_kind(self) -> "CommitteeMemberIn":
-        outside = self.name is not None and self.institution is not None
-        if self.faculty_id is not None and (self.name is None and self.institution is None):
-            return self
-        if self.faculty_id is None and outside:
-            return self
-        raise ValueError("give a faculty member, or an outside expert's name and institution")
+        outside = (self.name, self.institution)
+        kinds = (
+            self.faculty_id is not None,
+            self.scholar_member_id is not None,
+            all(v is not None for v in outside),
+        )
+        if sum(kinds) != 1 or (not kinds[2] and any(v is not None for v in outside)):
+            raise ValueError(
+                "give a faculty member, a scholar, or an outside expert's name and institution"
+            )
+        return self
 
 
 class CommitteeMemberPatch(BaseModel):
-    """A role change (current version only), or a corrected outside expert's name or
-    institution (any version)."""
+    """A role or seat change (current version only), or a corrected outside expert's name
+    or institution (any version)."""
 
     role: CommitteeRole | None = None
+    seat: CommitteeSeat | None = None
     name: Name | None = None
     institution: Name | None = None
 
     @model_validator(mode="after")
     def _something(self) -> "CommitteeMemberPatch":
-        if self.role is None and self.name is None and self.institution is None:
-            raise ValueError("give a role, a name or an institution")
+        if all(v is None for v in (self.role, self.seat, self.name, self.institution)):
+            raise ValueError("give a role, a seat, a name or an institution")
         return self
 
 
@@ -301,6 +312,7 @@ class CommitteeMemberOut(BaseModel):
     institution: str
     external: bool
     role: CommitteeRole
+    seat: CommitteeSeat | None
 
 
 class FormationOut(BaseModel):
@@ -308,12 +320,13 @@ class FormationOut(BaseModel):
     formed_on: date
     reference: str | None
     notes: str
-    secretary: str | None  # the supervisor when it was formed
+    secretary: str | None  # an advisory committee's supervisor when it was formed
     members: list[CommitteeMemberOut]
 
 
 class CommitteeView(BaseModel):
-    convener: str | None  # today's supervisor
+    title: str  # "Research Advisory Committee", or the university's name for a department's
+    convener: str | None  # an advisory committee's supervisor today
     formations: list[FormationOut]  # newest (the current committee) first
     can_manage: bool
 

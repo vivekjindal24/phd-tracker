@@ -408,7 +408,7 @@ function Records({ scholar }: { scholar: Scholar }) {
       <Decisions scholarId={scholar.id} />
       {me?.roles.some((r) => r !== "exam_office" && r !== "library") && (
         <>
-          <div style={{ marginTop: "var(--space-5)" }}><CommitteeCard scholarId={scholar.id} /></div>
+          <div style={{ marginTop: "var(--space-5)" }}><CommitteeCard path={`/scholars/${scholar.id}/committee`} /></div>
           <div style={{ marginTop: "var(--space-5)" }}><EthicsCard scholarId={scholar.id} /></div>
           <div style={{ marginTop: "var(--space-5)" }}><DurationCard scholarId={scholar.id} /></div>
         </>

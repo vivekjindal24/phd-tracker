@@ -371,6 +371,21 @@ approval step, and outside members get no login (§7). The supervisor cannot be
 added as a member (409 `supervisor_is_convener`); nobody twice in one version
 (409 `duplicate_member`).
 
+**Department research committee** (Decided 2026-11-19). Each department's
+research committee (named by the university in Settings, default "Department
+Research Committee (DRC)"; a DPGC elsewhere) is recorded the same way: dated
+versions with their order number, re-constituted as a copy of the current
+members, earlier versions frozen but correctable in wording. Each member has a
+role — Chairperson, Secretary (at most one each; 409 `chairperson_taken`,
+`secretary_taken`) or Member — and a seat: Head of the Department (ex officio),
+Dean's nominee, faculty nominated by the department, Vice Chancellor's nominee,
+or a PhD scholar of the department (only a scholar of that department or below
+sits there, 422 `scholar_not_in_unit`; 422 `seat_mismatch` / `role_not_allowed`
+otherwise). An admin over the department or the Research Office keeps it;
+anyone who can see the unit reads it (a scholar, only their own department's).
+It names the Chairperson and Secretary on the department's notices and forms
+and prints as its own page in the PhD file (F17).
+
 **F9c — Research ethics clearance** (Decided 2026-11-10). Per scholar, an
 admin over their unit or the Research Office records either one or more
 clearances — kind (human ethics / animal ethics / biosafety), committee,

@@ -114,7 +114,9 @@ bool, `updated_by`, `updated_at`. Seeded with every key; core features have
 no row (always on).
 
 **settings** — single row (`id` = 1, CHECK): `university_address` (default
-''; the name is the root org unit's), `co_supervision` CHECK
+''; the name is the root org unit's), `department_committee_name` (default
+'Department Research Committee (DRC)', migration 0040: what the university calls
+a department's research committee), `co_supervision` CHECK
 (`off` / `view` / `approve`, default `off`), `require_hardcopy` bool (default
 false), `require_no_dues` bool (default false: a thesis waits for an approved
 no-dues clearance while true), `require_ethics` bool (default false: a thesis
@@ -158,23 +160,33 @@ pre_synopsis / thesis_submission / viva / degree_awarded), `status` CHECK
 `notes`, `approved_title` (proposal approvals only: the latest approved one is
 the thesis title, copied onto the live `thesis_submissions.title`).
 
-**committee_formations** (Research Advisory Committee versions, PRD F9b,
-migration 0039) — `scholar_id` (indexed), `formed_on` date, `reference` (order
+**committee_formations** (committee versions, PRD F9b, migrations 0039-0040) —
+whose committee: `scholar_id` (a Research Advisory Committee) or `unit_id` FK
+org_units (a department's research committee), exactly one
+(`ck_committee_formation_owner`), both indexed; `formed_on` date, `reference` (order
 or resolution number), `notes`, `secretary_id` FK faculty (the supervisor when
-it was formed: the secretary on that version's form). The latest live row by
-`formed_on`, then `created_at`, is the current committee; earlier ones keep
+it was formed: the secretary on an advisory committee's form; null on a
+department's). The latest live row of a committee by `formed_on`, then
+`created_at`, is the current committee; earlier ones keep
 their members and roles frozen, only wording correctable (enforced in
 `routers/committee.py`).
 
-**committee_members** (members of a formation, PRD F9b) — `scholar_id`
-(indexed), `formation_id` FK committee_formations (indexed), `role` CHECK
-(chairperson / member / vc_nominee, default member;
-`ck_committee_member_role`), then either `faculty_id` FK faculty (a member from
-this university; name and unit are read live) or `name` + `institution` (an
-outside expert) — exactly one kind (`ck_committee_member_kind`). Partial unique
-`uq_committee_member (formation_id, faculty_id)` and `uq_committee_chair
-(formation_id) WHERE role = 'chairperson'`, both on live rows. The secretary is
-the supervisor, never a row here.
+**committee_members** (members of a formation, PRD F9b) — `formation_id` FK
+committee_formations (indexed; whose committee is read from it), `role` CHECK
+(chairperson / secretary / member / vc_nominee, default member;
+`ck_committee_member_role`: an advisory committee takes chairperson / member /
+vc_nominee, a department's chairperson / secretary / member — enforced in
+`routers/committee.py`), `seat` CHECK (hod / dean_nominee / faculty_nominee /
+vc_nominee / scholar; department committees only, required there), then one of
+`faculty_id` FK faculty (a member from this university), `scholar_member_id` FK
+scholars (a scholar of that department, in the scholar's seat) — names and
+units of both read live — or `name` + `institution` (an outside expert):
+exactly one kind (`ck_committee_member_kind`). Partial unique on live rows:
+`uq_committee_member (formation_id, faculty_id)`, `uq_committee_scholar_member
+(formation_id, scholar_member_id)`, `uq_committee_chair (formation_id) WHERE
+role = 'chairperson'`, `uq_committee_secretary (formation_id) WHERE role =
+'secretary'`. An advisory committee's secretary is the supervisor, never a row
+here.
 
 **ethics_clearances** (PRD F9c) — `scholar_id` (indexed), `kind` CHECK (human
 / animal / biosafety / not_required), `committee`, `approval_number`,

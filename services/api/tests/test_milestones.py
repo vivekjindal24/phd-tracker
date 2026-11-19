@@ -125,11 +125,7 @@ async def test_degree_is_awarded_only_on_a_complete_record(client, world, sessio
     formation = CommitteeFormation(scholar_id=scholar.id, formed_on=date(2026, 1, 5))
     session.add(formation)
     await session.flush()
-    session.add(
-        CommitteeMember(
-            scholar_id=scholar.id, formation_id=formation.id, name="Prof. R. Sen", institution="IIT"
-        )
-    )
+    session.add(CommitteeMember(formation_id=formation.id, name="Prof. R. Sen", institution="IIT"))
     session.add(
         ProgressReport(
             scholar_id=scholar.id,

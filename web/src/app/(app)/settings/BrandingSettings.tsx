@@ -8,7 +8,8 @@ import type { Branding, OrgUnit, SettingsData } from "@/lib/types";
 import { errorText, useFetch } from "@/lib/useFetch";
 import type { Save } from "./save";
 
-/** The one place for the university's name, address and logo. The name is stored on the root
+/** The one place for the university's name, address, logo and what it calls a department's
+ *  research committee. The name is stored on the root
  *  unit, so renaming there also renames the top of the tree. */
 export function BrandingSettings({ data, save }: { data: SettingsData; save: Save }) {
   const branding = useFetch<Branding>("/branding");
@@ -17,6 +18,7 @@ export function BrandingSettings({ data, save }: { data: SettingsData; save: Sav
   const [typedName, setTypedName] = useState<string | null>(null);
   const name = typedName ?? root?.name ?? "";
   const [address, setAddress] = useState(data.university_address);
+  const [committeeName, setCommitteeName] = useState(data.department_committee_name);
   const [error, setError] = useState<string | null>(null);
 
   async function run(work: () => Promise<unknown>) {
@@ -43,7 +45,7 @@ export function BrandingSettings({ data, save }: { data: SettingsData; save: Sav
         await units.reload();
         setTypedName(null);
       }
-      await save("/settings", "PATCH", { university_address: address });
+      await save("/settings", "PATCH", { university_address: address, department_committee_name: committeeName });
     });
   };
 
@@ -57,6 +59,9 @@ export function BrandingSettings({ data, save }: { data: SettingsData; save: Sav
         </Field>
         <Field label="Address on PDFs">
           <input maxLength={500} value={address} onChange={(e) => setAddress(e.target.value)} />
+        </Field>
+        <Field label="Name of a department's research committee" hint="As your university calls it, e.g. Department Research Committee (DRC) or DPGC.">
+          <input required maxLength={200} value={committeeName} onChange={(e) => setCommitteeName(e.target.value)} />
         </Field>
         <Button kind="secondary" type="submit" disabled={!root}>Save details</Button>
       </form>

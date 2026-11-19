@@ -20,6 +20,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.enums import (
     CO_SUPERVISION,
     DEFAULT_APR_SECTIONS,
+    DEFAULT_DEPARTMENT_COMMITTEE,
     DEFAULT_RUBRIC,
     DEFAULT_SEMINAR_FORMS,
     ITEM_TYPES,
@@ -61,6 +62,10 @@ class Settings(Timestamps, Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     university_address: Mapped[str] = mapped_column(Text, server_default=text("''"))
+    # What this university calls a department's research committee (DRC, DPGC ...).
+    department_committee_name: Mapped[str] = mapped_column(
+        Text, server_default=text(f"'{DEFAULT_DEPARTMENT_COMMITTEE}'")
+    )
     co_supervision: Mapped[str] = mapped_column(Text, server_default=text("'off'"))
     require_hardcopy: Mapped[bool] = mapped_column(Boolean, server_default=text("false"))
     require_no_dues: Mapped[bool] = mapped_column(Boolean, server_default=text("false"))
