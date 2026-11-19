@@ -50,7 +50,8 @@ const registerQuery = z.object({
 /** The approved signed copies' scans, from their short-lived links. One that cannot be fetched is
  *  left out (the file says so on its page) rather than failing the whole file. */
 async function fetchScans(view: PhdFileView): Promise<Map<string, Scan>> {
-  const copies = view.annexures.flatMap((a) => a.entries.map((e) => e.signed_copy)).filter((c) => c?.scan_url);
+  const copies = view.annexures.flatMap((a) => a.entries.flatMap((e) => e.papers.map((p) => p.copy)))
+    .filter((c) => c?.scan_url);
   const scans = new Map<string, Scan>();
   await Promise.all(copies.map(async (c) => {
     try {

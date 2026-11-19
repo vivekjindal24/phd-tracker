@@ -353,6 +353,60 @@ PhdAnnexure = Literal[
     "copies",
 ]
 PHD_ANNEXURES = get_args(PhdAnnexure)
+# The papers an entry of the PhD file holds, each a signed copy (signed_copies.kind), in the order
+# the paper file keeps them (PRD F17b). Which entry takes which: phd_file.py.
+DOCUMENT_KINDS: dict[str, str] = {
+    "signed_copy": "Signed copy",
+    "notice": "Notification",
+    "report": "Report",
+    "attendance": "Attendance sheet",
+    "drc_minutes": "Minutes of the DRC",
+    "drc_notice": "Notice of the DRC chairperson",
+    "fee_due": "Examination fee due creation",
+    "corrections": "Modifications made at the examiners' request",
+    "examiner_panel": "Panel of examiners",
+    "invite_national": "Email to the national examiner",
+    "accept_national": "Acceptance of the national examiner",
+    "invite_international": "Email to the international examiner",
+    "accept_international": "Acceptance of the international examiner",
+    "viva_approval": "Approval to conduct the viva",
+    "viva_board": "Constitution of the examination board",
+    "viva_notice": "Notification of the viva",
+    "viva_examiner_email": "Email to the viva examiner",
+    "viva_report": "Viva-voce examination report",
+}
+DocumentKind = Literal[
+    "signed_copy",
+    "notice",
+    "report",
+    "attendance",
+    "drc_minutes",
+    "drc_notice",
+    "fee_due",
+    "corrections",
+    "examiner_panel",
+    "invite_national",
+    "accept_national",
+    "invite_international",
+    "accept_international",
+    "viva_approval",
+    "viva_board",
+    "viva_notice",
+    "viva_examiner_email",
+    "viva_report",
+]
+assert get_args(DocumentKind) == tuple(DOCUMENT_KINDS)
+# Papers naming the examiners: the Research Office, the Exam Office and the admin over the
+# scholar's unit handle them; never the scholar or their supervisor (owner, 2026-11-19).
+EXAMINER_DOCUMENTS = frozenset(
+    {
+        "examiner_panel",
+        "invite_national",
+        "accept_national",
+        "invite_international",
+        "accept_international",
+    }
+)
 
 # PRD F3 defaults: who starts an item, and the default chain.
 INITIATOR: dict[str, str] = {

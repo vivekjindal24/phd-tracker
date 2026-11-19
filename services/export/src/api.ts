@@ -138,9 +138,11 @@ export const phdFileView = z.object({
           heading: z.string(),
           lines: z.array(z.tuple([z.string(), z.string()])),
           signed: z.boolean().nullable(), // approved items only: every approval signed or not
-          // The scan of its form signed on paper (PRD F17b); a link only once approved.
-          signed_copy: z.object({ id: z.string(), content_type: z.string(), scan_url: z.string().nullable() })
-            .nullable().default(null),
+          // Its papers signed by hand (PRD F17b), in the paper file's order; a scan link once approved.
+          papers: z.array(z.object({
+            label: z.string(),
+            copy: z.object({ id: z.string(), content_type: z.string(), scan_url: z.string().nullable() }).nullable(),
+          })).default([]),
         }),
       ),
     }),

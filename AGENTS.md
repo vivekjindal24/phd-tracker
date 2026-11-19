@@ -98,7 +98,9 @@ After implementation (run what applies; report what was skipped):
 ## 7. Documentation
 
 Update docs/ when a change alters: product behavior (PRD), schema (DATABASE),
-permissions (SECURITY), flows (UX_FLOWS), or conventions (CODE_STYLE). Keep the
+permissions (SECURITY), flows (UX_FLOWS), or conventions (CODE_STYLE). Anything a
+buyer, administrator or SRS writer could not guess (a limit, a deliberate
+difference, a setting to switch on) also goes in docs/THINGS_TO_KNOW.md. Keep the
 change to the affected section — don't rewrite whole documents.
 
 ## 8. Conflict Handling

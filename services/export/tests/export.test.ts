@@ -230,17 +230,18 @@ test("the PhD file: the index page, then one page per recorded annexure", async 
   assert.equal(pageCount(await phdFilePdf(phdFileView.parse({ ...phdFile, annexures: [] }))), 1);
 });
 
-test("approved signed copies stand after their entries: a PDF's pages, a photo, a note for a bad one", async () => {
+test("approved papers stand after their entry, in order: a PDF's pages, a photo, a note for a bad one", async () => {
   const two = await PDFLibDocument.create();
   two.addPage([300, 400]).drawText("Signed: Dr. Meera", { x: 20, y: 200 });
   two.addPage([300, 400]); // blank: cannot be embedded, so the page carries a note instead
-  const copy = (id: string, content_type: string) => ({ id, content_type, scan_url: `https://bucket/${id}` });
+  const copy = (id: string, content_type: string) =>
+    ({ label: "Report", copy: { id, content_type, scan_url: `https://bucket/${id}` } });
   const view = phdFileView.parse({ ...phdFile, annexures: [{ key: "progress", title: "Progress", date: null, note: null,
     entries: [
-      { ...entry("Report 1", true), signed_copy: copy("a", "application/pdf") },
-      { ...entry("Report 2", true), signed_copy: copy("b", "image/png") },
-      { ...entry("Report 3", true), signed_copy: copy("c", "application/pdf") }, // not fetched
-      { ...entry("Report 4"), signed_copy: { id: "d", content_type: "image/png", scan_url: null } }, // waiting
+      { ...entry("Seminar 1", true), papers: [copy("a", "application/pdf"), copy("b", "image/png")] },
+      { ...entry("Report 3", true), papers: [copy("c", "application/pdf")] }, // not fetched
+      { ...entry("Report 4"), papers: [{ label: "Report", copy: { id: "d", content_type: "image/png", scan_url: null } },
+        { label: "Attendance sheet", copy: null }] }, // waiting; not uploaded
     ] }] });
   const scans = new Map([
     ["a", { bytes: await two.save(), type: "application/pdf" }],

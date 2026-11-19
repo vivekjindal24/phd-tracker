@@ -281,9 +281,9 @@ export async function phdFilePdf(v: PhdFileView, scans: Map<string, Scan> = new 
       if (e.date) doc.font("Helvetica").fontSize(9).fillColor("#444444").text(day(e.date)).fillColor("black");
       doc.moveDown(0.3);
       keyValues(doc, e.lines);
-      const copy = e.signed_copy?.scan_url ? e.signed_copy : null;
-      if (copy) {
-        doc.font("Helvetica-Oblique").fontSize(9).text("The signed copy follows.", left);
+      const follows = e.papers.filter((p) => p.copy?.scan_url).map((p) => p.label);
+      if (follows.length) {
+        doc.font("Helvetica-Oblique").fontSize(9).text(`Signed copies follow: ${follows.join("; ")}.`, left);
       } else if (e.signed !== null) {
         doc.font("Helvetica-Oblique").fontSize(9)
           .text(e.signed ? "Approved with signatures on record." : "Approved in the portal without a signature.", left);
@@ -291,7 +291,9 @@ export async function phdFilePdf(v: PhdFileView, scans: Map<string, Scan> = new 
       doc.moveDown(0.8);
     }
     for (const e of a.entries) {
-      if (e.signed_copy?.scan_url) await drawScan(doc, e.heading, scans.get(e.signed_copy.id), slots);
+      for (const p of e.papers) {
+        if (p.copy?.scan_url) await drawScan(doc, `${p.label}, ${e.heading}`, scans.get(p.copy.id), slots);
+      }
     }
   }
 

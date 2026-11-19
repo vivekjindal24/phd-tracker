@@ -7,7 +7,14 @@ from sqlalchemy import BigInteger, CheckConstraint, DateTime, ForeignKey, Index,
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.enums import FILE_OWNER_TABLES, FILE_SLOTS, FILE_STATUSES, PHD_ANNEXURES, sql_in
+from app.enums import (
+    DOCUMENT_KINDS,
+    FILE_OWNER_TABLES,
+    FILE_SLOTS,
+    FILE_STATUSES,
+    PHD_ANNEXURES,
+    sql_in,
+)
 from app.models.base import Base, DomainRow
 
 LIVE = text("deleted_at IS NULL")
@@ -41,10 +48,11 @@ class FileRow(DomainRow, Base):
 
 
 class SignedCopy(DomainRow, Base):
-    """The scan of a form signed on paper, standing for one entry of the PhD file (PRD F17b): its
-    annexure and the record behind the entry. The scan is a file hanging off this row. Counts
-    once approved by an admin over the scholar's unit or the Research Office; their own uploads
-    are approved as they upload. The newest copy with its scan in place is the one in use."""
+    """The scan of a paper signed by hand, standing for one entry of the PhD file (PRD F17b): its
+    annexure, the record behind the entry and which of its papers it is. The scan is a file on
+    this row. Counts once approved by an admin over the scholar's unit or the Research Office
+    (the Exam Office too, for the examiners' papers); their own uploads are approved as they
+    upload. The newest copy of each paper with its scan in place is the one in use."""
 
     __tablename__ = "signed_copies"
     __table_args__ = (
@@ -52,12 +60,15 @@ class SignedCopy(DomainRow, Base):
         CheckConstraint(
             "(approved_by IS NULL) = (approved_at IS NULL)", name="ck_signed_copies_approved"
         ),
+        CheckConstraint(f"kind IN ({sql_in(tuple(DOCUMENT_KINDS))})", name="ck_signed_copies_kind"),
         Index("ix_signed_copies_scholar", "scholar_id", postgresql_where=LIVE),
     )
 
     scholar_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("scholars.id"))
     annexure: Mapped[str] = mapped_column(Text)
     record_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True))
+    # Which of the entry's papers (enums.DOCUMENT_KINDS): a seminar's notification, report, …
+    kind: Mapped[str] = mapped_column(Text, server_default=text("'signed_copy'"))
     uploaded_by: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"))
     approved_by: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id")

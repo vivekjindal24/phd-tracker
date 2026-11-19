@@ -11,7 +11,7 @@ from app import signed_copies
 from app.auth.deps import current_principal
 from app.auth.principal import Principal
 from app.db import get_session
-from app.enums import PhdAnnexure
+from app.enums import DocumentKind, PhdAnnexure
 
 router = APIRouter(tags=["scholars"])
 
@@ -19,6 +19,7 @@ router = APIRouter(tags=["scholars"])
 class SignedCopyIn(BaseModel):
     annexure: PhdAnnexure
     record_id: uuid.UUID
+    kind: DocumentKind = "signed_copy"
 
 
 class SignedCopyOut(BaseModel):
@@ -32,7 +33,9 @@ async def create_signed_copy(
     principal: Principal = Depends(current_principal),  # signed_copies.py decides
     session: AsyncSession = Depends(get_session),
 ) -> SignedCopyOut:
-    copy = await signed_copies.create(session, principal, scholar_id, body.annexure, body.record_id)
+    copy = await signed_copies.create(
+        session, principal, scholar_id, body.annexure, body.record_id, body.kind
+    )
     await session.commit()
     return SignedCopyOut(id=copy.id)
 

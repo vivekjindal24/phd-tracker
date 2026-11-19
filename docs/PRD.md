@@ -563,6 +563,19 @@ legal proof; the electronic approval is the record of it.
   notified. Every upload, approval and removal is in the audit log. An approved
   copy marks its entry signed, and in the downloaded PhD file its pages follow
   the entry. A new upload replaces the copy in use; the old one stays on record.
+  *Every paper of the file has a place (owner, 2026-11-19)*, after the
+  university's own 30-document index: each entry holds its own papers —
+  a seminar its notification, report and attendance sheet; a committee
+  decision the DRC minutes and the notice of the DRC chairperson; the thesis
+  submission its signed form, the examination fee due creation and the
+  modifications made at the examiners' request; the viva arrangement its
+  approval, the constitution of the board, the notification and the email to
+  the viva examiner; the viva its report and attendance sheet; every other
+  entry one signed copy. A separate entry, "Panel of examiners and letters with
+  the examiners", holds the panel and the emails to and acceptances from the
+  national and international examiners; only the Research Office, the Exam
+  Office and the department admin see and handle it. One copy per paper: two
+  national examiners' letters go in as one PDF.
 - **The signature is the main mark** (stakeholder requirement): on a generated
   form each signatory's signature stands where their wet signature would, with
   the electronic approval record below it as detail.

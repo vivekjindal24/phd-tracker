@@ -243,6 +243,16 @@ async def get_user_or_403(session: AsyncSession, principal: Principal, user_id: 
     return user
 
 
+def guides(principal: Principal, scholar: Scholar) -> bool:
+    """The scholar's supervisor (or a stand-in today), or co-supervisor while co-supervision is
+    on: their papers, never the examiners' (PRD F17b, M3)."""
+    return scholar.supervisor_id in principal.supervises or (
+        principal.co_supervision != "off"
+        and principal.faculty_id is not None
+        and scholar.co_supervisor_id == principal.faculty_id
+    )
+
+
 async def can_record(session: AsyncSession, principal: Principal, scholar: Scholar) -> bool:
     """Who keeps a scholar's committee records (register, time records, committee): the
     Research Office anywhere, or an admin over the scholar's unit."""

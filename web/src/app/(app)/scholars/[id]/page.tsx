@@ -440,9 +440,10 @@ function Records({ scholar, canEdit }: { scholar: Scholar; canEdit: boolean }) {
           <div style={{ marginTop: "var(--space-5)" }}><DurationCard scholarId={scholar.id} /></div>
           <div style={{ marginTop: "var(--space-5)" }}><ComprehensiveCard scholarId={scholar.id} /></div>
           <div style={{ marginTop: "var(--space-5)" }}><ScholarDocuments scholarId={scholar.id} canUpload={canEdit} /></div>
-          <div style={{ marginTop: "var(--space-5)" }}><SignedCopiesCard scholarId={scholar.id} /></div>
         </>
       )}
+      {/* Shows itself only to who handles signed papers: supervisor, admin, Research Office, Exam Office. */}
+      <div style={{ marginTop: "var(--space-5)" }}><SignedCopiesCard scholarId={scholar.id} /></div>
       {me?.modules.coursework && !me.roles.every((r) => r === "library") && (
         <div style={{ marginTop: "var(--space-5)" }}><CourseworkCard scholarId={scholar.id} /></div>
       )}

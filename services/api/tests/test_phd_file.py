@@ -61,12 +61,13 @@ async def test_examiner_names_stay_withheld(client, session, world, documents_on
         },
     )
     dept = (await client.get(url(world), headers=auth(world.admin_a1.id))).json()
-    (report,) = part(dept, "examiners")["entries"]
+    letters, report = part(dept, "examiners")["entries"]  # the admin's papers, then the report
+    assert letters["heading"] == "Panel of examiners and letters with the examiners"
     assert "Prof. X" not in str(report) and "IIT Bombay" not in str(report)
     assert report["heading"] == "Report of an examiner (name withheld until the viva)"
     # Unreleased: the scholar's file does not hold the report at all.
     own = (await client.get(url(world), headers=auth(world.scholar_a1.id))).json()
     assert part(own, "examiners")["note"] == "Not on record"
     office = (await client.get(url(world), headers=auth(world.exam_office.id))).json()
-    assert part(office, "examiners")["entries"][0]["heading"] == "Report of Prof. X"
+    assert part(office, "examiners")["entries"][1]["heading"] == "Report of Prof. X"
     assert part(office, "submission")["entries"][0]["signed"] is False  # approved, unsigned

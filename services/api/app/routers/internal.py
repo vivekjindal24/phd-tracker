@@ -101,7 +101,8 @@ async def phd_file_view(
         )
     ).one()
     annexures = await phd_file.build(session, principal, scholar)
-    signed_copies.attach(annexures, await signed_copies.in_use(session, scholar.id))
+    can = await signed_copies.rights(session, principal, scholar)
+    signed_copies.attach(annexures, await signed_copies.in_use(session, scholar.id), can)
     return {
         **await branding.export_fields(session),
         "scholar": name,
@@ -110,9 +111,7 @@ async def phd_file_view(
         "supervisor": await committee.convener(session, scholar),
         "admission_date": scholar.admission_date,
         "annexures": annexures,
-        # What the caller may do with signed copies of its forms (PRD F17b).
-        "may_upload_copies": await signed_copies.may_upload(session, principal, scholar),
-        "may_approve_copies": await scope.can_record(session, principal, scholar),
+        "handles_copies": any(can.values()),  # the caller may upload or approve some paper
         "generated_at": datetime.now(UTC),
         "generated_by": principal.full_name,
     }

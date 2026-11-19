@@ -65,8 +65,17 @@
   approved at once, a supervisor's wait and the keepers are notified. The
   scholar cannot upload or approve. Removed by its uploader until approved, by
   the admin or Research Office at any time. Its scan is read exactly as its
-  entry: whoever sees that entry in the PhD file (`phd_file.sees_entry`). One
-  scan per copy (409 `already_uploaded`), PDF/PNG/JPEG only (415).
+  entry: whoever sees that entry in the PhD file (`phd_file.find_entry`). One
+  scan per copy (409 `already_uploaded`), PDF/PNG/JPEG only (415); a paper the
+  entry does not hold is refused (422 `wrong_paper`).
+  **The examiners' papers** (panel of examiners, emails to and acceptances
+  from the examiners; `enums.EXAMINER_DOCUMENTS`; owner, 2026-11-19) sit on an
+  entry of their own that only the Research Office, the Exam Office and the
+  admin over the scholar's unit see — never the scholar, nor their supervisor
+  or co-supervisor even when they also hold one of those roles. Those three
+  upload and approve them, and their uploads count at once. Note: unlike the
+  screens, the department admin sees these papers, examiner names included,
+  before the viva.
 - **Signing approvals** (PRD F17b; university setting `require_signing`,
   default off; `signing.py`): while on, every approve and send-back needs a
   confirmed specimen signature (422 `signature_required`) and a fresh code

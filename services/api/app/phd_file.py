@@ -64,15 +64,28 @@ def _entry(
     lines: list[tuple[str, Any]],
     signed=None,
     record: uuid.UUID | None = None,
+    papers: tuple[str, ...] = ("signed_copy",),
 ):
-    """`record`: the row behind the entry, which a signed copy of its form attaches to (F17b)."""
+    """`record`: the row behind the entry; `papers`: the signed copies it holds, in the paper
+    file's order (enums.DOCUMENT_KINDS, F17b). An entry with no record holds none."""
     return {
         "date": _day(at),
         "heading": heading,
         "lines": [[k, str(v)] for k, v in lines if v not in (None, "")],
         "signed": signed,
         "record": record,
+        "papers": list(papers) if record else [],
     }
+
+
+SEMINAR_PAPERS = ("notice", "report", "attendance")
+EXAMINER_PAPERS = (
+    "examiner_panel",
+    "invite_national",
+    "accept_national",
+    "invite_international",
+    "accept_international",
+)
 
 
 class _File:
@@ -283,6 +296,7 @@ class _File:
                         ),
                     ],
                     record=entry.id,
+                    papers=SEMINAR_PAPERS,
                 )
             )
         return out
@@ -310,6 +324,7 @@ class _File:
                     ("Notes", m.notes),
                 ],
                 record=m.id,
+                papers=("drc_minutes", "drc_notice"),
             )
             for m in rows
         ]
@@ -397,6 +412,7 @@ class _File:
                     ],
                     await self.signed("thesis_submission", t),
                     t.id,
+                    ("signed_copy", "fee_due", "corrections"),
                 )
             )
         if await self.reads("no_dues_clearances"):
@@ -425,7 +441,7 @@ class _File:
         ev = await self._evaluation()
         if ev is None:
             return []
-        return [
+        return await self._examiner_papers() + [
             _entry(
                 r["received_on"],
                 f"Report of {r['examiner_name'] or 'an examiner (name withheld until the viva)'}",
@@ -438,6 +454,30 @@ class _File:
                 record=r["id"],
             )
             for r in ev["reports"]
+        ]
+
+    async def _examiner_papers(self) -> list[Entry]:
+        """The panel of examiners and the letters with them, which name the examiners: for the
+        Research Office, the Exam Office and the admin over the scholar's unit; never the scholar
+        or their supervisor, whatever other role they hold (owner, 2026-11-19)."""
+        t = await self._thesis()
+        if t is None or self.principal.scholar_id == self.scholar.id:
+            return []
+        if scope.guides(self.principal, self.scholar):
+            return []
+        offices = {"research_office", "exam_office"} & self.principal.office_roles
+        if not offices and not self.principal.covers(
+            "admin", await scope.unit_path(self.session, self.scholar.unit_id)
+        ):
+            return []
+        return [
+            _entry(
+                t.submitted_at or t.created_at,
+                "Panel of examiners and letters with the examiners",
+                [],
+                record=t.id,
+                papers=EXAMINER_PAPERS,
+            )
         ]
 
     async def viva(self) -> list[Entry]:
@@ -459,6 +499,7 @@ class _File:
                         ],
                         await self.signed("viva_arrangement", a),
                         a.id,
+                        ("viva_approval", "viva_board", "viva_notice", "viva_examiner_email"),
                     )
                 )
         ev = await self._evaluation()
@@ -474,6 +515,7 @@ class _File:
                         ("Notes", v["notes"]),
                     ],
                     record=v["id"],
+                    papers=("viva_report", "attendance"),
                 )
             )
         return out
@@ -572,18 +614,19 @@ ANNEXURES: list[tuple[str, str, Callable[[_File], Awaitable[list[Entry]]]]] = [
 assert tuple(k for k, _, _ in ANNEXURES) == PHD_ANNEXURES  # one list of keys, in the DB too
 
 
-async def sees_entry(
+async def find_entry(
     session: AsyncSession, principal: Principal, scholar: Scholar, annexure: str, record: uuid.UUID
-) -> bool:
-    """The caller's copy of the file holds this entry (a signed copy follows its entry)."""
+) -> Entry | None:
+    """The entry as the caller's copy of the file holds it, if it does (a signed copy is read
+    exactly as its entry)."""
     gather = next((g for k, _, g in ANNEXURES if k == annexure), None)
     if gather is None:
-        return False
+        return None
     try:
         entries = await gather(_File(session, principal, scholar))
     except (_Hidden, _Off):
-        return False
-    return any(e["record"] == record for e in entries)
+        return None
+    return next((e for e in entries if e["record"] == record), None)
 
 
 async def build(session: AsyncSession, principal: Principal, scholar: Scholar) -> list[Entry]:
