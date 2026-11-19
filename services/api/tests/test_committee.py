@@ -120,15 +120,45 @@ async def test_re_forming_keeps_the_earlier_version_as_history(client, world):
     assert [m["name"] for m in new["members"] if m["role"] == "chairperson"] == ["Sup A2"]
     assert [m["name"] for m in old["members"] if m["role"] == "chairperson"] == ["Prof. R. Sen"]
 
-    # The earlier version is frozen.
+    # The earlier version's members and roles are frozen.
+    sen, sup_a2 = (m["id"] for m in old["members"])
     for res in (
         await add(client, world, first, {"name": "Late", "institution": "X"}),
-        await client.delete(f"/api/v1/committee-members/{old['members'][0]['id']}", headers=admin),
+        await client.delete(f"/api/v1/committee-members/{sen}", headers=admin),
         await client.patch(
-            f"/api/v1/committee-formations/{first}", headers=admin, json={"formed_on": "2022-03-01"}
+            f"/api/v1/committee-members/{sen}", headers=admin, json={"role": "member"}
         ),
     ):
         assert res.json()["error"]["code"] == "formation_superseded", res.text
+
+    # Its wording may still be corrected: date, order number, an outside expert's name.
+    fixed = await client.patch(
+        f"/api/v1/committee-formations/{first}",
+        headers=admin,
+        json={"formed_on": "2022-03-01", "reference": "DRC/2022/7"},
+    )
+    assert (
+        fixed.json()["formations"][1]["formed_on"],
+        fixed.json()["formations"][1]["reference"],
+    ) == (
+        "2022-03-01",
+        "DRC/2022/7",
+    )
+    late = await client.patch(
+        f"/api/v1/committee-formations/{first}", headers=admin, json={"formed_on": "2024-01-01"}
+    )
+    assert late.json()["error"]["code"] == "formation_out_of_order"  # after the newer one
+    renamed = await client.patch(
+        f"/api/v1/committee-members/{sen}", headers=admin, json={"name": "Prof. R. K. Sen"}
+    )
+    assert renamed.json()["formations"][1]["members"][0]["name"] == "Prof. R. K. Sen"
+    assert renamed.json()["formations"][0]["members"][1]["name"] == "Prof. R. Sen"
+    internal = await client.patch(
+        f"/api/v1/committee-members/{sup_a2}", headers=admin, json={"name": "Typo"}
+    )
+    assert internal.json()["error"]["code"] == "directory_name"
+    nothing = await client.patch(f"/api/v1/committee-members/{sen}", headers=admin, json={})
+    assert nothing.status_code == 422
 
     # The current one may be corrected, or withdrawn, which makes the earlier current again.
     moved = await client.patch(

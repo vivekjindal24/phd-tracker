@@ -280,8 +280,19 @@ class CommitteeMemberIn(BaseModel):
         raise ValueError("give a faculty member, or an outside expert's name and institution")
 
 
-class CommitteeRoleIn(BaseModel):
-    role: CommitteeRole
+class CommitteeMemberPatch(BaseModel):
+    """A role change (current version only), or a corrected outside expert's name or
+    institution (any version)."""
+
+    role: CommitteeRole | None = None
+    name: Name | None = None
+    institution: Name | None = None
+
+    @model_validator(mode="after")
+    def _something(self) -> "CommitteeMemberPatch":
+        if self.role is None and self.name is None and self.institution is None:
+            raise ValueError("give a role, a name or an institution")
+        return self
 
 
 class CommitteeMemberOut(BaseModel):

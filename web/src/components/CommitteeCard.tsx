@@ -6,10 +6,11 @@ import { Button, Card, ErrorText, Field } from "@/components/ui/kit";
 import { api } from "@/lib/api";
 import { formatDate } from "@/lib/format";
 import { COMMITTEE_ROLE_LABELS } from "@/lib/types";
-import type { CommitteeFormation, CommitteeRole, CommitteeView, Faculty } from "@/lib/types";
+import type { CommitteeFormation, CommitteeMember, CommitteeRole, CommitteeView, Faculty } from "@/lib/types";
 import { errorText, useFetch } from "@/lib/useFetch";
 
-type Save = (path: string, method: "POST" | "PATCH" | "DELETE", body?: unknown) => Promise<void>;
+/** Resolves true when saved; a failure shows on the card and leaves the form open. */
+type Save = (path: string, method: "POST" | "PATCH" | "DELETE", body?: unknown) => Promise<boolean>;
 
 const ROLES = Object.keys(COMMITTEE_ROLE_LABELS) as CommitteeRole[];
 
@@ -25,7 +26,7 @@ function RoleSelect({ value, onChange }: { value: CommitteeRole; onChange: (r: C
 function FormationForm({ title, initial, onSubmit, onCancel }: {
   title: string;
   initial?: CommitteeFormation;
-  onSubmit: (body: { formed_on: string; reference: string | null; notes: string }) => Promise<void>;
+  onSubmit: (body: { formed_on: string; reference: string | null; notes: string }) => Promise<unknown>;
   onCancel?: () => void;
 }) {
   const [formedOn, setFormedOn] = useState(initial?.formed_on ?? "");
@@ -62,7 +63,7 @@ function AddMember({ formationId, save }: { formationId: string; save: Save }) {
 
   async function addOutside(e: FormEvent) {
     e.preventDefault();
-    await save(path, "POST", { name, institution, role });
+    if (!(await save(path, "POST", { name, institution, role }))) return;
     setName("");
     setInstitution("");
   }
@@ -93,7 +94,7 @@ function AddMember({ formationId, save }: { formationId: string; save: Save }) {
               {found.length === 0 && <li className="muted">Nobody found.</li>}
               {found.map((f) => (
                 <li key={f.id}>
-                  <Button kind="ghost" onClick={() => save(path, "POST", { faculty_id: f.id, role }).then(() => setQ(""))}>
+                  <Button kind="ghost" onClick={() => save(path, "POST", { faculty_id: f.id, role }).then((ok) => ok && setQ(""))}>
                     {f.full_name} · {f.unit.name}
                   </Button>
                 </li>
@@ -106,8 +107,31 @@ function AddMember({ formationId, save }: { formationId: string; save: Save }) {
   );
 }
 
-/** One version's members; the current version's are editable by those who keep the record. */
-function Members({ formation, save }: { formation: CommitteeFormation; save?: Save }) {
+/** Correct an outside expert's name or institution, on any version. */
+function FixName({ member, save }: { member: CommitteeMember; save: Save }) {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState(member.name);
+  const [institution, setInstitution] = useState(member.institution);
+  if (!open) return <Button kind="ghost" onClick={() => setOpen(true)}>Fix name</Button>;
+
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    if (await save(`/committee-members/${member.id}`, "PATCH", { name, institution })) setOpen(false);
+  }
+
+  return (
+    <form className="row" onSubmit={submit}>
+      <Field label="Name"><input required maxLength={200} value={name} onChange={(e) => setName(e.target.value)} /></Field>
+      <Field label="Institution"><input required maxLength={200} value={institution} onChange={(e) => setInstitution(e.target.value)} /></Field>
+      <Button kind="secondary" type="submit">Save</Button>
+      <Button kind="ghost" onClick={() => setOpen(false)}>Cancel</Button>
+    </form>
+  );
+}
+
+/** One version's members. `save` lets the record's keepers correct wording on any version;
+ *  `current` also lets them change roles and membership. */
+function Members({ formation, save, current }: { formation: CommitteeFormation; save?: Save; current?: boolean }) {
   return (
     <ul className="plain-list">
       <li>
@@ -117,7 +141,7 @@ function Members({ formation, save }: { formation: CommitteeFormation; save?: Sa
         <li key={m.id}>
           <strong>{m.name}</strong> · {m.institution}{m.external && <span className="muted"> · outside expert</span>}
           {" · "}
-          {save ? (
+          {save && current ? (
             <>
               <RoleSelect value={m.role} onChange={(role) => save(`/committee-members/${m.id}`, "PATCH", { role })} />
               <Button kind="ghost" onClick={() => save(`/committee-members/${m.id}`, "DELETE")}>Remove</Button>
@@ -125,10 +149,31 @@ function Members({ formation, save }: { formation: CommitteeFormation; save?: Sa
           ) : (
             <span className="muted">{COMMITTEE_ROLE_LABELS[m.role]}</span>
           )}
+          {save && m.external && <FixName member={m} save={save} />}
         </li>
       ))}
       {formation.members.length === 0 && <li className="muted">No other members recorded yet.</li>}
     </ul>
+  );
+}
+
+/** An earlier version: frozen membership, but its wording may be corrected. */
+function EarlierVersion({ formation, save }: { formation: CommitteeFormation; save?: Save }) {
+  const [correcting, setCorrecting] = useState(false);
+  return (
+    <div>
+      <p className="muted">{formedLine(formation)}</p>
+      <Members formation={formation} save={save} />
+      {save && !correcting && <Button kind="ghost" onClick={() => setCorrecting(true)}>Correct date or order</Button>}
+      {save && correcting && (
+        <FormationForm
+          title="Correct this version"
+          initial={formation}
+          onSubmit={(body) => save(`/committee-formations/${formation.id}`, "PATCH", body).then((ok) => ok && setCorrecting(false))}
+          onCancel={() => setCorrecting(false)}
+        />
+      )}
+    </div>
   );
 }
 
@@ -148,8 +193,10 @@ export function CommitteeCard({ scholarId }: { scholarId: string }) {
     try {
       setData(await api<CommitteeView>(path, { method, body: body ? JSON.stringify(body) : undefined }));
       setEditing("none");
+      return true;
     } catch (e) {
       setActError(errorText(e));
+      return false;
     }
   };
   const [current, ...earlier] = v.formations;
@@ -166,7 +213,7 @@ export function CommitteeCard({ scholarId }: { scholarId: string }) {
       ) : (
         <>
           <p className="muted">{formedLine(current)}</p>
-          <Members formation={current} save={v.can_manage ? save : undefined} />
+          <Members formation={current} save={v.can_manage ? save : undefined} current />
           {v.can_manage && editing === "none" && (
             <div className="row">
               <Button kind="ghost" onClick={() => setEditing("correct")}>Correct date or order</Button>
@@ -196,12 +243,7 @@ export function CommitteeCard({ scholarId }: { scholarId: string }) {
           {earlier.length > 0 && (
             <details>
               <summary>Earlier versions ({earlier.length})</summary>
-              {earlier.map((f) => (
-                <div key={f.id}>
-                  <p className="muted">{formedLine(f)}</p>
-                  <Members formation={f} />
-                </div>
-              ))}
+              {earlier.map((f) => <EarlierVersion key={f.id} formation={f} save={v.can_manage ? save : undefined} />)}
             </details>
           )}
         </>

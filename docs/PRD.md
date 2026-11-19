@@ -357,9 +357,11 @@ as frozen history — the PhD file prints every version (F17). The supervisor is
 always its Secretary & Member, shown automatically; the other members are
 recorded per version, each with a role (Chairperson — at most one, Member, or
 Member nominated by the Vice Chancellor) — faculty of this university (picked
-from the directory) or an outside expert by name and institution. Only the
-current version changes: an earlier one refuses edits (409
-`formation_superseded`); a new version may not be dated before the last (422
+from the directory) or an outside expert by name and institution. Members and
+roles change only on the current version (409 `formation_superseded` on an
+earlier one); any version's wording may be corrected — its date, order number
+and notes, an outside expert's name or institution (an internal member's come
+from the directory, 422 `directory_name`). Versions stay in date order (422
 `formation_out_of_order`); a second chairperson is refused (409
 `chairperson_taken`). An admin over the scholar's unit or the
 Research Office keeps the list; the scholar, supervisor, heads above and the

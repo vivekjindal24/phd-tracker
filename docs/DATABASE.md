@@ -162,8 +162,9 @@ the thesis title, copied onto the live `thesis_submissions.title`).
 migration 0039) — `scholar_id` (indexed), `formed_on` date, `reference` (order
 or resolution number), `notes`, `secretary_id` FK faculty (the supervisor when
 it was formed: the secretary on that version's form). The latest live row by
-`formed_on`, then `created_at`, is the current committee; earlier ones are
-frozen history (enforced in `routers/committee.py`).
+`formed_on`, then `created_at`, is the current committee; earlier ones keep
+their members and roles frozen, only wording correctable (enforced in
+`routers/committee.py`).
 
 **committee_members** (members of a formation, PRD F9b) — `scholar_id`
 (indexed), `formation_id` FK committee_formations (indexed), `role` CHECK
