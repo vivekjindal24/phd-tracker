@@ -9,7 +9,7 @@ from app.auth.deps import any_principal
 from app.auth.principal import Principal
 from app.crud import soft_delete
 from app.db import get_session
-from app.enums import FileOwner
+from app.enums import FileOwner, FileSlot
 from app.errors import ApiError
 from app.models import FileRow
 from app.schemas import DownloadOut, FileOut, UploadIn, UploadOut
@@ -31,6 +31,7 @@ async def start_upload(
         body.file_name,
         body.content_type,
         body.size_bytes,
+        body.slot,
     )
     await session.commit()
     return UploadOut(
@@ -56,20 +57,20 @@ async def complete_upload(
 async def list_files(
     table_name: FileOwner,
     record_id: uuid.UUID,
+    slot: FileSlot | None = None,  # only the files in that named place
     principal: Principal = Depends(any_principal),  # records.py decides
     session: AsyncSession = Depends(get_session),
 ) -> list[FileRow]:
     await records.require_file_read(session, principal, table_name, record_id)
-    rows = await session.scalars(
-        select(FileRow)
-        .where(
-            FileRow.table_name == table_name,
-            FileRow.record_id == record_id,
-            FileRow.status == "ready",
-            FileRow.deleted_at.is_(None),
-        )
-        .order_by(FileRow.created_at.desc())
+    stmt = select(FileRow).where(
+        FileRow.table_name == table_name,
+        FileRow.record_id == record_id,
+        FileRow.status == "ready",
+        FileRow.deleted_at.is_(None),
     )
+    if slot is not None:
+        stmt = stmt.where(FileRow.slot == slot)
+    rows = await session.scalars(stmt.order_by(FileRow.created_at.desc()))
     return list(rows)
 
 

@@ -299,6 +299,7 @@ async def submit(
             thesis_id=review.thesis_id,
             examiner_name=review.name,
             institution=review.institution,
+            origin=review.origin,
             received_on=today(),
             recommendation=recommendation,
         ),

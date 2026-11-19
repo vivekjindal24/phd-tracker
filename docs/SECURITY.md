@@ -125,6 +125,8 @@ role's scope (§2).
 | committee formations & members (RAC) | R own | R | R | CUD (earlier versions: wording only) | CUD (earlier versions: wording only) | — | — |
 | department committee (DRC/DPGC) | R own department | R | R | CUD over own subtree (earlier versions: wording only) | CUD (earlier versions: wording only) | — | — |
 | ethics clearances | R own | R | R | CD | CD | — | — |
+| comprehensive examination attempts | R own | R | R | CD | CD | R | — |
+| supervision history (appointments, orders), admission papers (employer NOC, entrance minutes) | R own | R | R | U orders / upload | R | — | — |
 | seminars (schedule, hardcopy) | R own | R (own scholars') | CRUD in subtree | CRUD in subtree | R | — | — |
 | seminar grades | R own after finalise | R own scholars'; finalise own scholars | R | R | R | — | — |
 | to-do list | R, tick done (own) | R own scholars' | R | R | R | — | — |
@@ -186,7 +188,7 @@ record, which scholar, when, the state change of a chain action and the
 names or amounts its reader has no right to. Drafts and their versions
 (`documents`, `document_versions`) are left out altogether.
 
-**Scholar personal fields:** `gender`, `category` and `has_disability` are
+**Scholar personal fields:** `gender`, `category`, `has_disability` and `father_name` are
 returned only to the scholar, admins and heads whose unit covers the
 scholar's, the Research Office and the Vice Chancellor
 (`scope.sees_personal`); for everyone else in scope the API sends null and

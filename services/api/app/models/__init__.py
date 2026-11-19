@@ -14,10 +14,18 @@ from app.models.grants import (
 )
 from app.models.meetings import Meeting
 from app.models.milestones import CommitteeFormation, CommitteeMember, Milestone
-from app.models.org import Faculty, OrgUnit, RoleAssignment, Scholar, Signature, User
+from app.models.org import (
+    Faculty,
+    OrgUnit,
+    RoleAssignment,
+    Scholar,
+    Signature,
+    SupervisorAppointment,
+    User,
+)
 from app.models.reports import ProgressReport
 from app.models.requests import FacultyRequest
-from app.models.research import Conference, EthicsClearance, Publication
+from app.models.research import ComprehensiveExam, Conference, EthicsClearance, Publication
 from app.models.seminars import (
     Seminar,
     SeminarGrade,
@@ -62,6 +70,7 @@ __all__ = [
     "Comment",
     "CommitteeFormation",
     "CommitteeMember",
+    "ComprehensiveExam",
     "Conference",
     "Course",
     "CourseworkClearance",
@@ -102,6 +111,7 @@ __all__ = [
     "Signature",
     "SigningCode",
     "SsoState",
+    "SupervisorAppointment",
     "SupervisorStandIn",
     "ThesisReview",
     "ThesisReviewComment",

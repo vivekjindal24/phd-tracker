@@ -11,8 +11,10 @@ import { Button, Card, ErrorText, Field } from "@/components/ui/kit";
 import { api } from "@/lib/api";
 import { formatDate } from "@/lib/format";
 import { RECOMMENDATION_LABELS, VIVA_LABELS } from "@/lib/types";
-import type { Evaluation, Recommendation, VivaOutcome } from "@/lib/types";
+import { EXAMINER_ORIGIN_LABELS } from "@/lib/types";
+import type { Evaluation, ExaminerOrigin, Recommendation, VivaOutcome } from "@/lib/types";
 import { errorText, useFetch } from "@/lib/useFetch";
+import { OriginSelect } from "./OriginSelect";
 import { StateBadge } from "./StateBadge";
 import { ThesisReviewers } from "./ThesisReviewers";
 import { ArrangementFields } from "./VivaArrangementDetails";
@@ -70,16 +72,18 @@ function ReportForm({ thesisId, onSaved }: { thesisId: string; onSaved: (e: Eval
   const [institution, setInstitution] = useState("");
   const [received, setReceived] = useState("");
   const [rec, setRec] = useState<Recommendation>("accept");
+  const [origin, setOrigin] = useState<ExaminerOrigin | "">("");
   return (
     <RecordForm label="Add examiner report" onSubmit={async () => {
       onSaved(await api<Evaluation>(`/theses/${thesisId}/examiner-reports`, {
         method: "POST",
-        body: JSON.stringify({ examiner_name: name, institution, received_on: received, recommendation: rec }),
+        body: JSON.stringify({ examiner_name: name, institution, origin: origin || null, received_on: received, recommendation: rec }),
       }));
     }}>
       <div className="row">
         <Field label="Examiner"><input required maxLength={200} value={name} onChange={(e) => setName(e.target.value)} /></Field>
         <Field label="Institution"><input maxLength={200} value={institution} onChange={(e) => setInstitution(e.target.value)} /></Field>
+        <OriginSelect value={origin} onChange={setOrigin} />
       </div>
       <div className="row">
         <Field label="Received on"><input type="date" required value={received} onChange={(e) => setReceived(e.target.value)} /></Field>
@@ -220,6 +224,7 @@ export function ThesisEvaluation({ thesisId, isOwn }: { thesisId: string; isOwn:
           {ev.reports.map((r) => (
             <li key={r.id}>
               <strong>{r.examiner_name ?? "Examiner"}</strong>{r.institution && ` · ${r.institution}`}
+              {r.origin && ` · ${EXAMINER_ORIGIN_LABELS[r.origin]}`}
               {" · "}{RECOMMENDATION_LABELS[r.recommendation]} · received {formatDate(r.received_on)}
               {!r.released && <span className="badge badge-draft">Not released</span>}
               {r.comments.length > 0 && (

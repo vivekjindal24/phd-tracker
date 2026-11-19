@@ -6,7 +6,7 @@ from sqlalchemy import BigInteger, CheckConstraint, ForeignKey, Index, Text, tex
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.enums import FILE_OWNER_TABLES, FILE_STATUSES, sql_in
+from app.enums import FILE_OWNER_TABLES, FILE_SLOTS, FILE_STATUSES, sql_in
 from app.models.base import Base, DomainRow
 
 
@@ -15,6 +15,10 @@ class FileRow(DomainRow, Base):
     __table_args__ = (
         CheckConstraint(f"table_name IN ({sql_in(FILE_OWNER_TABLES)})", name="ck_files_owner"),
         CheckConstraint(f"status IN ({sql_in(FILE_STATUSES)})", name="ck_files_status"),
+        CheckConstraint(
+            f"slot IS NULL OR (table_name = 'scholars' AND slot IN ({sql_in(FILE_SLOTS)}))",
+            name="ck_files_slot",
+        ),
         CheckConstraint("size_bytes > 0", name="ck_files_size"),
         Index("uq_files_storage_key", "storage_key", unique=True),
         Index("ix_files_owner", "table_name", "record_id"),
@@ -29,3 +33,5 @@ class FileRow(DomainRow, Base):
     uploaded_by: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"))
     table_name: Mapped[str] = mapped_column(Text)
     record_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True))
+    # A named place on a scholar's record (employer NOC, entrance minutes); null = loose file.
+    slot: Mapped[str | None] = mapped_column(Text)

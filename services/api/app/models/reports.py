@@ -7,7 +7,7 @@ from sqlalchemy import CheckConstraint, ForeignKey, Index, Integer, Text, text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.enums import PERIODS, sql_in
+from app.enums import ASSISTANTSHIPS, PERIODS, sql_in
 from app.models.base import Base, DomainRow
 from app.models.workflow import ApprovalColumns, approval_constraints
 
@@ -18,6 +18,9 @@ class ProgressReport(ApprovalColumns, DomainRow, Base):
         *approval_constraints("progress_reports"),
         CheckConstraint("report_year BETWEEN 2000 AND 2100", name="ck_apr_year"),
         CheckConstraint(f"period IN ({sql_in(PERIODS)})", name="ck_apr_period"),
+        CheckConstraint(
+            f"assistantship IN ({sql_in(ASSISTANTSHIPS)})", name="ck_apr_assistantship"
+        ),
         Index(
             "uq_apr_active",
             "scholar_id",
@@ -43,3 +46,6 @@ class ProgressReport(ApprovalColumns, DomainRow, Base):
     # Ordered [{"name", "text"}]: the template's sections as the scholar filled them. Names are
     # copied in, so a later change of template never rewrites an old report.
     sections: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, server_default=text("'[]'"))
+    # The committee's line: may continue with / without assistantship. Set by an approver at
+    # the step in hand; null = not stated.
+    assistantship: Mapped[str | None] = mapped_column(Text)

@@ -166,6 +166,7 @@ export type Scholar = {
   gender: Gender | null;
   category: Category | null;
   has_disability: boolean | null;
+  father_name: string | null;
   directory_only: boolean;
 };
 export type StudyMode = "full_time" | "part_time";
@@ -510,8 +511,15 @@ export type CommentTarget =
   | "no_dues_clearances"
   | "fellowship_claims"
   | "viva_arrangements";
+/** Named places for a scholar's own documents in the PhD file. */
+export type FileSlot = "employer_noc" | "entrance_minutes";
+export const FILE_SLOT_LABELS: Record<FileSlot, string> = {
+  employer_noc: "Employer's no-objection certificate",
+  entrance_minutes: "Minutes of the entrance examination",
+};
 export type FileItem = {
   id: string;
+  slot: FileSlot | null;
   file_name: string;
   content_type: string;
   size_bytes: number;
@@ -570,6 +578,7 @@ export type ReviewRow = {
   name: string;
   email: string;
   institution: string;
+  origin: ExaminerOrigin | null;
   deadline: string;
   allow_download: boolean;
   status: ReviewStatus;
@@ -606,6 +615,7 @@ export type Evaluation = {
     id: string;
     examiner_name: string | null;
     institution: string | null;
+    origin: ExaminerOrigin | null;
     received_on: string;
     recommendation: Recommendation;
     notes: string;
@@ -955,3 +965,28 @@ export type VivaBoard = {
   can_invite: boolean;
   email_configured: boolean;
 };
+
+export type ExaminerOrigin = "national" | "international";
+export const EXAMINER_ORIGIN_LABELS: Record<ExaminerOrigin, string> = { national: "National", international: "International" };
+
+/** The committee's line on a progress report (null: not stated). */
+export type Assistantship = "with" | "without";
+
+/** Form VI: numbered attempts at the comprehensive examination. */
+export type ComprehensiveResult = "satisfactory" | "unsatisfactory";
+export type ComprehensiveView = {
+  attempts: { id: string; attempt: number; held_in: string; result: ComprehensiveResult; notes: string }[];
+  passed: boolean;
+  can_manage: boolean;
+};
+
+/** One supervisor or co-supervisor appointment (Form IV); `ended_on` null = current. */
+export type Appointment = {
+  id: string;
+  role: "supervisor" | "co_supervisor";
+  faculty: Ref;
+  appointed_on: string | null;
+  order_ref: string | null;
+  ended_on: string | null;
+};
+export type SupervisionView = { appointments: Appointment[]; can_manage: boolean };

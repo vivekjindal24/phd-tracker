@@ -5,9 +5,10 @@ import type { FormEvent } from "react";
 import { Button, ErrorText, Field } from "@/components/ui/kit";
 import { api } from "@/lib/api";
 import { formatDate } from "@/lib/format";
-import { REVIEW_STATUS_LABELS } from "@/lib/types";
-import type { Evaluation, ReviewCopyTrace, ReviewRow } from "@/lib/types";
+import { EXAMINER_ORIGIN_LABELS, REVIEW_STATUS_LABELS } from "@/lib/types";
+import type { Evaluation, ExaminerOrigin, ReviewCopyTrace, ReviewRow } from "@/lib/types";
 import { errorText } from "@/lib/useFetch";
+import { OriginSelect } from "./OriginSelect";
 
 type Saved = { thesisId: string; onSaved: (e: Evaluation) => void };
 
@@ -16,6 +17,7 @@ function InviteForm({ thesisId, onSaved }: Saved) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [institution, setInstitution] = useState("");
+  const [origin, setOrigin] = useState<ExaminerOrigin | "">("");
   const [abstract, setAbstract] = useState("");
   const [deadline, setDeadline] = useState("");
   const [allowDownload, setAllowDownload] = useState(false);
@@ -29,7 +31,7 @@ function InviteForm({ thesisId, onSaved }: Saved) {
     try {
       await api(`/theses/${thesisId}/reviews`, {
         method: "POST",
-        body: JSON.stringify({ name, email, institution, abstract, deadline, allow_download: allowDownload }),
+        body: JSON.stringify({ name, email, institution, origin: origin || null, abstract, deadline, allow_download: allowDownload }),
       });
       onSaved(await api<Evaluation>(`/theses/${thesisId}/evaluation`));
       setOpen(false);
@@ -46,6 +48,7 @@ function InviteForm({ thesisId, onSaved }: Saved) {
       <Field label="Name"><input required maxLength={200} value={name} onChange={(e) => setName(e.target.value)} /></Field>
       <Field label="Email"><input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} /></Field>
       <Field label="Institution"><input maxLength={200} value={institution} onChange={(e) => setInstitution(e.target.value)} /></Field>
+      <OriginSelect value={origin} onChange={setOrigin} />
       <Field label="Abstract" hint="Goes in the invitation, so the reviewer can decide before seeing the thesis.">
         <textarea required rows={4} maxLength={5000} value={abstract} onChange={(e) => setAbstract(e.target.value)} />
       </Field>
@@ -81,7 +84,8 @@ function ReviewerRow({ review, thesisId, onSaved }: Saved & { review: ReviewRow 
 
   return (
     <li>
-      <strong>{review.name}</strong>{review.institution && ` · ${review.institution}`} · {review.email}
+      <strong>{review.name}</strong>{review.institution && ` · ${review.institution}`}
+      {review.origin && ` · ${EXAMINER_ORIGIN_LABELS[review.origin]}`} · {review.email}
       <span className="badge">{REVIEW_STATUS_LABELS[review.status]}</span>
       <div className="muted">
         Due {formatDate(review.deadline)} · download {review.allow_download ? "allowed" : "off"}

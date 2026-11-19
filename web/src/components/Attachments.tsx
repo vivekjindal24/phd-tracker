@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import { Button, Card, ErrorText } from "@/components/ui/kit";
 import { api } from "@/lib/api";
 import { useSession } from "@/lib/session";
-import type { FileItem, FileOwner } from "@/lib/types";
+import type { FileItem, FileOwner, FileSlot } from "@/lib/types";
 import { openFile, uploadFile } from "@/lib/upload";
 import { errorText, useFetch } from "@/lib/useFetch";
 import "./attachments.css";
@@ -23,6 +23,7 @@ export function Attachments({
   title = "Files",
   hint,
   removeOwnOnly = false,
+  slot,
 }: {
   table: FileOwner;
   recordId: string;
@@ -31,9 +32,11 @@ export function Attachments({
   hint?: string;
   /** Shared records (a thesis: scholar + Library): each removes only what it uploaded. */
   removeOwnOnly?: boolean;
+  /** A named place on a scholar's record: lists and adds only its files. */
+  slot?: FileSlot;
 }) {
   const { me } = useSession();
-  const { data, error, reload } = useFetch<FileItem[]>(`/files?table_name=${table}&record_id=${recordId}`);
+  const { data, error, reload } = useFetch<FileItem[]>(`/files?table_name=${table}&record_id=${recordId}${slot ? `&slot=${slot}` : ""}`);
   const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [actError, setActError] = useState<string | null>(null);
@@ -42,7 +45,7 @@ export function Attachments({
     setBusy(`Uploading ${file.name}…`);
     setActError(null);
     try {
-      await uploadFile(table, recordId, file);
+      await uploadFile(table, recordId, file, slot);
       await reload();
     } catch (e) {
       setActError(errorText(e));

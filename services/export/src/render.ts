@@ -120,6 +120,9 @@ export async function reportPdf(v: ReportView): Promise<Buffer> {
     ["Roll number", v.roll_number],
     ["Supervisor", v.supervisor ?? "—"],
     ["Advisory committee", v.committee.join("; ") || "Not recorded"],
+    ...(v.assistantship
+      ? [["Recommendation", `May continue with the programme ${v.assistantship} assistantship`] as [string, string]]
+      : []),
     ["Status", STATES[v.state] ?? v.state],
     ["Submitted", day(v.submitted_at)],
     ["Approved", day(v.approved_at)],

@@ -15,6 +15,7 @@ from datetime import date, timedelta
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app import supervision
 from app.auth.service import hash_password
 from app.crud import insert
 from app.db import SessionLocal, engine
@@ -196,10 +197,10 @@ async def demo(session: AsyncSession) -> None:
                 unit_id=units[unit].id,
                 roll_number=roll,
                 stage=stage,
-                supervisor_id=faculty[sup].id,
                 admission_date=admitted,
             ),
         )
+        await supervision.change(session, None, scholars[login], "supervisor", faculty[sup].id)
     await _demo_records(session, units, scholars)
     await _demo_grants(session, units, faculty, scholars)
 

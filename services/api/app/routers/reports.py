@@ -15,7 +15,14 @@ from app.enums import ITEM_STATES, ItemState
 from app.errors import ApiError
 from app.models import OrgUnit, ProgressReport, Scholar, User
 from app.rbac import require_perm
-from app.schemas import ItemView, PeriodActivity, ReportIn, ReportRow, ReportUpdate
+from app.schemas import (
+    AssistantshipIn,
+    ItemView,
+    PeriodActivity,
+    ReportIn,
+    ReportRow,
+    ReportUpdate,
+)
 from app.sorting import Sort, ordered, page_of, ranked
 
 router = APIRouter(prefix="/reports", tags=["reports"])
@@ -114,6 +121,23 @@ async def update_report(
     if "sections" in changes:
         changes["sections"] = await apr.clean_sections(session, changes["sections"])
     await update(session, principal, ctx.item, changes)
+    await session.commit()
+    return await items.view(session, principal, ctx)
+
+
+@router.put("/{report_id}/assistantship", response_model=ItemView)
+async def set_assistantship(
+    report_id: uuid.UUID,
+    body: AssistantshipIn,
+    principal: Principal = Depends(require_perm("progress_reports", "read")),
+    session: AsyncSession = Depends(get_session),
+) -> dict[str, Any]:
+    """The committee's line — may continue with / without assistantship — stated by whoever
+    acts at the report's current step, before they approve it."""
+    ctx = await items.load_ctx(session, principal, "progress_report", report_id, lock=True)
+    if not await workflow.can_act(session, principal, ctx):
+        raise workflow.violation("Only the approver at the current step can state this.")
+    await update(session, principal, ctx.item, {"assistantship": body.assistantship})
     await session.commit()
     return await items.view(session, principal, ctx)
 

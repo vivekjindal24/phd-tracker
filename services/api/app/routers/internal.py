@@ -47,6 +47,7 @@ async def report_export_view(
         "report_year": view["content"]["report_year"],
         "summary": view["content"]["summary"],
         "sections": view["content"]["sections"],
+        "assistantship": view["content"]["assistantship"],
         "activity": await apr.activity(
             session, ctx.scholar, view["content"]["report_year"], view["content"]["period"]
         ),

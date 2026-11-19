@@ -232,6 +232,18 @@ DocKind = Literal["proposal", "chapter", "synopsis", "draft", "other"]
 DOC_KINDS = get_args(DocKind)
 Recommendation = Literal["accept", "minor_revision", "major_revision", "reject"]
 RECOMMENDATIONS = get_args(Recommendation)
+# Supervisor appointments kept as history (PRD F17, Form IV).
+SupervisionRole = Literal["supervisor", "co_supervisor"]
+SUPERVISION_ROLES = get_args(SupervisionRole)
+# Where an examiner comes from: the PhD file lists national and international examiners apart.
+ExaminerOrigin = Literal["national", "international"]
+EXAMINER_ORIGINS = get_args(ExaminerOrigin)
+# The advisory committee's line on a progress report: may continue with / without assistantship.
+Assistantship = Literal["with", "without"]
+ASSISTANTSHIPS = get_args(Assistantship)
+# Comprehensive examination (Form VI): each attempt's result.
+ComprehensiveResult = Literal["satisfactory", "unsatisfactory"]
+COMPREHENSIVE_RESULTS = get_args(ComprehensiveResult)
 ReviewStatus = Literal["invited", "accepted", "declined", "expired", "submitted"]
 REVIEW_STATUSES = get_args(ReviewStatus)
 CopyKind = Literal["view", "download"]
@@ -317,6 +329,9 @@ FileOwner = Literal[
 FILE_OWNER_TABLES = get_args(FileOwner)
 FileStatus = Literal["pending", "ready"]
 FILE_STATUSES = get_args(FileStatus)
+# Named places for a scholar's own documents in the PhD file (files.slot, owner `scholars`).
+FileSlot = Literal["employer_noc", "entrance_minutes"]
+FILE_SLOTS = get_args(FileSlot)
 
 # PRD F3 defaults: who starts an item, and the default chain.
 INITIATOR: dict[str, str] = {

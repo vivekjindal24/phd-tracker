@@ -68,7 +68,7 @@ def _own_scholar_clauses(principal: Principal) -> list[ColumnElement[bool]]:
 
 
 def sees_personal(principal: Principal, scholar_id: uuid.UUID, unit_path: str) -> bool:
-    """Who reads a scholar's gender, category and disability status (SECURITY.md §3): the
+    """Who reads a scholar's gender, category, disability and father's name (SECURITY.md §3): the
     scholar, the admins and heads over their unit, the Research Office and the Vice Chancellor.
     Supervisors and other faculty do not."""
     return (

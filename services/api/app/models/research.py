@@ -8,7 +8,15 @@ from sqlalchemy import CheckConstraint, Date, ForeignKey, Index, Integer, Text, 
 from sqlalchemy.dialects.postgresql import ARRAY, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.enums import CONFERENCE_TYPES, ETHICS_KINDS, INDEXINGS, PUB_STATUSES, PUB_TYPES, sql_in
+from app.enums import (
+    COMPREHENSIVE_RESULTS,
+    CONFERENCE_TYPES,
+    ETHICS_KINDS,
+    INDEXINGS,
+    PUB_STATUSES,
+    PUB_TYPES,
+    sql_in,
+)
 from app.models.base import Base, DomainRow
 from app.models.workflow import ApprovalColumns, approval_constraints
 
@@ -88,4 +96,33 @@ class EthicsClearance(DomainRow, Base):
     approval_number: Mapped[str | None] = mapped_column(Text)
     approved_on: Mapped[date | None] = mapped_column(Date)
     valid_until: Mapped[date | None] = mapped_column(Date)
+    notes: Mapped[str] = mapped_column(Text, server_default=text("''"))
+
+
+class ComprehensiveExam(DomainRow, Base):
+    """One attempt at the comprehensive examination (Form VI): the month it was held and its
+    result. Attempts are numbered in order; a satisfactory one ends them."""
+
+    __tablename__ = "comprehensive_exams"
+    __table_args__ = (
+        CheckConstraint("attempt >= 1", name="ck_comprehensive_attempt"),
+        CheckConstraint("extract(day FROM held_in) = 1", name="ck_comprehensive_month"),
+        CheckConstraint(
+            f"result IN ({sql_in(COMPREHENSIVE_RESULTS)})", name="ck_comprehensive_result"
+        ),
+        Index(
+            "uq_comprehensive_attempt",
+            "scholar_id",
+            "attempt",
+            unique=True,
+            postgresql_where=text("deleted_at IS NULL"),
+        ),
+    )
+
+    scholar_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("scholars.id"), index=True
+    )
+    attempt: Mapped[int] = mapped_column(Integer)
+    held_in: Mapped[date] = mapped_column(Date)  # the month: its first day
+    result: Mapped[str] = mapped_column(Text)
     notes: Mapped[str] = mapped_column(Text, server_default=text("''"))

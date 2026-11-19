@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.service import hash_password
-from app.models import Faculty, OrgUnit, RoleAssignment, Scholar, User
+from app.models import Faculty, OrgUnit, RoleAssignment, Scholar, SupervisorAppointment, User
 from app.org import create_unit
 
 PASSWORD = "correct-horse-battery"
@@ -86,6 +86,11 @@ async def _scholar(
     )
     session.add(s)
     await session.flush()
+    # Their open appointments, as supervision.change would leave them (without audit rows,
+    # so the world itself never shows up in the audit log).
+    for role, faculty in (("supervisor", sup), ("co_supervisor", co)):
+        if faculty:
+            session.add(SupervisorAppointment(scholar_id=s.id, faculty_id=faculty.id, role=role))
     return s
 
 

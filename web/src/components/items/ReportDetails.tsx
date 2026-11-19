@@ -5,7 +5,7 @@ import { Attachments } from "@/components/Attachments";
 import { ReportSections } from "@/components/items/ReportSections";
 import { Button, Card, ErrorText, Field } from "@/components/ui/kit";
 import { api } from "@/lib/api";
-import type { ItemView, PeriodActivity, SectionText, SettingsData } from "@/lib/types";
+import type { Assistantship, ItemView, PeriodActivity, SectionText, SettingsData } from "@/lib/types";
 import { errorText, useFetch } from "@/lib/useFetch";
 
 function Activity({ reportId }: { reportId: string }) {
@@ -23,6 +23,48 @@ function Activity({ reportId }: { reportId: string }) {
         {a.publications && (<><dt>Publications this year</dt><dd>{list(a.publications)}</dd></>)}
         {a.conferences && (<><dt>Conferences and talks</dt><dd>{list(a.conferences)}</dd></>)}
       </dl>
+    </Card>
+  );
+}
+
+const ASSISTANTSHIP_TEXT: Record<Assistantship, string> = {
+  with: "May continue with the programme with assistantship",
+  without: "May continue with the programme without assistantship",
+};
+
+/** The committee's recommendation line (printed on the PDF): stated by whoever acts at the
+ *  current step, before they approve; read by everyone else. */
+function AssistantshipLine({ item, onSaved }: { item: ItemView; onSaved: (v: ItemView) => void }) {
+  const value = (item.content.assistantship ?? null) as Assistantship | null;
+  const [error, setError] = useState<string | null>(null);
+  if (!item.can_act && !value) return null;
+
+  async function set(next: string) {
+    setError(null);
+    try {
+      onSaved(await api<ItemView>(`/reports/${item.id}/assistantship`, {
+        method: "PUT",
+        body: JSON.stringify({ assistantship: next || null }),
+      }));
+    } catch (e) {
+      setError(errorText(e));
+    }
+  }
+
+  return (
+    <Card>
+      <h2>Recommendation</h2>
+      {item.can_act ? (
+        <Field label="Assistantship" hint="Printed on the report as the committee's recommendation.">
+          <select value={value ?? ""} onChange={(e) => set(e.target.value)}>
+            <option value="">Not stated</option>
+            {(Object.keys(ASSISTANTSHIP_TEXT) as Assistantship[]).map((k) => <option key={k} value={k}>{ASSISTANTSHIP_TEXT[k]}</option>)}
+          </select>
+        </Field>
+      ) : (
+        <p>{value && ASSISTANTSHIP_TEXT[value]}</p>
+      )}
+      <ErrorText>{error}</ErrorText>
     </Card>
   );
 }
@@ -88,6 +130,7 @@ export function ReportDetails({ item, onSaved }: { item: ItemView; onSaved: (v: 
           <Button onClick={() => setEditing(true)}>Edit report</Button>
         ))}
       </Card>
+      <AssistantshipLine item={item} onSaved={onSaved} />
       <Attachments table="progress_reports" recordId={item.id} canUpload={item.can_edit}
         hint="The full report, slides, data or anything else the approvers should read." />
       <Activity reportId={item.id} />

@@ -92,7 +92,9 @@ through `scope.sees_personal` — `stage` CHECK (Registered / Coursework /
 Proposal Approved / Pre-Synopsis / Thesis Submitted / Viva / Degree Awarded,
 default Registered), `supervisor_id` FK faculty (indexed, nullable),
 `co_supervisor_id` FK faculty (indexed, nullable; CHECK ≠ `supervisor_id`;
-honoured only while `settings.co_supervision ≠ 'off'`), `left_on` date +
+honoured only while `settings.co_supervision ≠ 'off'`; both mirror the open
+`supervisor_appointments` row and change only through `app/supervision.py`),
+`father_name` (nullable; personal data, as gender; migration 0042), `left_on` date +
 `left_reason` CHECK (withdrawn / cancelled) — both set or both NULL
 (`ck_scholars_left`). The admission a scholar came from is
 `admissions.scholar_id`. Only **current** scholars (not left, not Degree
@@ -188,6 +190,20 @@ role = 'chairperson'`, `uq_committee_secretary (formation_id) WHERE role =
 'secretary'`. An advisory committee's secretary is the supervisor, never a row
 here.
 
+**supervisor_appointments** (Form IV, migration 0042) — one row per appointment,
+kept for good: `scholar_id` (indexed), `faculty_id` FK faculty, `role` CHECK
+(supervisor / co_supervisor), `appointed_on` + `order_ref` (the order;
+nullable), `ended_on` (null = current; set to the day of the change when someone
+else is appointed or the role is emptied; correctable afterwards on a past row). CHECK `ended_on ≥ appointed_on`;
+partial unique `uq_supervisor_appointment_open (scholar_id, role) WHERE ended_on
+IS NULL` on live rows. Existing supervisors were backfilled as open rows with no
+order.
+
+**comprehensive_exams** (Form VI, migration 0042) — `scholar_id` (indexed),
+`attempt` (CHECK ≥ 1; partial unique `uq_comprehensive_attempt (scholar_id,
+attempt)` on live rows), `held_in` (the month: CHECK day = 1), `result` CHECK
+(satisfactory / unsatisfactory), `notes`.
+
 **ethics_clearances** (PRD F9c) — `scholar_id` (indexed), `kind` CHECK (human
 / animal / biosafety / not_required), `committee`, `approval_number`,
 `approved_on`, `valid_until`, `notes`. `ck_ethics_fields`: `not_required`
@@ -235,7 +251,9 @@ lives **only** in these columns and changes **only** through `workflow.py`.
 **progress_reports** (APR) — `scholar_id` (indexed), `report_year` CHECK
 2000–2100, `period` CHECK (January-June / July-December), `summary`,
 `sections` jsonb (ordered `[{"name", "text"}]`, default `[]`: the template's
-sections as written, headings copied in) + approval columns. Files hang off it
+sections as written, headings copied in), `assistantship` CHECK (with /
+without; nullable = not stated; set by the actor at the current step, migration
+0042) + approval columns. Files hang off it
 (`files.table_name = 'progress_reports'`). Partial unique `uq_apr_active (scholar_id, report_year,
 period) WHERE deleted_at IS NULL` → 409 `duplicate_apr`.
 
@@ -258,7 +276,8 @@ Submitted.
 
 After approval (an approved item is immutable, so these are separate rows):
 **examiner_reports** — `thesis_id` (indexed), `examiner_name` (confidential
-until a viva is recorded), `institution`, `received_on`, `recommendation`
+until a viva is recorded), `institution`, `origin` CHECK (national /
+international; nullable, migration 0042, also on `thesis_reviews`), `received_on`, `recommendation`
 CHECK (accept / minor_revision / major_revision / reject), `notes`,
 `released_at` (set when the Exam Office releases reports to the scholar and
 supervisor). **viva_arrangements** (migration 0041; approvable, item type
@@ -407,7 +426,9 @@ disbursements − expenses in date order, computed on read
 text/CSV, zip), `size_bytes` (CHECK > 0; the `MAX_UPLOAD_MB` cap is checked at
 presign, and the size is signed into the upload URL), `etag` (from the bucket on
 completion), `status` CHECK (pending / ready — `ready` only after the API has
-confirmed the object exists at the declared size), `uploaded_by` FK users, owner
+confirmed the object exists at the declared size), `slot` (nullable; a named
+place on a scholar's record — `employer_noc` / `entrance_minutes`, only with
+`table_name = 'scholars'`, `ck_files_slot`; migration 0042), `uploaded_by` FK users, owner
 pair `(table_name, record_id)` with a CHECK whitelist that each phase widens by
 migration (Phase 1: `scholars`; Phase 3 adds `publications`, `conferences`,
 `documents`, `thesis_submissions`, `examiner_reports`, `vivas`,

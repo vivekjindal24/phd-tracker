@@ -30,6 +30,7 @@ from app.enums import (
     OFFICE_ROLES,
     STAGES,
     STUDY_MODES,
+    SUPERVISION_ROLES,
     UNIT_ROLES,
     WHATSAPP_NUMBER_RE,
     sql_in,
@@ -240,6 +241,42 @@ class Scholar(DomainRow, Base):
     co_supervisor_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("faculty.id"), index=True
     )
+    # Printed on the university's forms; personal data like gender (scope.sees_personal).
+    father_name: Mapped[str | None] = mapped_column(Text)
     # A scholar who withdrew or whose registration was cancelled (drop-outs, Phase 4).
     left_on: Mapped[date | None] = mapped_column(Date)
     left_reason: Mapped[str | None] = mapped_column(Text)
+
+
+class SupervisorAppointment(DomainRow, Base):
+    """One appointment of a supervisor or co-supervisor to a scholar (Form IV), kept for good:
+    a change of supervisor ends the current row and opens a new one, so who guided the scholar
+    when stays on record. The open row mirrors `scholars.supervisor_id` / `co_supervisor_id`;
+    both change only through app/supervision.py."""
+
+    __tablename__ = "supervisor_appointments"
+    __table_args__ = (
+        CheckConstraint(
+            f"role IN ({sql_in(SUPERVISION_ROLES)})", name="ck_supervisor_appointments_role"
+        ),
+        CheckConstraint(
+            "ended_on IS NULL OR appointed_on IS NULL OR ended_on >= appointed_on",
+            name="ck_supervisor_appointments_dates",
+        ),
+        Index(
+            "uq_supervisor_appointment_open",
+            "scholar_id",
+            "role",
+            unique=True,
+            postgresql_where=text("ended_on IS NULL AND deleted_at IS NULL"),
+        ),
+    )
+
+    scholar_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("scholars.id"), index=True
+    )
+    faculty_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("faculty.id"))
+    role: Mapped[str] = mapped_column(Text)
+    appointed_on: Mapped[date | None] = mapped_column(Date)  # from the order; null = unknown
+    order_ref: Mapped[str | None] = mapped_column(Text)
+    ended_on: Mapped[date | None] = mapped_column(Date)  # null: the current appointment

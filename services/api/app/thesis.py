@@ -253,6 +253,7 @@ async def evaluation(session: AsyncSession, principal: Principal, ctx: ItemConte
                 "id": r.id,
                 "examiner_name": r.examiner_name if names else None,
                 "institution": r.institution if names else None,
+                "origin": r.origin,
                 "received_on": r.received_on,
                 "recommendation": r.recommendation,
                 "notes": r.notes,

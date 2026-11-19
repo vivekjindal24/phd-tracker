@@ -1,11 +1,11 @@
 import { api, ApiError } from "./api";
-import type { FileOwner } from "./types";
+import type { FileOwner, FileSlot } from "./types";
 
 type Upload = { file_id: string; upload_url: string; method: string; headers: Record<string, string> };
 
 /** Puts a file on a record (PRD F13): the API presigns, the browser sends the bytes straight to
  *  object storage, then the API confirms they arrived. Returns the new file's id. */
-export async function uploadFile(table: FileOwner, recordId: string, file: File): Promise<string> {
+export async function uploadFile(table: FileOwner, recordId: string, file: File, slot?: FileSlot): Promise<string> {
   const start = await api<Upload>("/files/uploads", {
     method: "POST",
     body: JSON.stringify({
@@ -14,6 +14,7 @@ export async function uploadFile(table: FileOwner, recordId: string, file: File)
       file_name: file.name,
       content_type: file.type || "application/octet-stream",
       size_bytes: file.size,
+      ...(slot && { slot }),
     }),
   });
   let put: Response;

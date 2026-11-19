@@ -182,6 +182,14 @@ test("signed steps carry the signature; a broken one never blocks the PDF", asyn
   assert.equal(res.subarray(0, 5).toString(), "%PDF-");
 });
 
+test("the assistantship line parses and renders; an old view without it still does", async () => {
+  for (const view of [{ ...report, assistantship: "without" }, report]) {
+    const res = await reportPdf(reportView.parse(view));
+    assert.equal(res.subarray(0, 5).toString(), "%PDF-");
+  }
+  assert.throws(() => reportView.parse({ ...report, assistantship: "maybe" }));
+});
+
 test("NAAC CSV keeps numbers and neutralises formulas", () => {
   const csv = tableCsv({ university: "U", address: "", logo: null, title: "T", columns: ["Title", "Amount", "Note"],
     rows: [["=cmd()", 40000, null]], generated_at: "2026-11-06T10:00:00Z", generated_by: "R" });

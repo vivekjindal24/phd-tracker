@@ -38,6 +38,7 @@ async def start_upload(
     file_name: str,
     content_type: str,
     size_bytes: int,
+    slot: str | None = None,
 ) -> tuple[FileRow, str]:
     if content_type not in ALLOWED_CONTENT_TYPES:
         raise ApiError(
@@ -48,6 +49,8 @@ async def start_upload(
     limit = settings.s3.max_upload_bytes
     if size_bytes > limit:
         raise ApiError(413, "file_too_large", f"Files can be at most {limit // (1024 * 1024)} MB.")
+    if slot is not None and table != "scholars":
+        raise ApiError(422, "slot_not_allowed", "Named file places are on a scholar's record.")
     await records.require_write(session, principal, table, record_id)
     file_id = uuid.uuid4()
     key = f"{table}/{record_id}/{file_id}/{storage.safe_filename(file_name)}"
@@ -63,6 +66,7 @@ async def start_upload(
             uploaded_by=principal.user_id,
             table_name=table,
             record_id=record_id,
+            slot=slot,
         ),
     )
     return row, storage.presign_put(key, content_type, size_bytes)

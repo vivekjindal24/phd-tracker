@@ -267,6 +267,20 @@ works like the advisory committee's, except each member also sits in a seat
 offers a PhD scholar of the department, who takes the scholar's seat. The
 re-form button reads **Re-constitute the committee**.
 
+The **Comprehensive examination** card lists each attempt (month, result);
+the admin or Research Office records the next one until one is satisfactory.
+**Admission papers** holds two named places, the employer's no-objection
+certificate and the entrance-examination minutes, filled by the admin. The
+**Supervision** card lists every supervisor and co-supervisor the scholar has
+had, current first, each with its dates and appointing order; a change of
+supervisor in Manage ends the old appointment and adds the new one, and the
+admin records or corrects any appointment's order there, and a past
+appointment's end date. The scholar's
+father's name sits with the personal details (the scholar fills it once). On a
+progress report, whoever acts at the current step may state the
+**Recommendation** — may continue with / without assistantship — printed on the
+PDF.
+
 The **Research ethics** card beside it holds the clearances: kind, committee,
 approval number, dates and the certificate file, or "Not required" with the
 reason. Its badge reads Recorded, Not recorded, or "Needed before the thesis"

@@ -41,6 +41,8 @@ export const reportView = z.object({
   report_year: z.number().int(),
   summary: z.string(),
   sections: z.array(z.object({ name: z.string(), text: z.string() })),
+  // The committee's line: may continue with / without assistantship (null: not stated).
+  assistantship: z.enum(["with", "without"]).nullable().default(null),
   activity: z.object({
     meetings: z.number().int(),
     publications: z.array(z.string()).nullable(),

@@ -497,6 +497,31 @@ demand, from what is already recorded.
   notice, report); supervisor appointment date and reference number; national /
   international examiner; comprehensive examination attempt and month; the "may
   continue with / without assistantship" line on the progress report.
+- **The small records, as built (2026-11-19):**
+  - *Supervision history* (Form IV): every appointment of a supervisor or
+    co-supervisor is kept — who, the date and order number appointing them, and
+    when it ended. Changing the supervisor ends the current appointment (dated
+    the day of the change) and opens a new one, so whoever guided the scholar
+    stays on record. The admin over the scholar's unit records or corrects the
+    order on any appointment, past or current, and the end date of a past one
+    (on or after it began, not in the future; a current appointment ends only by
+    appointing someone else — 422 `appointed_after_end`, `end_in_future`,
+    `appointment_current`, `end_required`); anyone who reads the scholar reads
+    the history.
+  - *Father's name*: on the scholar's profile, personal data like gender (the
+    scholar fills it once, the admin corrects it).
+  - *National / international* on each examiner report and reviewer invitation
+    (optional; carried over when a review becomes a report).
+  - *Comprehensive examination* (Form VI): numbered attempts, each with the
+    month held and its result (satisfactory / unsatisfactory), kept by the admin
+    over the unit or the Research Office. Attempts stay in date order (422
+    `attempt_out_of_order`); none after a satisfactory one (409
+    `comprehensive_passed`); only the latest is removed (409 `not_latest_attempt`).
+  - *Assistantship line*: "may continue with / without assistantship", stated on
+    a progress report by whoever acts at its current step, printed on its PDF.
+  - *Admission papers*: named places on the scholar's record for the employer's
+    no-objection certificate and the entrance-examination minutes, added by the
+    admin over the unit.
 
 **F17b — Signatures on forms** (Decided 2026-11-18). A wet signature stays the
 legal proof; the electronic approval is the record of it.

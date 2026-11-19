@@ -10,7 +10,7 @@ from typing import Any
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import scope, seminars
+from app import scope, seminars, supervision
 from app.auth.principal import Principal
 from app.crud import insert, update
 from app.errors import ApiError, forbidden
@@ -244,7 +244,7 @@ async def _join_as_co_supervisor(
             "co_supervisor_same_as_supervisor",
             "The co-supervisor must be someone other than the supervisor.",
         )
-    await update(session, principal, scholar, {"co_supervisor_id": row.faculty_id})
+    await supervision.change(session, principal, scholar, "co_supervisor", row.faculty_id)
 
 
 async def _close(

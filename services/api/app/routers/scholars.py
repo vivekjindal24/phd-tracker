@@ -1,22 +1,32 @@
 """Scholar directory (PRD F6, UX Flow 5). Lists and details are scoped by scope.py."""
 
 import uuid
+from datetime import UTC, datetime
+from typing import Any
 
 from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy import Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
-from app import directory, scope
+from app import directory, scope, supervision
 from app.auth.deps import current_principal
 from app.auth.principal import Principal
 from app.crud import update
 from app.db import get_session
 from app.enums import STAGES, Stage, StudyMode
 from app.errors import ApiError, forbidden
-from app.models import Faculty, OrgUnit, Scholar, User
-from app.rbac import require_perm
-from app.schemas import AssignIn, Ref, ScholarOut, ScholarOwnProfile, ScholarUpdate
+from app.models import Faculty, OrgUnit, Scholar, SupervisorAppointment, User
+from app.rbac import can, require_perm
+from app.schemas import (
+    AppointmentOrderIn,
+    AssignIn,
+    Ref,
+    ScholarOut,
+    ScholarOwnProfile,
+    ScholarUpdate,
+    SupervisionView,
+)
 from app.sorting import Sort, ordered, page_of, ranked
 
 router = APIRouter(prefix="/scholars", tags=["directory"])
@@ -74,6 +84,7 @@ def _out(row, principal: Principal) -> ScholarOut:
         gender=s.gender if personal else None,
         category=s.category if personal else None,
         has_disability=s.has_disability if personal else None,
+        father_name=s.father_name if personal else None,
     )
 
 
@@ -208,3 +219,66 @@ async def set_co_supervisor(
     await directory.assign_co_supervisor(session, principal, scholar, body.faculty_id)
     await session.commit()
     return await _one(session, principal, scholar_id)
+
+
+@router.get("/{scholar_id}/supervision", response_model=SupervisionView)
+async def get_supervision(
+    scholar_id: uuid.UUID,
+    principal: Principal = Depends(current_principal),
+    session: AsyncSession = Depends(get_session),
+) -> dict[str, Any]:
+    """Every supervisor and co-supervisor the scholar has had, with the orders (Form IV)."""
+    scholar = await scope.get_scholar_or_403(session, principal, scholar_id)
+    return await _supervision(session, principal, scholar)
+
+
+@router.patch("/appointments/{appointment_id}", response_model=SupervisionView)
+async def correct_appointment(
+    appointment_id: uuid.UUID,
+    body: AppointmentOrderIn,
+    principal: Principal = Depends(require_perm("scholars", "update")),
+    session: AsyncSession = Depends(get_session),
+) -> dict[str, Any]:
+    """Record or correct the order behind any appointment, current or past, and the date a
+    past one ended. A current appointment ends only when someone else is appointed."""
+    row = await session.scalar(
+        select(SupervisorAppointment).where(
+            SupervisorAppointment.id == appointment_id,
+            SupervisorAppointment.deleted_at.is_(None),
+        )
+    )
+    if row is None:
+        raise forbidden()
+    scholar = await scope.get_scholar_or_403(session, principal, row.scholar_id)
+    await directory.require_admin_over_scholar(session, principal, scholar)
+    changes = body.model_dump(exclude_unset=True)
+    if "ended_on" in changes:
+        if row.ended_on is None:
+            raise ApiError(
+                422,
+                "appointment_current",
+                "A current appointment ends when someone else is appointed.",
+            )
+        if changes["ended_on"] is None:
+            raise ApiError(422, "end_required", "A past appointment keeps an end date.")
+        if changes["ended_on"] > datetime.now(UTC).date():
+            raise ApiError(422, "end_in_future", "An appointment cannot have ended in the future.")
+    appointed = changes.get("appointed_on", row.appointed_on)
+    ended = changes.get("ended_on", row.ended_on)
+    if appointed is not None and ended is not None and appointed > ended:
+        raise ApiError(422, "appointed_after_end", "The appointment cannot start after it ended.")
+    await update(session, principal, row, changes)
+    await session.commit()
+    return await _supervision(session, principal, scholar)
+
+
+async def _supervision(
+    session: AsyncSession, principal: Principal, scholar: Scholar
+) -> dict[str, Any]:
+    path = await scope.unit_path(session, scholar.unit_id)
+    return {
+        "appointments": await supervision.history(
+            session, scholar.id, with_co=principal.co_supervision != "off"
+        ),
+        "can_manage": can(principal, "scholars", "update") and principal.covers("admin", path),
+    }

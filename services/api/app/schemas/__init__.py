@@ -10,12 +10,14 @@ from app.enums import (
     WHATSAPP_NUMBER_RE,
     ApprovalBody,
     AssignedRole,
+    Assistantship,
     AuditAction,
     Category,
     CommentTarget,
     CoSupervision,
     Designation,
     FileOwner,
+    FileSlot,
     FormAnswer,
     Gender,
     ItemState,
@@ -38,6 +40,7 @@ from app.enums import (
     Stage,
     StepKind,
     StudyMode,
+    SupervisionRole,
     TodoPart,
     TodoStatus,
 )
@@ -419,6 +422,7 @@ class WhatsappIn(BaseModel):
 class UploadIn(BaseModel):
     table_name: FileOwner
     record_id: uuid.UUID
+    slot: FileSlot | None = None  # a named place on a scholar's record (PhD file)
     file_name: Annotated[
         str, StringConstraints(strip_whitespace=True, min_length=1, max_length=255)
     ]
@@ -436,6 +440,7 @@ class UploadOut(BaseModel):
 
 class FileOut(Out):
     id: uuid.UUID
+    slot: FileSlot | None
     file_name: str
     content_type: str
     size_bytes: int
@@ -477,6 +482,7 @@ class ScholarOut(BaseModel):
     gender: Gender | None
     category: Category | None
     has_disability: bool | None
+    father_name: str | None
     directory_only: bool = False  # an opened department reading another unit's scholar
 
 
@@ -505,6 +511,9 @@ class StandIns(BaseModel):
     standing_in_for: list[StandInFor]
 
 
+OrderRef = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)]
+
+
 class ScholarOwnProfile(BaseModel):
     """What a scholar fills in about themself; only while a field is still not recorded."""
 
@@ -513,6 +522,7 @@ class ScholarOwnProfile(BaseModel):
     gender: Gender | None = None
     category: Category | None = None
     has_disability: bool | None = None
+    father_name: Name | None = None
 
 
 class ScholarUpdate(BaseModel):
@@ -529,6 +539,7 @@ class ScholarUpdate(BaseModel):
     gender: Gender | None = None
     category: Category | None = None
     has_disability: bool | None = None
+    father_name: Name | None = None
     # Withdrawn / cancelled: both together, or both null to undo (PRD Phase 4).
     left_on: date | None = None
     left_reason: LeftReason | None = None
@@ -543,6 +554,28 @@ class ScholarUpdate(BaseModel):
 
 class AssignIn(BaseModel):
     faculty_id: uuid.UUID | None
+
+
+class AppointmentOrderIn(BaseModel):
+    """The order behind one appointment (Form IV), and a past one's end; null clears a value."""
+
+    appointed_on: date | None = None
+    order_ref: OrderRef | None = None
+    ended_on: date | None = None  # only on a past appointment
+
+
+class AppointmentOut(BaseModel):
+    id: uuid.UUID
+    role: SupervisionRole
+    faculty: Ref
+    appointed_on: date | None
+    order_ref: str | None
+    ended_on: date | None  # null: the current appointment
+
+
+class SupervisionView(BaseModel):
+    appointments: list[AppointmentOut]  # current first, then the latest ended
+    can_manage: bool
 
 
 class FacultyOut(BaseModel):
@@ -717,6 +750,10 @@ class ReportIn(BaseModel):
     period: Period
     summary: Summary
     sections: ReportSections = []
+
+
+class AssistantshipIn(BaseModel):
+    assistantship: Assistantship | None  # null: not stated
 
 
 class ReportUpdate(BaseModel):

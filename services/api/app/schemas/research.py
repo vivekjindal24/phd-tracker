@@ -11,6 +11,7 @@ from app.enums import (
     ConferenceType,
     CopyKind,
     DocKind,
+    ExaminerOrigin,
     Indexing,
     ItemState,
     PubStatus,
@@ -165,6 +166,7 @@ class ThesisRow(BaseModel):
 class ExaminerReportIn(BaseModel):
     examiner_name: Name
     institution: Annotated[str, StringConstraints(strip_whitespace=True, max_length=200)] = ""
+    origin: ExaminerOrigin | None = None
     received_on: date
     recommendation: Recommendation
     notes: Notes = ""
@@ -175,6 +177,7 @@ class ExaminerReportUpdate(BaseModel):
     institution: Annotated[str, StringConstraints(strip_whitespace=True, max_length=200)] | None = (
         None
     )
+    origin: ExaminerOrigin | None = None
     received_on: date | None = None
     recommendation: Recommendation | None = None
     notes: Notes | None = None
@@ -212,6 +215,7 @@ class ExaminerReportView(BaseModel):
     id: uuid.UUID
     examiner_name: str | None
     institution: str | None
+    origin: ExaminerOrigin | None
     received_on: date
     recommendation: Recommendation
     notes: str
@@ -223,6 +227,7 @@ class ReviewInviteIn(BaseModel):
     name: Name
     email: EmailStr
     institution: Annotated[str, StringConstraints(strip_whitespace=True, max_length=200)] = ""
+    origin: ExaminerOrigin | None = None
     abstract: Annotated[
         str, StringConstraints(strip_whitespace=True, min_length=1, max_length=5000)
     ]
@@ -242,6 +247,7 @@ class ReviewRow(BaseModel):
     name: str
     email: str
     institution: str
+    origin: ExaminerOrigin | None
     deadline: date
     allow_download: bool
     status: ReviewStatus

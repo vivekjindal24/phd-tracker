@@ -72,6 +72,7 @@ def _report_content(r: ProgressReport, _: Principal) -> dict[str, Any]:
         "period": r.period,
         "summary": r.summary,
         "sections": r.sections,
+        "assistantship": r.assistantship,
     }
 
 

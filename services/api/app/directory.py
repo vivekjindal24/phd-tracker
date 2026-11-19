@@ -6,9 +6,9 @@ import uuid
 from sqlalchemy import ColumnElement, and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import scope
+from app import scope, supervision
 from app.auth.principal import Principal
-from app.crud import insert, update
+from app.crud import insert
 from app.enums import STAGES, UGC_CAP
 from app.errors import ApiError, forbidden
 from app.models import Faculty, Scholar, Settings, User
@@ -120,7 +120,7 @@ async def assign_supervisor(
     if faculty_id == scholar.supervisor_id:
         return
     if faculty_id is None:
-        await update(session, principal, scholar, {"supervisor_id": None})
+        await supervision.change(session, principal, scholar, "supervisor", None)
         return
     faculty = await _live_faculty(session, faculty_id, lock=True)
     if not faculty.can_supervise:
@@ -139,7 +139,7 @@ async def assign_supervisor(
             "supervisor_cap_exceeded",
             f"This supervisor already guides {cap_text(faculty.max_scholars)}, their limit.",
         )
-    await update(session, principal, scholar, {"supervisor_id": faculty_id})
+    await supervision.change(session, principal, scholar, "supervisor", faculty_id)
     if not announce:
         return
     scholar_name = await session.scalar(select(User.full_name).where(User.id == scholar.user_id))
@@ -191,7 +191,7 @@ async def assign_co_supervisor(
                 "co_supervisor_same_as_supervisor",
                 "The co-supervisor must be someone other than the supervisor.",
             )
-    await update(session, principal, scholar, {"co_supervisor_id": faculty_id})
+    await supervision.change(session, principal, scholar, "co_supervisor", faculty_id)
 
 
 def validate_faculty_cap(designation: str, max_scholars: int) -> None:

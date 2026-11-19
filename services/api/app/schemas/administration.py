@@ -10,6 +10,7 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field, StringConstraints, 
 from app.enums import (
     CommitteeRole,
     CommitteeSeat,
+    ComprehensiveResult,
     EntranceRoute,
     EthicsKind,
     InterviewResult,
@@ -374,4 +375,35 @@ class EthicsView(BaseModel):
     records: list[EthicsOut]
     required: bool  # university setting require_ethics: the thesis waits for a record
     satisfied: bool
+    can_manage: bool
+
+
+# --- comprehensive examination (Form VI) -------------------------------------------------
+
+
+class ComprehensiveIn(BaseModel):
+    """The next attempt: the month it was held (its first day) and the result."""
+
+    held_in: date
+    result: ComprehensiveResult
+    notes: Notes = ""
+
+    @model_validator(mode="after")
+    def _a_month(self) -> "ComprehensiveIn":
+        if self.held_in.day != 1:
+            raise ValueError("give the month as its first day")
+        return self
+
+
+class ComprehensiveAttempt(BaseModel):
+    id: uuid.UUID
+    attempt: int
+    held_in: date
+    result: ComprehensiveResult
+    notes: str
+
+
+class ComprehensiveView(BaseModel):
+    attempts: list[ComprehensiveAttempt]  # in order, first attempt first
+    passed: bool
     can_manage: bool

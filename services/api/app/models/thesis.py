@@ -24,6 +24,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.enums import (
     COPY_KINDS,
     DOC_KINDS,
+    EXAMINER_ORIGINS,
     RECOMMENDATIONS,
     REVIEW_STATUSES,
     VIVA_BOARD_ROLES,
@@ -97,6 +98,9 @@ class ExaminerReport(DomainRow, Base):
         CheckConstraint(
             f"recommendation IN ({sql_in(RECOMMENDATIONS)})", name="ck_examiner_reports_rec"
         ),
+        CheckConstraint(
+            f"origin IN ({sql_in(EXAMINER_ORIGINS)})", name="ck_examiner_reports_origin"
+        ),
     )
 
     thesis_id: Mapped[uuid.UUID] = mapped_column(
@@ -108,6 +112,7 @@ class ExaminerReport(DomainRow, Base):
     recommendation: Mapped[str] = mapped_column(Text)
     notes: Mapped[str] = mapped_column(Text, server_default=text("''"))
     released_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    origin: Mapped[str | None] = mapped_column(Text)  # national / international
 
 
 class ThesisReview(DomainRow, Base):
@@ -117,6 +122,7 @@ class ThesisReview(DomainRow, Base):
     __tablename__ = "thesis_reviews"
     __table_args__ = (
         CheckConstraint(f"status IN ({sql_in(REVIEW_STATUSES)})", name="ck_thesis_reviews_status"),
+        CheckConstraint(f"origin IN ({sql_in(EXAMINER_ORIGINS)})", name="ck_thesis_reviews_origin"),
         CheckConstraint(
             f"recommendation IS NULL OR recommendation IN ({sql_in(RECOMMENDATIONS)})",
             name="ck_thesis_reviews_rec",
@@ -150,6 +156,7 @@ class ThesisReview(DomainRow, Base):
     name: Mapped[str] = mapped_column(Text)  # confidential, as examiner_name
     email: Mapped[str] = mapped_column(CITEXT)
     institution: Mapped[str] = mapped_column(Text, server_default=text("''"))
+    origin: Mapped[str | None] = mapped_column(Text)  # national / international
     abstract: Mapped[str] = mapped_column(Text)
     deadline: Mapped[date] = mapped_column(Date)
     allow_download: Mapped[bool] = mapped_column(Boolean, server_default=text("false"))
