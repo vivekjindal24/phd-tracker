@@ -21,24 +21,37 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app import phd_file, scope, signatures, storage
 from app.auth.principal import Principal
 from app.crud import insert, soft_delete, update
-from app.enums import DOCUMENT_KINDS, EXAMINER_DOCUMENTS
+from app.enums import DOCUMENT_KINDS, EXAMINER_DOCUMENTS, MARK_SHEETS
 from app.errors import ApiError, forbidden
 from app.models import FileRow, Scholar, SignedCopy, User
 from app.notify import notify
 
 
 async def rights(session: AsyncSession, principal: Principal, scholar: Scholar) -> dict[str, bool]:
-    """What the caller may do with this scholar's signed copies; examiner papers apart."""
+    """What the caller may do with this scholar's signed copies; examiner papers and mark
+    sheets apart."""
     keeper = await scope.can_record(session, principal, scholar)
+    exam_office = "exam_office" in principal.office_roles
     return {
         "upload": keeper or scope.guides(principal, scholar),
         "approve": keeper,
-        "examiner": keeper or "exam_office" in principal.office_roles,  # uploads and approves
+        "examiner": keeper or exam_office,  # uploads and approves the examiners' papers
+        "marks": keeper or exam_office or principal.scholar_id == scholar.id,  # uploads
+        "marks_at_once": keeper or exam_office,  # whose mark sheet needs nobody's approval
     }
 
 
 def _may(rights: dict[str, bool], kind: str, act: str) -> bool:
-    return rights["examiner"] if kind in EXAMINER_DOCUMENTS else rights[act]
+    if kind in EXAMINER_DOCUMENTS:
+        return rights["examiner"]
+    if kind in MARK_SHEETS and act == "upload":
+        return rights["marks"]
+    return rights[act]
+
+
+def _counts_at_once(rights: dict[str, bool], kind: str) -> bool:
+    """Approved as it is uploaded: by whoever approves it, or the exam cell's mark sheet."""
+    return rights["marks_at_once"] if kind in MARK_SHEETS else _may(rights, kind, "approve")
 
 
 async def create(
@@ -59,7 +72,7 @@ async def create(
         raise ApiError(404, "not_found", "That entry is not in this scholar's file.")
     if kind not in entry["papers"]:
         raise ApiError(422, "wrong_paper", f"{entry['heading']} holds no {DOCUMENT_KINDS[kind]}.")
-    keeper = _may(can, kind, "approve")
+    keeper = _counts_at_once(can, kind)
     now = datetime.now(UTC)
     copy = await insert(
         session,
@@ -79,8 +92,8 @@ async def create(
             session,
             await signatures.keepers(session, scholar.user_id),
             "system",
-            f"A signed copy from {principal.full_name} waits for your approval",
-            "Check the scan against the paper form, then approve it.",
+            f"{DOCUMENT_KINDS[kind]} from {principal.full_name} waits for your approval",
+            "Check the scan against the paper, then approve it.",
             f"/scholars/{scholar.id}",
         )
     return copy

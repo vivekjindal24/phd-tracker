@@ -76,6 +76,11 @@
   upload and approve them, and their uploads count at once. Note: unlike the
   screens, the department admin sees these papers, examiner names included,
   before the viva.
+  **The coursework mark sheet** (`enums.MARK_SHEETS`; owner, 2026-11-20) is
+  the exam cell's: the Exam Office, the admin over the scholar's unit and the
+  Research Office upload it and it counts at once; the scholar may upload
+  their own, which waits until that admin or the Research Office approves it.
+  The supervisor does not upload it.
 - **Signing approvals** (PRD F17b; university setting `require_signing`,
   default off; `signing.py`): while on, every approve and send-back needs a
   confirmed specimen signature (422 `signature_required`) and a fresh code

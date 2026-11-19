@@ -56,7 +56,13 @@ export function SignedCopiesCard({ scholarId }: { scholarId: string }) {
     });
 
   const parts = data.annexures
-    .map((a) => ({ ...a, entries: a.entries.filter((e) => e.papers.length > 0) }))
+    // Only the papers the caller can act on, or that are already in.
+    .map((a) => ({
+      ...a,
+      entries: a.entries
+        .map((e) => ({ ...e, papers: e.papers.filter((p) => p.copy || p.may_upload || p.may_approve) }))
+        .filter((e) => e.papers.length > 0),
+    }))
     .filter((a) => a.entries.length > 0);
 
   return (
@@ -65,7 +71,8 @@ export function SignedCopiesCard({ scholarId }: { scholarId: string }) {
       <p className="muted">
         Scan each paper once it is signed and upload it in its place, as a PDF or a photo. A supervisor&apos;s upload waits
         for the department admin or the Research Office to approve it; once approved, it goes into the PhD file after its
-        entry. The examiners&apos; papers are handled by the admin, the Research Office and the Exam Office only.
+        entry. The examiners&apos; papers are handled by the admin, the Research Office and the Exam Office only. The
+        coursework mark sheet comes from the exam cell; a scholar&apos;s own upload of it waits for the department admin.
       </p>
       {parts.length === 0 && <p className="muted">Nothing on record yet.</p>}
       {parts.map((a) => (

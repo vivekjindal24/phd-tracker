@@ -139,6 +139,23 @@ export const phdFileView = z.object({
           lines: z.array(z.tuple([z.string(), z.string()])),
           signed: z.boolean().nullable(), // approved items only: every approval signed or not
           // Its papers signed by hand (PRD F17b), in the paper file's order; a scan link once approved.
+          // The entry as the university's paper form (phd_forms.py), when it has one.
+          form: z.object({
+            title: z.string(),
+            fields: z.array(z.tuple([z.string(), z.string()])),
+            tables: z.array(z.object({
+              title: z.string(), columns: z.array(z.string()), rows: z.array(z.array(z.string())),
+            })),
+            statement: z.string().nullable(),
+            signed_heading: z.string().nullable(),
+            signed_by: z.array(z.object({ name: z.string(), role: z.string(), signature: z.string().nullable() })),
+            forwarded: z.object({
+              to: z.string(),
+              by: z.array(z.object({ name: z.string(), role: z.string(), signature: z.string().nullable() })),
+            }).nullable(),
+            copy_to: z.array(z.string()),
+            recorded: z.string().nullable(),
+          }).nullable().default(null),
           papers: z.array(z.object({
             label: z.string(),
             copy: z.object({ id: z.string(), content_type: z.string(), scan_url: z.string().nullable() }).nullable(),

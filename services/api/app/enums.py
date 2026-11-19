@@ -357,6 +357,7 @@ PHD_ANNEXURES = get_args(PhdAnnexure)
 # the paper file keeps them (PRD F17b). Which entry takes which: phd_file.py.
 DOCUMENT_KINDS: dict[str, str] = {
     "signed_copy": "Signed copy",
+    "mark_sheet": "Coursework mark sheet",
     "notice": "Notification",
     "report": "Report",
     "attendance": "Attendance sheet",
@@ -377,6 +378,7 @@ DOCUMENT_KINDS: dict[str, str] = {
 }
 DocumentKind = Literal[
     "signed_copy",
+    "mark_sheet",
     "notice",
     "report",
     "attendance",
@@ -398,6 +400,9 @@ DocumentKind = Literal[
 assert get_args(DocumentKind) == tuple(DOCUMENT_KINDS)
 # Papers naming the examiners: the Research Office, the Exam Office and the admin over the
 # scholar's unit handle them; never the scholar or their supervisor (owner, 2026-11-19).
+# The coursework mark sheet comes from the exam cell: theirs and the department admin's count at
+# once; a scholar's own upload waits for the department admin (owner, 2026-11-20).
+MARK_SHEETS = frozenset({"mark_sheet"})
 EXAMINER_DOCUMENTS = frozenset(
     {
         "examiner_panel",

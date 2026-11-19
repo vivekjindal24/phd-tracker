@@ -310,7 +310,7 @@ export default function ScholarProfile() {
         actions={<>
           <span className="badge">{scholar.stage}</span>
           {scholar.left_reason && <span className="badge badge-sent_back">{LEFT_LABELS[scholar.left_reason]}</span>}
-          <DownloadButton path={`/scholars/${scholar.id}/phd-file.pdf`}>Download PhD file</DownloadButton>
+          <DownloadButton path={`/scholars/${scholar.id}/phd-file.pdf`} signable>Download PhD file</DownloadButton>
         </>} />
       <div className="profile-grid">
         <Card>

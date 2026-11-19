@@ -5,8 +5,9 @@ import type { NextFunction, Request, Response } from "express";
 import { z } from "zod";
 import { certificateView, fetchList, fetchView, phdFileView, tableView, registerView, reportView, reviewCopyView, ucView, UpstreamError } from "./api.ts";
 import type { PhdFileView } from "./api.ts";
-import { certificatePdf, phdFilePdf, tableCsv, registerCsv, registerPdf, reportPdf, ucPdf } from "./render.ts";
-import type { Scan } from "./render.ts";
+import { certificatePdf, tableCsv, registerCsv, registerPdf, reportPdf, ucPdf } from "./render.ts";
+import { phdFilePdf } from "./phd-file.ts";
+import type { Scan } from "./phd-file.ts";
 import { stampPdf, UnstampablePdf } from "./stamp.ts";
 
 export type Config = { apiUrl: string; corsOrigins: string[] };
@@ -133,8 +134,10 @@ export function createApp(config: Config) {
   app.get("/scholars/:id/phd-file.pdf", async (req, res, next) => {
     try {
       const id = input(z.string().uuid(), req.params.id);
+      const signed = input(z.enum(["0", "1"]).default("1"), req.query.signed) === "1";
       const view = await fetchView(config.apiUrl, `/internal/scholars/${id}/phd-file`, auth(req), phdFileView);
-      send(res, "application/pdf", `phd-file-${view.roll_number}.pdf`, await phdFilePdf(view, await fetchScans(view)));
+      send(res, "application/pdf", `phd-file-${view.roll_number}${signed ? "" : "-unsigned"}.pdf`,
+        await phdFilePdf(view, signed ? await fetchScans(view) : new Map(), signed));
     } catch (e) {
       next(e);
     }

@@ -11,6 +11,7 @@ from app import storage
 from app.db import SessionLocal
 from app.models import FileRow
 from tests.conftest import auth
+from tests.test_publications import enable
 from tests.test_thesis import approved_thesis, documents_on  # noqa: F401
 
 API = "/api/v1"
@@ -118,7 +119,7 @@ async def test_supervisor_uploads_and_an_admin_approves(client, world, cleanup):
     assert copy["id"] == copy_id and copy["approved_at"] is None and copy["scan_url"] is None
     assert entry(await file_view(client, world, world.sup_a2))["signed"] is None
     inbox = (await client.get(f"{API}/notifications", headers=auth(world.admin_a1.id))).json()
-    assert any("signed copy" in n["title"] for n in inbox)
+    assert any(n["title"].startswith("Signed copy from Sup A2") for n in inbox)
 
     approve = f"{API}/signed-copies/{copy_id}/approve"
     assert (await client.post(approve, headers=auth(world.sup_a2.id))).status_code == 403
@@ -195,3 +196,40 @@ async def test_each_paper_has_its_place_and_examiner_papers_stay_with_the_office
     dl = f"{API}/files/{file_id}/download"
     assert (await client.get(dl, headers=auth(world.meera.id))).status_code == 403
     assert (await client.get(dl, headers=auth(world.scholar_a1.id))).status_code == 403
+
+
+async def test_the_mark_sheet_comes_from_the_exam_cell(client, session, world, cleanup):
+    await enable(session, "coursework")
+
+    def place(view):
+        part = next(a for a in view["annexures"] if a["key"] == "coursework")
+        (courses,) = [e for e in part["entries"] if e["heading"] == "Courses and grades"]
+        return courses["record"], courses["papers"]
+
+    record, papers = place(await file_view(client, world, world.scholar_a1b))
+    assert [(p["kind"], p["may_upload"], p["may_approve"]) for p in papers] == [
+        ("mark_sheet", True, False)
+    ]
+    copies = f"{API}/scholars/{world.s_a1b.id}/signed-copies"
+    sheet = {"annexure": "coursework", "record_id": record, "kind": "mark_sheet"}
+    # Not the supervisor's to upload.
+    assert (await client.post(copies, json=sheet, headers=auth(world.sup_a2.id))).status_code == 403
+
+    # The scholar's own: waits for the department admin, who is told.
+    own = await client.post(copies, json=sheet, headers=auth(world.scholar_a1b.id))
+    assert own.status_code == 201, own.text
+    await upload_scan(client, world.scholar_a1b, own.json()["id"], cleanup)
+    (_, (paper,)) = place(await file_view(client, world, world.scholar_a1b))
+    assert paper["copy"]["approved_at"] is None
+    inbox = (await client.get(f"{API}/notifications", headers=auth(world.admin_a1.id))).json()
+    assert any(n["title"].startswith("Coursework mark sheet from") for n in inbox)
+    approve = f"{API}/signed-copies/{own.json()['id']}/approve"
+    assert (await client.post(approve, headers=auth(world.exam_office.id))).status_code == 403
+    assert (await client.post(approve, headers=auth(world.admin_a1.id))).status_code == 204
+
+    # The exam cell's: counts at once.
+    cell = await client.post(copies, json=sheet, headers=auth(world.exam_office.id))
+    assert cell.status_code == 201, cell.text
+    await upload_scan(client, world.exam_office, cell.json()["id"], cleanup)
+    (_, (paper,)) = place(await file_view(client, world, world.admin_a1))
+    assert paper["copy"]["id"] == cell.json()["id"] and paper["copy"]["approved_at"]

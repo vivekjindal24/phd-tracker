@@ -448,7 +448,7 @@ row behind the entry — a progress report, a seminar's scholar row, a committee
 formation …; not a FK, it spans tables), `kind` (which of the entry's papers:
 CHECK one of `enums.DOCUMENT_KINDS` — notification, report, attendance sheet, DRC
 minutes, fee due creation, panel of examiners, the viva's papers …; default
-`signed_copy`; migration 0046), `uploaded_by` FK users, `approved_by` FK
+`signed_copy`; migration 0046; `mark_sheet` added by 0047), `uploaded_by` FK users, `approved_by` FK
 users + `approved_at` (set together, `ck_signed_copies_approved`). The scan is a
 `files` row with `table_name = 'signed_copies'`, one per copy. The copy in use for
 each paper of an entry is the newest with its scan ready; older ones stay as history. Index

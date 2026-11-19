@@ -1,9 +1,8 @@
 /** Print-like documents (DESIGN_SYSTEM.md §7): black on white, rules not shadows, readable
  *  when photocopied in grayscale. No claymorphism here. */
-import { PDFDocument as PDFLibDocument, StandardFonts } from "pdf-lib";
 import PDFDocument from "pdfkit";
 import QRCode from "qrcode";
-import type { CertificateView, PhdFileView, TableView, RegisterView, ReportView, UcView } from "./api.ts";
+import type { CertificateView, TableView, RegisterView, ReportView, UcView } from "./api.ts";
 
 const MILESTONES: Record<string, string> = {
   coursework: "Coursework",
@@ -32,12 +31,12 @@ const RATINGS: Record<string, string> = {
   unsatisfactory: "Unsatisfactory",
 };
 
-const day = (iso: string | null) =>
+export const day = (iso: string | null) =>
   iso ? new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "—";
 const stamp = (iso: string) =>
   new Date(iso).toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
 
-function toBuffer(doc: PDFKit.PDFDocument): Promise<Buffer> {
+export function toBuffer(doc: PDFKit.PDFDocument): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
     doc.on("data", (c: Buffer) => chunks.push(c));
@@ -47,10 +46,11 @@ function toBuffer(doc: PDFKit.PDFDocument): Promise<Buffer> {
   });
 }
 
-type Brand = Pick<ReportView, "university" | "address" | "logo">;
+export type Brand = Pick<ReportView, "university" | "address" | "logo">;
 const LOGO_SIZE = 52;
 
 const SIGNATURE_BOX: [number, number] = [120, 40];
+const SIGNATURE_LINE = 130; // about the width of a signed name, as on a paper form
 
 /** The specimen that signed a step (PRD F17b), under the line naming the signer. */
 function drawSignature(doc: PDFKit.PDFDocument, dataUrl: string) {
@@ -62,23 +62,43 @@ function drawSignature(doc: PDFKit.PDFDocument, dataUrl: string) {
   }
 }
 
-/** Lines to sign above, up to three to a row, each signer named under the line (and a date blank when asked). */
-function signatureLines(doc: PDFKit.PDFDocument, who: string[], room: number, dated = false) {
+/** One signer under a line: their name and role, and the specimen above the line when it is printed. */
+export type Signer = string | { label: string; image?: string | null };
+
+/** Lines to sign above, three columns to a row, each signer named under the line (and a date
+ *  blank when asked). A line is a standard signature length, never the width of the page; `right`
+ *  puts a lone signer at the right, where the paper forms have the forwarding officer sign. */
+export function signatureLines(doc: PDFKit.PDFDocument, who: Signer[], room: number, dated = false, right = false) {
   const left = doc.page.margins.left;
-  const per = Math.min(3, who.length);
-  const col = (doc.page.width - left - doc.page.margins.right) / per;
-  for (let r = 0; r < who.length; r += per) {
+  const col = (doc.page.width - left - doc.page.margins.right) / 3;
+  const line = Math.min(SIGNATURE_LINE, col - 24);
+  for (let r = 0; r < who.length; r += 3) {
     if (doc.y + room + 50 > doc.page.height - doc.page.margins.bottom) doc.addPage();
     const y = doc.y + room;
     let bottom = y;
-    who.slice(r, r + per).forEach((name, i) => {
-      doc.moveTo(left + i * col + 12, y).lineTo(left + (i + 1) * col - 12, y).lineWidth(0.6).stroke();
-      doc.font("Helvetica").fontSize(9).text(name, left + i * col, y + 4, { width: col, align: "center" });
-      if (dated) doc.text("Date: ______________", left + i * col, doc.y + 3, { width: col, align: "center" });
+    const row = who.slice(r, r + 3);
+    const first = right ? 3 - row.length : 0; // right-aligned: fill the last columns
+    row.forEach((w, n) => {
+      const { label, image } = typeof w === "string" ? { label: w, image: null } : w;
+      const x = left + (first + n) * col;
+      const start = x + (col - line) / 2;
+      if (image) drawSignatureAt(doc, image, start, y - SIGNATURE_BOX[1] - 2, line);
+      doc.moveTo(start, y).lineTo(start + line, y).lineWidth(0.6).stroke();
+      doc.font("Helvetica").fontSize(9).text(label, x, y + 4, { width: col, align: "center" });
+      if (dated) doc.text("Date: ______________", x, doc.y + 3, { width: col, align: "center" });
       bottom = Math.max(bottom, doc.y);
     });
     doc.x = left;
     doc.y = bottom + 4;
+  }
+}
+
+function drawSignatureAt(doc: PDFKit.PDFDocument, dataUrl: string, x: number, y: number, width: number) {
+  try {
+    doc.image(Buffer.from(dataUrl.slice(dataUrl.indexOf(",") + 1), "base64"), x, y,
+      { fit: [width, SIGNATURE_BOX[1]], align: "center" });
+  } catch (e) {
+    console.error("a signature could not be drawn:", e); // the name under the line still says who
   }
 }
 
@@ -91,7 +111,7 @@ function drawLogo(doc: PDFKit.PDFDocument, logo: string) {
   }
 }
 
-function header(doc: PDFKit.PDFDocument, brand: Brand, title: string, subtitle: string) {
+export function header(doc: PDFKit.PDFDocument, brand: Brand, title: string, subtitle: string) {
   if (brand.logo) drawLogo(doc, brand.logo);
   doc.font("Helvetica-Bold").fontSize(15).text(brand.university, { align: "center" });
   if (brand.address) doc.font("Helvetica").fontSize(8.5).fillColor("#444444").text(brand.address, { align: "center" }).fillColor("black");
@@ -102,7 +122,7 @@ function header(doc: PDFKit.PDFDocument, brand: Brand, title: string, subtitle: 
   doc.y = y + 12;
 }
 
-function footer(doc: PDFKit.PDFDocument, generatedBy: string, generatedAt: string) {
+export function footer(doc: PDFKit.PDFDocument, generatedBy: string, generatedAt: string) {
   const range = doc.bufferedPageRange();
   for (let i = range.start; i < range.start + range.count; i++) {
     doc.switchToPage(i);
@@ -117,12 +137,14 @@ function footer(doc: PDFKit.PDFDocument, generatedBy: string, generatedAt: strin
   }
 }
 
-function keyValues(doc: PDFKit.PDFDocument, rows: [string, string][]) {
+export function keyValues(doc: PDFKit.PDFDocument, rows: [string, string][]) {
   const left = doc.page.margins.left;
   for (const [k, v] of rows) {
     const y = doc.y;
     doc.font("Helvetica-Bold").fontSize(10).text(k, left, y, { width: 140 });
+    const labelBottom = doc.y; // a long label wraps: the next row starts below both
     doc.font("Helvetica").text(v, left + 150, y, { width: doc.page.width - left - 150 - doc.page.margins.right });
+    doc.y = Math.max(doc.y, labelBottom);
     doc.moveDown(0.35);
   }
   doc.x = left;
@@ -184,138 +206,6 @@ export async function reportPdf(v: ReportView, signed = true): Promise<Buffer> {
   }
   footer(doc, v.generated_by, v.generated_at);
   return toBuffer(doc);
-}
-
-/** Signed when every approved entry carries its signatures; blank when nothing needs one. */
-function signedMark(entries: PhdFileView["annexures"][number]["entries"]): string {
-  const marks = entries.map((e) => e.signed).filter((s) => s !== null);
-  if (marks.length === 0) return "";
-  return marks.every(Boolean) ? "Signed" : "Unsigned";
-}
-
-const INDEX_COLUMNS: [string, number][] = [["S. No.", 38], ["Annexure", 232], ["Date", 68], ["Signed", 52], ["Page", 93]];
-
-/** The PhD file (PRD F17): the index first, then each recorded annexure from a new page. An
- *  annexure with nothing to show is listed with the reason, never left out. */
-/** A signed copy's scan, fetched by the server from its short-lived link, keyed by the copy's id. */
-export type Scan = { bytes: Uint8Array; type: string };
-type Placeholder = { page: number; src: PDFLibDocument; index: number };
-
-/** Puts each approved signed copy after the entry it stands for (PRD F17b): an image on a page of
- *  its own; a PDF's pages on blank pages kept for them, drawn in afterwards with pdf-lib. A scan
- *  that cannot be read leaves a note, never a failed file. */
-async function drawScan(doc: PDFKit.PDFDocument, heading: string, scan: Scan | undefined, slots: Placeholder[]) {
-  const unreadable = () => {
-    doc.addPage().font("Helvetica-Oblique").fontSize(10)
-      .text(`The signed copy of "${heading}" could not be read here; open it in the portal.`);
-  };
-  if (!scan) return unreadable();
-  if (scan.type === "application/pdf") {
-    const src = await PDFLibDocument.load(scan.bytes).catch(() => null);
-    if (!src || src.getPageCount() === 0) return unreadable();
-    for (let index = 0; index < src.getPageCount(); index++) {
-      doc.addPage();
-      slots.push({ page: doc.bufferedPageRange().count - 1, src, index });
-    }
-    return;
-  }
-  try {
-    doc.addPage();
-    const { left, right, top, bottom } = doc.page.margins;
-    doc.image(Buffer.from(scan.bytes), left, top,
-      { fit: [doc.page.width - left - right, doc.page.height - top - bottom], align: "center" });
-  } catch (e) {
-    console.error("a signed copy could not be drawn:", e);
-    doc.text(`The signed copy of "${heading}" could not be read here; open it in the portal.`);
-  }
-}
-
-async function fillPlaceholders(pdf: Buffer, slots: Placeholder[], margin: number): Promise<Buffer> {
-  if (slots.length === 0) return pdf;
-  const out = await PDFLibDocument.load(pdf);
-  const font = await out.embedFont(StandardFonts.HelveticaOblique);
-  for (const { page, src, index } of slots) {
-    const target = out.getPage(page);
-    const { width, height } = target.getSize();
-    if (!src.getPage(index).node.Contents()) { // nothing pdf-lib can embed (it would fail on save)
-      target.drawText(`Page ${index + 1} of this signed copy could not be read here; open it in the portal.`,
-        { x: margin, y: height - margin - 10, size: 10, font });
-      continue;
-    }
-    const [embedded] = await out.embedPdf(src, [index]);
-    if (!embedded) continue;
-    const scale = Math.min((width - 2 * margin) / embedded.width, (height - 2 * margin) / embedded.height);
-    const w = embedded.width * scale;
-    const h = embedded.height * scale;
-    target.drawPage(embedded, { x: (width - w) / 2, y: margin + (height - 2 * margin - h) / 2, width: w, height: h });
-  }
-  return Buffer.from(await out.save());
-}
-
-export async function phdFilePdf(v: PhdFileView, scans: Map<string, Scan> = new Map()): Promise<Buffer> {
-  const doc = new PDFDocument({ size: "A4", margin: 56, bufferPages: true, info: { Title: `PhD file – ${v.scholar}` } });
-  header(doc, v, "PhD File", `${v.scholar} · ${v.roll_number} · ${v.unit}`);
-  keyValues(doc, [
-    ["Supervisor", v.supervisor ?? "—"],
-    ["Admitted", day(v.admission_date)],
-  ]);
-  doc.moveDown(0.6).font("Helvetica-Bold").fontSize(12).text("Index of annexures");
-  const indexTop = doc.y + 6;
-  const left = doc.page.margins.left;
-
-  const pages: (number | null)[] = [];
-  const slots: Placeholder[] = [];
-  for (const [n, a] of v.annexures.entries()) {
-    if (a.entries.length === 0) {
-      pages.push(null);
-      continue;
-    }
-    doc.addPage();
-    pages.push(doc.bufferedPageRange().count);
-    doc.font("Helvetica-Bold").fontSize(13).text(`Annexure ${n + 1} — ${a.title}`);
-    doc.font("Helvetica").fontSize(9).fillColor("#444444").text(`${v.scholar} · ${v.roll_number}`).fillColor("black");
-    doc.moveDown(0.8);
-    for (const e of a.entries) {
-      if (doc.y > doc.page.height - doc.page.margins.bottom - 80) doc.addPage();
-      doc.font("Helvetica-Bold").fontSize(11).text(e.heading, left);
-      if (e.date) doc.font("Helvetica").fontSize(9).fillColor("#444444").text(day(e.date)).fillColor("black");
-      doc.moveDown(0.3);
-      keyValues(doc, e.lines);
-      const follows = e.papers.filter((p) => p.copy?.scan_url).map((p) => p.label);
-      if (follows.length) {
-        doc.font("Helvetica-Oblique").fontSize(9).text(`Signed copies follow: ${follows.join("; ")}.`, left);
-      } else if (e.signed !== null) {
-        doc.font("Helvetica-Oblique").fontSize(9)
-          .text(e.signed ? "Approved with signatures on record." : "Approved in the portal without a signature.", left);
-      }
-      doc.moveDown(0.8);
-    }
-    for (const e of a.entries) {
-      for (const p of e.papers) {
-        if (p.copy?.scan_url) await drawScan(doc, `${p.label}, ${e.heading}`, scans.get(p.copy.id), slots);
-      }
-    }
-  }
-
-  doc.switchToPage(0);
-  const drawRow = (cells: string[], y: number, bold = false) => {
-    let x = left;
-    doc.font(bold ? "Helvetica-Bold" : "Helvetica").fontSize(9.5);
-    cells.forEach((c, i) => {
-      doc.text(c, x, y, { width: INDEX_COLUMNS[i]![1] - 6 });
-      x += INDEX_COLUMNS[i]![1];
-    });
-  };
-  drawRow(INDEX_COLUMNS.map(([label]) => label), indexTop, true);
-  let y = indexTop + 15;
-  doc.moveTo(left, y - 3).lineTo(left + INDEX_COLUMNS.reduce((s, [, w]) => s + w, 0), y - 3).lineWidth(0.6).stroke();
-  v.annexures.forEach((a, n) => {
-    const page = pages[n];
-    drawRow([String(n + 1), a.title, a.date ? day(a.date) : "", signedMark(a.entries), page ? String(page) : (a.note ?? "")], y);
-    y = Math.max(doc.y, y + 14) + 4;
-  });
-  footer(doc, v.generated_by, v.generated_at);
-  return fillPlaceholders(await toBuffer(doc), slots, 56); // above the footer
 }
 
 const REGISTER_COLUMNS: [string, number][] = [

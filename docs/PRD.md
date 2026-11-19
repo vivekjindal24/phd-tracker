@@ -535,7 +535,17 @@ demand, from what is already recorded.
   signature or not) and its page — or why it has none: "Not on record", "Not
   shown to you" (the caller's role does not read that part, as on screen), "Not
   in use at this university" (its module is off). Each recorded annexure then
-  starts a new page with a plain summary of its entries. Each part is read
+  starts a new page with a plain summary of its entries. *Forms (2026-11-20):*
+  entries the university keeps a paper form for print as that form, one page
+  each, after the university's own layout (Medi-Caps Form IV–VIII): the
+  scholar's particulars, the body (members, courses and attempts, the panel's
+  answers), the signature block, "Forwarded to the Dean of the Faculty" and
+  "Copy to". So far: appointment of supervisor, formation of the advisory
+  committee, comprehensive examination, registration seminar report and
+  pre-thesis synopsis report. "Download PhD file" asks signed or unsigned:
+  signed prints the specimens of those who signed in the portal and the
+  approved scans; unsigned prints the forms alone with signature and date
+  lines, for signing by hand. Each part is read
   through the same rule as its screen: examiner names stay withheld before the
   viva and unreleased reports out of the scholar's copy; outside members'
   emails and personal data are not printed. Still to come: the forms
@@ -576,6 +586,11 @@ legal proof; the electronic approval is the record of it.
   national and international examiners; only the Research Office, the Exam
   Office and the department admin see and handle it. One copy per paper: two
   national examiners' letters go in as one PDF.
+  *Coursework mark sheet (owner, 2026-11-20):* the coursework annexure's
+  "Courses and grades" holds the mark sheet. The exam cell uploads it (the
+  department admin and the Research Office may too) and it counts at once; a
+  scholar may upload their own, which waits for the department admin's
+  approval.
 - **The signature is the main mark** (stakeholder requirement): on a generated
   form each signatory's signature stands where their wet signature would, with
   the electronic approval record below it as detail.

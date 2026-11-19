@@ -11,7 +11,7 @@ from typing import Any
 from sqlalchemy import ColumnElement, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import committee, coursework, scope, seminars, supervision, thesis
+from app import committee, coursework, phd_forms, scope, seminars, supervision, thesis
 from app.auth.principal import Principal
 from app.enums import LOCAL_TZ, PHD_ANNEXURES
 from app.models import (
@@ -65,6 +65,7 @@ def _entry(
     signed=None,
     record: uuid.UUID | None = None,
     papers: tuple[str, ...] = ("signed_copy",),
+    form: dict[str, Any] | None = None,
 ):
     """`record`: the row behind the entry; `papers`: the signed copies it holds, in the paper
     file's order (enums.DOCUMENT_KINDS, F17b). An entry with no record holds none."""
@@ -75,6 +76,7 @@ def _entry(
         "signed": signed,
         "record": record,
         "papers": list(papers) if record else [],
+        "form": form,  # the entry printed as the university's form (phd_forms.py), if it has one
     }
 
 
@@ -91,6 +93,7 @@ EXAMINER_PAPERS = (
 class _File:
     def __init__(self, session: AsyncSession, principal: Principal, scholar: Scholar):
         self.session, self.principal, self.scholar = session, principal, scholar
+        self.forms = phd_forms.Forms(session, principal, scholar)
         self._ev: dict[str, Any] | bool | None = False  # the thesis evaluation, read once
 
     async def reads(self, entity: str) -> bool:
@@ -188,6 +191,7 @@ class _File:
                     ("Ended on", _d(a["ended_on"]) if a["ended_on"] else None),
                 ],
                 record=a["id"],
+                form=await self.forms.appointment(a),
             )
             for a in rows
         ]
@@ -207,6 +211,7 @@ class _File:
                     for m in f["members"]
                 ],
                 record=f["id"],
+                form=await self.forms.committee_formation(f),
             )
             for f in reversed(versions)  # oldest first, as filed
         ]
@@ -217,18 +222,24 @@ class _File:
         out = []
         if await self.reads("enrolments"):
             summary = await coursework.summary(self.session, self.scholar.id)
-            if summary["rows"]:
-                out.append(
-                    _entry(
-                        None,
-                        "Courses and grades",
-                        [
-                            (f"{c.code} {c.title} ({e.semester})", e.grade or "Not graded")
-                            for e, c in summary["rows"]
-                        ]
-                        + [("Credits", summary["credits"]), ("CGPA", summary["cgpa"])],
-                    )
+            # Always listed: the place for the mark sheets, before any grade is recorded too.
+            out.append(
+                _entry(
+                    None,
+                    "Courses and grades",
+                    [
+                        (f"{c.code} {c.title} ({e.semester})", e.grade or "Not graded")
+                        for e, c in summary["rows"]
+                    ]
+                    + (
+                        [("Credits", summary["credits"]), ("CGPA", summary["cgpa"])]
+                        if summary["rows"]
+                        else [("Courses", "None recorded yet")]
+                    ),
+                    record=self.scholar.id,
+                    papers=("mark_sheet",),
                 )
+            )
         if await self.reads("coursework_clearances"):
             for c in await self.all(CourseworkClearance):
                 out.append(
@@ -254,6 +265,7 @@ class _File:
                 f"Attempt {e.attempt}, {e.held_in:%B %Y}",
                 [("Result", e.result.capitalize()), ("Notes", e.notes)],
                 record=e.id,
+                form=await self.forms.comprehensive(e, rows),
             )
             for e in rows
         ]
@@ -297,6 +309,8 @@ class _File:
                     ],
                     record=entry.id,
                     papers=SEMINAR_PAPERS,
+                    # A progress seminar's paper is the progress report itself.
+                    form=await self.forms.seminar(s, entry) if kind != "progress" else None,
                 )
             )
         return out

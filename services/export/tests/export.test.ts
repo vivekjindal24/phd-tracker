@@ -6,7 +6,8 @@ import express from "express";
 import { PDFDocument as PDFLibDocument } from "pdf-lib";
 import { createApp, loadConfig } from "../src/server.ts";
 import { phdFileView, reportView } from "../src/api.ts";
-import { certificatePdf, csvCell, phdFilePdf, reportPdf, tableCsv } from "../src/render.ts";
+import { certificatePdf, csvCell, reportPdf, tableCsv } from "../src/render.ts";
+import { phdFilePdf } from "../src/phd-file.ts";
 
 const REPORT_ID = "6f1c2a7e-3b4d-4e5f-8a9b-0c1d2e3f4a5b";
 const JUNK_ID = "00000000-0000-4000-8000-000000000000";
@@ -228,6 +229,8 @@ test("the PhD file: the index page, then one page per recorded annexure", async 
   const pdf = Buffer.from(await res.arrayBuffer());
   assert.equal(pageCount(pdf), 3); // index + two annexures with entries; the empty two are only listed
   assert.equal(pageCount(await phdFilePdf(phdFileView.parse({ ...phdFile, annexures: [] }))), 1);
+  const unsigned = await get(`/scholars/${REPORT_ID}/phd-file.pdf?signed=0`);
+  assert.match(unsigned.headers.get("content-disposition") ?? "", /phd-file-PHD-1-unsigned\.pdf/);
 });
 
 test("approved papers stand after their entry, in order: a PDF's pages, a photo, a note for a bad one", async () => {
@@ -248,8 +251,31 @@ test("approved papers stand after their entry, in order: a PDF's pages, a photo,
     ["b", { bytes: Buffer.from(DOT_PNG, "base64"), type: "image/png" }],
   ]);
   const pdf = await phdFilePdf(view, scans);
-  // index + the annexure page + two scanned pages + the photo + a note for the one not fetched
-  assert.equal((await PDFLibDocument.load(pdf)).getPageCount(), 6);
+  // index; Seminar 1, its two scanned pages and the photo; Report 3 and a note for its scan not
+  // fetched; Report 4 (waiting: nothing follows). Each entry's scans come right after it.
+  assert.equal((await PDFLibDocument.load(pdf)).getPageCount(), 8);
+  // Unsigned: the entries alone, no scans — for printing and signing by hand.
+  assert.equal((await PDFLibDocument.load(await phdFilePdf(view, scans, false))).getPageCount(), 2);
+});
+
+test("an entry with a form prints as the university's form: fields, table, signers, forwarded", async () => {
+  const signer = (name: string, role: string, signature: string | null = null) => ({ name, role, signature });
+  const form = {
+    title: "Report of Comprehensive Examination", fields: [["Name of the Student", "Arun"]],
+    tables: [{ title: "Attempts", columns: ["No. of attempt", "Date of exam", "Result"], rows: [["1", "May 2026", "Satisfactory"]] }],
+    statement: "Result: Satisfactory", signed_heading: "Signature of the Research Advisory Committee",
+    signed_by: [signer("Meera", "Supervisor", `data:image/png;base64,${DOT_PNG}`), signer("Sen", "Chairperson")],
+    forwarded: { to: "Dean of the Faculty", by: [signer("Rao", "Chairperson, DRC")] },
+    copy_to: ["Dean Research"], recorded: "Recorded in Anveshan by R on 01/05/2026.",
+  };
+  const view = phdFileView.parse({ ...phdFile, annexures: [{ key: "comprehensive", title: "Comprehensive", date: null,
+    note: null, entries: [{ ...entry("Attempt 1"), form }, { ...entry("Attempt 2"), form }, entry("Plain")] }] });
+  const image = /\/Subtype \/Image/;
+  const pdf = await phdFilePdf(view);
+  // index + a page per form + the plain entry's summary page
+  assert.equal((await PDFLibDocument.load(pdf)).getPageCount(), 4);
+  assert.match(pdf.toString("latin1"), image); // the specimen of who signed in the portal
+  assert.doesNotMatch((await phdFilePdf(view, new Map(), false)).toString("latin1"), image);
 });
 
 test("NAAC CSV keeps numbers and neutralises formulas", () => {
