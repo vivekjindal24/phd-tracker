@@ -14,6 +14,7 @@ import { PublicationDetails } from "@/components/items/PublicationDetails";
 import { ReportDetails } from "@/components/items/ReportDetails";
 import { ThesisDetails } from "@/components/items/ThesisDetails";
 import { ThesisEvaluation } from "@/components/items/ThesisEvaluation";
+import { VivaArrangementDetails } from "@/components/items/VivaArrangementDetails";
 import { StateBadge } from "@/components/items/StateBadge";
 import { Button, Card, ErrorText, Field, PageHeader } from "@/components/ui/kit";
 import { api, ApiError } from "@/lib/api";
@@ -40,6 +41,7 @@ const RECORD_TABLE: Partial<Record<ItemType, CommentTarget>> = {
   coursework_clearance: "coursework_clearances",
   no_dues_clearance: "no_dues_clearances",
   fellowship_claim: "fellowship_claims",
+  viva_arrangement: "viva_arrangements",
 };
 
 /** The type-specific record card; the chain, actions and history around it are generic. */
@@ -49,6 +51,7 @@ function ItemContent({ item, onSaved }: { item: ItemView; onSaved: (v: ItemView)
   if (item.item_type === "thesis_submission") return <ThesisDetails item={item} onSaved={onSaved} />;
   if (item.item_type === "coursework_clearance") return <ClearanceDetails item={item} />;
   if (item.item_type === "fellowship_claim") return <ClaimDetails item={item} onSaved={onSaved} />;
+  if (item.item_type === "viva_arrangement") return <VivaArrangementDetails item={item} onSaved={onSaved} />;
   return null;
 }
 

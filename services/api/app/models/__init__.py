@@ -48,6 +48,8 @@ from app.models.thesis import (
     ThesisReviewCopy,
     ThesisSubmission,
     Viva,
+    VivaArrangement,
+    VivaBoardMember,
 )
 from app.models.workflow import ApprovalActionRow, SupervisorStandIn
 
@@ -111,4 +113,6 @@ __all__ = [
     "User",
     "UtilisationCertificate",
     "Viva",
+    "VivaArrangement",
+    "VivaBoardMember",
 ]

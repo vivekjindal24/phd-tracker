@@ -14,7 +14,7 @@ from sqlalchemy.orm import aliased
 from app import apr, coursework, ethics, grants, scope, signatures, signing, workflow
 from app.auth.principal import Principal
 from app.crud import update
-from app.enums import STAGES
+from app.enums import LOCAL_TZ, STAGES
 from app.errors import ApiError, forbidden
 from app.models import (
     ApprovalActionRow,
@@ -31,6 +31,7 @@ from app.models import (
     Signature,
     ThesisSubmission,
     User,
+    VivaArrangement,
 )
 from app.modules import module_enabled
 from app.workflow import ITEM_LABELS, STEP_LABELS, ItemContext
@@ -179,6 +180,30 @@ async def _claim_ready(session: AsyncSession, principal: Principal, ctx: ItemCon
     await grants.refresh_claim(session, principal, ctx.item)
 
 
+def _viva_content(a: VivaArrangement, _: Principal) -> dict[str, Any]:
+    """The board is read with its own confidentiality rules (viva.board)."""
+    return {
+        "thesis_id": a.thesis_id,
+        "scheduled_at": a.scheduled_at,
+        "venue": a.venue,
+        "online_link": a.online_link,
+        "notes": a.notes,
+        "invited_at": a.invited_at,
+    }
+
+
+async def _viva_ready(session: AsyncSession, principal: Principal, ctx: ItemContext) -> None:
+    from app import viva  # viva applies the thesis rules, and thesis imports this module
+
+    await viva.check_ready(session, principal, ctx)
+
+
+async def _viva_approved(session: AsyncSession, principal: Principal, ctx: ItemContext) -> None:
+    from app import viva
+
+    await viva.announce(session, principal, ctx)
+
+
 REGISTRY: dict[str, ItemKind] = {
     "progress_report": ItemKind(
         ProgressReport,
@@ -230,6 +255,15 @@ REGISTRY: dict[str, ItemKind] = {
         _claim_content,
         "fellowships",
         before_submit=_claim_ready,
+    ),
+    "viva_arrangement": ItemKind(
+        VivaArrangement,
+        "viva_arrangements",
+        lambda a: f"Viva on {a.scheduled_at.astimezone(LOCAL_TZ):%d %b %Y}",
+        _viva_content,
+        "documents",
+        before_submit=_viva_ready,
+        on_approved=_viva_approved,
     ),
 }
 

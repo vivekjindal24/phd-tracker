@@ -2,6 +2,7 @@
 tuples, so they cannot drift apart (DATABASE.md §2)."""
 
 from typing import Literal, get_args
+from zoneinfo import ZoneInfo
 
 AssignedRole = Literal[
     "unit_head", "admin", "research_office", "exam_office", "library", "vice_chancellor"
@@ -53,6 +54,7 @@ ItemType = Literal[
     "thesis_submission",
     "no_dues_clearance",
     "fellowship_claim",
+    "viva_arrangement",
 ]
 ITEM_TYPES = get_args(ItemType)
 SigningAction = Literal["approve", "send_back"]
@@ -236,6 +238,11 @@ CopyKind = Literal["view", "download"]
 COPY_KINDS = get_args(CopyKind)
 VivaOutcome = Literal["pass", "redefend", "fail"]
 VIVA_OUTCOMES = get_args(VivaOutcome)
+# ponytail: one zone for every install (Indian universities); a setting if that ever changes.
+LOCAL_TZ = ZoneInfo("Asia/Kolkata")
+# A viva board's members besides the supervisor, who always sits on it (PRD M3, Form XI).
+VivaBoardRole = Literal["chairperson", "external_examiner", "member"]
+VIVA_BOARD_ROLES = get_args(VivaBoardRole)
 
 EntranceRoute = Literal["net_jrf", "gate", "university_test", "other"]
 ENTRANCE_ROUTES = get_args(EntranceRoute)
@@ -288,6 +295,7 @@ CommentTarget = Literal[
     "coursework_clearances",
     "no_dues_clearances",
     "fellowship_claims",
+    "viva_arrangements",
 ]
 COMMENT_TARGETS = get_args(CommentTarget)
 
@@ -318,6 +326,7 @@ INITIATOR: dict[str, str] = {
     "coursework_clearance": "exam_office",
     "no_dues_clearance": "scholar",
     "fellowship_claim": "scholar",
+    "viva_arrangement": "exam_office",
 }
 DEFAULT_CHAINS: dict[str, tuple[str, ...]] = {
     "progress_report": ("supervisor", "department", "research_office"),
@@ -327,6 +336,8 @@ DEFAULT_CHAINS: dict[str, tuple[str, ...]] = {
     "no_dues_clearance": ("supervisor", "department", "library", "research_office"),
     # PRD M6: the guide certifies the month, the department forwards, the office accepts
     "fellowship_claim": ("supervisor", "department", "research_office"),
+    # PRD M3: the Exam Office proposes the viva (Form X) and its board (Form XI); the VC approves
+    "viva_arrangement": ("vice_chancellor",),
     "thesis_submission": (
         "supervisor",
         "department",

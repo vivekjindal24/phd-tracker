@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import certificate, items, scope, thesis, workflow
+from app import certificate, items, scope, thesis, viva, workflow
 from app.auth.principal import Principal
 from app.crud import insert, update
 from app.db import get_session
@@ -313,7 +313,18 @@ async def record_viva(
 ) -> dict[str, Any]:
     ctx = await _office_ctx(session, principal, thesis_id, "exam_office")
     await thesis.check_new_viva(session, thesis_id, body.held_on)
-    await insert(session, principal, Viva(thesis_id=thesis_id, **body.model_dump()))
+    arranged = await viva.open_arrangement(session, thesis_id)
+    if arranged is None or arranged.state != "approved":
+        raise ApiError(
+            409,
+            "viva_not_approved",
+            "Arrange the viva and have the arrangement approved before recording it.",
+        )
+    await insert(
+        session,
+        principal,
+        Viva(thesis_id=thesis_id, arrangement_id=arranged.id, **body.model_dump()),
+    )
     if body.outcome == "pass":
         await items.advance_stage(session, principal, ctx.scholar, "Viva")
     notify(session, [ctx.scholar.user_id], "system", "Your viva has been recorded", link=ctx.link)

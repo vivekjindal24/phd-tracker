@@ -148,9 +148,9 @@ supervisees; scholar sees self; the three offices are university-wide.
 Acceptance: a HoD of Physics never sees a Chemistry scholar (403); a person
 with two roles sees the union of both scopes, never more.
 
-**F3 — Configurable approval chains.** Six item types go through approval
+**F3 — Configurable approval chains.** Seven item types go through approval
 chains: **progress report, publication, thesis submission, coursework
-clearance, no-dues clearance, fellowship claim**. The root admin configures one chain per item type **for the
+clearance, no-dues clearance, fellowship claim, viva arrangement**. The root admin configures one chain per item type **for the
 whole university** (not per unit). Default chains:
 
 | Item | Initiator | Chain |
@@ -161,6 +161,7 @@ whole university** (not per unit). Default chains:
 | Thesis submission | Scholar | Supervisor → Department → Library (plagiarism score) → Exam Office (receipt, examiners) → Research Office (final) |
 | No-dues clearance (when the university requires it, M3) | Scholar | Supervisor (lab dues) → Department → Library (books) → Research Office (fees) |
 | Fellowship claim (module Fellowships, M6) | Scholar | Supervisor (certifies the month) → Department → Research Office |
+| Viva arrangement (M3: Forms X and XI) | Exam Office (date, place, board) | Vice Chancellor |
 
 "Department" step = the head **or** an admin of the scholar's own unit.
 A chain may also carry a **Vice Chancellor** step (any holder of that role
@@ -584,11 +585,26 @@ Library at its step), examiners (entered by Exam Office at its step).
     a determined technical reviewer cannot be fully stopped; the code is what
     traces a leak. Page images were rejected as too heavy, and on-PDF marking is
     left out for now.
+- **Viva arrangement** (Decided 2026-11-19; Forms X and XI): once the reports
+  are released, the Exam Office proposes the viva — date and time, venue and/or
+  online link — and its board: the supervisor always sits on it, plus a
+  chairperson (one), one or more external examiners (outside people, with an
+  email) and members (faculty or outside). It is an approvable item (default
+  chain: Vice Chancellor), with signing when the university requires it; the
+  Exam Office edits it only while a draft or sent back. Submitting needs a
+  date still to come, a venue or link, a chairperson and an external examiner.
+  On approval the supervisor and the faculty on the board are notified (the
+  scholar by the engine); the Exam Office then **emails the external
+  examiners** the date, place and thesis title (may be sent again; 503 when
+  email is not configured). One open arrangement per thesis at a time (409
+  `viva_already_arranged`). The external examiners' names follow the examiner
+  rule below until the viva is recorded.
 - **Viva:** the Exam Office records date, venue or online link, panel and
-  outcome (pass / re-defend after revision / fail) with the report file. A
-  passed viva moves the scholar's stage to Viva. A viva is recorded after it
-  happened and after the reports are released; pass and fail end the record,
-  re-defend allows another.
+  outcome (pass / re-defend after revision / fail) with the report file (Form
+  XII), against the approved arrangement (409 `viva_not_approved` without
+  one). A passed viva moves the scholar's stage to Viva. A viva is recorded
+  after it happened and after the reports are released; pass and fail end the
+  record, re-defend needs a new arrangement for the next.
 - **Shodhganga deposit:** the Library records the deposit date, the
   Shodhganga handle/URL and the certificate file — a record, not a sync.
 - **No-dues clearance** (Decided 2026-10-31; university setting

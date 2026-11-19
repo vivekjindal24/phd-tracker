@@ -5,7 +5,7 @@ import uuid
 from datetime import date, datetime
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, EmailStr, Field, StringConstraints
+from pydantic import AwareDatetime, BaseModel, EmailStr, Field, StringConstraints, model_validator
 
 from app.enums import (
     ConferenceType,
@@ -17,6 +17,7 @@ from app.enums import (
     PubType,
     Recommendation,
     ReviewStatus,
+    VivaBoardRole,
     VivaOutcome,
 )
 from app.schemas import LongTitle, Name, Notes, Ref, Venue
@@ -359,6 +360,13 @@ class CertificateVerification(BaseModel):
     status: Literal["valid", "revoked"]
 
 
+class ArrangementRow(BaseModel):
+    id: uuid.UUID
+    state: ItemState
+    scheduled_at: datetime
+    held: bool  # its viva has been recorded
+
+
 class EvaluationView(BaseModel):
     thesis_id: uuid.UUID
     names_hidden: bool
@@ -372,6 +380,74 @@ class EvaluationView(BaseModel):
     can_record_reports: bool
     reviews: list[ReviewRow]
     can_invite_reviewers: bool
+    arrangements: list[ArrangementRow]
+    can_arrange_viva: bool
     can_record_viva: bool
     viva_block: str | None
     can_record_deposit: bool
+
+
+# --- viva arrangements (PRD M3: Forms X and XI) ---------------------------------------------
+
+OnlineLink = Annotated[
+    str, StringConstraints(strip_whitespace=True, pattern=r"^https?://\S{3,500}$")
+]
+
+
+class VivaArrangementIn(BaseModel):
+    scheduled_at: AwareDatetime
+    venue: Venue = ""
+    online_link: OnlineLink | None = None
+    notes: Notes = ""
+
+
+class VivaArrangementUpdate(BaseModel):
+    scheduled_at: AwareDatetime | None = None
+    venue: Venue | None = None
+    online_link: OnlineLink | None = None
+    notes: Notes | None = None
+
+
+class BoardMemberIn(BaseModel):
+    """Faculty of this university by id, or an outside person by name, institution and email.
+    An external examiner is always an outside person."""
+
+    role: VivaBoardRole
+    faculty_id: uuid.UUID | None = None
+    name: Name | None = None
+    institution: Name | None = None
+    email: EmailStr | None = None
+
+    @model_validator(mode="after")
+    def _one_kind(self) -> "BoardMemberIn":
+        outside = (self.name, self.institution, self.email)
+        if self.faculty_id is not None and all(v is None for v in outside):
+            if self.role == "external_examiner":
+                raise ValueError("an external examiner is someone from outside the university")
+            return self
+        if self.faculty_id is None and all(v is not None for v in outside):
+            return self
+        raise ValueError("give a faculty member, or an outside person's name, institution, email")
+
+
+class BoardMemberView(BaseModel):
+    id: uuid.UUID
+    role: VivaBoardRole
+    name: str | None  # None: an external examiner whose name this viewer may not see yet
+    institution: str | None
+    email: str | None
+    external: bool
+
+
+class BoardView(BaseModel):
+    supervisor: str | None  # always on the board
+    members: list[BoardMemberView]
+    names_hidden: bool
+    can_edit: bool
+    can_invite: bool
+    email_configured: bool
+
+
+class InviteOut(BaseModel):
+    sent: int
+    invited_at: datetime

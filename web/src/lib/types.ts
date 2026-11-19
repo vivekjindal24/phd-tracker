@@ -11,7 +11,8 @@ export type ItemType =
   | "coursework_clearance"
   | "thesis_submission"
   | "no_dues_clearance"
-  | "fellowship_claim";
+  | "fellowship_claim"
+  | "viva_arrangement";
 export type ModuleKey =
   | "publications"
   | "conferences"
@@ -115,6 +116,7 @@ export const ITEM_LABELS: Record<ItemType, string> = {
   thesis_submission: "Thesis submission",
   no_dues_clearance: "No-dues clearance",
   fellowship_claim: "Fellowship claim",
+  viva_arrangement: "Viva arrangement",
 };
 
 export const MODULE_LABELS: Record<ModuleKey, string> = {
@@ -506,7 +508,8 @@ export type CommentTarget =
   | "thesis_submissions"
   | "coursework_clearances"
   | "no_dues_clearances"
-  | "fellowship_claims";
+  | "fellowship_claims"
+  | "viva_arrangements";
 export type FileItem = {
   id: string;
   file_name: string;
@@ -625,6 +628,8 @@ export type Evaluation = {
   can_issue_certificate: boolean;
   can_revoke_certificate: boolean;
   can_record_reports: boolean;
+  arrangements: { id: string; state: ItemState; scheduled_at: string; held: boolean }[];
+  can_arrange_viva: boolean;
   can_record_viva: boolean;
   viva_block: string | null;
   can_record_deposit: boolean;
@@ -925,3 +930,28 @@ export type AuditRow = {
 /** A specimen signature (PRD F17b); `image` is a data: URL. */
 export type Signature = { image: string; uploaded_at: string; uploaded_by_self: boolean; confirmed_at: string | null };
 export type PendingSignature = { user_id: string; full_name: string; email: string; signature: Signature };
+
+/** A viva arrangement's record (PRD M3, Form X); its board is read separately. */
+export type VivaArrangementContent = {
+  thesis_id: string;
+  scheduled_at: string;
+  venue: string;
+  online_link: string | null;
+  notes: string;
+  invited_at: string | null;
+};
+export type VivaBoardRole = "chairperson" | "external_examiner" | "member";
+export const VIVA_BOARD_ROLE_LABELS: Record<VivaBoardRole, string> = {
+  chairperson: "Chairperson",
+  external_examiner: "External examiner",
+  member: "Member",
+};
+/** Form XI. `name` is null for an external examiner this viewer may not see before the viva. */
+export type VivaBoard = {
+  supervisor: string | null;
+  members: { id: string; role: VivaBoardRole; name: string | null; institution: string | null; email: string | null; external: boolean }[];
+  names_hidden: boolean;
+  can_edit: boolean;
+  can_invite: boolean;
+  email_configured: boolean;
+};

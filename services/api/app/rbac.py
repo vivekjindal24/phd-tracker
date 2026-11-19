@@ -129,6 +129,14 @@ MATRIX: dict[str, dict[str, frozenset[str]]] = {
         "exam_office": frozenset({R}),
         "library": frozenset({R}),
     },
+    "viva_arrangements": {  # the Exam Office proposes; everyone who reads the thesis reads it
+        "scholar": frozenset({R}),
+        "supervisor": frozenset({R}),
+        "unit_head": frozenset({R}),
+        "admin": frozenset({R}),
+        "research_office": frozenset({R}),
+        "exam_office": frozenset({R, C, U, D}),
+    },
     "coursework_clearances": {
         "scholar": frozenset({R}),
         "supervisor": frozenset({R}),

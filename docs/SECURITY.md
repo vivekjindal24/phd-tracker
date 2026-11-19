@@ -135,7 +135,8 @@ role's scope (§2).
 | no-dues clearance | CR own, submit | R, step | R, step (department) | R, step (department) | R, step | R | R, step |
 | examiner reports | R own after release† | R after release† | R | R | R | CRU, release | R |
 | thesis reviewers (invite, deadline, trace a code) | — | — | — | — | — | CRU | — |
-| viva | R own | R | R | R | R | CRU | R |
+| viva arrangement (date, place, board; external examiners unnamed as †) | R own | R | R | R | R | CRUD while draft / sent back, submit, email examiners | R |
+| viva | R own | R | R | R | R | CRU (only against an approved arrangement) | R |
 | provisional certificate | R own | R | R | R | R, issue, revoke | R | R |
 | Shodhganga deposit | R own | R | R | R | R | R | CRU |
 | bulk import | — | — | — | run in subtree | — | — | — |

@@ -351,7 +351,13 @@ and examiners → Research Office final approval → scholar stage moves to
 Thesis Submitted.
 After approval, on the thesis page: Exam Office adds each **examiner report**
 → **Release reports** (scholar and supervisor see them, without examiner
-names) → records the **viva** (outcome Pass → stage Viva) → Library records
+names) → **Arrange the viva** (date, time, venue / online link) opens the
+arrangement's page, where the Exam Office names the **board** (chairperson,
+external examiners with their email, members; the supervisor is listed
+automatically) and submits it → the Vice Chancellor approves (or sends back)
+→ supervisor and board faculty are notified, and **Email the external
+examiners** sends the invitation → after the viva, records the **viva**
+against it (outcome Pass → stage Viva) → Library records
 the **Shodhganga deposit** (date, handle, certificate).
 
 After a passed viva the Research Office **issues the provisional certificate**

@@ -90,6 +90,9 @@ async def require_read(
     if table == "fellowship_claims":
         ctx = await items.load_ctx(session, principal, "fellowship_claim", record_id)
         return ctx.scholar, ctx.link
+    if table == "viva_arrangements":
+        ctx = await items.load_ctx(session, principal, "viva_arrangement", record_id)
+        return ctx.scholar, ctx.link
     if table == "examiner_reports":
         _, ctx = await thesis.report_ctx(session, principal, record_id)
         return ctx.scholar, ctx.link

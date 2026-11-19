@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import { Attachments } from "@/components/Attachments";
@@ -11,7 +13,9 @@ import { formatDate } from "@/lib/format";
 import { RECOMMENDATION_LABELS, VIVA_LABELS } from "@/lib/types";
 import type { Evaluation, Recommendation, VivaOutcome } from "@/lib/types";
 import { errorText, useFetch } from "@/lib/useFetch";
+import { StateBadge } from "./StateBadge";
 import { ThesisReviewers } from "./ThesisReviewers";
+import { ArrangementFields } from "./VivaArrangementDetails";
 
 function RecordForm({ label, onSubmit, children }: { label: string; onSubmit: () => Promise<void>; children: ReactNode }) {
   const [open, setOpen] = useState(false);
@@ -140,6 +144,35 @@ function milestone(ev: Evaluation): { key: string; text: string } | null {
   return null;
 }
 
+/** Form X: the Exam Office proposes when and where; the board is named on the arrangement's
+ *  own page, which then goes for approval. */
+function ArrangeViva({ thesisId }: { thesisId: string }) {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  if (!open) return <Button kind="secondary" onClick={() => setOpen(true)}>Arrange the viva</Button>;
+
+  async function arrange(body: object) {
+    setError(null);
+    try {
+      const made = await api<{ id: string }>(`/theses/${thesisId}/viva-arrangements`, { method: "POST", body: JSON.stringify(body) });
+      router.push(`/items/viva_arrangement/${made.id}`);
+    } catch (e) {
+      setError(errorText(e));
+    }
+  }
+
+  return (
+    <div className="verify">
+      <h4>Arrange the viva</h4>
+      <p className="muted">Next you name the board, then send it for approval.</p>
+      <ArrangementFields submitLabel="Continue" onSubmit={arrange} />
+      <Button kind="ghost" onClick={() => setOpen(false)}>Cancel</Button>
+      <ErrorText>{error}</ErrorText>
+    </div>
+  );
+}
+
 /** Everything after the thesis is approved (PRD M3). The API hides what this viewer may not
  *  see yet — unreleased reports, examiner names before the viva. */
 export function ThesisEvaluation({ thesisId, isOwn }: { thesisId: string; isOwn: boolean }) {
@@ -208,6 +241,17 @@ export function ThesisEvaluation({ thesisId, isOwn }: { thesisId: string; isOwn:
         </div>
       )}
       <h3>Viva</h3>
+      {ev.arrangements.length > 0 && (
+        <ul className="plain-list">
+          {ev.arrangements.map((a) => (
+            <li key={a.id}>
+              <Link href={`/items/viva_arrangement/${a.id}`}>Arranged for {new Date(a.scheduled_at).toLocaleString()}</Link>
+              {" "}{a.held ? <span className="muted">· held</span> : <StateBadge state={a.state} waitingOn={null} />}
+            </li>
+          ))}
+        </ul>
+      )}
+      {ev.can_arrange_viva && <ArrangeViva thesisId={thesisId} />}
       {ev.vivas.length === 0 ? <p className="muted">Not held yet.</p> : (
         <ul className="plain-list">
           {ev.vivas.map((v) => (
@@ -219,7 +263,8 @@ export function ThesisEvaluation({ thesisId, isOwn }: { thesisId: string; isOwn:
           ))}
         </ul>
       )}
-      {ev.can_record_viva && (ev.viva_block ? <p className="muted">{ev.viva_block}</p> : <VivaForm thesisId={thesisId} onSaved={recorded} />)}
+      {ev.can_record_viva && <VivaForm thesisId={thesisId} onSaved={recorded} />}
+      {ev.can_record_reports && !ev.can_record_viva && !ev.can_arrange_viva && ev.viva_block && <p className="muted">{ev.viva_block}</p>}
       <h3>Provisional certificate</h3>
       {ev.certificates.length === 0 ? <p className="muted">Not issued yet.</p> : (
         <ul className="plain-list">

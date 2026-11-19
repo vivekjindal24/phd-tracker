@@ -20,7 +20,7 @@ async def documents_on(session, world):
 async def passed_thesis(client, session, world) -> str:
     tid = await approved_thesis(client, session, world)
     await add_report(client, world, tid)
-    assert (await record_viva(client, world, tid)).status_code == 200
+    assert (await record_viva(client, session, world, tid)).status_code == 200
     return tid
 
 
@@ -66,7 +66,7 @@ async def test_needs_a_passed_viva(client, session, world, documents_on):
     await add_report(client, world, tid)
     res = await issue(client, world.research_office, tid)
     assert res.status_code == 422 and res.json()["error"]["code"] == "viva_not_passed"
-    await record_viva(client, world, tid, outcome="redefend")
+    await record_viva(client, session, world, tid, outcome="redefend")
     res = await issue(client, world.research_office, tid)
     assert res.status_code == 422 and res.json()["error"]["code"] == "viva_not_passed"
 

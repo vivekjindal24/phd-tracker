@@ -26,6 +26,7 @@ from app.enums import (
     DOC_KINDS,
     RECOMMENDATIONS,
     REVIEW_STATUSES,
+    VIVA_BOARD_ROLES,
     VIVA_OUTCOMES,
     sql_in,
 )
@@ -191,7 +192,71 @@ class ThesisReviewCopy(DomainRow, Base):
     kind: Mapped[str] = mapped_column(Text)
 
 
+class VivaArrangement(ApprovalColumns, DomainRow, Base):
+    """Approval to hold a viva (Form X) with its board (Form XI): proposed by the Exam Office
+    and approved up its chain (PRD M3). Approved, it is immutable; the viva itself is then
+    recorded against it in `vivas` (Form XII)."""
+
+    __tablename__ = "viva_arrangements"
+    __table_args__ = (*approval_constraints("viva_arrangements"),)
+
+    scholar_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("scholars.id"), index=True
+    )
+    thesis_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("thesis_submissions.id"), index=True
+    )
+    scheduled_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    venue: Mapped[str] = mapped_column(Text, server_default=text("''"))
+    online_link: Mapped[str | None] = mapped_column(Text)
+    notes: Mapped[str] = mapped_column(Text, server_default=text("''"))
+    # When the external examiners were last emailed the arrangement (after approval).
+    invited_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class VivaBoardMember(DomainRow, Base):
+    """One member of a viva board besides the supervisor, who always sits on it: faculty of
+    this university, or an outside person by name, institution and email (Form XI)."""
+
+    __tablename__ = "viva_board_members"
+    __table_args__ = (
+        CheckConstraint(f"role IN ({sql_in(VIVA_BOARD_ROLES)})", name="ck_viva_board_role"),
+        CheckConstraint(
+            "(faculty_id IS NOT NULL AND name IS NULL AND institution IS NULL AND email IS NULL)"
+            " OR (faculty_id IS NULL AND name IS NOT NULL AND institution IS NOT NULL"
+            " AND email IS NOT NULL)",
+            name="ck_viva_board_kind",
+        ),
+        Index(
+            "uq_viva_board_faculty",
+            "arrangement_id",
+            "faculty_id",
+            unique=True,
+            postgresql_where=LIVE,
+        ),
+        Index(
+            "uq_viva_board_chair",
+            "arrangement_id",
+            unique=True,
+            postgresql_where=text("role = 'chairperson' AND deleted_at IS NULL"),
+        ),
+    )
+
+    arrangement_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("viva_arrangements.id"), index=True
+    )
+    role: Mapped[str] = mapped_column(Text)
+    faculty_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("faculty.id")
+    )
+    name: Mapped[str | None] = mapped_column(Text)
+    institution: Mapped[str | None] = mapped_column(Text)
+    email: Mapped[str | None] = mapped_column(CITEXT)
+
+
 class Viva(DomainRow, Base):
+    """The viva as held (Form XII), against the approved arrangement for it."""
+
     __tablename__ = "vivas"
     __table_args__ = (
         CheckConstraint(f"outcome IN ({sql_in(VIVA_OUTCOMES)})", name="ck_vivas_outcome"),
@@ -199,6 +264,10 @@ class Viva(DomainRow, Base):
 
     thesis_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("thesis_submissions.id"), index=True
+    )
+    # Null only for vivas recorded before arrangements existed (migration 0041).
+    arrangement_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("viva_arrangements.id")
     )
     held_on: Mapped[date] = mapped_column(Date)
     venue: Mapped[str] = mapped_column(Text, server_default=text("''"))

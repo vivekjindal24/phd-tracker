@@ -46,6 +46,7 @@ from app.routers import (
     theses,
     users,
     verify,
+    viva_arrangements,
 )
 from app.routers import settings as settings_router
 from app.sorting import TOTAL_HEADER
@@ -100,6 +101,7 @@ for module in (
     conferences,
     documents,
     theses,
+    viva_arrangements,
     reviews,
     verify,
     coursework,

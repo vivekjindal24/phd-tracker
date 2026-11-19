@@ -6,8 +6,9 @@ confidentiality rules around them, computed here and nowhere else (SECURITY.md Â
 - Reports reach the scholar and their supervisor(s) only once the Exam Office releases them,
   even when a supervisor also heads the unit; the other roles that can read the thesis (unit
   heads/admins over it, the offices) see them as they arrive, still without names.
-- A viva is recorded after it happened and once the reports are released; pass and fail end
-  the record, re-defend allows another."""
+- A viva is arranged once the reports are released (an approvable item, viva.py) and recorded
+  after it happened against its approved arrangement; pass and fail end the record, re-defend
+  allows another."""
 
 import uuid
 from datetime import date
@@ -31,6 +32,7 @@ from app.models import (
     ThesisReviewComment,
     ThesisSubmission,
     Viva,
+    VivaArrangement,
 )
 from app.workflow import ItemContext, is_guide
 
@@ -124,7 +126,7 @@ async def load_thesis(
     return await items.load_ctx(session, principal, "thesis_submission", thesis_id, lock=lock)
 
 
-async def _rows(session: AsyncSession, model: type, thesis_id: uuid.UUID) -> list[Any]:
+async def rows(session: AsyncSession, model: type, thesis_id: uuid.UUID) -> list[Any]:
     return list(
         await session.scalars(
             select(model).where(model.thesis_id == thesis_id, model.deleted_at.is_(None))
@@ -132,7 +134,7 @@ async def _rows(session: AsyncSession, model: type, thesis_id: uuid.UUID) -> lis
     )
 
 
-def _viva_block(reports: list[Any], vivas: list[Any]) -> tuple[str, str] | None:
+def viva_block(reports: list[Any], vivas: list[Any]) -> tuple[str, str] | None:
     """Why no further viva can be recorded: (error code, message), or None."""
     if any(v.outcome in FINAL_VIVA_OUTCOMES for v in vivas):
         return "viva_concluded", "This thesis already has a final viva outcome."
@@ -146,10 +148,21 @@ def _check_viva_date(held_on: date) -> None:
         raise ApiError(422, "viva_in_future", "Record a viva after it has taken place.")
 
 
+def _record_block(reports: list[Any], vivas: list[Any], pending: Any) -> str | None:
+    """Why the viva cannot be recorded yet, in words, or None."""
+    if block := viva_block(reports, vivas):
+        return block[1]
+    if pending is None:
+        return "Arrange the viva and have the arrangement approved before recording it."
+    if pending.state != "approved":
+        return "The viva arrangement is still waiting for approval."
+    return None
+
+
 async def check_new_viva(session: AsyncSession, thesis_id: uuid.UUID, held_on: date) -> None:
     _check_viva_date(held_on)
-    block = _viva_block(
-        await _rows(session, ExaminerReport, thesis_id), await _rows(session, Viva, thesis_id)
+    block = viva_block(
+        await rows(session, ExaminerReport, thesis_id), await rows(session, Viva, thesis_id)
     )
     if block:
         raise ApiError(422, *block)
@@ -158,14 +171,14 @@ async def check_new_viva(session: AsyncSession, thesis_id: uuid.UUID, held_on: d
 async def check_viva_update(session: AsyncSession, viva: Viva, changes: dict[str, Any]) -> None:
     if changes.get("held_on"):
         _check_viva_date(changes["held_on"])
-    others = [v for v in await _rows(session, Viva, viva.thesis_id) if v.id != viva.id]
+    others = [v for v in await rows(session, Viva, viva.thesis_id) if v.id != viva.id]
     outcome = changes.get("outcome") or viva.outcome
     if outcome in FINAL_VIVA_OUTCOMES and any(v.outcome in FINAL_VIVA_OUTCOMES for v in others):
         raise ApiError(422, "viva_concluded", "This thesis already has a final viva outcome.")
 
 
 async def viva_recorded(session: AsyncSession, thesis_id: uuid.UUID) -> bool:
-    return bool(await _rows(session, Viva, thesis_id))
+    return bool(await rows(session, Viva, thesis_id))
 
 
 async def report_ctx(
@@ -216,10 +229,13 @@ async def _review_comments(
 
 async def evaluation(session: AsyncSession, principal: Principal, ctx: ItemContext) -> dict:
     thesis: ThesisSubmission = ctx.item  # type: ignore[assignment]
-    reports = sorted(await _rows(session, ExaminerReport, thesis.id), key=lambda r: r.received_on)
-    vivas = sorted(await _rows(session, Viva, thesis.id), key=lambda v: v.held_on)
-    deposits = await _rows(session, ShodhgangaDeposit, thesis.id)
-    certificates = await _rows(session, ProvisionalCertificate, thesis.id)
+    reports = sorted(await rows(session, ExaminerReport, thesis.id), key=lambda r: r.received_on)
+    vivas = sorted(await rows(session, Viva, thesis.id), key=lambda v: v.held_on)
+    arranged = sorted(await rows(session, VivaArrangement, thesis.id), key=lambda a: a.scheduled_at)
+    used = {v.arrangement_id for v in vivas}
+    pending = next((a for a in arranged if a.id not in used), None)  # its viva not yet held
+    deposits = await rows(session, ShodhgangaDeposit, thesis.id)
+    certificates = await rows(session, ProvisionalCertificate, thesis.id)
     certificates.sort(key=lambda c: (c.year, c.number), reverse=True)
     live_certificate = any(c.revoked_at is None for c in certificates)
     research_office = "research_office" in principal.office_roles
@@ -227,7 +243,7 @@ async def evaluation(session: AsyncSession, principal: Principal, ctx: ItemConte
     unreleased_ok = sees_unreleased(principal, ctx)
     approved = thesis.state == "approved"
     runs_reviews = "exam_office" in principal.office_roles and not is_guide(principal, ctx)
-    invited = await _rows(session, ThesisReview, thesis.id)
+    invited = await rows(session, ThesisReview, thesis.id)
     comments = await _review_comments(session, invited)
     return {
         "thesis_id": thesis.id,
@@ -285,7 +301,19 @@ async def evaluation(session: AsyncSession, principal: Principal, ctx: ItemConte
         ),
         "can_revoke_certificate": research_office and live_certificate,
         "can_record_reports": approved and "exam_office" in principal.office_roles,
-        "can_record_viva": approved and "exam_office" in principal.office_roles,
-        "viva_block": block[1] if (block := _viva_block(reports, vivas)) else None,
+        "arrangements": [
+            {"id": a.id, "state": a.state, "scheduled_at": a.scheduled_at, "held": a.id in used}
+            for a in arranged
+        ],
+        "can_arrange_viva": (
+            approved and runs_reviews and pending is None and viva_block(reports, vivas) is None
+        ),
+        "can_record_viva": (
+            approved
+            and "exam_office" in principal.office_roles
+            and pending is not None
+            and pending.state == "approved"
+        ),
+        "viva_block": _record_block(reports, vivas, pending),
         "can_record_deposit": approved and "library" in principal.office_roles,
     }

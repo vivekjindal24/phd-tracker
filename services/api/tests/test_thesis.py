@@ -2,11 +2,13 @@
 with versions. Examiner confidentiality is checked for every role that can see the thesis."""
 
 import uuid
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from sqlalchemy import select
 
-from app.models import FileRow, RoleAssignment, Scholar
+from app import viva
+from app.models import FileRow, RoleAssignment, Scholar, ThesisSubmission, VivaArrangement
 from tests.conftest import approved_stages, auth
 from tests.test_publications import enable
 
@@ -225,6 +227,7 @@ async def test_reports_release_viva_and_deposit(client, session, world, document
     ]
 
     viva = {"held_on": "2026-10-10", "venue": "Senate Hall", "panel": "Prof. X", "outcome": "pass"}
+    await approved_arrangement(session, tid)
     res = await client.post(
         f"/api/v1/theses/{tid}/vivas", headers=auth(world.exam_office.id), json=viva
     )
@@ -336,7 +339,28 @@ async def add_report(client, world, tid, *, release: bool = True) -> str:
     return res.json()["reports"][-1]["id"]
 
 
-async def record_viva(client, world, tid, **body):
+async def approved_arrangement(session, tid) -> None:
+    """An approved viva arrangement, put in place directly: the flow itself is tested in
+    test_viva_arrangements.py."""
+    if (pending := await viva.open_arrangement(session, tid)) and pending.state == "approved":
+        return
+    thesis = await session.get(ThesisSubmission, tid)
+    now = datetime.now(UTC)
+    session.add(
+        VivaArrangement(
+            scholar_id=thesis.scholar_id,
+            thesis_id=tid,
+            scheduled_at=now + timedelta(days=1),
+            venue="Senate Hall",
+            state="approved",
+            approved_at=now,
+        )
+    )
+    await session.commit()
+
+
+async def record_viva(client, session, world, tid, **body):
+    await approved_arrangement(session, tid)
     return await client.post(
         f"/api/v1/theses/{tid}/vivas", headers=auth(world.exam_office.id), json=VIVA | body
     )
@@ -399,7 +423,7 @@ async def test_supervisor_in_the_exam_office_cannot_touch_own_scholars_reports(
 async def test_viva_cannot_be_dated_in_the_future(client, session, world, documents_on):
     tid = await approved_thesis(client, session, world)
     await add_report(client, world, tid)
-    res = await record_viva(client, world, tid, held_on="2099-01-01")
+    res = await record_viva(client, session, world, tid, held_on="2099-01-01")
     assert res.status_code == 422 and res.json()["error"]["code"] == "viva_in_future"
     scholar = await session.get(Scholar, world.s_a1.id)
     await session.refresh(scholar)
@@ -408,10 +432,10 @@ async def test_viva_cannot_be_dated_in_the_future(client, session, world, docume
 
 async def test_viva_waits_for_released_reports(client, session, world, documents_on):
     tid = await approved_thesis(client, session, world)
-    res = await record_viva(client, world, tid)
+    res = await record_viva(client, session, world, tid)
     assert res.status_code == 422 and res.json()["error"]["code"] == "viva_needs_reports"
     await add_report(client, world, tid, release=False)
-    res = await record_viva(client, world, tid)
+    res = await record_viva(client, session, world, tid)
     assert res.status_code == 422 and res.json()["error"]["code"] == "viva_needs_reports"
     assert (await evaluation(client, world.exam_office, tid)).json()["viva_block"]
 
@@ -419,18 +443,21 @@ async def test_viva_waits_for_released_reports(client, session, world, documents
 async def test_pass_and_fail_end_the_viva_record(client, session, world, documents_on):
     tid = await approved_thesis(client, session, world)
     await add_report(client, world, tid)
+    block = (await evaluation(client, world.exam_office, tid)).json()["viva_block"]
+    assert block.startswith("Arrange the viva")
+    await approved_arrangement(session, tid)
     assert (await evaluation(client, world.exam_office, tid)).json()["viva_block"] is None
-    assert (await record_viva(client, world, tid, outcome="redefend")).status_code == 200
-    assert (await record_viva(client, world, tid, outcome="fail")).status_code == 200
-    res = await record_viva(client, world, tid, outcome="pass")
+    assert (await record_viva(client, session, world, tid, outcome="redefend")).status_code == 200
+    assert (await record_viva(client, session, world, tid, outcome="fail")).status_code == 200
+    res = await record_viva(client, session, world, tid, outcome="pass")
     assert res.status_code == 422 and res.json()["error"]["code"] == "viva_concluded"
 
 
 async def test_viva_correction_keeps_the_rules(client, session, world, documents_on):
     tid = await approved_thesis(client, session, world)
     await add_report(client, world, tid)
-    await record_viva(client, world, tid, outcome="redefend")
-    second = await record_viva(client, world, tid, outcome="pass")
+    await record_viva(client, session, world, tid, outcome="redefend")
+    second = await record_viva(client, session, world, tid, outcome="pass")
     by_outcome = {v["outcome"]: v for v in second.json()["vivas"]}
     first, last = by_outcome["redefend"], by_outcome["pass"]
     headers = auth(world.exam_office.id)

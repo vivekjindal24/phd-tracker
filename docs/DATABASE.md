@@ -138,7 +138,7 @@ University-wide switches that are not modules live here.
 
 **approval_chains** — `item_type` PK CHECK (`progress_report`,
 `publication`, `coursework_clearance`, `thesis_submission`,
-`no_dues_clearance`, `fellowship_claim`), `steps` jsonb:
+`no_dues_clearance`, `fellowship_claim`, `viva_arrangement`), `steps` jsonb:
 ordered array of `{"kind": …}` where kind ∈ `supervisor` / `department` /
 `research_office` / `exam_office` / `library` / `vice_chancellor`; CHECK non-empty array (kinds
 validated by Pydantic). One chain per item type, university-wide. Seeded with
@@ -261,8 +261,21 @@ After approval (an approved item is immutable, so these are separate rows):
 until a viva is recorded), `institution`, `received_on`, `recommendation`
 CHECK (accept / minor_revision / major_revision / reject), `notes`,
 `released_at` (set when the Exam Office releases reports to the scholar and
-supervisor). **vivas** — `thesis_id`, `held_on`, `venue`, `panel`, `outcome`
-CHECK (pass / redefend / fail); a pass moves the scholar to Viva.
+supervisor). **viva_arrangements** (migration 0041; approvable, item type
+`viva_arrangement`, initiator the Exam Office) — `scholar_id`, `thesis_id`
+(both indexed), `scheduled_at` timestamptz, `venue`, `online_link`, `notes`,
+`invited_at` (when the external examiners were last emailed) + approval
+columns. **viva_board_members** — `arrangement_id` (indexed), `role` CHECK
+(chairperson / external_examiner / member), then `faculty_id` FK faculty or
+`name` + `institution` + `email` (an outside person): exactly one kind
+(`ck_viva_board_kind`; an external examiner is always outside — schema
+validation). Partial unique on live rows: `uq_viva_board_faculty
+(arrangement_id, faculty_id)`, `uq_viva_board_chair (arrangement_id) WHERE
+role = 'chairperson'`. The supervisor always sits and is never a row.
+**vivas** — `thesis_id`, `arrangement_id` FK viva_arrangements (the approved
+arrangement it was held under; null only for vivas recorded before 0041),
+`held_on`, `venue`, `panel`, `outcome` CHECK (pass / redefend / fail); a pass
+moves the scholar to Viva.
 **thesis_reviews** — one external reviewer on one approved thesis (PRD M3):
 `thesis_id`, `reviewer_user_id` (set on accepting), `report_id` (the
 `examiner_reports` row a submitted review became; its files move there too),

@@ -36,6 +36,7 @@ ITEM_LABELS = {
     "thesis_submission": "Thesis submission",
     "no_dues_clearance": "No-dues clearance",
     "fellowship_claim": "Fellowship claim",
+    "viva_arrangement": "Viva arrangement",
 }
 STEP_LABELS = {
     "supervisor": "Supervisor",
