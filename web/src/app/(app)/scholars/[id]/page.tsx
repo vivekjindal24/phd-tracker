@@ -12,6 +12,7 @@ import { ComprehensiveCard } from "@/components/ComprehensiveCard";
 import { ScholarDocuments } from "@/components/ScholarDocuments";
 import { SupervisionCard } from "@/components/SupervisionCard";
 import { EthicsCard } from "@/components/EthicsCard";
+import { DownloadButton } from "@/components/DownloadButton";
 import { DurationCard } from "@/components/DurationCard";
 import { InviteButton } from "@/components/InviteButton";
 import { MilestoneStatusBadge } from "@/components/MilestoneStatusBadge";
@@ -308,6 +309,7 @@ export default function ScholarProfile() {
         actions={<>
           <span className="badge">{scholar.stage}</span>
           {scholar.left_reason && <span className="badge badge-sent_back">{LEFT_LABELS[scholar.left_reason]}</span>}
+          <DownloadButton path={`/scholars/${scholar.id}/phd-file.pdf`}>Download PhD file</DownloadButton>
         </>} />
       <div className="profile-grid">
         <Card>

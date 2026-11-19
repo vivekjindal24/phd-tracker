@@ -529,6 +529,19 @@ demand, from what is already recorded.
   - *Admission papers*: named places on the scholar's record for the employer's
     no-objection certificate and the entrance-examination minutes, added by the
     admin over the unit.
+- **The file, first cut (2026-11-19):** "Download PhD file" on the scholar's
+  page. Page 1 is the index: every annexure in the order above with its first
+  date, "Signed" / "Unsigned" (approved items: every approval carries a
+  signature or not) and its page — or why it has none: "Not on record", "Not
+  shown to you" (the caller's role does not read that part, as on screen), "Not
+  in use at this university" (its module is off). Each recorded annexure then
+  starts a new page with a plain summary of its entries. Each part is read
+  through the same rule as its screen: examiner names stay withheld before the
+  viva and unreleased reports out of the scholar's copy; outside members'
+  emails and personal data are not printed. Still to come: the forms
+  themselves, uploaded scans merged in, circulars and attendance sheets, the
+  university's own annexure titles; "corrections made for the examiners" has
+  no record of its own yet and is not listed.
 
 **F17b — Signatures on forms** (Decided 2026-11-18). A wet signature stays the
 legal proof; the electronic approval is the record of it.

@@ -11,7 +11,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
-from app import apr, branding, certificate, committee, grants, items, naac, reviews, scope
+from app import apr, branding, certificate, committee, grants, items, naac, phd_file, reviews, scope
 from app.auth.deps import current_principal, current_reviewer
 from app.auth.principal import Principal
 from app.db import get_session
@@ -67,6 +67,35 @@ async def report_export_view(
         "submitted_at": view["submitted_at"],
         "approved_at": view["approved_at"],
         "history": view["history"],
+        "generated_at": datetime.now(UTC),
+        "generated_by": principal.full_name,
+    }
+
+
+@router.get("/scholars/{scholar_id}/phd-file")
+async def phd_file_view(
+    scholar_id: uuid.UUID,
+    principal: Principal = Depends(current_principal),  # whoever reads the scholar
+    session: AsyncSession = Depends(get_session),
+) -> dict[str, Any]:
+    """The PhD file (PRD F17): each annexure as the caller may read it on screen."""
+    scholar = await scope.get_scholar_or_403(session, principal, scholar_id)
+    name, unit = (
+        await session.execute(
+            select(User.full_name, OrgUnit.name)
+            .join(Scholar, Scholar.user_id == User.id)
+            .join(OrgUnit, OrgUnit.id == Scholar.unit_id)
+            .where(Scholar.id == scholar.id)
+        )
+    ).one()
+    return {
+        **await branding.export_fields(session),
+        "scholar": name,
+        "roll_number": scholar.roll_number,
+        "unit": unit,
+        "supervisor": await committee.convener(session, scholar),
+        "admission_date": scholar.admission_date,
+        "annexures": await phd_file.build(session, principal, scholar),
         "generated_at": datetime.now(UTC),
         "generated_by": principal.full_name,
     }

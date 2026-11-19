@@ -473,5 +473,6 @@ the reviewer's name. Rules: PRD M3.
 ## Flow 14 — Committee / external (no login)
 
 Admin or head downloads PDFs (APR, scholar record, register, unit summary)
-and emails them. Empty states export as a cover page with "No records" —
+and emails them. **Download PhD file** on a scholar's page gives the whole
+file: the index of annexures, then each recorded annexure (PRD F17). Empty states export as a cover page with "No records" —
 never a blank PDF.

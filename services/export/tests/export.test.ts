@@ -4,8 +4,8 @@ import type { AddressInfo } from "node:net";
 import { after, before, test } from "node:test";
 import express from "express";
 import { createApp, loadConfig } from "../src/server.ts";
-import { reportView } from "../src/api.ts";
-import { certificatePdf, csvCell, reportPdf, tableCsv } from "../src/render.ts";
+import { phdFileView, reportView } from "../src/api.ts";
+import { certificatePdf, csvCell, phdFilePdf, reportPdf, tableCsv } from "../src/render.ts";
 
 const REPORT_ID = "6f1c2a7e-3b4d-4e5f-8a9b-0c1d2e3f4a5b";
 const JUNK_ID = "00000000-0000-4000-8000-000000000000";
@@ -48,6 +48,22 @@ const certificate = {
   generated_at: "2026-11-06T10:00:00Z", generated_by: "Research Office",
 };
 
+const entry = (heading: string, signed: boolean | null = null) =>
+  ({ date: "2022-05-01", heading, lines: [["Result", "Satisfactory"]], signed });
+const phdFile = {
+  university: "U", address: "", logo: null, scholar: "Arun", roll_number: "PHD-1", unit: "CSE",
+  supervisor: "Meera", admission_date: "2021-08-01",
+  annexures: [
+    { key: "admission", title: "Admission and entrance record", date: null, note: "Not on record", entries: [] },
+    { key: "comprehensive", title: "Comprehensive examination", date: "2022-05-01", note: null,
+      entries: [entry("Attempt 1"), entry("Attempt 2")] },
+    { key: "progress", title: "Progress reports", date: "2022-12-01", note: null, entries: [entry("Report", false)] },
+    { key: "examiners", title: "Examiners' reports", date: null, note: "Not shown to you", entries: [] },
+  ],
+  generated_at: "2026-11-19T10:00:00Z", generated_by: "R",
+};
+const pageCount = (pdf: Buffer) => (pdf.toString("latin1").match(/\/Type \/Page\b(?!s)/g) ?? []).length;
+
 const seen: { auth?: string; url?: string } = {};
 const listCalls: string[] = [];
 let stubUrl = "";
@@ -64,6 +80,7 @@ before(async () => {
     if (req.path.startsWith("/api/v1/internal/certificates/")) return res.json(certificate);
     if (req.path.endsWith("/export-view")) return res.json(req.path.includes(JUNK_ID) ? { nope: 1 } : report);
     if (req.path.endsWith("/register-view")) return res.json(register);
+    if (req.path.endsWith("/phd-file")) return res.json(phdFile);
     if (req.path === "/api/v1/internal/lists/scholars") {
       // Three rows in all; the stub hands out two a page whatever limit is asked.
       const offset = Number(req.query.offset);
@@ -188,6 +205,16 @@ test("the assistantship line parses and renders; an old view without it still do
     assert.equal(res.subarray(0, 5).toString(), "%PDF-");
   }
   assert.throws(() => reportView.parse({ ...report, assistantship: "maybe" }));
+});
+
+test("the PhD file: the index page, then one page per recorded annexure", async () => {
+  const res = await get(`/scholars/${REPORT_ID}/phd-file.pdf`);
+  assert.equal(res.status, 200);
+  assert.equal(seen.url, `/api/v1/internal/scholars/${REPORT_ID}/phd-file`);
+  assert.match(res.headers.get("content-disposition") ?? "", /phd-file-PHD-1\.pdf/);
+  const pdf = Buffer.from(await res.arrayBuffer());
+  assert.equal(pageCount(pdf), 3); // index + two annexures with entries; the empty two are only listed
+  assert.equal(pageCount(await phdFilePdf(phdFileView.parse({ ...phdFile, annexures: [] }))), 1);
 });
 
 test("NAAC CSV keeps numbers and neutralises formulas", () => {

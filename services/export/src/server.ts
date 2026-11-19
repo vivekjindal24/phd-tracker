@@ -3,8 +3,8 @@
 import express from "express";
 import type { NextFunction, Request, Response } from "express";
 import { z } from "zod";
-import { certificateView, fetchList, fetchView, tableView, registerView, reportView, reviewCopyView, ucView, UpstreamError } from "./api.ts";
-import { certificatePdf, tableCsv, registerCsv, registerPdf, reportPdf, ucPdf } from "./render.ts";
+import { certificateView, fetchList, fetchView, phdFileView, tableView, registerView, reportView, reviewCopyView, ucView, UpstreamError } from "./api.ts";
+import { certificatePdf, phdFilePdf, tableCsv, registerCsv, registerPdf, reportPdf, ucPdf } from "./render.ts";
 import { stampPdf, UnstampablePdf } from "./stamp.ts";
 
 export type Config = { apiUrl: string; corsOrigins: string[] };
@@ -103,6 +103,16 @@ export function createApp(config: Config) {
       const id = input(z.string().uuid(), req.params.id);
       const view = await fetchView(config.apiUrl, `/internal/certificates/${id}/export-view`, auth(req), certificateView);
       send(res, "application/pdf", `provisional-certificate-${view.roll_number}.pdf`, await certificatePdf(view));
+    } catch (e) {
+      next(e);
+    }
+  });
+
+  app.get("/scholars/:id/phd-file.pdf", async (req, res, next) => {
+    try {
+      const id = input(z.string().uuid(), req.params.id);
+      const view = await fetchView(config.apiUrl, `/internal/scholars/${id}/phd-file`, auth(req), phdFileView);
+      send(res, "application/pdf", `phd-file-${view.roll_number}.pdf`, await phdFilePdf(view));
     } catch (e) {
       next(e);
     }

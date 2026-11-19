@@ -118,6 +118,35 @@ export const registerView = z.object({
 });
 export type RegisterView = z.infer<typeof registerView>;
 
+// The PhD file (PRD F17): every annexure in career order, with its entries or why it has none.
+export const phdFileView = z.object({
+  ...brand,
+  scholar: z.string(),
+  roll_number: z.string(),
+  unit: z.string(),
+  supervisor: z.string().nullable(),
+  admission_date: z.string().nullable(),
+  annexures: z.array(
+    z.object({
+      key: z.string(),
+      title: z.string(),
+      date: z.string().nullable(),
+      note: z.string().nullable(), // "Not on record", "Not shown to you", …; null when it has entries
+      entries: z.array(
+        z.object({
+          date: z.string().nullable(),
+          heading: z.string(),
+          lines: z.array(z.tuple([z.string(), z.string()])),
+          signed: z.boolean().nullable(), // approved items only: every approval signed or not
+        }),
+      ),
+    }),
+  ),
+  generated_at: z.string(),
+  generated_by: z.string(),
+});
+export type PhdFileView = z.infer<typeof phdFileView>;
+
 const money = z.number().nonnegative();
 export const ucView = z.object({
   ...brand,

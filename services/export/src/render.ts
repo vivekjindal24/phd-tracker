@@ -2,7 +2,7 @@
  *  when photocopied in grayscale. No claymorphism here. */
 import PDFDocument from "pdfkit";
 import QRCode from "qrcode";
-import type { CertificateView, TableView, RegisterView, ReportView, UcView } from "./api.ts";
+import type { CertificateView, PhdFileView, TableView, RegisterView, ReportView, UcView } from "./api.ts";
 
 const MILESTONES: Record<string, string> = {
   coursework: "Coursework",
@@ -155,6 +155,71 @@ export async function reportPdf(v: ReportView): Promise<Buffer> {
     if (h.signature) drawSignature(doc, h.signature);
     doc.moveDown(0.3);
   }
+  footer(doc, v.generated_by, v.generated_at);
+  return toBuffer(doc);
+}
+
+/** Signed when every approved entry carries its signatures; blank when nothing needs one. */
+function signedMark(entries: PhdFileView["annexures"][number]["entries"]): string {
+  const marks = entries.map((e) => e.signed).filter((s) => s !== null);
+  if (marks.length === 0) return "";
+  return marks.every(Boolean) ? "Signed" : "Unsigned";
+}
+
+const INDEX_COLUMNS: [string, number][] = [["S. No.", 38], ["Annexure", 232], ["Date", 68], ["Signed", 52], ["Page", 93]];
+
+/** The PhD file (PRD F17): the index first, then each recorded annexure from a new page. An
+ *  annexure with nothing to show is listed with the reason, never left out. */
+export async function phdFilePdf(v: PhdFileView): Promise<Buffer> {
+  const doc = new PDFDocument({ size: "A4", margin: 56, bufferPages: true, info: { Title: `PhD file – ${v.scholar}` } });
+  header(doc, v, "PhD File", `${v.scholar} · ${v.roll_number} · ${v.unit}`);
+  keyValues(doc, [
+    ["Supervisor", v.supervisor ?? "—"],
+    ["Admitted", day(v.admission_date)],
+  ]);
+  doc.moveDown(0.6).font("Helvetica-Bold").fontSize(12).text("Index of annexures");
+  const indexTop = doc.y + 6;
+  const left = doc.page.margins.left;
+
+  const pages: (number | null)[] = [];
+  v.annexures.forEach((a, n) => {
+    if (a.entries.length === 0) return void pages.push(null);
+    doc.addPage();
+    pages.push(doc.bufferedPageRange().count);
+    doc.font("Helvetica-Bold").fontSize(13).text(`Annexure ${n + 1} — ${a.title}`);
+    doc.font("Helvetica").fontSize(9).fillColor("#444444").text(`${v.scholar} · ${v.roll_number}`).fillColor("black");
+    doc.moveDown(0.8);
+    for (const e of a.entries) {
+      if (doc.y > doc.page.height - doc.page.margins.bottom - 80) doc.addPage();
+      doc.font("Helvetica-Bold").fontSize(11).text(e.heading, left);
+      if (e.date) doc.font("Helvetica").fontSize(9).fillColor("#444444").text(day(e.date)).fillColor("black");
+      doc.moveDown(0.3);
+      keyValues(doc, e.lines);
+      if (e.signed !== null) {
+        doc.font("Helvetica-Oblique").fontSize(9)
+          .text(e.signed ? "Approved with signatures on record." : "Approved in the portal without a signature.", left);
+      }
+      doc.moveDown(0.8);
+    }
+  });
+
+  doc.switchToPage(0);
+  const drawRow = (cells: string[], y: number, bold = false) => {
+    let x = left;
+    doc.font(bold ? "Helvetica-Bold" : "Helvetica").fontSize(9.5);
+    cells.forEach((c, i) => {
+      doc.text(c, x, y, { width: INDEX_COLUMNS[i]![1] - 6 });
+      x += INDEX_COLUMNS[i]![1];
+    });
+  };
+  drawRow(INDEX_COLUMNS.map(([label]) => label), indexTop, true);
+  let y = indexTop + 15;
+  doc.moveTo(left, y - 3).lineTo(left + INDEX_COLUMNS.reduce((s, [, w]) => s + w, 0), y - 3).lineWidth(0.6).stroke();
+  v.annexures.forEach((a, n) => {
+    const page = pages[n];
+    drawRow([String(n + 1), a.title, a.date ? day(a.date) : "", signedMark(a.entries), page ? String(page) : (a.note ?? "")], y);
+    y = Math.max(doc.y, y + 14) + 4;
+  });
   footer(doc, v.generated_by, v.generated_at);
   return toBuffer(doc);
 }
