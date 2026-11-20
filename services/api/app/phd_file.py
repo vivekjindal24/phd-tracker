@@ -8,7 +8,7 @@ from collections.abc import Awaitable, Callable
 from datetime import date, datetime
 from typing import Any
 
-from sqlalchemy import ColumnElement, select
+from sqlalchemy import ColumnElement, select, true
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import committee, coursework, phd_forms, scope, seminars, supervision, thesis
@@ -249,6 +249,7 @@ class _File:
                         [("State", c.state), ("Credits", c.credits), ("CGPA", c.cgpa)],
                         await self.signed("coursework_clearance", c),
                         c.id,
+                        form=await self.forms.clearance(c),
                     )
                 )
         if not out and not await self.reads("enrolments"):
@@ -272,6 +273,9 @@ class _File:
 
     async def _seminars(self, kind: str) -> list[Entry]:
         visible = seminars.visible(self.principal, await seminars.open_to_faculty(self.session))
+        if kind == "pre_synopsis" and "exam_office" in self.principal.office_roles:
+            # The exam team takes the thesis on from the synopsis (owner, 2026-11-20).
+            visible = true()
         rows = await self.session.execute(
             select(Seminar, SeminarScholar)
             .join(SeminarScholar, SeminarScholar.seminar_id == Seminar.id)
@@ -427,6 +431,7 @@ class _File:
                     await self.signed("thesis_submission", t),
                     t.id,
                     ("signed_copy", "fee_due", "corrections"),
+                    await self.forms.submission(t),
                 )
             )
         if await self.reads("no_dues_clearances"):
@@ -441,6 +446,14 @@ class _File:
                     )
                 )
         return out
+
+    async def _title(self) -> str | None:
+        """The thesis title the viva forms print, if the caller reads the thesis."""
+        try:
+            t = await self._thesis()
+        except _Hidden:
+            return None
+        return t.title if t else None
 
     async def _evaluation(self) -> dict[str, Any] | None:
         """The thesis as its page shows it: examiner names withheld, unreleased reports kept
@@ -514,6 +527,7 @@ class _File:
                         await self.signed("viva_arrangement", a),
                         a.id,
                         ("viva_approval", "viva_board", "viva_notice", "viva_examiner_email"),
+                        await self.forms.viva_approval(a, await self._title()),
                     )
                 )
         ev = await self._evaluation()
@@ -530,6 +544,7 @@ class _File:
                     ],
                     record=v["id"],
                     papers=("viva_report", "attendance"),
+                    form=await self.forms.viva_report(v, await self._title()),
                 )
             )
         return out

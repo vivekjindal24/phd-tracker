@@ -186,6 +186,9 @@ test("a broken logo is logged and never blocks the PDF", async () => {
   assert.equal(res.subarray(0, 5).toString(), "%PDF-");
 });
 
+const DAMAGED_PNG = Buffer.from(
+  "89504e470d0a1a0a0000000d4948445200000001000000010806000000" +
+  "1f15c4890000000d49444154789c636460f80f0000020101005f2a1e5d0000000049454e44ae426082", "hex").toString("base64");
 const DOT_PNG = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
 
 test("signed steps carry the signature; a broken one never blocks the PDF", async () => {
@@ -196,6 +199,8 @@ test("signed steps carry the signature; a broken one never blocks the PDF", asyn
       ...report.history,
       { ...signed, signature: `data:image/png;base64,${DOT_PNG}` },
       { ...signed, signature: "data:image/png;base64,bm90IGFuIGltYWdl" },
+      // A PNG whose compressed data is damaged: pdfkit would crash the service on it, off the stack.
+      { ...signed, signature: `data:image/png;base64,${DAMAGED_PNG}` },
     ],
   }));
   assert.equal(res.subarray(0, 5).toString(), "%PDF-");

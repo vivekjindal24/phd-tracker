@@ -1,5 +1,6 @@
 /** Print-like documents (DESIGN_SYSTEM.md §7): black on white, rules not shadows, readable
  *  when photocopied in grayscale. No claymorphism here. */
+import { inflateSync } from "node:zlib";
 import PDFDocument from "pdfkit";
 import QRCode from "qrcode";
 import type { CertificateView, TableView, RegisterView, ReportView, UcView } from "./api.ts";
@@ -52,10 +53,31 @@ const LOGO_SIZE = 52;
 const SIGNATURE_BOX: [number, number] = [120, 40];
 const SIGNATURE_LINE = 130; // about the width of a signed name, as on a paper form
 
+/** Draws a stored image (a specimen, the logo, a photographed scan). pdfkit decodes some PNGs off
+ *  the call stack, where a damaged one would crash the whole service instead of throwing here; so a
+ *  PNG's compressed data is checked first, and a bad one throws like any other unreadable image. */
+export function drawImage(doc: PDFKit.PDFDocument, bytes: Buffer, x: number, y: number, options: PDFKit.Mixins.ImageOption) {
+  if (bytes.subarray(0, 8).equals(PNG_SIGNATURE)) {
+    const data: Buffer[] = [];
+    for (let at = 8; at + 8 <= bytes.length; ) {
+      const length = bytes.readUInt32BE(at);
+      if (bytes.toString("latin1", at + 4, at + 8) === "IDAT") data.push(bytes.subarray(at + 8, at + 8 + length));
+      at += 12 + length;
+    }
+    try {
+      inflateSync(Buffer.concat(data));
+    } catch {
+      throw new Error("damaged PNG image data");
+    }
+  }
+  doc.image(bytes, x, y, options);
+}
+const PNG_SIGNATURE = Buffer.from("89504e470d0a1a0a", "hex");
+
 /** The specimen that signed a step (PRD F17b), under the line naming the signer. */
 function drawSignature(doc: PDFKit.PDFDocument, dataUrl: string) {
   try {
-    doc.image(Buffer.from(dataUrl.slice(dataUrl.indexOf(",") + 1), "base64"), doc.page.margins.left + 14, doc.y, { fit: SIGNATURE_BOX });
+    drawImage(doc, Buffer.from(dataUrl.slice(dataUrl.indexOf(",") + 1), "base64"), doc.page.margins.left + 14, doc.y, { fit: SIGNATURE_BOX });
     doc.y += SIGNATURE_BOX[1] + 4;
   } catch (e) {
     console.error("a signature could not be drawn:", e); // the record above still names the signer
@@ -95,7 +117,7 @@ export function signatureLines(doc: PDFKit.PDFDocument, who: Signer[], room: num
 
 function drawSignatureAt(doc: PDFKit.PDFDocument, dataUrl: string, x: number, y: number, width: number) {
   try {
-    doc.image(Buffer.from(dataUrl.slice(dataUrl.indexOf(",") + 1), "base64"), x, y,
+    drawImage(doc, Buffer.from(dataUrl.slice(dataUrl.indexOf(",") + 1), "base64"), x, y,
       { fit: [width, SIGNATURE_BOX[1]], align: "center" });
   } catch (e) {
     console.error("a signature could not be drawn:", e); // the name under the line still says who
@@ -104,7 +126,7 @@ function drawSignatureAt(doc: PDFKit.PDFDocument, dataUrl: string, x: number, y:
 
 function drawLogo(doc: PDFKit.PDFDocument, logo: string) {
   try {
-    doc.image(Buffer.from(logo, "base64"), (doc.page.width - LOGO_SIZE) / 2, doc.y, { fit: [LOGO_SIZE, LOGO_SIZE], align: "center" });
+    drawImage(doc, Buffer.from(logo, "base64"), (doc.page.width - LOGO_SIZE) / 2, doc.y, { fit: [LOGO_SIZE, LOGO_SIZE], align: "center" });
     doc.y += LOGO_SIZE + 6;
   } catch (e) {
     console.error("the university logo could not be drawn; replace it in Settings:", e); // one bad file must not block every PDF

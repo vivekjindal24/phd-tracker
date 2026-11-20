@@ -269,6 +269,7 @@ async def evaluation(session: AsyncSession, principal: Principal, ctx: ItemConte
         "vivas": [
             {
                 "id": v.id,
+                "arrangement_id": v.arrangement_id,
                 "held_on": v.held_on,
                 "venue": v.venue,
                 "panel": v.panel,

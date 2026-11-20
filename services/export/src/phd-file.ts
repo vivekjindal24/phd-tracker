@@ -5,7 +5,7 @@
 import { PDFDocument as PDFLibDocument, StandardFonts } from "pdf-lib";
 import PDFDocument from "pdfkit";
 import type { PhdFileView } from "./api.ts";
-import { day, footer, header, keyValues, signatureLines, toBuffer } from "./render.ts";
+import { day, drawImage, footer, header, keyValues, signatureLines, toBuffer } from "./render.ts";
 
 type Entry = PhdFileView["annexures"][number]["entries"][number];
 type Form = NonNullable<Entry["form"]>;
@@ -45,7 +45,7 @@ async function drawScan(doc: PDFKit.PDFDocument, heading: string, scan: Scan | u
   try {
     doc.addPage();
     const { left, right, top, bottom } = doc.page.margins;
-    doc.image(Buffer.from(scan.bytes), left, top,
+    drawImage(doc, Buffer.from(scan.bytes), left, top,
       { fit: [doc.page.width - left - right, doc.page.height - top - bottom], align: "center" });
   } catch (e) {
     console.error("a signed copy could not be drawn:", e);

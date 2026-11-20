@@ -14,7 +14,7 @@ from typing import Any
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import committee, coursework, grading, scope
+from app import committee, coursework, grading, items, scope, viva
 from app.auth.principal import Principal
 from app.enums import LOCAL_TZ
 from app.errors import ApiError
@@ -31,6 +31,8 @@ from app.models import (
     SeminarGrade,
     SeminarScholar,
     User,
+    VivaArrangement,
+    VivaBoardMember,
 )
 
 Form = dict[str, Any]
@@ -43,6 +45,17 @@ SEMINAR_TITLES = {
     "registration": "Registration Seminar Report",
     "pre_synopsis": "Pre-Thesis Synopsis Report",
 }
+ACTIONS = {
+    "submit": "Submitted",
+    "resubmit": "Resubmitted",
+    "approve": "Approved",
+    "send_back": "Sent back",
+}
+BOARD_ROLES = {
+    "chairperson": "Chairperson",
+    "external_examiner": "External Examiner",
+    "member": "Member",
+}
 RECOMMENDATIONS = {
     "recommended": "Recommended",
     "recommended_with_changes": "Recommended with changes",
@@ -52,6 +65,19 @@ SYNOPSIS_RECOMMENDATION = (
     "The Pre-Thesis Synopsis is presented in front of the RAC and certified to be satisfactory "
     "and has been approved by the RAC to submit the thesis."
 )
+
+
+def _rac_says(recommended: list[tuple[str, str]]) -> str:
+    """The approval sentence only when every member recommended; otherwise what they did
+    recommend, member by member when they differ; a blank line when nothing is on record."""
+    said = {r for _, r in recommended}
+    if not said:
+        return "_" * 60
+    if said == {"recommended"}:
+        return SYNOPSIS_RECOMMENDATION
+    if len(said) == 1:
+        return RECOMMENDATIONS[said.pop()] + "."
+    return "; ".join(f"{name}: {RECOMMENDATIONS[r]}" for name, r in recommended) + "."
 
 
 def _d(day: date | datetime | None) -> str:
@@ -325,13 +351,13 @@ class Forms:
             )
             fields.append(("Date of Registration Seminar", _d(reg) if reg else None))
         fields.append((SEMINAR_DATES[s.kind], _d(s.starts_at)))
-        tables, comments = await self._marking(s, entry)
+        tables, comments, recommended = await self._marking(s, entry)
         signers = await self.rac_signers(s.starts_at)
         statement = comments
         if s.kind == "pre_synopsis":
             signers = [signer(fields[1][1], "Student"), *signers]
-            statement = "Recommendation of the RAC: " + (
-                SYNOPSIS_RECOMMENDATION if entry.finalised_at else "_" * 60
+            statement = "Recommendation of the RAC: " + _rac_says(
+                recommended if entry.finalised_at else []
             )
             if comments:
                 statement += f"\n\n{comments}"
@@ -349,16 +375,24 @@ class Forms:
             else None,
         )
 
-    async def _marking(self, s: Seminar, entry: SeminarScholar) -> tuple[list[dict], str | None]:
-        """The panel's answers to the form's questions and their comments — only for those who
-        may read the review on screen (grading.require_review_access)."""
+    async def _marking(
+        self, s: Seminar, entry: SeminarScholar
+    ) -> tuple[list[dict], str | None, list[tuple[str, str]]]:
+        """The panel's answers to the form's questions, their comments and each member's
+        recommendation — for those who may read the review on screen
+        (grading.require_review_access). The Exam Office, which takes the thesis on from the
+        synopsis, gets the synopsis recommendations alone (owner, 2026-11-20)."""
         try:
             path = await scope.unit_path(self.session, s.unit_id)
             await grading.require_review_access(
                 self.session, self.principal, s, path, entry, self.scholar
             )
+            full = True
         except ApiError:
-            return [], None
+            full = False
+        exam_office = "exam_office" in self.principal.office_roles
+        if not full and not (exam_office and s.kind == "pre_synopsis"):
+            return [], None, []
         rows = await self.session.execute(
             select(SeminarGrade, User.full_name)
             .join(Faculty, Faculty.id == SeminarGrade.grader_id)
@@ -371,8 +405,9 @@ class Forms:
             .order_by(User.full_name)
         )
         grades = list(rows)
-        if not grades:
-            return [], None
+        recommended = [(name, g.recommendation) for g, name in grades]
+        if not grades or not full:
+            return [], None, recommended
         questions = [a["question"] for a in grades[0][0].answers]
         table_rows = [
             [q]
@@ -389,4 +424,153 @@ class Forms:
         return (
             [{"title": "", "columns": ["", *[name for _, name in grades]], "rows": table_rows}],
             f"Brief comments about the student's performance: {comments}" if comments else None,
+            recommended,
+        )
+
+    # --- forms approved in the portal: the approval record at the foot (F17b) ------------------
+
+    async def approvals(
+        self, item_type: str, item_id: uuid.UUID
+    ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+        """The approval record as a table, and the approvers as signers with the specimen each
+        signed with, if they signed (items.history)."""
+        try:
+            ctx = await items.load_ctx(self.session, self.principal, item_type, item_id)
+        except ApiError:
+            return [], []
+        history = await items.history(self.session, ctx)
+        rows = [
+            [
+                ACTIONS.get(h["action"], h["action"])
+                + (f" at {h['step']}" if h["step"] and h["action"] != "submit" else ""),
+                h["actor"] + (f" (on behalf of {h['on_behalf_of']})" if h["on_behalf_of"] else ""),
+                _d(h["at"]),
+            ]
+            for h in history
+        ]
+        table = [{"title": "Approval record", "columns": ["Action", "By", "On"], "rows": rows}]
+        signers = [
+            signer(h["actor"], h["step"] or "Approved", h["signature"])
+            for h in history
+            if h["action"] == "approve"
+        ]
+        return (table if rows else []), signers
+
+    async def clearance(self, c: Any) -> Form:
+        table, approvers = await self.approvals("coursework_clearance", c.id)
+        return form(
+            "Coursework Clearance",
+            [
+                *await self.particulars(),
+                ("Credits earned", f"{c.credits:g}" if c.credits is not None else None),
+                ("CGPA", c.cgpa),
+                ("Cleared on", _d(c.cleared_on) if c.cleared_on else None),
+            ],
+            tables=table,
+            signed_heading="Approved by" if approvers else None,
+            signed_by=approvers,
+        )
+
+    async def submission(self, t: Any) -> Form:
+        table, approvers = await self.approvals("thesis_submission", t.id)
+        student = (await self.particulars())[1][1]
+        return form(
+            "Submission of Thesis",
+            [
+                *await self.particulars(),
+                ("Title of the Thesis", t.title),
+                ("Submitted on", _d(t.submitted_at) if t.submitted_at else None),
+                ("Plagiarism check", t.plagiarism_tool),
+                (
+                    "Similarity",
+                    f"{t.plagiarism_score:g}%" if t.plagiarism_score is not None else None,
+                ),
+            ],
+            tables=table,
+            signed_heading="Signatures",
+            signed_by=[signer(student, "Student"), *approvers],
+        )
+
+    async def _board(self, arrangement_id: uuid.UUID, names: bool) -> list[dict[str, Any]]:
+        """The examination board (Form XI): the supervisor and each member by role; an external
+        examiner unnamed for whoever may not see examiner names yet (viva.board)."""
+        rows = await self.session.execute(
+            select(VivaBoardMember, User.full_name, OrgUnit.name)
+            .outerjoin(Faculty, Faculty.id == VivaBoardMember.faculty_id)
+            .outerjoin(User, User.id == Faculty.user_id)
+            .outerjoin(OrgUnit, OrgUnit.id == Faculty.unit_id)
+            .where(
+                VivaBoardMember.arrangement_id == arrangement_id,
+                VivaBoardMember.deleted_at.is_(None),
+            )
+        )
+        out = []
+        for m, faculty_name, unit in rows:
+            hidden = m.role == "external_examiner" and not names
+            out.append(
+                {
+                    "role": BOARD_ROLES[m.role],
+                    "name": "Name withheld until the viva" if hidden else m.name or faculty_name,
+                    "institution": "" if hidden else m.institution or unit or "",
+                    "order": viva.ROLE_ORDER.index(m.role),
+                }
+            )
+        out.sort(key=lambda m: (m["order"], m["name"]))
+        supervisor = await committee.convener(self.session, self.scholar)
+        return [{"role": "Supervisor", "name": supervisor or "", "institution": ""}, *out]
+
+    async def viva_approval(self, a: VivaArrangement, thesis_title: str | None) -> Form:
+        """Approval to conduct the viva (Form X) with the board constituted for it (Form XI)."""
+        table, approvers = await self.approvals("viva_arrangement", a.id)
+        try:
+            ctx = await items.load_ctx(self.session, self.principal, "viva_arrangement", a.id)
+            names = viva.sees_names(self.principal, ctx, await viva.held(self.session, a.id))
+        except ApiError:
+            names = False
+        board = await self._board(a.id, names)
+        when = a.scheduled_at.astimezone(LOCAL_TZ)
+        return form(
+            "Approval for Conduct of Viva-Voce Examination",
+            [
+                *await self.particulars(),
+                ("Title of the Thesis", thesis_title),
+                ("Date and time", f"{when:%d/%m/%Y, %H:%M}"),
+                ("Venue", a.venue),
+                ("Online link", a.online_link),
+            ],
+            tables=[
+                {
+                    "title": "Constitution of the Examination Board",
+                    "columns": ["No.", "Name", "Institution", "Role"],
+                    "rows": [
+                        [str(n), m["name"], m["institution"], m["role"]]
+                        for n, m in enumerate(board, start=1)
+                    ],
+                },
+                *table,
+            ],
+            statement=a.notes or None,
+            signed_heading="Approved by" if approvers else None,
+            signed_by=approvers,
+        )
+
+    async def viva_report(self, v: dict[str, Any], thesis_title: str | None) -> Form:
+        """The viva-voce examination report (Form XII), signed by the board that held it."""
+        board = await self._board(v["arrangement_id"], True) if v["arrangement_id"] else []
+        signers = [signer(m["name"], m["role"]) for m in board]
+        members_entered = len(board) > 1  # beyond the supervisor, who always sits
+        return form(
+            "Viva-Voce Examination Report",
+            [
+                *await self.particulars(),
+                ("Title of the Thesis", thesis_title),
+                ("Held on", _d(v["held_on"])),
+                ("Venue", v["venue"]),
+                ("Board", None if members_entered else v["panel"]),
+                ("Outcome", v["outcome"].replace("_", " ").capitalize()),
+            ],
+            statement=v["notes"] or None,
+            signed_heading="Signature of the Examination Board",
+            signed_by=signers,
+            recorded=await self.recorded("vivas", v["id"]),
         )

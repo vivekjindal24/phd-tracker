@@ -541,8 +541,12 @@ demand, from what is already recorded.
   scholar's particulars, the body (members, courses and attempts, the panel's
   answers), the signature block, "Forwarded to the Dean of the Faculty" and
   "Copy to". So far: appointment of supervisor, formation of the advisory
-  committee, comprehensive examination, registration seminar report and
-  pre-thesis synopsis report. "Download PhD file" asks signed or unsigned:
+  committee, comprehensive examination, registration seminar report,
+  pre-thesis synopsis report, coursework clearance, submission of the thesis,
+  approval for the viva with the constitution of the examination board (Form X
+  and XI on one page) and the viva-voce examination report. A form approved in
+  the portal carries its approval record (each action, by whom, when) and its
+  approvers as signers, with the specimen each signed with. "Download PhD file" asks signed or unsigned:
   signed prints the specimens of those who signed in the portal and the
   approved scans; unsigned prints the forms alone with signature and date
   lines, for signing by hand. Each part is read

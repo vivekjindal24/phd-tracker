@@ -1,7 +1,9 @@
 """The PhD file's generated forms (PRD F17, F17b): each entry as the university's paper form."""
 
+from app.phd_forms import SYNOPSIS_RECOMMENDATION, _rac_says
 from tests.conftest import auth
 from tests.test_committee import SEN, add, form
+from tests.test_viva_arrangements import act, documents_on, ready_arrangement  # noqa: F401
 
 API = "/api/v1"
 
@@ -9,6 +11,15 @@ API = "/api/v1"
 def entry(view, key):
     (e,) = next(a for a in view["annexures"] if a["key"] == key)["entries"]
     return e["form"]
+
+
+def test_the_synopsis_sentence_prints_only_when_the_panel_recommended():
+    assert _rac_says([("A", "recommended"), ("B", "recommended")]) == SYNOPSIS_RECOMMENDATION
+    assert _rac_says([("A", "not_recommended"), ("B", "not_recommended")]) == "Not recommended."
+    assert _rac_says([("A", "recommended"), ("B", "recommended_with_changes")]) == (
+        "A: Recommended; B: Recommended with changes."
+    )
+    assert _rac_says([]) == "_" * 60  # nothing on record, or not finalised: a line to fill in
 
 
 async def test_committee_and_comprehensive_print_as_their_forms(client, world):
@@ -51,3 +62,97 @@ async def test_committee_and_comprehensive_print_as_their_forms(client, world):
         ("Prof. R. Sen", "Chairperson", None),
     ]
     assert exam["forwarded"]["to"] == "Dean of the Faculty"
+
+
+async def test_approved_items_carry_their_approval_record_and_the_viva_its_board(
+    client,
+    session,
+    world,
+    documents_on,  # noqa: F811
+):
+    tid, aid = await ready_arrangement(client, session, world)
+    await act(client, world.exam_office, aid, "submit")
+    assert (await act(client, world.vice_chancellor, aid, "approve")).status_code == 200
+
+    def forms(view, key):
+        return [e["form"] for e in next(a for a in view["annexures"] if a["key"] == key)["entries"]]
+
+    async def view_of(user):
+        url = f"{API}/internal/scholars/{world.s_a1.id}/phd-file"
+        return (await client.get(url, headers=auth(user.id))).json()
+
+    office = await view_of(world.exam_office)
+    thesis = forms(office, "submission")[0]
+    assert thesis["title"] == "Submission of Thesis"
+    record = thesis["tables"][-1]
+    assert record["title"] == "Approval record" and record["rows"][0][0] == "Submitted"
+    assert thesis["signed_by"][0]["role"] == "Student"
+    assert all(s["signature"] is None for s in thesis["signed_by"])  # nobody signed in the portal
+
+    (approval,) = forms(office, "viva")
+    board = approval["tables"][0]
+    assert board["title"] == "Constitution of the Examination Board"
+    assert [r[3] for r in board["rows"]] == ["Supervisor", "Chairperson", "External Examiner"]
+    assert "Prof. K. Rao" in str(board["rows"])
+    assert [s["role"] for s in approval["signed_by"]] == ["Vice Chancellor"]
+    # Before the viva the scholar's copy does not name the external examiner.
+    (own,) = forms(await view_of(world.scholar_a1), "viva")
+    assert "Prof. K. Rao" not in str(own) and "Name withheld until the viva" in str(own)
+
+    await client.post(
+        f"{API}/theses/{tid}/vivas",
+        headers=auth(world.exam_office.id),
+        json={"held_on": "2026-10-10", "outcome": "pass"},
+    )
+    (_, report) = forms(await view_of(world.scholar_a1), "viva")
+    assert report["title"] == "Viva-Voce Examination Report"
+    assert ["Outcome", "Pass"] in report["fields"]
+    assert [s["role"] for s in report["signed_by"]] == [
+        "Supervisor",
+        "Chairperson",
+        "External Examiner",
+    ]
+
+
+async def test_the_exam_office_sees_the_synopsis_result_but_not_the_answers(client, world):
+    from tests.test_seminar_forms import grade, questions, schedule
+
+    seminar_id = (await schedule(client, world, kind="pre_synopsis")).json()["id"]
+    answers = [
+        {"question": q, "answer": "yes"} for q in await questions(client, world, "pre_synopsis")
+    ]
+    res = await grade(
+        client,
+        seminar_id,
+        world,
+        {"answers": answers, "recommendation": "recommended", "comment": "Good."},
+    )
+    assert res.status_code == 200, res.text
+
+    async def synopsis(user):
+        res = await client.get(
+            f"{API}/internal/scholars/{world.s_a1.id}/phd-file", headers=auth(user.id)
+        )
+        assert res.status_code == 200, res.text
+        return entry(res.json(), "pre_synopsis_seminar")
+
+    blank = "Recommendation of the RAC: " + "_" * 60
+    assert (await synopsis(world.exam_office))["statement"] == blank  # not finalised yet
+
+    done = await client.post(
+        f"{API}/seminars/{seminar_id}/scholars/{world.s_a1.id}/finalise",
+        json={"points": [{"part": "writing_presentation", "text": "Fix figures"}]},
+        headers=auth(world.meera.id),
+    )
+    assert done.status_code == 200, done.text
+
+    exam = await synopsis(world.exam_office)
+    assert exam["statement"] == "Recommendation of the RAC: " + SYNOPSIS_RECOMMENDATION
+    assert exam["tables"] == []  # the answers and comments stay with the review's readers
+    library = await client.get(
+        f"{API}/internal/scholars/{world.s_a1.id}/phd-file", headers=auth(world.library.id)
+    )
+    (seminar,) = [a for a in library.json()["annexures"] if a["key"] == "pre_synopsis_seminar"]
+    assert seminar["entries"] == []  # the Library sees no seminars at all
+    admin = await synopsis(world.admin_a1)
+    assert admin["tables"] and "Good." in admin["statement"]

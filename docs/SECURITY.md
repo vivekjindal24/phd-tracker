@@ -256,7 +256,10 @@ Office records them and they stay confidential.
 attending) may grade the seminar's scholars — independent of the matrix
 above. Graders read the grades of that seminar. A scholar sees grades only
 after their supervisor finalised; finalising is the main supervisor's (and the
-co-supervisor's under `co_supervision = approve`).
+co-supervisor's under `co_supervision = approve`). In the PhD file (F17) the
+Exam Office, which sees no seminars on screen, sees the pre-synopsis seminar
+entry and its signed papers, and the RAC's recommendation on its form — never
+the panel's answers or comments (`phd_file._seminars`, `phd_forms._marking`).
 
 † **Examiner confidentiality:** examiner names are returned only to the
 Exam Office, Research Office, Vice Chancellor and root admin until the viva outcome is
