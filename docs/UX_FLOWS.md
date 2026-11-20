@@ -318,6 +318,10 @@ department or Research Office to record it.
    scores or form questions; the form's name and its questions.
 4b. Root admin → **Settings → Forms of the PhD file**: each generated form
    folds open to its form number, title and "copy to" list → **Save** per form.
+4c. Root admin → **Settings → Index of the PhD file** → **Write your own index**
+   (starts from Anveshan's 16 rows): rename, reorder (↑ ↓), remove or add rows;
+   each row **Add a record…** from Anveshan's annexures, forms and uploaded
+   papers → **Save index**; **Back to Anveshan's index** clears it.
 5. Supervisor → **Review**: sees all grades; **Suggest points with AI** fills
    a draft list (part + point); edits, accepts, adds → **Finalise**.
 6. Scholar is notified, sees all marks and comments, and the points appear in

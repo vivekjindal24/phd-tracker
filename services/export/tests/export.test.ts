@@ -239,7 +239,7 @@ test("the assistantship line parses and renders; an old view without it still do
 test("the PhD file: the index page, then one page per recorded annexure", async () => {
   const res = await get(`/scholars/${REPORT_ID}/phd-file.pdf`);
   assert.equal(res.status, 200);
-  assert.equal(seen.url, `/api/v1/internal/scholars/${REPORT_ID}/phd-file`);
+  assert.equal(seen.url, `/api/v1/internal/scholars/${REPORT_ID}/phd-file?printed=true`);
   assert.match(res.headers.get("content-disposition") ?? "", /phd-file-PHD-1\.pdf/);
   const pdf = Buffer.from(await res.arrayBuffer());
   assert.equal(pageCount(pdf), 3); // index + two annexures with entries; the empty two are only listed
@@ -327,6 +327,14 @@ test("a seminar paper's approved scan takes its generated page's place in the si
   assert.equal((await PDFLibDocument.load(await phdFilePdf(view, scans))).getPageCount(), 5);
   // Unsigned: index and the three generated pages, to print and sign.
   assert.equal((await PDFLibDocument.load(await phdFilePdf(view, scans, false))).getPageCount(), 4);
+});
+
+test("a long index runs onto a second page before the annexures, rows never overlapping", async () => {
+  const rows = Array.from({ length: 45 }, (_, n) => ({ key: `row_${n}`, date: null, entries: [],
+    title: `Form ${n} (a description long enough to wrap onto a second line of the index column)`,
+    note: "Not on record" }));
+  const pdf = await phdFilePdf(phdFileView.parse({ ...phdFile, annexures: rows }));
+  assert.ok((await PDFLibDocument.load(pdf)).getPageCount() >= 2); // all index, no annexure pages
 });
 
 test("NAAC CSV keeps numbers and neutralises formulas", () => {

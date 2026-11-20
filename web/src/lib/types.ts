@@ -55,6 +55,8 @@ export type OrgUnit = {
 
 /** How the university names one form of the PhD file (PRD F17); empty: Anveshan's. */
 export type PhdFormName = { title: string; number: string; copy_to: string[] };
+/** One row of the university's own index of the PhD file (PRD F17). */
+export type PhdIndexRow = { title: string; sources: string[] };
 export type SettingsData = {
   university_address: string;
   department_committee_name: string;
@@ -72,6 +74,8 @@ export type SettingsData = {
   seminar_forms: Record<SeminarKind, SeminarForm>;
   phd_forms: Record<string, PhdFormName>;
   phd_form_defaults: Record<string, string>; // Anveshan's title of each form, in career order
+  phd_index: PhdIndexRow[]; // the university's own index; empty: Anveshan's annexures
+  phd_sources: { key: string; label: string; group: string }[]; // what a row may draw on
   min_coursework_credits: number;
   min_coursework_cgpa: number;
   max_duration_years: number;

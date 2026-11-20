@@ -14,9 +14,17 @@ remove a point only when the behaviour itself changes.
    as "Not on record". For example, the Research Office does not see the copies of the
    synopsis and proposal, because it cannot open the scholar's documents on screen either.
    *(2026-11-19)*
-2. **The index uses Anveshan's 16 headings for now**, not the university's own numbered list
-   (Medi-Caps keeps 30 rows with its own form numbers: II-B, IV, V, VI, VII-A …). The
-   university's own index is the next step. *(2026-11-19)*
+2. **The university can print the file in its own index.** Out of the box the PhD file uses
+   Anveshan's 16 annexures. In Settings → Index of the PhD file the root admin writes the
+   university's own rows (Medi-Caps keeps 30), in its order and numbering, and fills each
+   from Anveshan's records: a whole annexure, one generated form (with its signed scan), or
+   one uploaded paper. Rules: each record fills one row only, and a whole annexure cannot sit
+   in one row while a form of it sits in another, so no page prints twice. A row with no
+   record prints "Not held in Anveshan" (Medi-Caps' Form IX, which Anveshan does not keep;
+   a second "Form V" row for a re-formed committee, since every version of the committee
+   prints in the one Form V row). Whatever no row takes is printed after the university's
+   rows under Anveshan's headings, so nothing is left out. Only the printed file follows the
+   index; the screens and the upload places keep Anveshan's annexures. *(2026-11-21)*
 2a. **The university names its forms.** Settings → Forms of the PhD file lists all 18 forms
    Anveshan prints. For each, the root admin may set the university's title, its form number
    ("Form VII-A", printed at the top right of the page, beside the annexure) and its "copy

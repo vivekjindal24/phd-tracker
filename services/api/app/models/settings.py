@@ -51,6 +51,7 @@ class Settings(Timestamps, Base):
         ),
         CheckConstraint("jsonb_typeof(seminar_forms) = 'object'", name="ck_settings_seminar_forms"),
         CheckConstraint("jsonb_typeof(phd_forms) = 'object'", name="ck_settings_phd_forms"),
+        CheckConstraint("jsonb_typeof(phd_index) = 'array'", name="ck_settings_phd_index"),
         CheckConstraint("min_coursework_credits BETWEEN 0 AND 40", name="ck_settings_min_credits"),
         CheckConstraint("min_coursework_cgpa BETWEEN 0 AND 10", name="ck_settings_min_cgpa"),
         CheckConstraint("max_duration_years BETWEEN 3 AND 12", name="ck_settings_max_years"),
@@ -84,6 +85,11 @@ class Settings(Timestamps, Base):
     # The PhD file's forms as this university names them (enums.PHD_FORMS): per form, any of
     # title, number ("Form VII-A") and copy_to; what is missing is Anveshan's (PRD F17, part 4).
     phd_forms: Mapped[dict[str, Any]] = mapped_column(JSONB, server_default=text("'{}'::jsonb"))
+    # The university's own index of the PhD file: rows of {title, sources} (phd_index.py);
+    # empty: Anveshan's annexures.
+    phd_index: Mapped[list[dict[str, Any]]] = mapped_column(
+        JSONB, server_default=text("'[]'::jsonb")
+    )
     # Progress report sections: the university's own list, used while the toggle is on.
     apr_custom_template: Mapped[bool] = mapped_column(Boolean, server_default=text("false"))
     apr_sections: Mapped[list[dict[str, Any]]] = mapped_column(

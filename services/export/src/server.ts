@@ -135,7 +135,8 @@ export function createApp(config: Config) {
     try {
       const id = input(z.string().uuid(), req.params.id);
       const signed = input(z.enum(["0", "1"]).default("1"), req.query.signed) === "1";
-      const view = await fetchView(config.apiUrl, `/internal/scholars/${id}/phd-file`, auth(req), phdFileView);
+      // As printed: in the university's own index, when it has one.
+      const view = await fetchView(config.apiUrl, `/internal/scholars/${id}/phd-file?printed=true`, auth(req), phdFileView);
       send(res, "application/pdf", `phd-file-${view.roll_number}${signed ? "" : "-unsigned"}.pdf`,
         await phdFilePdf(view, signed ? await fetchScans(view) : new Map(), signed));
     } catch (e) {

@@ -510,8 +510,13 @@ demand, from what is already recorded.
   *Built:* **Settings → Forms of the PhD file** — each of the 18 generated forms
   takes the university's title, form number (printed at the top right) and
   "copy to" list; empty keeps Anveshan's. A notice's list can still be changed
-  for one seminar or viva by the department admin. *Next:* the university's own
-  index (its rows, order and numbering).
+  for one seminar or viva by the department admin. *Built:* **Settings → Index
+  of the PhD file** — the university writes its own index (e.g. Medi-Caps' 30
+  rows), each row filled from a whole annexure, one generated form with its
+  signed scan, or one uploaded paper; a row with none prints "Not held in
+  Anveshan". The printed file follows it; what no row takes follows the rows
+  under Anveshan's headings, so no record is left out. Screens keep Anveshan's
+  annexures. The index runs onto as many pages as it needs.
 - **Who:** anyone who may read the scholar's whole record generates it; what
   they may not read is left out exactly as on screen (examiner names before the
   viva, unshared meeting minutes — SECURITY.md §3). Signed scans are uploaded by

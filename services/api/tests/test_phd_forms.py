@@ -378,3 +378,59 @@ async def test_the_university_names_its_forms(client, world):
         f"{API}/settings", headers=auth(world.admin_a1.id), json={"phd_forms": {}}
     )
     assert other.status_code == 403
+
+
+async def test_the_university_writes_its_own_index(client, world):
+    from tests.test_seminar_forms import schedule
+
+    await schedule(client, world, kind="registration")
+    root = auth(world.root_admin.id)
+    index = [
+        {
+            "title": "Form VII-A (Notification of registration seminar)",
+            "sources": ["form:registration_notice"],
+        },
+        {"title": "Form IX (Recommendation of examiner)", "sources": []},
+        {
+            "title": "Form VII (Registration seminar report)",
+            "sources": ["form:registration_report"],
+        },
+        {"title": "Minutes of DRC", "sources": ["paper:decisions.drc_minutes"]},
+    ]
+    res = await client.patch(f"{API}/settings", headers=root, json={"phd_index": index})
+    assert res.status_code == 200, res.text
+    assert len(res.json()["phd_index"]) == 4
+    assert any(s["key"] == "form:viva_notice" for s in res.json()["phd_sources"])
+
+    url = f"{API}/internal/scholars/{world.s_a1.id}/phd-file"
+    printed = (await client.get(f"{url}?printed=true", headers=auth(world.admin_a1.id))).json()
+    parts = printed["annexures"]
+    assert [p["title"] for p in parts[:4]] == [r["title"] for r in index]
+    (notice,) = parts[0]["entries"]
+    assert [f["key"] for f in notice["forms"]] == ["registration_notice"]
+    assert [p["kind"] for p in notice["papers"]] == ["notice"]  # its signed scan goes with it
+    assert parts[1]["note"] == "Not held in Anveshan"
+    assert parts[3]["note"] == "Not on record"
+    # What the index placed nowhere follows, under Anveshan's heading: the attendance sheet.
+    rest = next(p for p in parts[4:] if p["key"] == "registration_seminar")
+    (left,) = rest["entries"]
+    assert [f["key"] for f in left["forms"]] == ["registration_attendance"]
+    # The screens keep Anveshan's annexures, where each paper is uploaded.
+    plain = (await client.get(url, headers=auth(world.admin_a1.id))).json()
+    assert plain["annexures"][0]["key"] == "admission"
+
+    bad = [{"title": "Twice", "sources": ["form:registration_notice", "form:registration_notice"]}]
+    res = await client.patch(f"{API}/settings", headers=root, json={"phd_index": bad})
+    assert res.status_code == 422 and "already" in res.json()["error"]["message"]
+    res = await client.patch(
+        f"{API}/settings", headers=root, json={"phd_index": [{"title": "X", "sources": ["form:x"]}]}
+    )
+    assert res.status_code == 422
+    both = [
+        {"title": "Viva", "sources": ["annexure:viva"]},
+        {"title": "Form XII", "sources": ["form:viva_report"]},
+    ]
+    res = await client.patch(f"{API}/settings", headers=root, json={"phd_index": both})
+    assert res.status_code == 422 and "whole" in res.json()["error"]["message"]
+    res = await client.patch(f"{API}/settings", headers=root, json={"phd_index": []})
+    assert res.json()["phd_index"] == []  # back to Anveshan's annexures

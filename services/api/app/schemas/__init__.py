@@ -331,6 +331,14 @@ class PhdFormName(BaseModel):
     ] = Field(default_factory=list, max_length=20)
 
 
+class PhdIndexRow(BaseModel):
+    """One row of the university's own index: its description, and the records that fill it
+    (phd_index.SOURCES); none: a paper Anveshan does not hold."""
+
+    title: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)]
+    sources: list[str] = Field(default_factory=list, max_length=10)
+
+
 def _known_forms(forms: dict[str, "PhdFormName"] | None) -> dict[str, "PhdFormName"] | None:
     unknown = sorted(set(forms or {}) - set(PHD_FORMS))
     if unknown:
@@ -365,6 +373,8 @@ class SettingsOut(BaseModel):
     seminar_forms: dict[SeminarKind, SeminarForm]
     phd_forms: dict[str, PhdFormName]  # every form of the PhD file, as this university names it
     phd_form_defaults: dict[str, str]  # Anveshan's title of each, in career order
+    phd_index: list[PhdIndexRow]  # the university's own index; empty: Anveshan's annexures
+    phd_sources: list[dict[str, str]]  # what a row may draw on: key, label, group
     min_coursework_credits: float
     min_coursework_cgpa: float
     max_duration_years: int
@@ -391,6 +401,7 @@ class SettingsUpdate(BaseModel):
     seminar_rubric: Rubric | None = None
     seminar_forms: dict[SeminarKind, SeminarForm] | None = None  # merged per kind
     phd_forms: dict[str, PhdFormName] | None = None  # merged per form
+    phd_index: list[PhdIndexRow] | None = Field(default=None, max_length=80)  # replaced whole
     min_coursework_credits: float | None = Field(default=None, ge=0, le=40)
     min_coursework_cgpa: float | None = Field(default=None, ge=0, le=10)
     max_duration_years: int | None = Field(default=None, ge=3, le=12)

@@ -21,6 +21,7 @@ from app import (
     naac,
     phd_file,
     phd_forms,
+    phd_index,
     reviews,
     scope,
     seminars,
@@ -38,6 +39,7 @@ from app.models import (
     OrgUnit,
     Scholar,
     SeminarScholar,
+    Settings,
     ThesisSubmission,
     User,
 )
@@ -98,6 +100,7 @@ async def report_export_view(
 @router.get("/scholars/{scholar_id}/phd-file")
 async def phd_file_view(
     scholar_id: uuid.UUID,
+    printed: bool = False,  # as printed: in the university's own index (phd_index.py)
     principal: Principal = Depends(current_principal),  # whoever reads the scholar
     session: AsyncSession = Depends(get_session),
 ) -> dict[str, Any]:
@@ -114,6 +117,9 @@ async def phd_file_view(
     annexures = await phd_file.build(session, principal, scholar)
     can = await signed_copies.rights(session, principal, scholar)
     signed_copies.attach(annexures, await signed_copies.in_use(session, scholar.id), can)
+    if printed:
+        index = await session.scalar(select(Settings.phd_index))
+        annexures = phd_index.arrange(annexures, index or [])
     return {
         **await branding.export_fields(session),
         "scholar": name,

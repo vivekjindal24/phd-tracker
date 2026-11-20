@@ -16,6 +16,7 @@ type Placeholder = { page: number; src: PDFLibDocument; index: number };
 
 const INDEX_COLUMNS: [string, number][] = [["S. No.", 38], ["Annexure", 232], ["Date", 68], ["Signed", 52], ["Page", 93]];
 const SCAN_MARGIN = 56; // scans stay clear of the footer
+const CONTINUED = 22; // room for "Index of annexures (continued)" on a later index page
 
 /** Signed when every approved entry carries its signatures; blank when nothing needs one. */
 function signedMark(entries: Entry[]): string {
@@ -182,6 +183,30 @@ export async function phdFilePdf(v: PhdFileView, scans: Map<string, Scan> = new 
   doc.moveDown(0.6).font("Helvetica-Bold").fontSize(12).text("Index of annexures");
   const indexTop = doc.y + 6;
   const left = doc.page.margins.left;
+  const top = doc.page.margins.top;
+  const bottom = doc.page.height - doc.page.margins.bottom;
+
+  // The index may run over several pages (a university's own index has 30 rows and more): each
+  // row as tall as its longest cell, and pages kept for it before the annexures begin.
+  const cellsOf = (a: PhdFileView["annexures"][number], n: number, page: string) =>
+    [String(n + 1), a.title, a.date ? day(a.date) : "", signedMark(a.entries), page];
+  const heightOf = (cells: string[]) => {
+    doc.font("Helvetica").fontSize(9.5);
+    return Math.max(14, ...cells.map((c, i) => doc.heightOfString(c, { width: INDEX_COLUMNS[i]![1] - 6 }))) + 4;
+  };
+  const heights = v.annexures.map((a, n) => heightOf(cellsOf(a, n, a.note ?? "999")));
+  const onPage: number[] = [];
+  let indexPage = 0;
+  let y = indexTop + 15;
+  for (const h of heights) {
+    if (y + h > bottom) {
+      indexPage++;
+      y = top + CONTINUED + 15;
+    }
+    onPage.push(indexPage);
+    y += h;
+  }
+  for (let p = 0; p < indexPage; p++) doc.addPage();
 
   const pages: (number | null)[] = [];
   const slots: Placeholder[] = [];
@@ -216,22 +241,34 @@ export async function phdFilePdf(v: PhdFileView, scans: Map<string, Scan> = new 
     }
   }
 
-  doc.switchToPage(0);
-  const drawRow = (cells: string[], y: number, bold = false) => {
+  const drawRow = (cells: string[], at: number, bold = false) => {
     let x = left;
     doc.font(bold ? "Helvetica-Bold" : "Helvetica").fontSize(9.5);
     cells.forEach((c, i) => {
-      doc.text(c, x, y, { width: INDEX_COLUMNS[i]![1] - 6 });
+      doc.text(c, x, at, { width: INDEX_COLUMNS[i]![1] - 6 });
       x += INDEX_COLUMNS[i]![1];
     });
   };
-  drawRow(INDEX_COLUMNS.map(([label]) => label), indexTop, true);
-  let y = indexTop + 15;
-  doc.moveTo(left, y - 3).lineTo(left + INDEX_COLUMNS.reduce((s, [, w]) => s + w, 0), y - 3).lineWidth(0.6).stroke();
+  const head = (at: number) => {
+    drawRow(INDEX_COLUMNS.map(([label]) => label), at, true);
+    const width = INDEX_COLUMNS.reduce((sum, [, w]) => sum + w, 0);
+    doc.moveTo(left, at + 12).lineTo(left + width, at + 12).lineWidth(0.6).stroke();
+    return at + 15;
+  };
+  let current = -1;
   v.annexures.forEach((a, n) => {
+    if (onPage[n] !== current) {
+      current = onPage[n]!;
+      doc.switchToPage(current);
+      if (current === 0) y = head(indexTop);
+      else {
+        doc.font("Helvetica-Bold").fontSize(12).text("Index of annexures (continued)", left, top);
+        y = head(top + CONTINUED);
+      }
+    }
     const page = pages[n];
-    drawRow([String(n + 1), a.title, a.date ? day(a.date) : "", signedMark(a.entries), page ? String(page) : (a.note ?? "")], y);
-    y = Math.max(doc.y, y + 14) + 4;
+    drawRow(cellsOf(a, n, page ? String(page) : (a.note ?? "")), y);
+    y += heights[n]!;
   });
   footer(doc, v.generated_by, v.generated_at);
   return fillPlaceholders(await toBuffer(doc), slots);
