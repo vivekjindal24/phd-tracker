@@ -260,6 +260,10 @@ co-supervisor's under `co_supervision = approve`). In the PhD file (F17) the
 Exam Office, which sees no seminars on screen, sees the pre-synopsis seminar
 entry and its signed papers, and the RAC's recommendation on its form — never
 the panel's answers or comments (`phd_file._seminars`, `phd_forms._marking`).
+A seminar's notice (`/internal/seminars/{id}/notice`) is downloaded only by those
+who run the seminar (`seminars.can_manage`: the unit's head or admin, or above).
+Who signs it and its wording are changed only by an admin over the unit
+(`seminars.can_edit_notice`; owner, 2026-11-21) — the head reads them.
 
 † **Examiner confidentiality:** examiner names are returned only to the
 Exam Office, Research Office, Vice Chancellor and root admin until the viva outcome is

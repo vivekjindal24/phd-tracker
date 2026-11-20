@@ -38,7 +38,9 @@ root; partial unique index `uq_org_root` guarantees exactly one root),
 `code` (UNIQUE), `path` `ltree` (UNIQUE, GiST-indexed; maintained by the API
 on insert/move), `cross_unit_directory` bool (default false; set by the root
 admin, opens the faculty and scholars directories to that unit's heads and
-admins, SECURITY.md §3). A unit can be soft-deleted only when it has no live child
+admins, SECURITY.md §3), `notice_signers` text[] (who signs the unit's seminar
+notices, in signing order; CHECK ⊆ drc_secretary / admin / drc_chair / unit_head /
+dean; null: admin, unit_head, dean — PRD F17b). A unit can be soft-deleted only when it has no live child
 units, scholars or faculty.
 
 **faculty_requests** — a request to faculty outside the sender's view: `kind`
@@ -222,7 +224,8 @@ carries only a non-empty `notes` (the reason); every other kind needs
 registration / pre_synopsis, default progress), `title`, `starts_at`
 timestamptz, `venue`, `report_due` date, `report_year`, `period` (all three
 set exactly when `kind` = progress: `ck_seminars_report`), `notes`,
-`status` CHECK (scheduled / cancelled), `created_by`. Cancelling sets status;
+`notice` jsonb (the department admin's changes to this seminar's notice: any of
+`signers`, `announcement`, `closing`, `copy_to`; null: none — PRD F17b), `status` CHECK (scheduled / cancelled), `created_by`. Cancelling sets status;
 rows are never deleted.
 **seminar_scholars** — `seminar_id`, `scholar_id` (UNIQUE pair),
 `hardcopy_received_on` date, `draft_points` jsonb (supervisor's working list

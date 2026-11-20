@@ -4,11 +4,11 @@
  *  is listed with the reason, never left out. */
 import { PDFDocument as PDFLibDocument, StandardFonts } from "pdf-lib";
 import PDFDocument from "pdfkit";
-import type { PhdFileView } from "./api.ts";
+import type { FormView as Form, PhdFileView, SeminarNoticeView } from "./api.ts";
+import type { Brand } from "./render.ts";
 import { day, drawImage, footer, header, keyValues, signatureLines, toBuffer } from "./render.ts";
 
 type Entry = PhdFileView["annexures"][number]["entries"][number];
-type Form = NonNullable<Entry["form"]>;
 
 /** A signed copy's scan, fetched by the server from its short-lived link, keyed by the copy's id. */
 export type Scan = { bytes: Uint8Array; type: string };
@@ -109,15 +109,19 @@ function drawTable(doc: PDFKit.PDFDocument, t: Form["tables"][number]) {
   for (const r of t.rows) row(r, false);
 }
 
-/** One entry as the university's paper form. `signed`: print the specimens of those who signed in
- *  the portal; otherwise only the lines, for signing the printed copy by hand. */
-function drawForm(doc: PDFKit.PDFDocument, v: PhdFileView, annexure: number, f: Form, signed: boolean) {
-  doc.addPage();
+/** One form on a page of its own, as the university's paper. `signed`: print the specimens of those
+ *  who signed in the portal; otherwise only the lines, for signing the printed copy by hand.
+ *  `annexure`: its number in the PhD file, if it is in one. */
+function drawForm(doc: PDFKit.PDFDocument, v: Brand, annexure: number | null, f: Form, signed: boolean, fresh = true) {
+  if (fresh) doc.addPage();
   const left = doc.page.margins.left;
-  doc.font("Helvetica").fontSize(8).fillColor("#555555")
-    .text(`Annexure ${annexure}`, left, doc.page.margins.top - 24, { align: "right" }).fillColor("black");
+  if (annexure !== null) {
+    doc.font("Helvetica").fontSize(8).fillColor("#555555")
+      .text(`Annexure ${annexure}`, left, doc.page.margins.top - 24, { align: "right" }).fillColor("black");
+  }
   doc.y = doc.page.margins.top;
   header(doc, v, f.title, "");
+  if (f.intro) doc.font("Helvetica").fontSize(10).text(f.intro, left, doc.y, { align: "justify", lineGap: 2 }).moveDown(0.8);
   keyValues(doc, f.fields);
   for (const t of f.tables) drawTable(doc, t);
   if (f.statement) doc.moveDown(0.8).font("Helvetica").fontSize(10).text(f.statement, left, doc.y, { align: "justify", lineGap: 2 });
@@ -186,8 +190,8 @@ export async function phdFilePdf(v: PhdFileView, scans: Map<string, Scan> = new 
     pages.push(doc.bufferedPageRange().count + 1); // the next page opens the annexure
     let onSummary = false; // whether the current page is this annexure's summary page
     for (const e of a.entries) {
-      if (e.form) {
-        drawForm(doc, v, i + 1, e.form, signed);
+      if (e.forms.length) {
+        for (const f of e.forms) drawForm(doc, v, i + 1, f, signed);
         onSummary = false;
       } else {
         drawSummary(doc, v, i + 1, a.title, e, !onSummary, signed);
@@ -221,4 +225,13 @@ export async function phdFilePdf(v: PhdFileView, scans: Map<string, Scan> = new 
   });
   footer(doc, v.generated_by, v.generated_at);
   return fillPlaceholders(await toBuffer(doc), slots);
+}
+
+/** A seminar's circular, one page per scholar, with lines for signing by hand (PRD F17b). */
+export async function seminarNoticePdf(v: SeminarNoticeView): Promise<Buffer> {
+  const doc = new PDFDocument({ size: "A4", margin: 56, bufferPages: true, info: { Title: `Notice – ${v.title}` } });
+  v.notices.forEach((f, i) => drawForm(doc, v, null, f, false, i > 0));
+  if (v.notices.length === 0) doc.font("Helvetica-Oblique").fontSize(10).text("No scholar is on this seminar yet.");
+  footer(doc, v.generated_by, v.generated_at);
+  return toBuffer(doc);
 }

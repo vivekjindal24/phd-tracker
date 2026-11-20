@@ -7,6 +7,7 @@ from typing import Annotated, Any, Literal
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, StringConstraints, model_validator
 
 from app.enums import (
+    NOTICE_SIGNERS,
     WHATSAPP_NUMBER_RE,
     ApprovalBody,
     AssignedRole,
@@ -27,6 +28,7 @@ from app.enums import (
     MilestoneStatus,
     MilestoneType,
     ModuleKey,
+    NoticeSigner,
     NotificationCategory,
     PanelKind,
     Period,
@@ -882,6 +884,43 @@ class SeminarUpdate(BaseModel):
     notes: Notes | None = None
     scholar_ids: list[uuid.UUID] | None = Field(default=None, min_length=1, max_length=200)
     panel_faculty_ids: list[uuid.UUID] | None = Field(default=None, max_length=30)
+
+
+def _in_signing_order(signers: list[str] | None) -> list[str] | None:
+    """Each signer once, in the order the paper notices sign (enums.NOTICE_SIGNERS)."""
+    if signers is None:
+        return None
+    return sorted(set(signers), key=NOTICE_SIGNERS.index)
+
+
+NoticeLine = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)]
+
+
+class NoticeIn(BaseModel):
+    """The department admin's changes to one seminar's notice; null or left out: the default."""
+
+    signers: list[NoticeSigner] | None = Field(default=None, min_length=1, max_length=5)
+    announcement: (
+        Annotated[str, StringConstraints(strip_whitespace=True, max_length=2000)] | None
+    ) = None
+    closing: Annotated[str, StringConstraints(strip_whitespace=True, max_length=500)] | None = None
+    copy_to: list[NoticeLine] | None = Field(default=None, max_length=20)
+
+    @model_validator(mode="after")
+    def _order(self) -> "NoticeIn":
+        self.signers = _in_signing_order(self.signers)  # type: ignore[assignment]
+        return self
+
+
+class DepartmentSignersIn(BaseModel):
+    """Who signs every seminar notice of the department; null: back to the default."""
+
+    signers: list[NoticeSigner] | None = Field(default=None, min_length=1, max_length=5)
+
+    @model_validator(mode="after")
+    def _order(self) -> "DepartmentSignersIn":
+        self.signers = _in_signing_order(self.signers)  # type: ignore[assignment]
+        return self
 
 
 class SeminarRow(BaseModel):

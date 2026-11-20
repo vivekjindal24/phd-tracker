@@ -60,6 +60,24 @@ remove a point only when the behaviour itself changes.
     signed papers and the RAC's recommendation — but not the panel's answers or comments. It
     still sees no other seminar, in the file or on screen. The Library sees no seminar.
     *(owner, 2026-11-20)*
+9c. **A seminar's notice is signed by the department admin, the HoD and the Dean** unless the
+    department admin changes it (9d). The
+    circular names the scholar, enrolment number, admission date, supervisor, department, topic
+    and (for the synopsis seminar) the registration seminar's date. Only those who run the
+    department's seminars (its head and admin, and the Dean above) download it, from the
+    seminar page; it is also in the PhD file before the seminar's report. Each signer is the
+    holder of that role in the department (the first by name if several hold it); the "copy to"
+    list is Anveshan's own until it becomes a university setting. The date printed is the day
+    the seminar was scheduled. *(owner, 2026-11-21)*
+9d. **The department admin decides who signs the notices and what they say.** On a seminar's
+    Notice card the admin ticks the signers from five: Secretary DRC, Department Admin,
+    Chairperson DRC, Head of Department, Dean. They can be saved for every seminar of the
+    department, or for that seminar only, with its own announcement, closing line and "copy to"
+    list. Signers always print in that order, and one person holding two of the roles signs
+    once with both ("Head of Department & Chairperson, DRC"). A rewritten announcement is kept
+    as written: if the seminar's date or venue changes afterwards, the admin must update it (or
+    clear it to go back to the generated text). Only an admin over the department may change
+    these; the HoD sees them. *(owner, 2026-11-21)*
 10. **The unsigned PhD file is for printing and signing.** It holds the generated forms only,
     with signature and date lines, and leaves out the specimen signatures and the uploaded
     scans. The signed one holds both. *(2026-11-20)*

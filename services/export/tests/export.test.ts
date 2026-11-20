@@ -64,6 +64,15 @@ const phdFile = {
   ],
   generated_at: "2026-11-19T10:00:00Z", generated_by: "R",
 };
+const noticeForm = {
+  title: "Pre-Thesis Synopsis Seminar: Circular", intro: "Dated 06/01/2026\n\nThis is for your kind information …",
+  fields: [["Name of Scholar", "Arun"]], tables: [], statement: "All are cordially invited.", signed_heading: null,
+  signed_by: [{ name: "Rohit", role: "Department Admin", signature: null }, { name: "", role: "Head of Department", signature: null },
+    { name: "Koser", role: "Dean", signature: null }],
+  forwarded: null, copy_to: ["The scholar"], recorded: null,
+};
+const notice = { university: "U", address: "", logo: null, title: "Synopsis seminar", notices: [noticeForm, noticeForm],
+  generated_at: "2026-11-21T10:00:00Z", generated_by: "R" };
 const pageCount = (pdf: Buffer) => (pdf.toString("latin1").match(/\/Type \/Page\b(?!s)/g) ?? []).length;
 
 const seen: { auth?: string; url?: string } = {};
@@ -83,6 +92,7 @@ before(async () => {
     if (req.path.endsWith("/export-view")) return res.json(req.path.includes(JUNK_ID) ? { nope: 1 } : report);
     if (req.path.endsWith("/register-view")) return res.json(register);
     if (req.path.endsWith("/phd-file")) return res.json(phdFile);
+    if (req.path.endsWith("/notice")) return res.json(notice);
     if (req.path === "/api/v1/internal/lists/scholars") {
       // Three rows in all; the stub hands out two a page whatever limit is asked.
       const offset = Number(req.query.offset);
@@ -274,13 +284,22 @@ test("an entry with a form prints as the university's form: fields, table, signe
     copy_to: ["Dean Research"], recorded: "Recorded in Anveshan by R on 01/05/2026.",
   };
   const view = phdFileView.parse({ ...phdFile, annexures: [{ key: "comprehensive", title: "Comprehensive", date: null,
-    note: null, entries: [{ ...entry("Attempt 1"), form }, { ...entry("Attempt 2"), form }, entry("Plain")] }] });
+    note: null, entries: [{ ...entry("Attempt 1"), forms: [form] }, { ...entry("Attempt 2"), forms: [form] }, entry("Plain")] }] });
   const image = /\/Subtype \/Image/;
   const pdf = await phdFilePdf(view);
   // index + a page per form + the plain entry's summary page
   assert.equal((await PDFLibDocument.load(pdf)).getPageCount(), 4);
   assert.match(pdf.toString("latin1"), image); // the specimen of who signed in the portal
   assert.doesNotMatch((await phdFilePdf(view, new Map(), false)).toString("latin1"), image);
+});
+
+test("a seminar's notice prints one page per scholar, to sign by hand", async () => {
+  const res = await get(`/seminars/${REPORT_ID}/notice.pdf`);
+  assert.equal(res.status, 200);
+  assert.equal(seen.url, `/api/v1/internal/seminars/${REPORT_ID}/notice`);
+  assert.match(res.headers.get("content-disposition") ?? "", /seminar-notice-/);
+  const pdf = Buffer.from(await res.arrayBuffer());
+  assert.equal((await PDFLibDocument.load(pdf)).getPageCount(), 2);
 });
 
 test("NAAC CSV keeps numbers and neutralises formulas", () => {

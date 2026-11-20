@@ -124,6 +124,18 @@ SEMINAR_KIND_LABELS = {
     "pre_synopsis": "Pre-synopsis seminar",
 }
 SeminarMarking = Literal["rubric", "questions"]
+# Who may sign a seminar's notice (PRD F17b), in the order they sign; the department admin picks,
+# per department and per seminar (owner, 2026-11-21).
+NoticeSigner = Literal["drc_secretary", "admin", "drc_chair", "unit_head", "dean"]
+NOTICE_SIGNERS = get_args(NoticeSigner)
+NOTICE_SIGNER_LABELS = {
+    "drc_secretary": "Secretary, DRC",
+    "admin": "Department Admin",
+    "drc_chair": "Chairperson, DRC",
+    "unit_head": "Head of Department",
+    "dean": "Dean",
+}
+DEFAULT_NOTICE_SIGNERS = ("admin", "unit_head", "dean")
 FormAnswer = Literal["yes", "no"]
 SeminarRecommendation = Literal["recommended", "recommended_with_changes", "not_recommended"]
 SEMINAR_RECOMMENDATIONS = get_args(SeminarRecommendation)

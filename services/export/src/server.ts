@@ -3,10 +3,10 @@
 import express from "express";
 import type { NextFunction, Request, Response } from "express";
 import { z } from "zod";
-import { certificateView, fetchList, fetchView, phdFileView, tableView, registerView, reportView, reviewCopyView, ucView, UpstreamError } from "./api.ts";
+import { certificateView, fetchList, fetchView, phdFileView, seminarNoticeView, tableView, registerView, reportView, reviewCopyView, ucView, UpstreamError } from "./api.ts";
 import type { PhdFileView } from "./api.ts";
 import { certificatePdf, tableCsv, registerCsv, registerPdf, reportPdf, ucPdf } from "./render.ts";
-import { phdFilePdf } from "./phd-file.ts";
+import { phdFilePdf, seminarNoticePdf } from "./phd-file.ts";
 import type { Scan } from "./phd-file.ts";
 import { stampPdf, UnstampablePdf } from "./stamp.ts";
 
@@ -138,6 +138,17 @@ export function createApp(config: Config) {
       const view = await fetchView(config.apiUrl, `/internal/scholars/${id}/phd-file`, auth(req), phdFileView);
       send(res, "application/pdf", `phd-file-${view.roll_number}${signed ? "" : "-unsigned"}.pdf`,
         await phdFilePdf(view, signed ? await fetchScans(view) : new Map(), signed));
+    } catch (e) {
+      next(e);
+    }
+  });
+
+  // A seminar's circular to print and sign by hand: the API decides who may (the department).
+  app.get("/seminars/:id/notice.pdf", async (req, res, next) => {
+    try {
+      const id = input(z.string().uuid(), req.params.id);
+      const view = await fetchView(config.apiUrl, `/internal/seminars/${id}/notice`, auth(req), seminarNoticeView);
+      send(res, "application/pdf", `seminar-notice-${id.slice(0, 8)}.pdf`, await seminarNoticePdf(view));
     } catch (e) {
       next(e);
     }

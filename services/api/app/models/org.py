@@ -26,6 +26,7 @@ from app.enums import (
     DESIGNATIONS,
     GENDERS,
     LEFT_REASONS,
+    NOTICE_SIGNERS,
     NOTIFICATION_CATEGORIES,
     OFFICE_ROLES,
     STAGES,
@@ -53,6 +54,10 @@ class OrgUnit(DomainRow, Base):
         Index("uq_org_units_path", "path", unique=True, postgresql_where=LIVE),
         Index("ix_org_units_path_gist", "path", postgresql_using="gist"),
         CheckConstraint("char_length(name) BETWEEN 1 AND 200", name="ck_org_units_name"),
+        CheckConstraint(
+            f"notice_signers <@ ARRAY[{sql_in(NOTICE_SIGNERS)}]::text[]",
+            name="ck_org_units_notice_signers",
+        ),
         Index(
             "ix_org_units_name_trgm",
             "name",
@@ -69,6 +74,8 @@ class OrgUnit(DomainRow, Base):
     code: Mapped[str] = mapped_column(Text)
     path: Mapped[str] = mapped_column(Ltree)
     cross_unit_directory: Mapped[bool] = mapped_column(Boolean, server_default=false())
+    # Who signs the unit's seminar notices, in order (enums.NOTICE_SIGNERS); null: the default.
+    notice_signers: Mapped[list[str] | None] = mapped_column(ARRAY(Text))
 
 
 class User(DomainRow, Base):

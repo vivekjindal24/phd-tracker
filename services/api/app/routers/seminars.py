@@ -9,13 +9,13 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
-from app import grading, scope, seminars
+from app import grading, phd_forms, scope, seminars
 from app.auth.deps import current_principal
 from app.auth.principal import Principal
 from app.crud import insert, soft_delete, update
 from app.db import get_session
-from app.enums import SEMINAR_KIND_LABELS
-from app.errors import ApiError
+from app.enums import DEFAULT_NOTICE_SIGNERS, NOTICE_SIGNER_LABELS, SEMINAR_KIND_LABELS
+from app.errors import ApiError, forbidden
 from app.models import (
     Faculty,
     OrgUnit,
@@ -29,7 +29,15 @@ from app.models import (
 )
 from app.notify import notify
 from app.rbac import not_only_office
-from app.schemas import HardcopyIn, SeminarDetail, SeminarIn, SeminarRow, SeminarUpdate
+from app.schemas import (
+    DepartmentSignersIn,
+    HardcopyIn,
+    NoticeIn,
+    SeminarDetail,
+    SeminarIn,
+    SeminarRow,
+    SeminarUpdate,
+)
 from app.sorting import Sort, ordered, page_of
 
 router = APIRouter(prefix="/seminars", tags=["seminars"])
@@ -329,3 +337,69 @@ async def set_hardcopy(
     await update(session, principal, row, {"hardcopy_received_on": body.received_on})
     await session.commit()
     return await _detail(session, principal, seminar_id)
+
+
+# --- the seminar's notice (PRD F17b): who signs and what it says ------------------------------
+
+
+async def _notice(session: AsyncSession, principal: Principal, s: Seminar, path: str) -> dict:
+    unit = await session.scalar(select(OrgUnit.notice_signers).where(OrgUnit.id == s.unit_id))
+    return {
+        "can_edit": seminars.can_edit_notice(principal, path),
+        "choices": [{"key": k, "label": v} for k, v in NOTICE_SIGNER_LABELS.items()],
+        "signers": await phd_forms.notice_signer_keys(session, s),
+        "department_signers": list(unit or DEFAULT_NOTICE_SIGNERS),
+        "custom": s.notice or {},  # this seminar's changes
+        "standard": phd_forms.notice_wording(s),  # Anveshan's wording, before them
+    }
+
+
+async def _notice_seminar(
+    session: AsyncSession, principal: Principal, seminar_id: uuid.UUID, edit: bool
+) -> tuple[Seminar, str]:
+    seminar, path = await seminars.get_seminar(session, principal, seminar_id)
+    seminars.require_manager(principal, path)
+    if edit and not seminars.can_edit_notice(principal, path):
+        raise forbidden()
+    return seminar, path
+
+
+@router.get("/{seminar_id}/notice")
+async def notice(
+    seminar_id: uuid.UUID,
+    principal: Principal = Depends(current_principal),
+    session: AsyncSession = Depends(get_session),
+) -> dict[str, Any]:
+    seminar, path = await _notice_seminar(session, principal, seminar_id, edit=False)
+    return await _notice(session, principal, seminar, path)
+
+
+@router.put("/{seminar_id}/notice")
+async def change_notice(
+    seminar_id: uuid.UUID,
+    body: NoticeIn,
+    principal: Principal = Depends(current_principal),
+    session: AsyncSession = Depends(get_session),
+) -> dict[str, Any]:
+    """This seminar's notice only; what is left empty follows the department and Anveshan."""
+    seminar, path = await _notice_seminar(session, principal, seminar_id, edit=True)
+    custom = {k: v for k, v in body.model_dump().items() if v}
+    await update(session, principal, seminar, {"notice": custom or None})
+    await session.commit()
+    return await _notice(session, principal, seminar, path)
+
+
+@router.put("/{seminar_id}/notice/department")
+async def change_department_signers(
+    seminar_id: uuid.UUID,
+    body: DepartmentSignersIn,
+    principal: Principal = Depends(current_principal),
+    session: AsyncSession = Depends(get_session),
+) -> dict[str, Any]:
+    """Who signs every seminar notice of this seminar's department, unless a seminar says
+    otherwise."""
+    seminar, path = await _notice_seminar(session, principal, seminar_id, edit=True)
+    unit = await session.get(OrgUnit, seminar.unit_id)
+    await update(session, principal, unit, {"notice_signers": body.signers})
+    await session.commit()
+    return await _notice(session, principal, seminar, path)

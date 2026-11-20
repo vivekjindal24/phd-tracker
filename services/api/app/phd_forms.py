@@ -16,7 +16,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import committee, coursework, grading, items, scope, viva
 from app.auth.principal import Principal
-from app.enums import LOCAL_TZ
+from app.enums import (
+    DEFAULT_NOTICE_SIGNERS,
+    LOCAL_TZ,
+    NOTICE_SIGNER_LABELS,
+    SEMINAR_KIND_LABELS,
+)
 from app.errors import ApiError
 from app.models import (
     AuditLog,
@@ -92,6 +97,7 @@ def form(
     title: str,
     fields: list[tuple[str, Any]],
     *,
+    intro: str | None = None,
     tables: list[dict[str, Any]] | None = None,
     statement: str | None = None,
     signed_by: list[dict[str, Any]] | None = None,
@@ -102,6 +108,7 @@ def form(
 ) -> Form:
     return {
         "title": title,
+        "intro": intro,  # a paragraph above the particulars (a notice's announcement)
         "fields": [[k, str(v)] for k, v in fields if v not in (None, "")],
         "tables": tables or [],
         "statement": statement,
@@ -111,6 +118,91 @@ def form(
         "copy_to": copy_to or [],
         "recorded": recorded,
     }
+
+
+# Who a seminar's notice is copied to, until the university's own list is a setting (F17, part 4).
+NOTICE_COPY_TO = [
+    "The Vice Chancellor",
+    "The Dean of the Faculty",
+    "The Research Office",
+    "The supervisor and the members of the Research Advisory Committee",
+    "The scholar",
+]
+
+
+async def holder(session: AsyncSession, unit_id: uuid.UUID | None, role: str) -> str | None:
+    """Who holds a unit role (the head, an admin); the first by name when several do."""
+    if unit_id is None:
+        return None
+    return await session.scalar(
+        select(User.full_name)
+        .join(RoleAssignment, RoleAssignment.user_id == User.id)
+        .where(
+            RoleAssignment.unit_id == unit_id,
+            RoleAssignment.role == role,
+            RoleAssignment.deleted_at.is_(None),
+        )
+        .order_by(User.full_name)
+        .limit(1)
+    )
+
+
+def notice_name(s: Seminar) -> str:
+    name = SEMINAR_KIND_LABELS[s.kind].replace(" seminar", " Seminar")
+    return name.replace("Pre-synopsis", "Pre-Thesis Synopsis")
+
+
+def notice_wording(s: Seminar) -> dict[str, Any]:
+    """Anveshan's wording of a seminar's notice, before the department admin's changes."""
+    when = s.starts_at.astimezone(LOCAL_TZ)
+    at = f"{when:%I:%M %p}".lstrip("0")  # 4:30 PM, as the paper notices read
+    return {
+        "announcement": (
+            f"This is for your kind information that the {notice_name(s)} of the following "
+            f"research scholar has been scheduled on {when:%d %B %Y} ({when:%A}) at {at}"
+            + (f" in {s.venue}." if s.venue else ".")
+        ),
+        "closing": f"All are cordially invited to attend the {notice_name(s)}.",
+        "copy_to": NOTICE_COPY_TO,
+    }
+
+
+async def notice_signer_keys(session: AsyncSession, s: Seminar) -> list[str]:
+    """Who signs: as set for this seminar, else for its department, else the default."""
+    custom = (s.notice or {}).get("signers")
+    if custom:
+        return list(custom)
+    unit = await session.scalar(select(OrgUnit.notice_signers).where(OrgUnit.id == s.unit_id))
+    return list(unit or DEFAULT_NOTICE_SIGNERS)
+
+
+async def notice_signers(session: AsyncSession, s: Seminar) -> list[dict[str, Any]]:
+    """Each signer named from the records; one person holding two of the roles signs once, with
+    both (\"Head of Department & Chairperson, DRC\", as the paper notices read)."""
+    keys = await notice_signer_keys(session, s)
+    drc: list[dict[str, Any]] = []
+    if {"drc_chair", "drc_secretary"} & set(keys):
+        current = await committee.current(session, CommitteeFormation.unit_id == s.unit_id)
+        drc = await committee.members(session, current.id) if current else []
+    parent = await session.scalar(select(OrgUnit.parent_id).where(OrgUnit.id == s.unit_id))
+
+    async def name(key: str) -> str | None:
+        if key in ("drc_chair", "drc_secretary"):
+            role = "chairperson" if key == "drc_chair" else "secretary"
+            return next((m["name"] for m in drc if m["role"] == role), None)
+        if key == "dean":
+            return await holder(session, parent, "unit_head")
+        return await holder(session, s.unit_id, key)
+
+    out: list[dict[str, Any]] = []
+    for key in keys:
+        who, role = await name(key), NOTICE_SIGNER_LABELS[key]
+        same = next((o for o in out if who and o["name"] == who), None)
+        if same:
+            same["role"] += f" & {role}"
+        else:
+            out.append(signer(who, role))
+    return out
 
 
 def signer(name: str | None, role: str, signature: str | None = None) -> dict[str, Any]:
@@ -163,17 +255,7 @@ class Forms:
             parent = await self.session.scalar(
                 select(OrgUnit.parent_id).where(OrgUnit.id == self.scholar.unit_id)
             )
-            dean = parent and await self.session.scalar(
-                select(User.full_name)
-                .join(RoleAssignment, RoleAssignment.user_id == User.id)
-                .where(
-                    RoleAssignment.unit_id == parent,
-                    RoleAssignment.role == "unit_head",
-                    RoleAssignment.deleted_at.is_(None),
-                )
-                .order_by(User.full_name)
-                .limit(1)
-            )
+            dean = await holder(self.session, parent, "unit_head")
             self._officers = {"chair": chair, "secretary": secretary, "dean": dean}
         return self._officers
 
@@ -312,6 +394,57 @@ class Forms:
             recorded=await self.recorded("comprehensive_exams", exam.id),
         )
 
+    async def seminar_notice(self, s: Seminar) -> Form:
+        """The circular announcing the seminar: Anveshan's wording and the department's signers,
+        as the department admin changed them for this seminar (owner, 2026-11-21)."""
+        block = dict(await self.particulars())
+        fields = [
+            ("Name of Scholar", block["Name of the Student"]),
+            ("Enrolment No.", block["Enrolment No."]),
+            ("Date of admission", block["Date of admission"]),
+            ("Supervisor", block["Name of Supervisor"]),
+            ("Department", block["Department"]),
+            ("Topic", await self.title()),
+        ]
+        if s.kind == "pre_synopsis":
+            fields.append(("Date of Registration Seminar", await self.registration_seminar()))
+        wording = {**notice_wording(s), **{k: v for k, v in (s.notice or {}).items() if v}}
+        return form(
+            f"{notice_name(s)}: Circular",
+            fields,
+            intro=f"Dated {_d(s.created_at)}\n\n{wording['announcement']}",
+            statement=wording["closing"],
+            signed_by=await notice_signers(self.session, s),
+            copy_to=wording["copy_to"],
+        )
+
+    async def title(self) -> str | None:
+        """The research title, else the newest approved title on a milestone."""
+        return self.scholar.research_title or await self.session.scalar(
+            select(Milestone.approved_title)
+            .where(
+                Milestone.scholar_id == self.scholar.id,
+                Milestone.deleted_at.is_(None),
+                Milestone.approved_title.is_not(None),
+            )
+            .order_by(Milestone.resolution_date.desc().nulls_last(), Milestone.created_at.desc())
+            .limit(1)
+        )
+
+    async def registration_seminar(self) -> str | None:
+        """The date of the scholar's first registration seminar."""
+        reg = await self.session.scalar(
+            select(func.min(Seminar.starts_at))
+            .join(SeminarScholar, SeminarScholar.seminar_id == Seminar.id)
+            .where(
+                SeminarScholar.scholar_id == self.scholar.id,
+                SeminarScholar.deleted_at.is_(None),
+                Seminar.deleted_at.is_(None),
+                Seminar.kind == "registration",
+            )
+        )
+        return _d(reg) if reg else None
+
     async def seminar(self, s: Seminar, entry: SeminarScholar) -> Form:
         fields = await self.particulars()
         if s.kind == "registration":
@@ -326,30 +459,8 @@ class Forms:
                 ("Date of successful comprehensive exam", f"{passed:%B %Y}" if passed else None)
             )
         if s.kind == "pre_synopsis":
-            title = self.scholar.research_title or await self.session.scalar(
-                select(Milestone.approved_title)
-                .where(
-                    Milestone.scholar_id == self.scholar.id,
-                    Milestone.deleted_at.is_(None),
-                    Milestone.approved_title.is_not(None),
-                )
-                .order_by(
-                    Milestone.resolution_date.desc().nulls_last(), Milestone.created_at.desc()
-                )
-                .limit(1)
-            )
-            fields.insert(2, ("Title of the Thesis", title))
-            reg = await self.session.scalar(
-                select(func.min(Seminar.starts_at))
-                .join(SeminarScholar, SeminarScholar.seminar_id == Seminar.id)
-                .where(
-                    SeminarScholar.scholar_id == self.scholar.id,
-                    SeminarScholar.deleted_at.is_(None),
-                    Seminar.deleted_at.is_(None),
-                    Seminar.kind == "registration",
-                )
-            )
-            fields.append(("Date of Registration Seminar", _d(reg) if reg else None))
+            fields.insert(2, ("Title of the Thesis", await self.title()))
+            fields.append(("Date of Registration Seminar", await self.registration_seminar()))
         fields.append((SEMINAR_DATES[s.kind], _d(s.starts_at)))
         tables, comments, recommended = await self._marking(s, entry)
         signers = await self.rac_signers(s.starts_at)

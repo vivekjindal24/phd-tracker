@@ -98,6 +98,12 @@ async def may_request_panel(
     return seminar_id in set(await session.scalars(guided))
 
 
+def can_edit_notice(principal: Principal, unit_path: str) -> bool:
+    """Who signs a notice and what it says: the department admin, or an admin above (owner,
+    2026-11-21)."""
+    return principal.covers("admin", unit_path)
+
+
 def require_manager(principal: Principal, unit_path: str) -> None:
     if not can_manage(principal, unit_path):
         raise forbidden()

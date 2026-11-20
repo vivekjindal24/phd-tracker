@@ -489,7 +489,13 @@ demand, from what is already recorded.
 - **Seminars and the viva** each get a generated circular (date, time, venue,
   scholar, topic, signatories, "copy to" list) and a pre-filled attendance sheet
   (scholar, topic, date, blank rows to sign) to print; the signed sheet is
-  scanned back in.
+  scanned back in. *Built:* the seminar circular — one page per scholar, signed
+  by hand by the department admin, the HoD and the Dean by default (owner,
+  2026-11-21). The department admin changes who signs for every seminar of the
+  department, and who signs, the announcement, the closing line and the "copy
+  to" list for one seminar;
+  **Download notice** on the seminar for those who run it, and in the PhD file
+  before the seminar's report.
 - **Names are the university's:** each annexure's title and form number (e.g.
   "Form V — Formation of RAC") is a university setting with a plain default, as
   the certificate wording is; the "copy to" list of circulars likewise.

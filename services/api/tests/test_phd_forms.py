@@ -8,9 +8,10 @@ from tests.test_viva_arrangements import act, documents_on, ready_arrangement  #
 API = "/api/v1"
 
 
-def entry(view, key):
+def entry(view, key, n=-1):
+    """The entry's form: its last by default (a seminar prints its notice, then its report)."""
     (e,) = next(a for a in view["annexures"] if a["key"] == key)["entries"]
-    return e["form"]
+    return e["forms"][n]
 
 
 def test_the_synopsis_sentence_prints_only_when_the_panel_recommended():
@@ -75,7 +76,9 @@ async def test_approved_items_carry_their_approval_record_and_the_viva_its_board
     assert (await act(client, world.vice_chancellor, aid, "approve")).status_code == 200
 
     def forms(view, key):
-        return [e["form"] for e in next(a for a in view["annexures"] if a["key"] == key)["entries"]]
+        return [
+            e["forms"][-1] for e in next(a for a in view["annexures"] if a["key"] == key)["entries"]
+        ]
 
     async def view_of(user):
         url = f"{API}/internal/scholars/{world.s_a1.id}/phd-file"
@@ -156,3 +159,88 @@ async def test_the_exam_office_sees_the_synopsis_result_but_not_the_answers(clie
     assert seminar["entries"] == []  # the Library sees no seminars at all
     admin = await synopsis(world.admin_a1)
     assert admin["tables"] and "Good." in admin["statement"]
+
+
+async def test_a_seminar_notice_is_signed_by_the_admin_the_head_and_the_dean(client, world):
+    from tests.test_seminar_forms import schedule
+
+    seminar_id = (await schedule(client, world, kind="pre_synopsis", venue="Bosch Hall")).json()[
+        "id"
+    ]
+    view = (
+        await client.get(
+            f"{API}/internal/scholars/{world.s_a1.id}/phd-file", headers=auth(world.admin_a1.id)
+        )
+    ).json()
+    notice = entry(view, "pre_synopsis_seminar", 0)
+    assert notice["title"] == "Pre-Thesis Synopsis Seminar: Circular"
+    assert "scheduled on 20 November 2026 (Friday) at 10:00 AM in Bosch Hall." in notice["intro"]
+    assert [s["role"] for s in notice["signed_by"]] == [
+        "Department Admin",
+        "Head of Department",
+        "Dean",
+    ]
+    assert all(s["signature"] is None for s in notice["signed_by"])  # signed by hand
+    assert entry(view, "pre_synopsis_seminar")["title"] == "Pre-Thesis Synopsis Report"
+
+    # The department prints it from the seminar; a panel member may not.
+    res = await client.get(
+        f"{API}/internal/seminars/{seminar_id}/notice", headers=auth(world.admin_a1.id)
+    )
+    assert res.status_code == 200, res.text
+    assert [n["title"] for n in res.json()["notices"]] == [notice["title"]]
+    res = await client.get(
+        f"{API}/internal/seminars/{seminar_id}/notice", headers=auth(world.sup_b1.id)
+    )
+    assert res.status_code == 403
+
+
+async def test_the_department_admin_changes_who_signs_and_what_the_notice_says(client, world):
+    from tests.test_seminar_forms import schedule
+
+    seminar_id = (await schedule(client, world, kind="pre_synopsis")).json()["id"]
+    notice_url = f"{API}/seminars/{seminar_id}/notice"
+    admin = auth(world.admin_a1.id)
+
+    async def printed():
+        res = await client.get(f"{API}/internal/seminars/{seminar_id}/notice", headers=admin)
+        assert res.status_code == 200, res.text
+        (only,) = res.json()["notices"]
+        return only
+
+    # The department's own signers, for every seminar of the department.
+    res = await client.put(
+        f"{notice_url}/department", headers=admin, json={"signers": ["dean", "drc_secretary"]}
+    )
+    assert res.status_code == 200, res.text
+    assert res.json()["department_signers"] == ["drc_secretary", "dean"]  # in signing order
+    assert [s["role"] for s in (await printed())["signed_by"]] == ["Secretary, DRC", "Dean"]
+
+    # This seminar only: signers, wording and copy list; the rest stays as it was.
+    res = await client.put(
+        notice_url,
+        headers=admin,
+        json={
+            "signers": ["unit_head", "admin"],
+            "announcement": "The seminar is moved.",
+            "copy_to": ["The Registrar"],
+        },
+    )
+    assert res.status_code == 200, res.text
+    notice = await printed()
+    assert [s["role"] for s in notice["signed_by"]] == ["Department Admin", "Head of Department"]
+    assert notice["intro"].endswith("The seminar is moved.")
+    assert notice["copy_to"] == ["The Registrar"]
+    assert notice["statement"].startswith("All are cordially invited")  # not changed: standard
+
+    # Back to the department's signers and Anveshan's wording.
+    res = await client.put(notice_url, headers=admin, json={})
+    assert res.json()["custom"] == {} and res.json()["signers"] == ["drc_secretary", "dean"]
+
+    # A head (the Dean) may read it but not change it; a panel member may do neither.
+    assert (await client.get(notice_url, headers=auth(world.dean_a.id))).status_code == 200
+    head = await client.put(notice_url, headers=auth(world.dean_a.id), json={})
+    assert head.status_code == 403
+    assert (await client.get(notice_url, headers=auth(world.sup_b1.id))).status_code == 403
+    bad = await client.put(notice_url, headers=admin, json={"signers": ["registrar"]})
+    assert bad.status_code == 422

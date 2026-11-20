@@ -65,7 +65,7 @@ def _entry(
     signed=None,
     record: uuid.UUID | None = None,
     papers: tuple[str, ...] = ("signed_copy",),
-    form: dict[str, Any] | None = None,
+    forms: list[dict[str, Any]] | None = None,
 ):
     """`record`: the row behind the entry; `papers`: the signed copies it holds, in the paper
     file's order (enums.DOCUMENT_KINDS, F17b). An entry with no record holds none."""
@@ -76,7 +76,8 @@ def _entry(
         "signed": signed,
         "record": record,
         "papers": list(papers) if record else [],
-        "form": form,  # the entry printed as the university's form (phd_forms.py), if it has one
+        # The entry printed as the university's forms (phd_forms.py), in the paper file's order.
+        "forms": forms or [],
     }
 
 
@@ -191,7 +192,7 @@ class _File:
                     ("Ended on", _d(a["ended_on"]) if a["ended_on"] else None),
                 ],
                 record=a["id"],
-                form=await self.forms.appointment(a),
+                forms=[await self.forms.appointment(a)],
             )
             for a in rows
         ]
@@ -211,7 +212,7 @@ class _File:
                     for m in f["members"]
                 ],
                 record=f["id"],
-                form=await self.forms.committee_formation(f),
+                forms=[await self.forms.committee_formation(f)],
             )
             for f in reversed(versions)  # oldest first, as filed
         ]
@@ -249,7 +250,7 @@ class _File:
                         [("State", c.state), ("Credits", c.credits), ("CGPA", c.cgpa)],
                         await self.signed("coursework_clearance", c),
                         c.id,
-                        form=await self.forms.clearance(c),
+                        forms=[await self.forms.clearance(c)],
                     )
                 )
         if not out and not await self.reads("enrolments"):
@@ -266,7 +267,7 @@ class _File:
                 f"Attempt {e.attempt}, {e.held_in:%B %Y}",
                 [("Result", e.result.capitalize()), ("Notes", e.notes)],
                 record=e.id,
-                form=await self.forms.comprehensive(e, rows),
+                forms=[await self.forms.comprehensive(e, rows)],
             )
             for e in rows
         ]
@@ -313,8 +314,12 @@ class _File:
                     ],
                     record=entry.id,
                     papers=SEMINAR_PAPERS,
-                    # A progress seminar's paper is the progress report itself.
-                    form=await self.forms.seminar(s, entry) if kind != "progress" else None,
+                    # The notice, then the report; a progress seminar's report is the progress
+                    # report, which has its own PDF.
+                    forms=[
+                        await self.forms.seminar_notice(s),
+                        *([await self.forms.seminar(s, entry)] if kind != "progress" else []),
+                    ],
                 )
             )
         return out
@@ -431,7 +436,7 @@ class _File:
                     await self.signed("thesis_submission", t),
                     t.id,
                     ("signed_copy", "fee_due", "corrections"),
-                    await self.forms.submission(t),
+                    [await self.forms.submission(t)],
                 )
             )
         if await self.reads("no_dues_clearances"):
@@ -527,7 +532,7 @@ class _File:
                         await self.signed("viva_arrangement", a),
                         a.id,
                         ("viva_approval", "viva_board", "viva_notice", "viva_examiner_email"),
-                        await self.forms.viva_approval(a, await self._title()),
+                        [await self.forms.viva_approval(a, await self._title())],
                     )
                 )
         ev = await self._evaluation()
@@ -544,7 +549,7 @@ class _File:
                     ],
                     record=v["id"],
                     papers=("viva_report", "attendance"),
-                    form=await self.forms.viva_report(v, await self._title()),
+                    forms=[await self.forms.viva_report(v, await self._title())],
                 )
             )
         return out

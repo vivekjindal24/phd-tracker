@@ -293,6 +293,15 @@ department or Research Office to record it.
 1. HoD / department admin → **Seminars → Schedule**: kind of seminar, title,
    date & time, venue/link, (progress only) report due date and period, pick
    scholars (their unit) and panel. Everyone concerned is notified.
+1a. The HoD / department admin (or the Dean) → the seminar → **Download notice**:
+   the circular, one page per scholar, with lines for the department admin,
+   the HoD and the Dean to sign by hand; its scan goes back in as the
+   seminar's "Notification" paper (PRD F17b). The seminar's **Notice** card:
+   the department admin ticks who signs (Secretary DRC, Department Admin,
+   Chairperson DRC, HoD, Dean) and may rewrite the announcement, the closing
+   line and the "copy to" list → **Save for this seminar**, or **Use these
+   signers for every … seminar** (the department named); **Back to the standard notice**
+   undoes this seminar's changes. The HoD sees who signs, read-only.
 2. Scholars see the seminar and their report deadline on Home; the report
    page shows "Due 30 Nov" / "Overdue".
 3. If the university requires a hardcopy, the department ticks "hardcopy

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState } from "react";
+import { DownloadButton } from "@/components/DownloadButton";
 import { StateBadge } from "@/components/items/StateBadge";
 import { RequestMember } from "@/components/RequestMember";
 import { Button, Card, ErrorText, PageHeader, Table } from "@/components/ui/kit";
@@ -11,6 +12,7 @@ import { formatDate, formatWhen } from "@/lib/format";
 import { SEMINAR_KIND_LABELS } from "@/lib/types";
 import type { SeminarDetail } from "@/lib/types";
 import { errorText, useFetch } from "@/lib/useFetch";
+import { NoticeCard } from "./NoticeCard";
 import "../seminars.css";
 
 export default function SeminarPage() {
@@ -34,7 +36,9 @@ export default function SeminarPage() {
   return (
     <>
       <PageHeader eyebrow={`${s.unit.name} · ${SEMINAR_KIND_LABELS[s.kind].toLowerCase()}`} title={s.title}
-        actions={cancelled ? <span className="badge badge-sent_back">Cancelled</span> : undefined} />
+        actions={cancelled ? <span className="badge badge-sent_back">Cancelled</span>
+          : s.can_manage ? <DownloadButton path={`/seminars/${s.id}/notice.pdf`}>Download notice</DownloadButton>
+          : undefined} />
       <ErrorText>{actError}</ErrorText>
       <div className="seminar-detail">
         <div style={{ display: "grid", gap: "var(--space-5)" }}>
@@ -91,6 +95,7 @@ export default function SeminarPage() {
               </ul>
             )}
           </Card>
+          {s.can_manage && !cancelled && <NoticeCard seminarId={s.id} department={s.unit.name} />}
           {s.can_attend && (
             <Card>
               <h2>Attending?</h2>

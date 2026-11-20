@@ -49,6 +49,9 @@ class Seminar(DomainRow, Base):
     report_year: Mapped[int | None] = mapped_column(Integer)
     period: Mapped[str | None] = mapped_column(Text)
     notes: Mapped[str] = mapped_column(Text, server_default=text("''"))
+    # The department admin's changes to this seminar's notice (PRD F17b): any of signers,
+    # announcement, closing, copy_to; what is missing comes from the department and Anveshan.
+    notice: Mapped[dict[str, Any] | None] = mapped_column(JSONB(none_as_null=True))
     status: Mapped[str] = mapped_column(Text, server_default=text("'scheduled'"))
     created_by: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"))
 

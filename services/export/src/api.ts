@@ -118,6 +118,24 @@ export const registerView = z.object({
 });
 export type RegisterView = z.infer<typeof registerView>;
 
+const signer = z.object({ name: z.string(), role: z.string(), signature: z.string().nullable() });
+/** A generated form (phd_forms.py): particulars, tables, the statement, who signs. */
+const form = z.object({
+  title: z.string(),
+  intro: z.string().nullable().default(null), // a paragraph above the particulars (a notice)
+  fields: z.array(z.tuple([z.string(), z.string()])),
+  tables: z.array(z.object({
+    title: z.string(), columns: z.array(z.string()), rows: z.array(z.array(z.string())),
+  })),
+  statement: z.string().nullable(),
+  signed_heading: z.string().nullable(),
+  signed_by: z.array(signer),
+  forwarded: z.object({ to: z.string(), by: z.array(signer) }).nullable(),
+  copy_to: z.array(z.string()),
+  recorded: z.string().nullable(),
+});
+export type FormView = z.infer<typeof form>;
+
 // The PhD file (PRD F17): every annexure in career order, with its entries or why it has none.
 export const phdFileView = z.object({
   ...brand,
@@ -139,23 +157,8 @@ export const phdFileView = z.object({
           lines: z.array(z.tuple([z.string(), z.string()])),
           signed: z.boolean().nullable(), // approved items only: every approval signed or not
           // Its papers signed by hand (PRD F17b), in the paper file's order; a scan link once approved.
-          // The entry as the university's paper form (phd_forms.py), when it has one.
-          form: z.object({
-            title: z.string(),
-            fields: z.array(z.tuple([z.string(), z.string()])),
-            tables: z.array(z.object({
-              title: z.string(), columns: z.array(z.string()), rows: z.array(z.array(z.string())),
-            })),
-            statement: z.string().nullable(),
-            signed_heading: z.string().nullable(),
-            signed_by: z.array(z.object({ name: z.string(), role: z.string(), signature: z.string().nullable() })),
-            forwarded: z.object({
-              to: z.string(),
-              by: z.array(z.object({ name: z.string(), role: z.string(), signature: z.string().nullable() })),
-            }).nullable(),
-            copy_to: z.array(z.string()),
-            recorded: z.string().nullable(),
-          }).nullable().default(null),
+          // The entry printed as the university's paper forms (phd_forms.py), in the paper file's order.
+          forms: z.array(form).default([]),
           papers: z.array(z.object({
             label: z.string(),
             copy: z.object({ id: z.string(), content_type: z.string(), scan_url: z.string().nullable() }).nullable(),
@@ -168,6 +171,16 @@ export const phdFileView = z.object({
   generated_by: z.string(),
 });
 export type PhdFileView = z.infer<typeof phdFileView>;
+
+// A seminar's circular, one page per scholar (PRD F17b), printed to sign by hand.
+export const seminarNoticeView = z.object({
+  ...brand,
+  title: z.string(),
+  notices: z.array(form),
+  generated_at: z.string(),
+  generated_by: z.string(),
+});
+export type SeminarNoticeView = z.infer<typeof seminarNoticeView>;
 
 const money = z.number().nonnegative();
 export const ucView = z.object({
