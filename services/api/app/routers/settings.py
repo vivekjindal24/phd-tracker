@@ -9,7 +9,7 @@ from app.auth.deps import current_principal, require_root_admin
 from app.auth.principal import Principal
 from app.crud import update
 from app.db import get_session
-from app.enums import SEMINAR_KINDS, ItemType, ModuleKey
+from app.enums import PHD_FORMS, SEMINAR_KINDS, ItemType, ModuleKey
 from app.models import ApprovalChain, Module, Settings
 from app.notify import email_configured
 from app.schemas import ChainIn, ModuleUpdate, SettingsOut, SettingsUpdate
@@ -40,6 +40,8 @@ async def _read(session: AsyncSession) -> SettingsOut:
             "seminar_graders": settings.seminar_graders,
             "seminar_rubric": settings.seminar_rubric,
             "seminar_forms": {k: grading.form_for(settings, k) for k in SEMINAR_KINDS},
+            "phd_forms": {k: settings.phd_forms.get(k, {}) for k in PHD_FORMS},
+            "phd_form_defaults": PHD_FORMS,
             "min_coursework_credits": settings.min_coursework_credits,
             "min_coursework_cgpa": settings.min_coursework_cgpa,
             "max_duration_years": settings.max_duration_years,
@@ -71,6 +73,9 @@ async def update_settings(
     changes = body.model_dump(exclude_unset=True, exclude_none=True)
     if "seminar_forms" in changes:  # one kind at a time: keep the others as they are
         changes["seminar_forms"] = {**row.seminar_forms, **changes["seminar_forms"]}
+    if "phd_forms" in changes:  # likewise one form at a time; an all-empty form is dropped
+        merged = {**row.phd_forms, **changes["phd_forms"]}
+        changes["phd_forms"] = {k: v for k, v in merged.items() if any(v.values())}
     await update(session, principal, row, {**changes, "updated_by": principal.user_id})
     await session.commit()
     return await _read(session)

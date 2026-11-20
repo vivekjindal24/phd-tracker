@@ -124,6 +124,29 @@ SEMINAR_KIND_LABELS = {
     "pre_synopsis": "Pre-synopsis seminar",
 }
 SeminarMarking = Literal["rubric", "questions"]
+# The forms the PhD file prints (phd_forms.py), in career order, with Anveshan's titles. A
+# university renames each, gives it its form number ("Form VII-A") and its "copy to" list in
+# settings.phd_forms (PRD F17, part 4).
+PHD_FORMS = {
+    "appointment": "Appointment of Supervisor",
+    "co_appointment": "Appointment of Co-supervisor",
+    "committee_formation": "Formation of Research Advisory Committee",
+    "clearance": "Coursework Clearance",
+    "comprehensive": "Report of Comprehensive Examination",
+    "registration_notice": "Registration Seminar: Circular",
+    "registration_report": "Registration Seminar Report",
+    "registration_attendance": "Registration Seminar: Attendance Sheet",
+    "progress_notice": "Progress Seminar: Circular",
+    "progress_attendance": "Progress Seminar: Attendance Sheet",
+    "pre_synopsis_notice": "Pre-Thesis Synopsis Seminar: Circular",
+    "pre_synopsis_report": "Pre-Thesis Synopsis Report",
+    "pre_synopsis_attendance": "Pre-Thesis Synopsis Seminar: Attendance Sheet",
+    "submission": "Submission of Thesis",
+    "viva_approval": "Approval for Conduct of Viva-Voce Examination",
+    "viva_notice": "Viva-Voce Examination: Notice",
+    "viva_attendance": "Viva-Voce Examination: Attendance Sheet",
+    "viva_report": "Viva-Voce Examination Report",
+}
 # Who may sign a seminar's or viva's notice (PRD F17b), in the order they sign; the department
 # admin picks, per department and per seminar or viva (owner, 2026-11-21). Defaults: notices.py.
 NoticeSigner = Literal["exam_office", "drc_secretary", "admin", "drc_chair", "unit_head", "dean"]

@@ -8,6 +8,7 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field, StringConstraints, 
 
 from app.enums import (
     NOTICE_SIGNERS,
+    PHD_FORMS,
     WHATSAPP_NUMBER_RE,
     ApprovalBody,
     AssignedRole,
@@ -320,6 +321,23 @@ class SeminarForm(BaseModel):
         return self
 
 
+class PhdFormName(BaseModel):
+    """How the university names one form of the PhD file; empty: Anveshan's."""
+
+    title: Annotated[str, StringConstraints(strip_whitespace=True, max_length=120)] = ""
+    number: Annotated[str, StringConstraints(strip_whitespace=True, max_length=30)] = ""
+    copy_to: list[
+        Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)]
+    ] = Field(default_factory=list, max_length=20)
+
+
+def _known_forms(forms: dict[str, "PhdFormName"] | None) -> dict[str, "PhdFormName"] | None:
+    unknown = sorted(set(forms or {}) - set(PHD_FORMS))
+    if unknown:
+        raise ValueError(f"no such form: {', '.join(unknown)}")
+    return forms
+
+
 class AprSection(BaseModel):
     """One section of the progress report template: its heading and a hint for the scholar."""
 
@@ -345,6 +363,8 @@ class SettingsOut(BaseModel):
     seminar_graders: SeminarGraders
     seminar_rubric: list[RubricCriterion]
     seminar_forms: dict[SeminarKind, SeminarForm]
+    phd_forms: dict[str, PhdFormName]  # every form of the PhD file, as this university names it
+    phd_form_defaults: dict[str, str]  # Anveshan's title of each, in career order
     min_coursework_credits: float
     min_coursework_cgpa: float
     max_duration_years: int
@@ -370,6 +390,7 @@ class SettingsUpdate(BaseModel):
     seminar_graders: SeminarGraders | None = None
     seminar_rubric: Rubric | None = None
     seminar_forms: dict[SeminarKind, SeminarForm] | None = None  # merged per kind
+    phd_forms: dict[str, PhdFormName] | None = None  # merged per form
     min_coursework_credits: float | None = Field(default=None, ge=0, le=40)
     min_coursework_cgpa: float | None = Field(default=None, ge=0, le=10)
     max_duration_years: int | None = Field(default=None, ge=3, le=12)
@@ -379,6 +400,7 @@ class SettingsUpdate(BaseModel):
 
     @model_validator(mode="after")
     def _unique_criteria(self) -> "SettingsUpdate":
+        _known_forms(self.phd_forms)
         if self.seminar_rubric:
             names = [c.name.lower() for c in self.seminar_rubric]
             if len(names) != len(set(names)):

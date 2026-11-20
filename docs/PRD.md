@@ -507,6 +507,11 @@ demand, from what is already recorded.
 - **Names are the university's:** each annexure's title and form number (e.g.
   "Form V — Formation of RAC") is a university setting with a plain default, as
   the certificate wording is; the "copy to" list of circulars likewise.
+  *Built:* **Settings → Forms of the PhD file** — each of the 18 generated forms
+  takes the university's title, form number (printed at the top right) and
+  "copy to" list; empty keeps Anveshan's. A notice's list can still be changed
+  for one seminar or viva by the department admin. *Next:* the university's own
+  index (its rows, order and numbering).
 - **Who:** anyone who may read the scholar's whole record generates it; what
   they may not read is left out exactly as on screen (examiner names before the
   viva, unshared meeting minutes — SECURITY.md §3). Signed scans are uploaded by

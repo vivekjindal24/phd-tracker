@@ -116,9 +116,11 @@ function drawTable(doc: PDFKit.PDFDocument, t: Form["tables"][number]) {
 function drawForm(doc: PDFKit.PDFDocument, v: Brand, annexure: number | null, f: Form, signed: boolean, fresh = true) {
   if (fresh) doc.addPage();
   const left = doc.page.margins.left;
-  if (annexure !== null) {
-    doc.font("Helvetica").fontSize(8).fillColor("#555555")
-      .text(`Annexure ${annexure}`, left, doc.page.margins.top - 24, { align: "right" }).fillColor("black");
+  // Top right, as on the paper forms: the university's form number, then the annexure.
+  const corner = [f.number, annexure === null ? null : `Annexure ${annexure}`].filter(Boolean).join(" · ");
+  if (corner) {
+    doc.font("Helvetica-Bold").fontSize(9).fillColor("#333333")
+      .text(corner, left, doc.page.margins.top - 24, { align: "right" }).fillColor("black");
   }
   doc.y = doc.page.margins.top;
   header(doc, v, f.title, "");

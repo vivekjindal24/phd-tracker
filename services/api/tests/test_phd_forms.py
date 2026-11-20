@@ -315,3 +315,66 @@ async def test_the_attendance_sheet_names_who_is_expected_and_leaves_rows_to_sig
         f"{API}/internal/seminars/{seminar_id}/minutes", headers=auth(world.admin_a1.id)
     )
     assert bad.status_code in (404, 422)  # no such paper
+
+
+async def test_the_university_names_its_forms(client, world):
+    from tests.test_seminar_forms import schedule
+
+    seminar_id = (await schedule(client, world, kind="pre_synopsis")).json()["id"]
+    root = auth(world.root_admin.id)
+    res = await client.patch(
+        f"{API}/settings",
+        headers=root,
+        json={
+            "phd_forms": {
+                "pre_synopsis_notice": {
+                    "title": "Notification of Synopsis Seminar",
+                    "number": "Form VIII-A",
+                    "copy_to": ["The Registrar", "Dean Science"],
+                },
+                "pre_synopsis_report": {"number": "Form VIII"},
+            }
+        },
+    )
+    assert res.status_code == 200, res.text
+    assert res.json()["phd_forms"]["pre_synopsis_report"]["number"] == "Form VIII"
+    assert res.json()["phd_form_defaults"]["viva_report"] == "Viva-Voce Examination Report"
+
+    async def synopsis(n):
+        url = f"{API}/internal/scholars/{world.s_a1.id}/phd-file"
+        return entry(
+            (await client.get(url, headers=auth(world.admin_a1.id))).json(),
+            "pre_synopsis_seminar",
+            n,
+        )
+
+    notice, report = await synopsis(0), await synopsis(1)
+    assert (notice["title"], notice["number"]) == (
+        "Notification of Synopsis Seminar",
+        "Form VIII-A",
+    )
+    assert notice["copy_to"] == ["The Registrar", "Dean Science"]
+    assert (report["title"], report["number"]) == ("Pre-Thesis Synopsis Report", "Form VIII")
+
+    # One seminar's own copy list still wins over the university's.
+    await client.put(
+        f"{API}/seminars/{seminar_id}/notice",
+        headers=auth(world.admin_a1.id),
+        json={"copy_to": ["The scholar"]},
+    )
+    assert (await synopsis(0))["copy_to"] == ["The scholar"]
+
+    # Emptied, a form goes back to Anveshan's name; an unknown form or a non-root admin is refused.
+    res = await client.patch(
+        f"{API}/settings", headers=root, json={"phd_forms": {"pre_synopsis_report": {}}}
+    )
+    assert "pre_synopsis_report" not in {
+        k for k, v in res.json()["phd_forms"].items() if any(v.values())
+    }
+    assert (await synopsis(1))["number"] is None
+    bad = await client.patch(f"{API}/settings", headers=root, json={"phd_forms": {"form_ix": {}}})
+    assert bad.status_code == 422
+    other = await client.patch(
+        f"{API}/settings", headers=auth(world.admin_a1.id), json={"phd_forms": {}}
+    )
+    assert other.status_code == 403

@@ -18,6 +18,7 @@ from app.models import (
     RoleAssignment,
     Scholar,
     Seminar,
+    Settings,
     User,
     VivaArrangement,
 )
@@ -83,8 +84,11 @@ def name(record: Record) -> str:
     return label.replace("Pre-synopsis", "Pre-Thesis Synopsis")
 
 
-def standard(record: Record) -> dict[str, Any]:
-    """Anveshan's wording, before the department admin's changes."""
+async def standard(session: AsyncSession, record: Record) -> dict[str, Any]:
+    """The standard wording, before the department admin's changes: Anveshan's, with the
+    university's "copy to" list for this kind of notice (settings.phd_forms)."""
+    names = await session.scalar(select(Settings.phd_forms)) or {}
+    key = f"{record.kind}_notice" if isinstance(record, Seminar) else "viva_notice"
     seminar = isinstance(record, Seminar)
     when = (record.starts_at if seminar else record.scheduled_at).astimezone(LOCAL_TZ)
     at = f"{when:%I:%M %p}".lstrip("0")  # 4:30 PM, as the paper notices read
@@ -97,13 +101,14 @@ def standard(record: Record) -> dict[str, Any]:
             + (f" It may also be joined online at {link}." if link else "")
         ),
         "closing": f"All are cordially invited to attend the {name(record)}.",
-        "copy_to": COPY_TO[kind_of(record)],
+        "copy_to": (names.get(key) or {}).get("copy_to") or COPY_TO[kind_of(record)],
     }
 
 
-def printed(record: Record) -> dict[str, Any]:
-    """The wording as printed: Anveshan's, with the department admin's changes."""
-    return {**standard(record), **{k: v for k, v in (record.notice or {}).items() if v}}
+async def printed(session: AsyncSession, record: Record) -> dict[str, Any]:
+    """The wording as printed: the standard one, with the department admin's changes."""
+    custom = {k: v for k, v in (record.notice or {}).items() if v}
+    return {**await standard(session, record), **custom}
 
 
 async def unit_of(session: AsyncSession, record: Record) -> uuid.UUID:
@@ -166,7 +171,7 @@ async def view(session: AsyncSession, record: Record, can_edit: bool) -> dict[st
         "signers": await signer_keys(session, record),
         "department_signers": await department_signers(session, record),
         "custom": record.notice or {},
-        "standard": standard(record),
+        "standard": await standard(session, record),
     }
 
 

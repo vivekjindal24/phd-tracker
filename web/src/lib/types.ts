@@ -53,6 +53,8 @@ export type OrgUnit = {
   cross_unit_directory: boolean;
 };
 
+/** How the university names one form of the PhD file (PRD F17); empty: Anveshan's. */
+export type PhdFormName = { title: string; number: string; copy_to: string[] };
 export type SettingsData = {
   university_address: string;
   department_committee_name: string;
@@ -68,6 +70,8 @@ export type SettingsData = {
   seminar_graders: "panel" | "panel_and_attending";
   seminar_rubric: { name: string; max: number }[];
   seminar_forms: Record<SeminarKind, SeminarForm>;
+  phd_forms: Record<string, PhdFormName>;
+  phd_form_defaults: Record<string, string>; // Anveshan's title of each form, in career order
   min_coursework_credits: number;
   min_coursework_cgpa: number;
   max_duration_years: number;

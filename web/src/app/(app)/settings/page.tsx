@@ -13,6 +13,7 @@ import { Offices } from "./Offices";
 import { OrgTree } from "./OrgTree";
 import { ReportTemplate } from "./ReportTemplate";
 import { RulesSettings } from "./RulesSettings";
+import { PhdForms } from "./PhdForms";
 import { SeminarForms } from "./SeminarForms";
 import { SeminarSettings } from "./SeminarSettings";
 import "./settings.css";
@@ -71,6 +72,7 @@ export default function SettingsPage() {
           <ReportTemplate data={data} save={save} />
           <SeminarSettings data={data} save={save} />
           <SeminarForms data={data} save={save} />
+          <PhdForms data={data} save={save} />
           <RulesSettings data={data} save={save} />
           <Offices emailConfigured={data.email_configured} />
           <ChainEditor chains={data.chains} save={save} />

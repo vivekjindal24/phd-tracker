@@ -248,3 +248,16 @@
   flex: 1;
   min-width: 0;
 }
+
+/* Forms of the PhD file: one folding row per form. */
+.phd-form {
+  border-top: 1px solid var(--lilac);
+  padding: var(--space-3) 0;
+}
+.phd-form summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+.phd-form .stack-form {
+  margin-top: var(--space-3);
+}

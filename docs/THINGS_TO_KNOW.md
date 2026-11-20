@@ -16,8 +16,13 @@ remove a point only when the behaviour itself changes.
    *(2026-11-19)*
 2. **The index uses Anveshan's 16 headings for now**, not the university's own numbered list
    (Medi-Caps keeps 30 rows with its own form numbers: II-B, IV, V, VI, VII-A …). The
-   university's own titles, form numbers and "copy to" lists will become settings in a later
-   part. *(2026-11-19)*
+   university's own index is the next step. *(2026-11-19)*
+2a. **The university names its forms.** Settings → Forms of the PhD file lists all 18 forms
+   Anveshan prints. For each, the root admin may set the university's title, its form number
+   ("Form VII-A", printed at the top right of the page, beside the annexure) and its "copy
+   to" list. Anything left empty keeps Anveshan's. For notices, a department admin's list for
+   one seminar or viva still wins over the university's. The seminar marking setting's "name
+   of the form" is a separate label shown while grading; it is not printed. *(2026-11-21)*
 3. **Some entries print as forms, the rest as summaries.** These print as forms: the
    appointment of the supervisor, the formation of the advisory committee, the comprehensive
    examination, the registration seminar report, the pre-thesis synopsis report, the

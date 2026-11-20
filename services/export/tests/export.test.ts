@@ -5,9 +5,9 @@ import { after, before, test } from "node:test";
 import express from "express";
 import { PDFDocument as PDFLibDocument } from "pdf-lib";
 import { createApp, loadConfig } from "../src/server.ts";
-import { phdFileView, reportView } from "../src/api.ts";
+import { phdFileView, seminarPaperView, reportView } from "../src/api.ts";
 import { certificatePdf, csvCell, reportPdf, tableCsv } from "../src/render.ts";
-import { phdFilePdf } from "../src/phd-file.ts";
+import { phdFilePdf, seminarPaperPdf } from "../src/phd-file.ts";
 
 const REPORT_ID = "6f1c2a7e-3b4d-4e5f-8a9b-0c1d2e3f4a5b";
 const JUNK_ID = "00000000-0000-4000-8000-000000000000";
@@ -300,6 +300,8 @@ test("a seminar's notice prints one page per scholar, to sign by hand", async ()
   assert.match(res.headers.get("content-disposition") ?? "", /seminar-notice-/);
   const pdf = Buffer.from(await res.arrayBuffer());
   assert.equal((await PDFLibDocument.load(pdf)).getPageCount(), 2);
+  const numbered = await seminarPaperPdf(seminarPaperView.parse({ ...notice, forms: [{ ...noticeForm, number: "Form VIII-A" }] }));
+  assert.equal((await PDFLibDocument.load(numbered)).getPageCount(), 1); // the number sits in the corner
   assert.equal((await get(`/seminars/${REPORT_ID}/minutes.pdf`)).status, 422); // no such paper
   const viva = await get(`/vivas/${REPORT_ID}/attendance.pdf`);
   assert.equal(viva.status, 200);

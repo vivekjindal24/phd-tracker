@@ -316,6 +316,8 @@ department or Research Office to record it.
    a remark, a recommendation and a comment.
 4a. Root admin → **Settings → How each seminar is marked**: per kind, rubric
    scores or form questions; the form's name and its questions.
+4b. Root admin → **Settings → Forms of the PhD file**: each generated form
+   folds open to its form number, title and "copy to" list → **Save** per form.
 5. Supervisor → **Review**: sees all grades; **Suggest points with AI** fills
    a draft list (part + point); edits, accepts, adds → **Finalise**.
 6. Scholar is notified, sees all marks and comments, and the points appear in

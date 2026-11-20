@@ -135,6 +135,9 @@ university's own progress report sections, used only while the toggle is on), `s
 `panel`), `seminar_rubric` jsonb (ordered `[{"name", "max"}]`, non-empty),
 `seminar_forms` jsonb (CHECK object; per seminar kind `{"marking": rubric |
 questions, "form_name", "questions": [...]}`, PRD F15; a PATCH merges per kind),
+`phd_forms` jsonb (default `{}`, CHECK object; per form of the PhD file —
+enums.PHD_FORMS — any of `{"title", "number", "copy_to": [...]}`; a PATCH merges
+per form and drops an emptied one; PRD F17 part 4, migration 0050),
 `min_coursework_credits` numeric(3,1) (default 12, CHECK 0–40) and
 `min_coursework_cgpa` numeric(4,2) (default 5.5, CHECK 0–10),
 `max_duration_years` (default 6, CHECK 3–12), `max_extension_days` (730),

@@ -122,6 +122,7 @@ const signer = z.object({ name: z.string(), role: z.string(), signature: z.strin
 /** A generated form (phd_forms.py): particulars, tables, the statement, who signs. */
 const form = z.object({
   title: z.string(),
+  number: z.string().nullable().default(null), // the university's form number, "Form VII-A"
   intro: z.string().nullable().default(null), // a paragraph above the particulars (a notice)
   fields: z.array(z.tuple([z.string(), z.string()])),
   tables: z.array(z.object({

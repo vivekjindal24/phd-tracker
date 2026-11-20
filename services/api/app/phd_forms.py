@@ -7,7 +7,9 @@ settings later (PRD F17, part 4); until then each form carries Anveshan's title.
 A form never invents a signature: a signatory's specimen is printed only where they signed an
 approval in the portal (F17b); everyone else gets a line to sign the printed copy by hand."""
 
+import functools
 import uuid
+from collections.abc import Awaitable, Callable
 from datetime import date, datetime
 from typing import Any
 
@@ -32,6 +34,7 @@ from app.models import (
     SeminarGrade,
     SeminarPanel,
     SeminarScholar,
+    Settings,
     User,
     VivaArrangement,
     VivaBoardMember,
@@ -101,6 +104,7 @@ def _d(day: date | datetime | None) -> str:
 
 
 def form(
+    key: str,
     title: str,
     fields: list[tuple[str, Any]],
     *,
@@ -115,7 +119,9 @@ def form(
     paper: str | None = None,
 ) -> Form:
     return {
+        "key": key,  # enums.PHD_FORMS: how the university names it (Forms.named)
         "title": title,
+        "number": None,  # the university's form number ("Form VII-A"), from settings
         "intro": intro,  # a paragraph above the particulars (a notice's announcement)
         "fields": [[k, str(v)] for k, v in fields if v not in (None, "")],
         "tables": tables or [],
@@ -136,6 +142,16 @@ signer = notices.signer
 holder = notices.holder
 
 
+def _named(method: Callable[..., Awaitable[Form]]) -> Callable[..., Awaitable[Form]]:
+    """A form method whose result is named as the university names it (Forms.named)."""
+
+    @functools.wraps(method)
+    async def wrapper(self: "Forms", *args: Any, **kwargs: Any) -> Form:
+        return await self.named(await method(self, *args, **kwargs))
+
+    return wrapper
+
+
 class Forms:
     """Builds the forms of one scholar's file for one caller; shared particulars are read once."""
 
@@ -143,6 +159,23 @@ class Forms:
         self.session, self.principal, self.scholar = session, principal, scholar
         self._block: list[tuple[str, Any]] | None = None
         self._officers: dict[str, str | None] | None = None
+        self._naming: dict[str, Any] | None = None  # settings.phd_forms, read once
+
+    async def _announcement(self, record: notices.Record) -> str:
+        """The notice's announcement, repeated at the head of the attendance sheet."""
+        return (await notices.printed(self.session, record))["announcement"]
+
+    async def named(self, f: Form) -> Form:
+        """The form as the university names it (settings.phd_forms): its title, form number and
+        "copy to" list. A notice's list is set in notices.py, where a seminar's or viva's own
+        list may override it."""
+        if self._naming is None:
+            self._naming = await self.session.scalar(select(Settings.phd_forms)) or {}
+        mine = self._naming.get(f["key"]) or {}
+        out = {**f, "title": mine.get("title") or f["title"], "number": mine.get("number") or None}
+        if mine.get("copy_to") and not f["key"].endswith("_notice"):
+            out["copy_to"] = mine["copy_to"]
+        return out
 
     # --- what every form shares ----------------------------------------------------------
 
@@ -234,10 +267,12 @@ class Forms:
 
     # --- the forms -----------------------------------------------------------------------
 
+    @_named
     async def appointment(self, a: dict[str, Any]) -> Form:
         o = await self.officers()
         role = "Supervisor" if a["role"] == "supervisor" else "Co-supervisor"
         return form(
+            "appointment" if a["role"] == "supervisor" else "co_appointment",
             f"Appointment of {role}",
             [
                 *await self.particulars(),
@@ -250,6 +285,7 @@ class Forms:
             recorded=await self.recorded("supervisor_appointments", a["id"]),
         )
 
+    @_named
     async def committee_formation(self, f: dict[str, Any]) -> Form:
         o = await self.officers()
         rows = [
@@ -260,6 +296,7 @@ class Forms:
             rows.append([f["secretary"], unit, "Supervisor (Secretary and Member)"])
         rows = [[str(n), *r] for n, r in enumerate(rows, start=1)]
         return form(
+            "committee_formation",
             "Formation of Research Advisory Committee",
             [
                 *await self.particulars(),
@@ -287,10 +324,12 @@ class Forms:
             recorded=await self.recorded("committee_formations", f["id"]),
         )
 
+    @_named
     async def comprehensive(self, exam: ComprehensiveExam, attempts: list[ComprehensiveExam]):
         summary = await coursework.summary(self.session, self.scholar.id)
         courses = [[c.code, c.title, f"{c.credits:g}", e.grade or "—"] for e, c in summary["rows"]]
         return form(
+            "comprehensive",
             "Report of Comprehensive Examination",
             await self.particulars(),
             tables=[
@@ -321,11 +360,13 @@ class Forms:
             recorded=await self.recorded("comprehensive_exams", exam.id),
         )
 
+    @_named
     async def seminar_notice(self, s: Seminar) -> Form:
         """The circular announcing the seminar: Anveshan's wording and the department's signers,
         as the department admin changed them for this seminar (owner, 2026-11-21)."""
-        wording = notices.printed(s)
+        wording = await notices.printed(self.session, s)
         return form(
+            f"{s.kind}_notice",
             f"{notices.name(s)}: Circular",
             await self._seminar_details(s),
             intro=f"Dated {_d(s.created_at)}\n\n{wording['announcement']}",
@@ -335,6 +376,7 @@ class Forms:
             paper="notice",
         )
 
+    @_named
     async def seminar_attendance(self, s: Seminar) -> Form:
         """The attendance sheet: the notice's announcement and the scholar's details, then a
         row for the supervisor, each panel member and the scholar, already named, and blank
@@ -357,9 +399,10 @@ class Forms:
                 named.append((who, designation))
         rows = await self._attendance_rows(named)
         return form(
+            f"{s.kind}_attendance",
             f"{notices.name(s)}: Attendance Sheet",
             await self._seminar_details(s),
-            intro=f"Dated {_d(s.starts_at)}\n\n{notices.printed(s)['announcement']}",
+            intro=f"Dated {_d(s.starts_at)}\n\n{await self._announcement(s)}",
             tables=[_attendance_table(rows)],
             paper="attendance",
         )
@@ -413,6 +456,7 @@ class Forms:
         )
         return _d(reg) if reg else None
 
+    @_named
     async def seminar(self, s: Seminar, entry: SeminarScholar) -> Form:
         fields = await self.particulars()
         if s.kind == "registration":
@@ -441,6 +485,7 @@ class Forms:
             if comments:
                 statement += f"\n\n{comments}"
         return form(
+            f"{s.kind}_report",
             SEMINAR_TITLES[s.kind],
             fields,
             tables=tables,
@@ -536,9 +581,11 @@ class Forms:
         ]
         return (table if rows else []), signers
 
+    @_named
     async def clearance(self, c: Any) -> Form:
         table, approvers = await self.approvals("coursework_clearance", c.id)
         return form(
+            "clearance",
             "Coursework Clearance",
             [
                 *await self.particulars(),
@@ -551,10 +598,12 @@ class Forms:
             signed_by=approvers,
         )
 
+    @_named
     async def submission(self, t: Any) -> Form:
         table, approvers = await self.approvals("thesis_submission", t.id)
         student = (await self.particulars())[1][1]
         return form(
+            "submission",
             "Submission of Thesis",
             [
                 *await self.particulars(),
@@ -607,14 +656,16 @@ class Forms:
             return False
         return viva.sees_names(self.principal, ctx, await viva.held(self.session, a.id))
 
+    @_named
     async def viva_notice(self, a: VivaArrangement, thesis_title: str | None) -> Form:
         """The notice of the viva, with its board: Anveshan's wording and the department's
         signers — the Controller of Examinations, the HoD and the Dean unless the department
         admin changed them (owner, 2026-11-21)."""
         board = await self._board(a.id, await self._names(a))
-        wording = notices.printed(a)
+        wording = await notices.printed(self.session, a)
         block = dict(await self.particulars())
         return form(
+            "viva_notice",
             "Viva-Voce Examination: Notice",
             [
                 ("Name of Scholar", block["Name of the Student"]),
@@ -640,6 +691,7 @@ class Forms:
             paper="viva_notice",
         )
 
+    @_named
     async def viva_attendance(self, a: VivaArrangement) -> Form:
         """The viva's attendance sheet: the board already named, then the scholar and blank
         rows for everyone else who attends."""
@@ -649,19 +701,22 @@ class Forms:
             for m in board
         ]
         return form(
+            "viva_attendance",
             "Viva-Voce Examination: Attendance Sheet",
             [(k, v) for k, v in (await self.particulars())[:2]],
-            intro=f"Dated {_d(a.scheduled_at)}\n\n{notices.printed(a)['announcement']}",
+            intro=f"Dated {_d(a.scheduled_at)}\n\n{await self._announcement(a)}",
             tables=[_attendance_table(await self._attendance_rows(named))],
             paper="attendance",
         )
 
+    @_named
     async def viva_approval(self, a: VivaArrangement, thesis_title: str | None) -> Form:
         """Approval to conduct the viva (Form X) with the board constituted for it (Form XI)."""
         table, approvers = await self.approvals("viva_arrangement", a.id)
         board = await self._board(a.id, await self._names(a))
         when = a.scheduled_at.astimezone(LOCAL_TZ)
         return form(
+            "viva_approval",
             "Approval for Conduct of Viva-Voce Examination",
             [
                 *await self.particulars(),
@@ -686,12 +741,14 @@ class Forms:
             signed_by=approvers,
         )
 
+    @_named
     async def viva_report(self, v: dict[str, Any], thesis_title: str | None) -> Form:
         """The viva-voce examination report (Form XII), signed by the board that held it."""
         board = await self._board(v["arrangement_id"], True) if v["arrangement_id"] else []
         signers = [signer(m["name"], m["role"]) for m in board]
         members_entered = len(board) > 1  # beyond the supervisor, who always sits
         return form(
+            "viva_report",
             "Viva-Voce Examination Report",
             [
                 *await self.particulars(),
