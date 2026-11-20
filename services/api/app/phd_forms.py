@@ -34,6 +34,7 @@ from app.models import (
     Scholar,
     Seminar,
     SeminarGrade,
+    SeminarPanel,
     SeminarScholar,
     User,
     VivaArrangement,
@@ -105,6 +106,7 @@ def form(
     forwarded: dict[str, Any] | None = None,
     copy_to: list[str] | None = None,
     recorded: str | None = None,
+    paper: str | None = None,
 ) -> Form:
     return {
         "title": title,
@@ -117,9 +119,13 @@ def form(
         "forwarded": forwarded,
         "copy_to": copy_to or [],
         "recorded": recorded,
+        # The signed paper (enums.DOCUMENT_KINDS) whose approved scan takes this page's place in
+        # the signed PhD file; null: printed whatever is uploaded.
+        "paper": paper,
     }
 
 
+ATTENDANCE_ROWS = 18  # one A4 page of rows on the attendance sheet, the named ones included
 # Who a seminar's notice is copied to, until the university's own list is a setting (F17, part 4).
 NOTICE_COPY_TO = [
     "The Vice Chancellor",
@@ -165,6 +171,11 @@ def notice_wording(s: Seminar) -> dict[str, Any]:
         "closing": f"All are cordially invited to attend the {notice_name(s)}.",
         "copy_to": NOTICE_COPY_TO,
     }
+
+
+def _notice_wording(s: Seminar) -> dict[str, Any]:
+    """The notice's wording as printed: Anveshan's, with the department admin's changes."""
+    return {**notice_wording(s), **{k: v for k, v in (s.notice or {}).items() if v}}
 
 
 async def notice_signer_keys(session: AsyncSession, s: Seminar) -> list[str]:
@@ -397,6 +408,59 @@ class Forms:
     async def seminar_notice(self, s: Seminar) -> Form:
         """The circular announcing the seminar: Anveshan's wording and the department's signers,
         as the department admin changed them for this seminar (owner, 2026-11-21)."""
+        wording = _notice_wording(s)
+        return form(
+            f"{notice_name(s)}: Circular",
+            await self._seminar_details(s),
+            intro=f"Dated {_d(s.created_at)}\n\n{wording['announcement']}",
+            statement=wording["closing"],
+            signed_by=await notice_signers(self.session, s),
+            copy_to=wording["copy_to"],
+            paper="notice",
+        )
+
+    async def seminar_attendance(self, s: Seminar) -> Form:
+        """The attendance sheet: the notice's announcement and the scholar's details, then a
+        row for the supervisor, each panel member and the scholar, already named, and blank
+        rows for everyone else who attends — each to sign by hand."""
+        supervisor = await self.session.execute(
+            select(User.full_name, Faculty.designation)
+            .join(Faculty, Faculty.user_id == User.id)
+            .where(Faculty.id == self.scholar.supervisor_id)
+        )
+        panel = await self.session.execute(
+            select(User.full_name, Faculty.designation)
+            .join(Faculty, Faculty.user_id == User.id)
+            .join(SeminarPanel, SeminarPanel.faculty_id == Faculty.id)
+            .where(SeminarPanel.seminar_id == s.id, SeminarPanel.deleted_at.is_(None))
+            .order_by(User.full_name)
+        )
+        named: list[tuple[str, str]] = []
+        for who, designation in [*supervisor, *panel]:
+            if who not in (n for n, _ in named):
+                named.append((who, designation))
+        block = dict(await self.particulars())
+        named.append((block["Name of the Student"], "Research Scholar"))
+        rows = [[str(i), *n, ""] for i, n in enumerate(named, 1)]
+        rows += [[str(i), "", "", ""] for i in range(len(rows) + 1, ATTENDANCE_ROWS + 1)]
+        return form(
+            f"{notice_name(s)}: Attendance Sheet",
+            await self._seminar_details(s),
+            intro=f"Dated {_d(s.starts_at)}\n\n{_notice_wording(s)['announcement']}",
+            tables=[
+                {
+                    "title": "",
+                    "columns": ["S. No.", "Faculty / Scholar Name", "Designation", "Signature"],
+                    "rows": rows,
+                    "widths": [0.08, 0.37, 0.25, 0.3],
+                    "row_height": 24,  # room to sign
+                }
+            ],
+            paper="attendance",
+        )
+
+    async def _seminar_details(self, s: Seminar) -> list[tuple[str, Any]]:
+        """The scholar's details on the seminar's notice and attendance sheet."""
         block = dict(await self.particulars())
         fields = [
             ("Name of Scholar", block["Name of the Student"]),
@@ -408,15 +472,7 @@ class Forms:
         ]
         if s.kind == "pre_synopsis":
             fields.append(("Date of Registration Seminar", await self.registration_seminar()))
-        wording = {**notice_wording(s), **{k: v for k, v in (s.notice or {}).items() if v}}
-        return form(
-            f"{notice_name(s)}: Circular",
-            fields,
-            intro=f"Dated {_d(s.created_at)}\n\n{wording['announcement']}",
-            statement=wording["closing"],
-            signed_by=await notice_signers(self.session, s),
-            copy_to=wording["copy_to"],
-        )
+        return fields
 
     async def title(self) -> str | None:
         """The research title, else the newest approved title on a milestone."""
@@ -484,6 +540,7 @@ class Forms:
             recorded=f"Review finalised in Anveshan on {_d(entry.finalised_at)}."
             if entry.finalised_at
             else None,
+            paper="report",
         )
 
     async def _marking(

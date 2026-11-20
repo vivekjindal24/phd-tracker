@@ -71,7 +71,7 @@ const noticeForm = {
     { name: "Koser", role: "Dean", signature: null }],
   forwarded: null, copy_to: ["The scholar"], recorded: null,
 };
-const notice = { university: "U", address: "", logo: null, title: "Synopsis seminar", notices: [noticeForm, noticeForm],
+const notice = { university: "U", address: "", logo: null, title: "Synopsis seminar", forms: [noticeForm, noticeForm],
   generated_at: "2026-11-21T10:00:00Z", generated_by: "R" };
 const pageCount = (pdf: Buffer) => (pdf.toString("latin1").match(/\/Type \/Page\b(?!s)/g) ?? []).length;
 
@@ -253,13 +253,13 @@ test("approved papers stand after their entry, in order: a PDF's pages, a photo,
   two.addPage([300, 400]).drawText("Signed: Dr. Meera", { x: 20, y: 200 });
   two.addPage([300, 400]); // blank: cannot be embedded, so the page carries a note instead
   const copy = (id: string, content_type: string) =>
-    ({ label: "Report", copy: { id, content_type, scan_url: `https://bucket/${id}` } });
+    ({ kind: "report", label: "Report", copy: { id, content_type, scan_url: `https://bucket/${id}` } });
   const view = phdFileView.parse({ ...phdFile, annexures: [{ key: "progress", title: "Progress", date: null, note: null,
     entries: [
       { ...entry("Seminar 1", true), papers: [copy("a", "application/pdf"), copy("b", "image/png")] },
       { ...entry("Report 3", true), papers: [copy("c", "application/pdf")] }, // not fetched
-      { ...entry("Report 4"), papers: [{ label: "Report", copy: { id: "d", content_type: "image/png", scan_url: null } },
-        { label: "Attendance sheet", copy: null }] }, // waiting; not uploaded
+      { ...entry("Report 4"), papers: [{ kind: "report", label: "Report", copy: { id: "d", content_type: "image/png", scan_url: null } },
+        { kind: "attendance", label: "Attendance sheet", copy: null }] }, // waiting; not uploaded
     ] }] });
   const scans = new Map([
     ["a", { bytes: await two.save(), type: "application/pdf" }],
@@ -300,6 +300,28 @@ test("a seminar's notice prints one page per scholar, to sign by hand", async ()
   assert.match(res.headers.get("content-disposition") ?? "", /seminar-notice-/);
   const pdf = Buffer.from(await res.arrayBuffer());
   assert.equal((await PDFLibDocument.load(pdf)).getPageCount(), 2);
+  assert.equal((await get(`/seminars/${REPORT_ID}/minutes.pdf`)).status, 422); // no such paper
+});
+
+test("a seminar paper's approved scan takes its generated page's place in the signed file", async () => {
+  const page = (title: string, paper: string) => ({ ...noticeForm, title, paper });
+  const scan = await PDFLibDocument.create();
+  scan.addPage([300, 400]).drawText("Signed notice", { x: 20, y: 200 });
+  scan.addPage([300, 400]).drawText("Signed notice, page 2", { x: 20, y: 200 });
+  const view = phdFileView.parse({ ...phdFile, annexures: [{ key: "registration_seminar", title: "Seminar", date: null,
+    note: null, entries: [{ ...entry("Registration seminar"),
+      forms: [page("Circular", "notice"), page("Report", "report"), page("Attendance Sheet", "attendance")],
+      papers: [
+        { kind: "notice", label: "Notification", copy: { id: "n", content_type: "application/pdf", scan_url: "https://bucket/n" } },
+        { kind: "report", label: "Report", copy: null },
+        { kind: "attendance", label: "Attendance sheet", copy: { id: "x", content_type: "application/pdf", scan_url: "https://bucket/x" } },
+      ] }] }] });
+  const scans = new Map([["n", { bytes: await scan.save(), type: "application/pdf" }]]);
+  // Signed: index, the notice's two scanned pages instead of its page, the report's page, and the
+  // attendance sheet's page (its scan could not be fetched, so the generated page stays).
+  assert.equal((await PDFLibDocument.load(await phdFilePdf(view, scans))).getPageCount(), 5);
+  // Unsigned: index and the three generated pages, to print and sign.
+  assert.equal((await PDFLibDocument.load(await phdFilePdf(view, scans, false))).getPageCount(), 4);
 });
 
 test("NAAC CSV keeps numbers and neutralises formulas", () => {

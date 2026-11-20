@@ -78,6 +78,12 @@ remove a point only when the behaviour itself changes.
     as written: if the seminar's date or venue changes afterwards, the admin must update it (or
     clear it to go back to the generated text). Only an admin over the department may change
     these; the HoD sees them. *(owner, 2026-11-21)*
+9e. **The attendance sheet names who is expected and leaves room for the rest.** It repeats
+    the notice's announcement and the scholar's details, then a table (S. No., name,
+    designation, signature) whose first rows name the supervisor, the panel members and the
+    scholar, followed by blank rows: 18 rows in all, one A4 page. Larger audiences sign on a
+    second printed copy. It is dated the day of the seminar, and the same people who download
+    the notice download it. *(2026-11-21)*
 10. **The unsigned PhD file is for printing and signing.** It holds the generated forms only,
     with signature and date lines, and leaves out the specimen signatures and the uploaded
     scans. The signed one holds both. *(2026-11-20)*
@@ -127,6 +133,11 @@ remove a point only when the behaviour itself changes.
     in the file instead of breaking it. *(2026-11-19)*
 20. **An approved paper marks its entry "Signed" in the index**, and its pages follow the
     entry in the downloaded file, in the order listed in point 15. *(2026-11-19)*
+    A seminar's notice, report and attendance sheet are generated pages until their signed
+    scan is approved; from then the signed file carries the scan in that page's place, and
+    the generated page is left out (the unsigned file always carries the generated pages).
+    If the scan cannot be fetched at download time, the generated page stays. Other entries
+    still print their generated form and then their scans. *(owner, 2026-11-21)*
 21. **Anveshan does not send the emails to examiners.** It keeps the uploaded copies of the
     emails and acceptances the office sent and received outside the portal. *(2026-11-19)*
 

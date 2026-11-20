@@ -126,6 +126,8 @@ const form = z.object({
   fields: z.array(z.tuple([z.string(), z.string()])),
   tables: z.array(z.object({
     title: z.string(), columns: z.array(z.string()), rows: z.array(z.array(z.string())),
+    widths: z.array(z.number().positive()).nullable().default(null), // shares of the width, if fixed
+    row_height: z.number().positive().max(80).nullable().default(null), // room to sign in a row
   })),
   statement: z.string().nullable(),
   signed_heading: z.string().nullable(),
@@ -133,6 +135,8 @@ const form = z.object({
   forwarded: z.object({ to: z.string(), by: z.array(signer) }).nullable(),
   copy_to: z.array(z.string()),
   recorded: z.string().nullable(),
+  // The signed paper whose approved scan takes this page's place in the signed file; null: none.
+  paper: z.string().nullable().default(null),
 });
 export type FormView = z.infer<typeof form>;
 
@@ -160,6 +164,7 @@ export const phdFileView = z.object({
           // The entry printed as the university's paper forms (phd_forms.py), in the paper file's order.
           forms: z.array(form).default([]),
           papers: z.array(z.object({
+            kind: z.string(),
             label: z.string(),
             copy: z.object({ id: z.string(), content_type: z.string(), scan_url: z.string().nullable() }).nullable(),
           })).default([]),
@@ -172,15 +177,15 @@ export const phdFileView = z.object({
 });
 export type PhdFileView = z.infer<typeof phdFileView>;
 
-// A seminar's circular, one page per scholar (PRD F17b), printed to sign by hand.
-export const seminarNoticeView = z.object({
+// A seminar's circular or attendance sheet, one page per scholar (PRD F17b), to sign by hand.
+export const seminarPaperView = z.object({
   ...brand,
   title: z.string(),
-  notices: z.array(form),
+  forms: z.array(form),
   generated_at: z.string(),
   generated_by: z.string(),
 });
-export type SeminarNoticeView = z.infer<typeof seminarNoticeView>;
+export type SeminarPaperView = z.infer<typeof seminarPaperView>;
 
 const money = z.number().nonnegative();
 export const ucView = z.object({

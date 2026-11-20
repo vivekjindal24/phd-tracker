@@ -119,15 +119,16 @@ async def phd_file_view(
     }
 
 
-@router.get("/seminars/{seminar_id}/notice")
-async def seminar_notice_view(
+@router.get("/seminars/{seminar_id}/{paper}")
+async def seminar_paper_view(
     seminar_id: uuid.UUID,
+    paper: Literal["notice", "attendance"],
     principal: Principal = Depends(current_principal),
     session: AsyncSession = Depends(get_session),
 ) -> dict[str, Any]:
-    """The seminar's circular, one page per scholar, for the department to print, sign and send
-    (PRD F17b): those who run the department's seminars — its head and admin, and the heads and
-    admins above it (the Dean)."""
+    """The seminar's circular or attendance sheet, one page per scholar, to print and sign by
+    hand (PRD F17b): for those who run the department's seminars — its head and admin, and the
+    heads and admins above it (the Dean)."""
     seminar, path = await seminars.get_seminar(session, principal, seminar_id)
     if not seminars.can_manage(principal, path):
         raise forbidden()
@@ -141,8 +142,9 @@ async def seminar_notice_view(
     return {
         **await branding.export_fields(session),
         "title": seminar.title,
-        "notices": [
-            await phd_forms.Forms(session, principal, s).seminar_notice(seminar) for s in scholars
+        "forms": [
+            await getattr(phd_forms.Forms(session, principal, s), f"seminar_{paper}")(seminar)
+            for s in scholars
         ],
         "generated_at": datetime.now(UTC),
         "generated_by": principal.full_name,

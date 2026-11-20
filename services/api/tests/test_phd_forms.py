@@ -9,7 +9,7 @@ API = "/api/v1"
 
 
 def entry(view, key, n=-1):
-    """The entry's form: its last by default (a seminar prints its notice, then its report)."""
+    """The entry's form: its last by default; a seminar's are its notice, report, attendance."""
     (e,) = next(a for a in view["annexures"] if a["key"] == key)["entries"]
     return e["forms"][n]
 
@@ -137,7 +137,7 @@ async def test_the_exam_office_sees_the_synopsis_result_but_not_the_answers(clie
             f"{API}/internal/scholars/{world.s_a1.id}/phd-file", headers=auth(user.id)
         )
         assert res.status_code == 200, res.text
-        return entry(res.json(), "pre_synopsis_seminar")
+        return entry(res.json(), "pre_synopsis_seminar", 1)
 
     blank = "Recommendation of the RAC: " + "_" * 60
     assert (await synopsis(world.exam_office))["statement"] == blank  # not finalised yet
@@ -181,14 +181,14 @@ async def test_a_seminar_notice_is_signed_by_the_admin_the_head_and_the_dean(cli
         "Dean",
     ]
     assert all(s["signature"] is None for s in notice["signed_by"])  # signed by hand
-    assert entry(view, "pre_synopsis_seminar")["title"] == "Pre-Thesis Synopsis Report"
+    assert entry(view, "pre_synopsis_seminar", 1)["title"] == "Pre-Thesis Synopsis Report"
 
     # The department prints it from the seminar; a panel member may not.
     res = await client.get(
         f"{API}/internal/seminars/{seminar_id}/notice", headers=auth(world.admin_a1.id)
     )
     assert res.status_code == 200, res.text
-    assert [n["title"] for n in res.json()["notices"]] == [notice["title"]]
+    assert [n["title"] for n in res.json()["forms"]] == [notice["title"]]
     res = await client.get(
         f"{API}/internal/seminars/{seminar_id}/notice", headers=auth(world.sup_b1.id)
     )
@@ -205,7 +205,7 @@ async def test_the_department_admin_changes_who_signs_and_what_the_notice_says(c
     async def printed():
         res = await client.get(f"{API}/internal/seminars/{seminar_id}/notice", headers=admin)
         assert res.status_code == 200, res.text
-        (only,) = res.json()["notices"]
+        (only,) = res.json()["forms"]
         return only
 
     # The department's own signers, for every seminar of the department.
@@ -244,3 +244,39 @@ async def test_the_department_admin_changes_who_signs_and_what_the_notice_says(c
     assert (await client.get(notice_url, headers=auth(world.sup_b1.id))).status_code == 403
     bad = await client.put(notice_url, headers=admin, json={"signers": ["registrar"]})
     assert bad.status_code == 422
+
+
+async def test_the_attendance_sheet_names_who_is_expected_and_leaves_rows_to_sign(client, world):
+    from tests.test_seminar_forms import schedule
+
+    seminar_id = (await schedule(client, world, kind="registration")).json()["id"]
+    res = await client.get(
+        f"{API}/internal/seminars/{seminar_id}/attendance", headers=auth(world.admin_a1.id)
+    )
+    assert res.status_code == 200, res.text
+    (sheet,) = res.json()["forms"]
+    assert sheet["title"] == "Registration Seminar: Attendance Sheet"
+    (table,) = sheet["tables"]
+    assert table["columns"] == ["S. No.", "Faculty / Scholar Name", "Designation", "Signature"]
+    names = [r[1] for r in table["rows"] if r[1]]
+    # The supervisor, the panel, then the scholar; the rest left blank to sign.
+    assert names == [world.meera.full_name, world.sup_b1.full_name, world.scholar_a1.full_name]
+    assert table["rows"][2][2] == "Research Scholar"
+    assert table["rows"][-1][1:] == ["", "", ""] and len(table["rows"]) == 18
+    assert sheet["signed_by"] == []  # everyone signs in the table
+    assert sheet["paper"] == "attendance"  # its approved scan replaces it in the signed file
+    view = (
+        await client.get(
+            f"{API}/internal/scholars/{world.s_a1.id}/phd-file", headers=auth(world.admin_a1.id)
+        )
+    ).json()
+    (e,) = next(a for a in view["annexures"] if a["key"] == "registration_seminar")["entries"]
+    assert [f["title"].split(": ")[-1] for f in e["forms"]] == [
+        "Circular",
+        "Registration Seminar Report",
+        "Attendance Sheet",
+    ]
+    bad = await client.get(
+        f"{API}/internal/seminars/{seminar_id}/minutes", headers=auth(world.admin_a1.id)
+    )
+    assert bad.status_code in (404, 422)  # no such paper

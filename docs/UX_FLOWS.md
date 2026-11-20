@@ -302,6 +302,10 @@ department or Research Office to record it.
    line and the "copy to" list → **Save for this seminar**, or **Use these
    signers for every … seminar** (the department named); **Back to the standard notice**
    undoes this seminar's changes. The HoD sees who signs, read-only.
+1b. The same people → **Download attendance sheet**: one page per scholar,
+   rows already naming the supervisor, the panel and the scholar, blank rows
+   for others; signed on the day, its scan goes back in as the seminar's
+   "Attendance sheet" paper.
 2. Scholars see the seminar and their report deadline on Home; the report
    page shows "Due 30 Nov" / "Overdue".
 3. If the university requires a hardcopy, the department ticks "hardcopy

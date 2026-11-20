@@ -4,7 +4,7 @@
  *  is listed with the reason, never left out. */
 import { PDFDocument as PDFLibDocument, StandardFonts } from "pdf-lib";
 import PDFDocument from "pdfkit";
-import type { FormView as Form, PhdFileView, SeminarNoticeView } from "./api.ts";
+import type { FormView as Form, PhdFileView, SeminarPaperView } from "./api.ts";
 import type { Brand } from "./render.ts";
 import { day, drawImage, footer, header, keyValues, signatureLines, toBuffer } from "./render.ts";
 
@@ -80,21 +80,22 @@ async function fillPlaceholders(pdf: Buffer, slots: Placeholder[]): Promise<Buff
 function drawTable(doc: PDFKit.PDFDocument, t: Form["tables"][number]) {
   const left = doc.page.margins.left;
   const span = doc.page.width - left - doc.page.margins.right;
-  const weight = t.columns.map((c, i) =>
+  const weight = t.widths ?? t.columns.map((c, i) =>
     Math.min(40, Math.max(4, c.length, ...t.rows.map((r) => (r[i] ?? "").length))));
   const total = weight.reduce((a, b) => a + b, 0);
+  const least = t.row_height ?? 0;
   const widths = weight.map((w) => (w / total) * span);
   if (t.title) doc.moveDown(0.5).font("Helvetica-Bold").fontSize(10).text(t.title, left);
   doc.moveDown(0.3);
   const row = (cells: string[], bold: boolean) => {
-    if (doc.y > doc.page.height - doc.page.margins.bottom - 40) doc.addPage();
+    if (doc.y > doc.page.height - doc.page.margins.bottom - Math.max(40, least)) doc.addPage();
     const top = doc.y;
     let x = left;
     let bottom = top;
     doc.font(bold ? "Helvetica-Bold" : "Helvetica").fontSize(9);
     cells.forEach((c, i) => {
       doc.text(c, x + 4, top + 4, { width: widths[i]! - 8 });
-      bottom = Math.max(bottom, doc.y + 3);
+      bottom = Math.max(bottom, doc.y + 3, top + least);
       x += widths[i]!;
     });
     x = left;
@@ -190,17 +191,24 @@ export async function phdFilePdf(v: PhdFileView, scans: Map<string, Scan> = new 
     pages.push(doc.bufferedPageRange().count + 1); // the next page opens the annexure
     let onSummary = false; // whether the current page is this annexure's summary page
     for (const e of a.entries) {
-      if (e.forms.length) {
-        for (const f of e.forms) drawForm(doc, v, i + 1, f, signed);
-        onSummary = false;
-      } else {
+      // The entry's own forms first; a form standing for one of its papers waits for that paper.
+      const own = e.forms.filter((f) => !e.papers.some((p) => p.kind === f.paper));
+      for (const f of own) drawForm(doc, v, i + 1, f, signed);
+      if (own.length) onSummary = false;
+      else if (!e.forms.length) {
         drawSummary(doc, v, i + 1, a.title, e, !onSummary, signed);
         onSummary = true;
       }
-      if (!signed) continue;
+      // Each paper in the paper file's order: its approved scan in the signed file, else its
+      // generated page (a scan that could not be fetched leaves the generated page in its place).
       for (const p of e.papers) {
-        if (!p.copy?.scan_url) continue;
-        await drawScan(doc, `${p.label}, ${e.heading}`, scans.get(p.copy.id), slots);
+        const form = e.forms.find((f) => f.paper === p.kind);
+        const scan = signed && p.copy?.scan_url ? p.copy : null;
+        if (scan && (scans.has(scan.id) || !form)) {
+          await drawScan(doc, `${p.label}, ${e.heading}`, scans.get(scan.id), slots);
+        } else if (form) {
+          drawForm(doc, v, i + 1, form, signed);
+        } else continue;
         onSummary = false;
       }
     }
@@ -227,11 +235,11 @@ export async function phdFilePdf(v: PhdFileView, scans: Map<string, Scan> = new 
   return fillPlaceholders(await toBuffer(doc), slots);
 }
 
-/** A seminar's circular, one page per scholar, with lines for signing by hand (PRD F17b). */
-export async function seminarNoticePdf(v: SeminarNoticeView): Promise<Buffer> {
-  const doc = new PDFDocument({ size: "A4", margin: 56, bufferPages: true, info: { Title: `Notice – ${v.title}` } });
-  v.notices.forEach((f, i) => drawForm(doc, v, null, f, false, i > 0));
-  if (v.notices.length === 0) doc.font("Helvetica-Oblique").fontSize(10).text("No scholar is on this seminar yet.");
+/** A seminar's circular or attendance sheet, a page per scholar, to sign by hand (PRD F17b). */
+export async function seminarPaperPdf(v: SeminarPaperView): Promise<Buffer> {
+  const doc = new PDFDocument({ size: "A4", margin: 56, bufferPages: true, info: { Title: v.title } });
+  v.forms.forEach((f, i) => drawForm(doc, v, null, f, false, i > 0));
+  if (v.forms.length === 0) doc.font("Helvetica-Oblique").fontSize(10).text("No scholar is on this seminar yet.");
   footer(doc, v.generated_by, v.generated_at);
   return toBuffer(doc);
 }

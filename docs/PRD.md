@@ -493,7 +493,12 @@ demand, from what is already recorded.
   by hand by the department admin, the HoD and the Dean by default (owner,
   2026-11-21). The department admin changes who signs for every seminar of the
   department, and who signs, the announcement, the closing line and the "copy
-  to" list for one seminar;
+  to" list for one seminar; the seminar's attendance sheet (the announcement and
+  the scholar's details, then rows already naming the supervisor, the panel and
+  the scholar, and blank rows to sign — 18 in all) — **Download attendance
+  sheet** on the seminar, and in the PhD file after the seminar's report. Once a
+  seminar paper's signed scan is approved, the signed PhD file carries the scan in
+  place of its generated page (owner, 2026-11-21);
   **Download notice** on the seminar for those who run it, and in the PhD file
   before the seminar's report.
 - **Names are the university's:** each annexure's title and form number (e.g.

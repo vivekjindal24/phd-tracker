@@ -314,11 +314,12 @@ class _File:
                     ],
                     record=entry.id,
                     papers=SEMINAR_PAPERS,
-                    # The notice, then the report; a progress seminar's report is the progress
-                    # report, which has its own PDF.
+                    # As the paper file keeps them: the notice, the report, the attendance sheet.
+                    # A progress seminar's report is the progress report, with its own PDF.
                     forms=[
                         await self.forms.seminar_notice(s),
                         *([await self.forms.seminar(s, entry)] if kind != "progress" else []),
+                        await self.forms.seminar_attendance(s),
                     ],
                 )
             )

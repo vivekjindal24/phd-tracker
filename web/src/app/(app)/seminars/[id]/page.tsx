@@ -37,8 +37,12 @@ export default function SeminarPage() {
     <>
       <PageHeader eyebrow={`${s.unit.name} · ${SEMINAR_KIND_LABELS[s.kind].toLowerCase()}`} title={s.title}
         actions={cancelled ? <span className="badge badge-sent_back">Cancelled</span>
-          : s.can_manage ? <DownloadButton path={`/seminars/${s.id}/notice.pdf`}>Download notice</DownloadButton>
-          : undefined} />
+          : s.can_manage ? (
+            <div className="row">
+              <DownloadButton path={`/seminars/${s.id}/notice.pdf`}>Download notice</DownloadButton>
+              <DownloadButton path={`/seminars/${s.id}/attendance.pdf`}>Download attendance sheet</DownloadButton>
+            </div>
+          ) : undefined} />
       <ErrorText>{actError}</ErrorText>
       <div className="seminar-detail">
         <div style={{ display: "grid", gap: "var(--space-5)" }}>
