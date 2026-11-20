@@ -92,7 +92,7 @@ before(async () => {
     if (req.path.endsWith("/export-view")) return res.json(req.path.includes(JUNK_ID) ? { nope: 1 } : report);
     if (req.path.endsWith("/register-view")) return res.json(register);
     if (req.path.endsWith("/phd-file")) return res.json(phdFile);
-    if (req.path.endsWith("/notice")) return res.json(notice);
+    if (req.path.endsWith("/notice") || req.path.endsWith("/attendance")) return res.json(notice);
     if (req.path === "/api/v1/internal/lists/scholars") {
       // Three rows in all; the stub hands out two a page whatever limit is asked.
       const offset = Number(req.query.offset);
@@ -301,6 +301,9 @@ test("a seminar's notice prints one page per scholar, to sign by hand", async ()
   const pdf = Buffer.from(await res.arrayBuffer());
   assert.equal((await PDFLibDocument.load(pdf)).getPageCount(), 2);
   assert.equal((await get(`/seminars/${REPORT_ID}/minutes.pdf`)).status, 422); // no such paper
+  const viva = await get(`/vivas/${REPORT_ID}/attendance.pdf`);
+  assert.equal(viva.status, 200);
+  assert.equal(seen.url, `/api/v1/internal/viva-arrangements/${REPORT_ID}/attendance`);
 });
 
 test("a seminar paper's approved scan takes its generated page's place in the signed file", async () => {

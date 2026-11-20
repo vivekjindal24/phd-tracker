@@ -10,14 +10,14 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import items, thesis, viva, workflow
+from app import items, notices, scope, thesis, viva, workflow
 from app.auth.principal import Principal
 from app.crud import insert, soft_delete, update
 from app.db import get_session
 from app.errors import ApiError, forbidden
 from app.models import Faculty, VivaArrangement, VivaBoardMember
 from app.rbac import require_perm
-from app.schemas import ItemView
+from app.schemas import DepartmentSignersIn, ItemView, NoticeIn
 from app.schemas.research import (
     BoardMemberIn,
     BoardView,
@@ -170,3 +170,58 @@ async def invite_examiners(
     await update(session, principal, ctx.item, {"invited_at": now})
     await session.commit()
     return {"sent": sent, "invited_at": now}
+
+
+# --- the viva's notice (PRD F17b): who signs and what it says ---------------------------------
+
+
+async def _notice_ctx(
+    session: AsyncSession, principal: Principal, arrangement_id: uuid.UUID
+) -> tuple[ItemContext, bool]:
+    """Whoever reads the arrangement reads its notice; only an admin over the scholar's
+    department changes it (owner, 2026-11-21)."""
+    ctx = await _ctx(session, principal, arrangement_id)
+    path = await scope.unit_path(session, ctx.scholar.unit_id)
+    return ctx, principal.covers("admin", path)
+
+
+@router.get("/viva-arrangements/{arrangement_id}/notice")
+async def notice(
+    arrangement_id: uuid.UUID,
+    principal: Principal = Depends(require_perm(ENTITY, "read")),
+    session: AsyncSession = Depends(get_session),
+) -> dict[str, Any]:
+    ctx, can_edit = await _notice_ctx(session, principal, arrangement_id)
+    return await notices.view(session, ctx.item, can_edit)  # type: ignore[arg-type]
+
+
+@router.put("/viva-arrangements/{arrangement_id}/notice")
+async def change_notice(
+    arrangement_id: uuid.UUID,
+    body: NoticeIn,
+    principal: Principal = Depends(require_perm(ENTITY, "read")),
+    session: AsyncSession = Depends(get_session),
+) -> dict[str, Any]:
+    """This viva's notice only; what is left empty follows the department and Anveshan."""
+    ctx, can_edit = await _notice_ctx(session, principal, arrangement_id)
+    if not can_edit:
+        raise forbidden()
+    await notices.change(session, principal, ctx.item, body.model_dump())  # type: ignore[arg-type]
+    await session.commit()
+    return await notices.view(session, ctx.item, True)  # type: ignore[arg-type]
+
+
+@router.put("/viva-arrangements/{arrangement_id}/notice/department")
+async def change_department_signers(
+    arrangement_id: uuid.UUID,
+    body: DepartmentSignersIn,
+    principal: Principal = Depends(require_perm(ENTITY, "read")),
+    session: AsyncSession = Depends(get_session),
+) -> dict[str, Any]:
+    """Who signs every viva notice of the scholar's department, unless a viva says otherwise."""
+    ctx, can_edit = await _notice_ctx(session, principal, arrangement_id)
+    if not can_edit:
+        raise forbidden()
+    await notices.change_department(session, principal, ctx.item, body.signers)  # type: ignore[arg-type]
+    await session.commit()
+    return await notices.view(session, ctx.item, True)  # type: ignore[arg-type]

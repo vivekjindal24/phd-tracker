@@ -84,6 +84,16 @@ remove a point only when the behaviour itself changes.
     scholar, followed by blank rows: 18 rows in all, one A4 page. Larger audiences sign on a
     second printed copy. It is dated the day of the seminar, and the same people who download
     the notice download it. *(2026-11-21)*
+9f. **The viva has a notice and an attendance sheet too.** Both are printed from the viva
+    arrangement's page, by anyone who can open it. The notice gives the date, time, venue (and
+    online link), the scholar, the thesis title and the examination board, and is signed by the
+    Controller of Examinations (whoever holds the Exam Office role), the HoD and the Dean. The
+    department admin changes this on the arrangement's Notice card, for that viva or for every
+    viva of the department, as for seminars (9d); the Controller of Examinations can also be
+    chosen to sign seminar notices. The attendance sheet names the board and the scholar.
+    Before the viva, a copy printed by someone who may not see examiner names says "Name
+    withheld until the viva" in place of the external examiner. In the signed PhD file, an
+    approved scan of either replaces its generated page (point 20). *(owner, 2026-11-21)*
 10. **The unsigned PhD file is for printing and signing.** It holds the generated forms only,
     with signature and date lines, and leaves out the specimen signatures and the uploaded
     scans. The signed one holds both. *(2026-11-20)*
@@ -133,7 +143,8 @@ remove a point only when the behaviour itself changes.
     in the file instead of breaking it. *(2026-11-19)*
 20. **An approved paper marks its entry "Signed" in the index**, and its pages follow the
     entry in the downloaded file, in the order listed in point 15. *(2026-11-19)*
-    A seminar's notice, report and attendance sheet are generated pages until their signed
+    A seminar's notice, report and attendance sheet, and a viva's notice and attendance sheet,
+    are generated pages until their signed
     scan is approved; from then the signed file carries the scan in that page's place, and
     the generated page is left out (the unsigned file always carries the generated pages).
     If the scan cannot be fetched at download time, the generated page stays. Other entries

@@ -155,6 +155,18 @@ export function createApp(config: Config) {
     }
   });
 
+  // A viva's notice or attendance sheet, likewise; the API decides who may and whose names show.
+  app.get("/vivas/:id/:paper.pdf", async (req, res, next) => {
+    try {
+      const id = input(z.string().uuid(), req.params.id);
+      const paper = input(z.enum(["notice", "attendance"]), req.params.paper);
+      const view = await fetchView(config.apiUrl, `/internal/viva-arrangements/${id}/${paper}`, auth(req), seminarPaperView);
+      send(res, "application/pdf", `viva-${paper}-${id.slice(0, 8)}.pdf`, await seminarPaperPdf(view));
+    } catch (e) {
+      next(e);
+    }
+  });
+
   // One reviewer's copy of a thesis: the API decides who and logs it, this only prints the code.
   app.get("/reviews/:id/thesis.pdf", async (req, res, next) => {
     try {

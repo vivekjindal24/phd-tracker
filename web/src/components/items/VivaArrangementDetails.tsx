@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { FormEvent } from "react";
+import { DownloadButton } from "@/components/DownloadButton";
+import { NoticeCard } from "@/components/NoticeCard";
 import { Button, Card, ErrorText, Field } from "@/components/ui/kit";
 import { api } from "@/lib/api";
 import { formatDate } from "@/lib/format";
@@ -201,8 +203,13 @@ export function VivaArrangementDetails({ item, onSaved }: { item: ItemView; onSa
           </dl>
         )}
         <ErrorText>{error}</ErrorText>
+        <div className="row">
+          <DownloadButton path={`/vivas/${item.id}/notice.pdf`}>Download notice</DownloadButton>
+          <DownloadButton path={`/vivas/${item.id}/attendance.pdf`}>Download attendance sheet</DownloadButton>
+        </div>
       </Card>
       <Board item={item} />
+      <NoticeCard base={`/viva-arrangements/${item.id}`} what="viva" department="the department" />
     </>
   );
 }

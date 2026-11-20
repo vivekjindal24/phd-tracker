@@ -4,6 +4,7 @@ Shodhganga deposit — lives in its own rows, because an approved item is immuta
 
 import uuid
 from datetime import date, datetime
+from typing import Any
 
 from sqlalchemy import (
     Boolean,
@@ -18,7 +19,7 @@ from sqlalchemy import (
     UniqueConstraint,
     text,
 )
-from sqlalchemy.dialects.postgresql import CITEXT, UUID
+from sqlalchemy.dialects.postgresql import CITEXT, JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.enums import (
@@ -219,6 +220,8 @@ class VivaArrangement(ApprovalColumns, DomainRow, Base):
     notes: Mapped[str] = mapped_column(Text, server_default=text("''"))
     # When the external examiners were last emailed the arrangement (after approval).
     invited_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # The department admin's changes to this viva's notice (PRD F17b), as seminars.notice.
+    notice: Mapped[dict[str, Any] | None] = mapped_column(JSONB(none_as_null=True))
 
 
 class VivaBoardMember(DomainRow, Base):

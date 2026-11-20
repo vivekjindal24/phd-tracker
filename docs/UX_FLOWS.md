@@ -383,7 +383,11 @@ arrangement's page, where the Exam Office names the **board** (chairperson,
 external examiners with their email, members; the supervisor is listed
 automatically) and submits it → the Vice Chancellor approves (or sends back)
 → supervisor and board faculty are notified, and **Email the external
-examiners** sends the invitation → after the viva, records the **viva**
+examiners** sends the invitation. On the arrangement's page, **Download
+notice** and **Download attendance sheet** print the viva's papers to sign by
+hand (the notice signed by the Controller of Examinations, the HoD and the
+Dean unless the department admin changes it on the **Notice** card, as for
+seminars; the external examiner unnamed for whoever may not see names yet) → after the viva, records the **viva**
 against it (outcome Pass → stage Viva) → Library records
 the **Shodhganga deposit** (date, handle, certificate).
 

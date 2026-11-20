@@ -24,10 +24,11 @@ const draftOf = (n: Notice): Draft => ({
 });
 const same = (a: string[], b: string[]) => a.length === b.length && a.every((x) => b.includes(x));
 
-/** PRD F17b: who signs the seminar's notice and what it says. The department admin changes it for
- *  this seminar, or sets the signers for every seminar of the department; the head only reads it. */
-export function NoticeCard({ seminarId, department }: { seminarId: string; department: string }) {
-  const { data: n, error, setData } = useFetch<Notice>(`/seminars/${seminarId}/notice`);
+/** PRD F17b: who signs a seminar's or viva's notice and what it says. The department admin changes
+ *  it for this one, or sets the signers for every one of the department; others only read it.
+ *  `base`: the seminar's or viva arrangement's API path; `what`: "seminar" or "viva". */
+export function NoticeCard({ base, what, department }: { base: string; what: string; department: string }) {
+  const { data: n, error, setData } = useFetch<Notice>(`${base}/notice`);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   useEffect(() => { if (n) setDraft(draftOf(n)); }, [n]);
@@ -38,7 +39,7 @@ export function NoticeCard({ seminarId, department }: { seminarId: string; depar
   async function put(path: string, body: unknown) {
     setSaveError(null);
     try {
-      setData(await api<Notice>(`/seminars/${seminarId}/notice${path}`, { method: "PUT", body: JSON.stringify(body) }));
+      setData(await api<Notice>(`${base}/notice${path}`, { method: "PUT", body: JSON.stringify(body) }));
     } catch (e) {
       setSaveError(errorText(e));
     }
@@ -65,7 +66,7 @@ export function NoticeCard({ seminarId, department }: { seminarId: string; depar
     <Card>
       <h2>Notice</h2>
       <p className="muted">
-        {changed ? "Changed for this seminar." : `As every ${department} seminar's notice.`} Printed with lines to sign by hand.
+        {changed ? `Changed for this ${what}.` : `As every ${what} notice of ${department}.`} Printed with lines to sign by hand.
       </p>
       <div className="stack-form">
         <fieldset className="check-row">
@@ -77,7 +78,7 @@ export function NoticeCard({ seminarId, department }: { seminarId: string; depar
             </label>
           ))}
         </fieldset>
-        <Field label="Announcement" hint="Left empty, it is written from the seminar's date, time and venue.">
+        <Field label="Announcement" hint={`Left empty, it is written from the ${what}'s date, time and venue.`}>
           <textarea rows={4} maxLength={2000} placeholder={n.standard.announcement} value={draft.announcement}
             onChange={(e) => setDraft({ ...draft, announcement: e.target.value })} />
         </Field>
@@ -96,10 +97,10 @@ export function NoticeCard({ seminarId, department }: { seminarId: string; depar
             announcement: draft.announcement.trim() || null,
             closing: draft.closing.trim() || null,
             copy_to: copyTo.length ? copyTo : null,
-          })}>Save for this seminar</Button>
+          })}>Save for this {what}</Button>
           <Button disabled={draft.signers.length === 0 || same(draft.signers, n.department_signers)}
             onClick={() => put("/department", { signers: draft.signers })}>
-            Use these signers for every {department} seminar
+            Use these signers for every {what} of {department}
           </Button>
           {changed && <Button kind="ghost" onClick={() => put("", {})}>Back to the standard notice</Button>}
           {dirty && <Button kind="ghost" onClick={() => setDraft(draftOf(n))}>Undo</Button>}

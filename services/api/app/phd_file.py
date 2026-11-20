@@ -453,6 +453,9 @@ class _File:
                 )
         return out
 
+    async def _arrangement(self, arrangement_id: uuid.UUID | None) -> VivaArrangement | None:
+        return await self.session.get(VivaArrangement, arrangement_id) if arrangement_id else None
+
     async def _title(self) -> str | None:
         """The thesis title the viva forms print, if the caller reads the thesis."""
         try:
@@ -533,7 +536,10 @@ class _File:
                         await self.signed("viva_arrangement", a),
                         a.id,
                         ("viva_approval", "viva_board", "viva_notice", "viva_examiner_email"),
-                        [await self.forms.viva_approval(a, await self._title())],
+                        [
+                            await self.forms.viva_approval(a, await self._title()),
+                            await self.forms.viva_notice(a, await self._title()),
+                        ],
                     )
                 )
         ev = await self._evaluation()
@@ -550,7 +556,14 @@ class _File:
                     ],
                     record=v["id"],
                     papers=("viva_report", "attendance"),
-                    forms=[await self.forms.viva_report(v, await self._title())],
+                    forms=[
+                        await self.forms.viva_report(v, await self._title()),
+                        *(
+                            [await self.forms.viva_attendance(arranged)]
+                            if (arranged := await self._arrangement(v["arrangement_id"]))
+                            else []
+                        ),
+                    ],
                 )
             )
         return out

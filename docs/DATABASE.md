@@ -39,8 +39,10 @@ root; partial unique index `uq_org_root` guarantees exactly one root),
 on insert/move), `cross_unit_directory` bool (default false; set by the root
 admin, opens the faculty and scholars directories to that unit's heads and
 admins, SECURITY.md §3), `notice_signers` text[] (who signs the unit's seminar
-notices, in signing order; CHECK ⊆ drc_secretary / admin / drc_chair / unit_head /
-dean; null: admin, unit_head, dean — PRD F17b). A unit can be soft-deleted only when it has no live child
+notices, in signing order; CHECK ⊆ exam_office / drc_secretary / admin / drc_chair /
+unit_head / dean; null: admin, unit_head, dean — PRD F17b), `viva_notice_signers`
+text[] (likewise for the unit's viva notices; null: exam_office, unit_head, dean;
+migration 0049). A unit can be soft-deleted only when it has no live child
 units, scholars or faculty.
 
 **faculty_requests** — a request to faculty outside the sender's view: `kind`
@@ -290,8 +292,9 @@ CHECK (accept / minor_revision / major_revision / reject), `notes`,
 supervisor). **viva_arrangements** (migration 0041; approvable, item type
 `viva_arrangement`, initiator the Exam Office) — `scholar_id`, `thesis_id`
 (both indexed), `scheduled_at` timestamptz, `venue`, `online_link`, `notes`,
-`invited_at` (when the external examiners were last emailed) + approval
-columns. **viva_board_members** — `arrangement_id` (indexed), `role` CHECK
+`invited_at` (when the external examiners were last emailed), `notice` jsonb (the
+department admin's changes to this viva's notice, as `seminars.notice`; migration
+0049) + approval columns. **viva_board_members** — `arrangement_id` (indexed), `role` CHECK
 (chairperson / external_examiner / member), then `faculty_id` FK faculty or
 `name` + `institution` + `email` (an outside person): exactly one kind
 (`ck_viva_board_kind`; an external examiner is always outside — schema

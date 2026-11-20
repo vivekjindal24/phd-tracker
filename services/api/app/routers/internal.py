@@ -31,7 +31,16 @@ from app.auth.principal import Principal
 from app.db import get_session
 from app.enums import MilestoneStatus, MilestoneType
 from app.errors import ApiError, forbidden
-from app.models import Faculty, FileRow, Milestone, OrgUnit, Scholar, SeminarScholar, User
+from app.models import (
+    Faculty,
+    FileRow,
+    Milestone,
+    OrgUnit,
+    Scholar,
+    SeminarScholar,
+    ThesisSubmission,
+    User,
+)
 from app.rbac import require_perm
 from app.schemas.research import ReviewCopyView
 
@@ -146,6 +155,33 @@ async def seminar_paper_view(
             await getattr(phd_forms.Forms(session, principal, s), f"seminar_{paper}")(seminar)
             for s in scholars
         ],
+        "generated_at": datetime.now(UTC),
+        "generated_by": principal.full_name,
+    }
+
+
+@router.get("/viva-arrangements/{arrangement_id}/{paper}")
+async def viva_paper_view(
+    arrangement_id: uuid.UUID,
+    paper: Literal["notice", "attendance"],
+    principal: Principal = Depends(current_principal),
+    session: AsyncSession = Depends(get_session),
+) -> dict[str, Any]:
+    """The viva's notice or attendance sheet, to print and sign by hand (PRD F17b), for whoever
+    reads the arrangement; the external examiner unnamed for whoever may not see names yet."""
+    ctx = await items.load_ctx(session, principal, "viva_arrangement", arrangement_id)
+    forms = phd_forms.Forms(session, principal, ctx.scholar)
+    if paper == "notice":
+        title = await session.scalar(
+            select(ThesisSubmission.title).where(ThesisSubmission.id == ctx.item.thesis_id)
+        )
+        page = await forms.viva_notice(ctx.item, title)  # type: ignore[arg-type]
+    else:
+        page = await forms.viva_attendance(ctx.item)  # type: ignore[arg-type]
+    return {
+        **await branding.export_fields(session),
+        "title": page["title"],
+        "forms": [page],
         "generated_at": datetime.now(UTC),
         "generated_by": principal.full_name,
     }

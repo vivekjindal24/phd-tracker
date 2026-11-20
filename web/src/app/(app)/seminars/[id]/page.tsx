@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState } from "react";
 import { DownloadButton } from "@/components/DownloadButton";
+import { NoticeCard } from "@/components/NoticeCard";
 import { StateBadge } from "@/components/items/StateBadge";
 import { RequestMember } from "@/components/RequestMember";
 import { Button, Card, ErrorText, PageHeader, Table } from "@/components/ui/kit";
@@ -12,7 +13,6 @@ import { formatDate, formatWhen } from "@/lib/format";
 import { SEMINAR_KIND_LABELS } from "@/lib/types";
 import type { SeminarDetail } from "@/lib/types";
 import { errorText, useFetch } from "@/lib/useFetch";
-import { NoticeCard } from "./NoticeCard";
 import "../seminars.css";
 
 export default function SeminarPage() {
@@ -99,7 +99,7 @@ export default function SeminarPage() {
               </ul>
             )}
           </Card>
-          {s.can_manage && !cancelled && <NoticeCard seminarId={s.id} department={s.unit.name} />}
+          {s.can_manage && !cancelled && <NoticeCard base={`/seminars/${s.id}`} what="seminar" department={s.unit.name} />}
           {s.can_attend && (
             <Card>
               <h2>Attending?</h2>

@@ -14,13 +14,10 @@ from typing import Any
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import committee, coursework, grading, items, scope, viva
+from app import committee, coursework, grading, items, notices, scope, viva
 from app.auth.principal import Principal
 from app.enums import (
-    DEFAULT_NOTICE_SIGNERS,
     LOCAL_TZ,
-    NOTICE_SIGNER_LABELS,
-    SEMINAR_KIND_LABELS,
 )
 from app.errors import ApiError
 from app.models import (
@@ -30,7 +27,6 @@ from app.models import (
     Faculty,
     Milestone,
     OrgUnit,
-    RoleAssignment,
     Scholar,
     Seminar,
     SeminarGrade,
@@ -71,6 +67,16 @@ SYNOPSIS_RECOMMENDATION = (
     "The Pre-Thesis Synopsis is presented in front of the RAC and certified to be satisfactory "
     "and has been approved by the RAC to submit the thesis."
 )
+
+
+def _attendance_table(rows: list[list[str]]) -> dict[str, Any]:
+    return {
+        "title": "",
+        "columns": ["S. No.", "Faculty / Scholar Name", "Designation", "Signature"],
+        "rows": rows,
+        "widths": [0.08, 0.37, 0.25, 0.3],
+        "row_height": 24,  # room to sign
+    }
 
 
 def _rac_says(recommended: list[tuple[str, str]]) -> str:
@@ -126,98 +132,8 @@ def form(
 
 
 ATTENDANCE_ROWS = 18  # one A4 page of rows on the attendance sheet, the named ones included
-# Who a seminar's notice is copied to, until the university's own list is a setting (F17, part 4).
-NOTICE_COPY_TO = [
-    "The Vice Chancellor",
-    "The Dean of the Faculty",
-    "The Research Office",
-    "The supervisor and the members of the Research Advisory Committee",
-    "The scholar",
-]
-
-
-async def holder(session: AsyncSession, unit_id: uuid.UUID | None, role: str) -> str | None:
-    """Who holds a unit role (the head, an admin); the first by name when several do."""
-    if unit_id is None:
-        return None
-    return await session.scalar(
-        select(User.full_name)
-        .join(RoleAssignment, RoleAssignment.user_id == User.id)
-        .where(
-            RoleAssignment.unit_id == unit_id,
-            RoleAssignment.role == role,
-            RoleAssignment.deleted_at.is_(None),
-        )
-        .order_by(User.full_name)
-        .limit(1)
-    )
-
-
-def notice_name(s: Seminar) -> str:
-    name = SEMINAR_KIND_LABELS[s.kind].replace(" seminar", " Seminar")
-    return name.replace("Pre-synopsis", "Pre-Thesis Synopsis")
-
-
-def notice_wording(s: Seminar) -> dict[str, Any]:
-    """Anveshan's wording of a seminar's notice, before the department admin's changes."""
-    when = s.starts_at.astimezone(LOCAL_TZ)
-    at = f"{when:%I:%M %p}".lstrip("0")  # 4:30 PM, as the paper notices read
-    return {
-        "announcement": (
-            f"This is for your kind information that the {notice_name(s)} of the following "
-            f"research scholar has been scheduled on {when:%d %B %Y} ({when:%A}) at {at}"
-            + (f" in {s.venue}." if s.venue else ".")
-        ),
-        "closing": f"All are cordially invited to attend the {notice_name(s)}.",
-        "copy_to": NOTICE_COPY_TO,
-    }
-
-
-def _notice_wording(s: Seminar) -> dict[str, Any]:
-    """The notice's wording as printed: Anveshan's, with the department admin's changes."""
-    return {**notice_wording(s), **{k: v for k, v in (s.notice or {}).items() if v}}
-
-
-async def notice_signer_keys(session: AsyncSession, s: Seminar) -> list[str]:
-    """Who signs: as set for this seminar, else for its department, else the default."""
-    custom = (s.notice or {}).get("signers")
-    if custom:
-        return list(custom)
-    unit = await session.scalar(select(OrgUnit.notice_signers).where(OrgUnit.id == s.unit_id))
-    return list(unit or DEFAULT_NOTICE_SIGNERS)
-
-
-async def notice_signers(session: AsyncSession, s: Seminar) -> list[dict[str, Any]]:
-    """Each signer named from the records; one person holding two of the roles signs once, with
-    both (\"Head of Department & Chairperson, DRC\", as the paper notices read)."""
-    keys = await notice_signer_keys(session, s)
-    drc: list[dict[str, Any]] = []
-    if {"drc_chair", "drc_secretary"} & set(keys):
-        current = await committee.current(session, CommitteeFormation.unit_id == s.unit_id)
-        drc = await committee.members(session, current.id) if current else []
-    parent = await session.scalar(select(OrgUnit.parent_id).where(OrgUnit.id == s.unit_id))
-
-    async def name(key: str) -> str | None:
-        if key in ("drc_chair", "drc_secretary"):
-            role = "chairperson" if key == "drc_chair" else "secretary"
-            return next((m["name"] for m in drc if m["role"] == role), None)
-        if key == "dean":
-            return await holder(session, parent, "unit_head")
-        return await holder(session, s.unit_id, key)
-
-    out: list[dict[str, Any]] = []
-    for key in keys:
-        who, role = await name(key), NOTICE_SIGNER_LABELS[key]
-        same = next((o for o in out if who and o["name"] == who), None)
-        if same:
-            same["role"] += f" & {role}"
-        else:
-            out.append(signer(who, role))
-    return out
-
-
-def signer(name: str | None, role: str, signature: str | None = None) -> dict[str, Any]:
-    return {"name": name or "", "role": role, "signature": signature}
+signer = notices.signer
+holder = notices.holder
 
 
 class Forms:
@@ -408,13 +324,13 @@ class Forms:
     async def seminar_notice(self, s: Seminar) -> Form:
         """The circular announcing the seminar: Anveshan's wording and the department's signers,
         as the department admin changed them for this seminar (owner, 2026-11-21)."""
-        wording = _notice_wording(s)
+        wording = notices.printed(s)
         return form(
-            f"{notice_name(s)}: Circular",
+            f"{notices.name(s)}: Circular",
             await self._seminar_details(s),
             intro=f"Dated {_d(s.created_at)}\n\n{wording['announcement']}",
             statement=wording["closing"],
-            signed_by=await notice_signers(self.session, s),
+            signed_by=await notices.signers(self.session, s),
             copy_to=wording["copy_to"],
             paper="notice",
         )
@@ -439,25 +355,21 @@ class Forms:
         for who, designation in [*supervisor, *panel]:
             if who not in (n for n, _ in named):
                 named.append((who, designation))
-        block = dict(await self.particulars())
-        named.append((block["Name of the Student"], "Research Scholar"))
-        rows = [[str(i), *n, ""] for i, n in enumerate(named, 1)]
-        rows += [[str(i), "", "", ""] for i in range(len(rows) + 1, ATTENDANCE_ROWS + 1)]
+        rows = await self._attendance_rows(named)
         return form(
-            f"{notice_name(s)}: Attendance Sheet",
+            f"{notices.name(s)}: Attendance Sheet",
             await self._seminar_details(s),
-            intro=f"Dated {_d(s.starts_at)}\n\n{_notice_wording(s)['announcement']}",
-            tables=[
-                {
-                    "title": "",
-                    "columns": ["S. No.", "Faculty / Scholar Name", "Designation", "Signature"],
-                    "rows": rows,
-                    "widths": [0.08, 0.37, 0.25, 0.3],
-                    "row_height": 24,  # room to sign
-                }
-            ],
+            intro=f"Dated {_d(s.starts_at)}\n\n{notices.printed(s)['announcement']}",
+            tables=[_attendance_table(rows)],
             paper="attendance",
         )
+
+    async def _attendance_rows(self, named: list[tuple[str, str]]) -> list[list[str]]:
+        """Those expected, then the scholar, then blank rows to an A4 page."""
+        block = dict(await self.particulars())
+        named = [*named, (block["Name of the Student"], "Research Scholar")]
+        rows = [[str(i), *n, ""] for i, n in enumerate(named, 1)]
+        return rows + [[str(i), "", "", ""] for i in range(len(rows) + 1, ATTENDANCE_ROWS + 1)]
 
     async def _seminar_details(self, s: Seminar) -> list[tuple[str, Any]]:
         """The scholar's details on the seminar's notice and attendance sheet."""
@@ -687,15 +599,67 @@ class Forms:
         supervisor = await committee.convener(self.session, self.scholar)
         return [{"role": "Supervisor", "name": supervisor or "", "institution": ""}, *out]
 
+    async def _names(self, a: VivaArrangement) -> bool:
+        """Whether the caller may see the examiners' names on this viva's papers yet."""
+        try:
+            ctx = await items.load_ctx(self.session, self.principal, "viva_arrangement", a.id)
+        except ApiError:
+            return False
+        return viva.sees_names(self.principal, ctx, await viva.held(self.session, a.id))
+
+    async def viva_notice(self, a: VivaArrangement, thesis_title: str | None) -> Form:
+        """The notice of the viva, with its board: Anveshan's wording and the department's
+        signers — the Controller of Examinations, the HoD and the Dean unless the department
+        admin changed them (owner, 2026-11-21)."""
+        board = await self._board(a.id, await self._names(a))
+        wording = notices.printed(a)
+        block = dict(await self.particulars())
+        return form(
+            "Viva-Voce Examination: Notice",
+            [
+                ("Name of Scholar", block["Name of the Student"]),
+                ("Enrolment No.", block["Enrolment No."]),
+                ("Supervisor", block["Name of Supervisor"]),
+                ("Department", block["Department"]),
+                ("Title of the Thesis", thesis_title),
+            ],
+            intro=f"Dated {_d(a.created_at)}\n\n{wording['announcement']}",
+            tables=[
+                {
+                    "title": "Examination Board",
+                    "columns": ["No.", "Name", "Institution", "Role"],
+                    "rows": [
+                        [str(n), m["name"], m["institution"], m["role"]]
+                        for n, m in enumerate(board, start=1)
+                    ],
+                }
+            ],
+            statement=wording["closing"],
+            signed_by=await notices.signers(self.session, a),
+            copy_to=wording["copy_to"],
+            paper="viva_notice",
+        )
+
+    async def viva_attendance(self, a: VivaArrangement) -> Form:
+        """The viva's attendance sheet: the board already named, then the scholar and blank
+        rows for everyone else who attends."""
+        board = await self._board(a.id, await self._names(a))
+        named = [
+            (m["name"], f"{m['role']}, {m['institution']}" if m["institution"] else m["role"])
+            for m in board
+        ]
+        return form(
+            "Viva-Voce Examination: Attendance Sheet",
+            [(k, v) for k, v in (await self.particulars())[:2]],
+            intro=f"Dated {_d(a.scheduled_at)}\n\n{notices.printed(a)['announcement']}",
+            tables=[_attendance_table(await self._attendance_rows(named))],
+            paper="attendance",
+        )
+
     async def viva_approval(self, a: VivaArrangement, thesis_title: str | None) -> Form:
         """Approval to conduct the viva (Form X) with the board constituted for it (Form XI)."""
         table, approvers = await self.approvals("viva_arrangement", a.id)
-        try:
-            ctx = await items.load_ctx(self.session, self.principal, "viva_arrangement", a.id)
-            names = viva.sees_names(self.principal, ctx, await viva.held(self.session, a.id))
-        except ApiError:
-            names = False
-        board = await self._board(a.id, names)
+        board = await self._board(a.id, await self._names(a))
         when = a.scheduled_at.astimezone(LOCAL_TZ)
         return form(
             "Approval for Conduct of Viva-Voce Examination",

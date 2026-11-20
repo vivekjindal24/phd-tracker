@@ -263,7 +263,10 @@ the panel's answers or comments (`phd_file._seminars`, `phd_forms._marking`).
 A seminar's notice and attendance sheet (`/internal/seminars/{id}/notice`,
 `…/attendance`) are downloaded only by those
 who run the seminar (`seminars.can_manage`: the unit's head or admin, or above).
-Who signs it and its wording are changed only by an admin over the unit
+A viva's notice and attendance sheet (`/internal/viva-arrangements/{id}/…`) are
+printed by whoever reads the arrangement, the external examiner unnamed for
+whoever may not see examiner names yet (`viva.sees_names`). Who signs a notice and
+its wording are changed only by an admin over the unit
 (`seminars.can_edit_notice`; owner, 2026-11-21) — the head reads them.
 
 † **Examiner confidentiality:** examiner names are returned only to the

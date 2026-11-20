@@ -498,7 +498,10 @@ demand, from what is already recorded.
   the scholar, and blank rows to sign — 18 in all) — **Download attendance
   sheet** on the seminar, and in the PhD file after the seminar's report. Once a
   seminar paper's signed scan is approved, the signed PhD file carries the scan in
-  place of its generated page (owner, 2026-11-21);
+  place of its generated page (owner, 2026-11-21). *Built:* the viva's notice
+  (with the examination board) and attendance sheet, from the arrangement:
+  signed by the Controller of Examinations, the HoD and the Dean by default,
+  changed by the department admin as for seminars;
   **Download notice** on the seminar for those who run it, and in the PhD file
   before the seminar's report.
 - **Names are the university's:** each annexure's title and form number (e.g.

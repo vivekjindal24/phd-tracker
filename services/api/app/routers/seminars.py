@@ -9,12 +9,12 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
-from app import grading, phd_forms, scope, seminars
+from app import grading, notices, scope, seminars
 from app.auth.deps import current_principal
 from app.auth.principal import Principal
 from app.crud import insert, soft_delete, update
 from app.db import get_session
-from app.enums import DEFAULT_NOTICE_SIGNERS, NOTICE_SIGNER_LABELS, SEMINAR_KIND_LABELS
+from app.enums import SEMINAR_KIND_LABELS
 from app.errors import ApiError, forbidden
 from app.models import (
     Faculty,
@@ -342,18 +342,6 @@ async def set_hardcopy(
 # --- the seminar's notice (PRD F17b): who signs and what it says ------------------------------
 
 
-async def _notice(session: AsyncSession, principal: Principal, s: Seminar, path: str) -> dict:
-    unit = await session.scalar(select(OrgUnit.notice_signers).where(OrgUnit.id == s.unit_id))
-    return {
-        "can_edit": seminars.can_edit_notice(principal, path),
-        "choices": [{"key": k, "label": v} for k, v in NOTICE_SIGNER_LABELS.items()],
-        "signers": await phd_forms.notice_signer_keys(session, s),
-        "department_signers": list(unit or DEFAULT_NOTICE_SIGNERS),
-        "custom": s.notice or {},  # this seminar's changes
-        "standard": phd_forms.notice_wording(s),  # Anveshan's wording, before them
-    }
-
-
 async def _notice_seminar(
     session: AsyncSession, principal: Principal, seminar_id: uuid.UUID, edit: bool
 ) -> tuple[Seminar, str]:
@@ -371,7 +359,7 @@ async def notice(
     session: AsyncSession = Depends(get_session),
 ) -> dict[str, Any]:
     seminar, path = await _notice_seminar(session, principal, seminar_id, edit=False)
-    return await _notice(session, principal, seminar, path)
+    return await notices.view(session, seminar, seminars.can_edit_notice(principal, path))
 
 
 @router.put("/{seminar_id}/notice")
@@ -382,11 +370,10 @@ async def change_notice(
     session: AsyncSession = Depends(get_session),
 ) -> dict[str, Any]:
     """This seminar's notice only; what is left empty follows the department and Anveshan."""
-    seminar, path = await _notice_seminar(session, principal, seminar_id, edit=True)
-    custom = {k: v for k, v in body.model_dump().items() if v}
-    await update(session, principal, seminar, {"notice": custom or None})
+    seminar, _ = await _notice_seminar(session, principal, seminar_id, edit=True)
+    await notices.change(session, principal, seminar, body.model_dump())
     await session.commit()
-    return await _notice(session, principal, seminar, path)
+    return await notices.view(session, seminar, True)
 
 
 @router.put("/{seminar_id}/notice/department")
@@ -398,8 +385,7 @@ async def change_department_signers(
 ) -> dict[str, Any]:
     """Who signs every seminar notice of this seminar's department, unless a seminar says
     otherwise."""
-    seminar, path = await _notice_seminar(session, principal, seminar_id, edit=True)
-    unit = await session.get(OrgUnit, seminar.unit_id)
-    await update(session, principal, unit, {"notice_signers": body.signers})
+    seminar, _ = await _notice_seminar(session, principal, seminar_id, edit=True)
+    await notices.change_department(session, principal, seminar, body.signers)
     await session.commit()
-    return await _notice(session, principal, seminar, path)
+    return await notices.view(session, seminar, True)

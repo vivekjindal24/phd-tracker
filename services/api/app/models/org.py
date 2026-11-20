@@ -58,6 +58,10 @@ class OrgUnit(DomainRow, Base):
             f"notice_signers <@ ARRAY[{sql_in(NOTICE_SIGNERS)}]::text[]",
             name="ck_org_units_notice_signers",
         ),
+        CheckConstraint(
+            f"viva_notice_signers <@ ARRAY[{sql_in(NOTICE_SIGNERS)}]::text[]",
+            name="ck_org_units_viva_notice_signers",
+        ),
         Index(
             "ix_org_units_name_trgm",
             "name",
@@ -76,6 +80,7 @@ class OrgUnit(DomainRow, Base):
     cross_unit_directory: Mapped[bool] = mapped_column(Boolean, server_default=false())
     # Who signs the unit's seminar notices, in order (enums.NOTICE_SIGNERS); null: the default.
     notice_signers: Mapped[list[str] | None] = mapped_column(ARRAY(Text))
+    viva_notice_signers: Mapped[list[str] | None] = mapped_column(ARRAY(Text))  # likewise, vivas
 
 
 class User(DomainRow, Base):

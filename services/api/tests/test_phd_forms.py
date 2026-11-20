@@ -75,9 +75,10 @@ async def test_approved_items_carry_their_approval_record_and_the_viva_its_board
     await act(client, world.exam_office, aid, "submit")
     assert (await act(client, world.vice_chancellor, aid, "approve")).status_code == 200
 
-    def forms(view, key):
+    def forms(view, key, n=0):
+        """Each entry's form: its own (first) by default; a viva's notice and attendance follow."""
         return [
-            e["forms"][-1] for e in next(a for a in view["annexures"] if a["key"] == key)["entries"]
+            e["forms"][n] for e in next(a for a in view["annexures"] if a["key"] == key)["entries"]
         ]
 
     async def view_of(user):
@@ -102,6 +103,38 @@ async def test_approved_items_carry_their_approval_record_and_the_viva_its_board
     (own,) = forms(await view_of(world.scholar_a1), "viva")
     assert "Prof. K. Rao" not in str(own) and "Name withheld until the viva" in str(own)
 
+    # The viva's notice: the Controller of Examinations, the HoD and the Dean sign it by hand.
+    (notice,) = forms(office, "viva", 1)
+    assert notice["title"] == "Viva-Voce Examination: Notice"
+    assert notice["paper"] == "viva_notice"
+    assert [s["role"] for s in notice["signed_by"]] == [
+        "Controller of Examinations",
+        "Head of Department",
+        "Dean",
+    ]
+    assert notice["signed_by"][0]["name"] == world.exam_office.full_name
+    assert "Prof. K. Rao" in str(notice["tables"])
+    (own_notice,) = forms(await view_of(world.scholar_a1), "viva", 1)
+    assert "Prof. K. Rao" not in str(own_notice)
+    # Printed from the arrangement, too, by whoever reads it.
+    res = await client.get(
+        f"{API}/internal/viva-arrangements/{aid}/attendance", headers=auth(world.exam_office.id)
+    )
+    assert res.status_code == 200, res.text
+    (sheet,) = res.json()["forms"]
+    names = [r[1] for r in sheet["tables"][0]["rows"] if r[1]]
+    assert names[-1] == world.scholar_a1.full_name and "Prof. K. Rao" in names
+    assert sheet["paper"] == "attendance"
+
+    # The department admin changes who signs this viva's notice; the Exam Office may not.
+    url = f"{API}/viva-arrangements/{aid}/notice"
+    denied = await client.put(url, headers=auth(world.exam_office.id), json={})
+    assert denied.status_code == 403
+    res = await client.put(url, headers=auth(world.admin_a1.id), json={"signers": ["admin"]})
+    assert res.status_code == 200, res.text
+    assert res.json()["signers"] == ["admin"]
+    assert res.json()["department_signers"] == ["exam_office", "unit_head", "dean"]
+
     await client.post(
         f"{API}/theses/{tid}/vivas",
         headers=auth(world.exam_office.id),
@@ -109,6 +142,8 @@ async def test_approved_items_carry_their_approval_record_and_the_viva_its_board
     )
     (_, report) = forms(await view_of(world.scholar_a1), "viva")
     assert report["title"] == "Viva-Voce Examination Report"
+    (_, attendance) = forms(await view_of(world.scholar_a1), "viva", -1)
+    assert attendance["title"] == "Viva-Voce Examination: Attendance Sheet"
     assert ["Outcome", "Pass"] in report["fields"]
     assert [s["role"] for s in report["signed_by"]] == [
         "Supervisor",
