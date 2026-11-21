@@ -267,7 +267,11 @@ A viva's notice and attendance sheet (`/internal/viva-arrangements/{id}/…`) ar
 printed by whoever reads the arrangement, the external examiner unnamed for
 whoever may not see examiner names yet (`viva.sees_names`). Who signs a notice and
 its wording are changed only by an admin over the unit
-(`seminars.can_edit_notice`; owner, 2026-11-21) — the head reads them.
+(`seminars.can_edit_notice`; owner, 2026-11-21) — the head reads them. A named
+signatory must hold that role when chosen and again when the notice prints
+(`notices.chosen`); otherwise the line carries the role alone. The Controller of
+Examinations is one university-wide choice (`PUT /settings/exam-controller`), made by
+the Exam Office or the root admin only, from those holding the Exam Office role.
 
 † **Examiner confidentiality:** examiner names are returned only to the
 Exam Office, Research Office, Vice Chancellor and root admin until the viva outcome is

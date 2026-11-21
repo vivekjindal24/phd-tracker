@@ -12,6 +12,7 @@ from app import committee
 from app.auth.principal import Principal
 from app.crud import update
 from app.enums import LOCAL_TZ, NOTICE_SIGNER_LABELS, OFFICE_ROLES, SEMINAR_KIND_LABELS
+from app.errors import ApiError
 from app.models import (
     CommitteeFormation,
     OrgUnit,
@@ -55,22 +56,40 @@ def signer(name: str | None, role: str, signature: str | None = None) -> dict[st
     return {"name": name or "", "role": role, "signature": signature}
 
 
-async def holder(session: AsyncSession, unit_id: uuid.UUID | None, role: str) -> str | None:
-    """Who holds a role — a unit's head or admin, or an office (the Exam Office) — the first by
-    name when several do."""
+# The signers named from who holds a role; the others come from the department's committee.
+ROLE_SIGNERS = ("exam_office", "admin", "unit_head", "dean")
+
+
+async def holders(
+    session: AsyncSession, unit_id: uuid.UUID | None, role: str
+) -> list[dict[str, str]]:
+    """Everyone who holds a role today — a unit's head or admin, or an office (the Exam Office)."""
     if role in OFFICE_ROLES:
         where = RoleAssignment.unit_id.is_(None)
     elif unit_id is None:
-        return None
+        return []
     else:
         where = RoleAssignment.unit_id == unit_id
-    return await session.scalar(
-        select(User.full_name)
+    rows = await session.execute(
+        select(User.id, User.full_name)
         .join(RoleAssignment, RoleAssignment.user_id == User.id)
-        .where(where, RoleAssignment.role == role, RoleAssignment.deleted_at.is_(None))
+        .where(
+            where,
+            RoleAssignment.role == role,
+            RoleAssignment.deleted_at.is_(None),
+            User.deleted_at.is_(None),
+        )
+        .distinct()
         .order_by(User.full_name)
-        .limit(1)
     )
+    return [{"id": str(uid), "name": name} for uid, name in rows]
+
+
+async def holder(session: AsyncSession, unit_id: uuid.UUID | None, role: str) -> str | None:
+    """The one person who holds a role. None when nobody or several do: a form then prints the
+    role alone rather than guess who signs (owner, 2026-11-22)."""
+    found = await holders(session, unit_id, role)
+    return found[0]["name"] if len(found) == 1 else None
 
 
 def kind_of(record: Record) -> Kind:
@@ -132,6 +151,41 @@ async def signer_keys(session: AsyncSession, record: Record) -> list[str]:
     return list(custom) if custom else await department_signers(session, record)
 
 
+async def candidates(session: AsyncSession, record: Record) -> dict[str, list[dict[str, str]]]:
+    """Who holds each role a notice may be signed in, checked afresh before every print."""
+    unit = await unit_of(session, record)
+    parent = await session.scalar(select(OrgUnit.parent_id).where(OrgUnit.id == unit))
+    return {
+        "exam_office": await holders(session, None, "exam_office"),
+        "admin": await holders(session, unit, "admin"),
+        "unit_head": await holders(session, unit, "unit_head"),
+        "dean": await holders(session, parent, "unit_head"),
+    }
+
+
+async def department_names(session: AsyncSession, record: Record) -> dict[str, str]:
+    unit = await unit_of(session, record)
+    return await session.scalar(select(OrgUnit.notice_names).where(OrgUnit.id == unit)) or {}
+
+
+async def chosen(
+    session: AsyncSession, record: Record, held: dict[str, list[dict[str, str]]]
+) -> dict[str, str | None]:
+    """The person who signs in each role: the one chosen for this seminar or viva, else for the
+    department — the Controller of Examinations once for the whole university — only while
+    they still hold the role, else the only one who holds it. None when several hold it and none
+    is chosen: the line then prints with the role alone."""
+    names = {**await department_names(session, record), **(record.notice or {}).get("names", {})}
+    controller = await session.scalar(select(Settings.exam_controller_id))
+    names["exam_office"] = str(controller) if controller else None
+    out: dict[str, str | None] = {}
+    for key, people in held.items():
+        ids = {p["id"] for p in people}
+        pick = names.get(key)
+        out[key] = pick if pick in ids else (people[0]["id"] if len(people) == 1 else None)
+    return out
+
+
 async def signers(session: AsyncSession, record: Record) -> list[dict[str, Any]]:
     """Each signer named from the records; one person holding two of the roles signs once, with
     both ("Head of Department & Chairperson, DRC", as the paper notices read)."""
@@ -141,15 +195,14 @@ async def signers(session: AsyncSession, record: Record) -> list[dict[str, Any]]
     if {"drc_chair", "drc_secretary"} & set(keys):
         current = await committee.current(session, CommitteeFormation.unit_id == unit)
         drc = await committee.members(session, current.id) if current else []
-    parent = await session.scalar(select(OrgUnit.parent_id).where(OrgUnit.id == unit))
+    held = await candidates(session, record)
+    picks = await chosen(session, record, held)
 
     async def named(key: str) -> str | None:
         if key in ("drc_chair", "drc_secretary"):
             role = "chairperson" if key == "drc_chair" else "secretary"
             return next((m["name"] for m in drc if m["role"] == role), None)
-        if key == "dean":
-            return await holder(session, parent, "unit_head")
-        return await holder(session, unit, key)
+        return next((p["name"] for p in held[key] if p["id"] == picks[key]), None)
 
     out: list[dict[str, Any]] = []
     for key in keys:
@@ -162,31 +215,91 @@ async def signers(session: AsyncSession, record: Record) -> list[dict[str, Any]]
     return out
 
 
-async def view(session: AsyncSession, record: Record, can_edit: bool) -> dict[str, Any]:
+async def view(
+    session: AsyncSession, record: Record, can_edit: bool, can_set_controller: bool = False
+) -> dict[str, Any]:
     """The Notice card: who signs, the department's signers, this record's changes, and
     Anveshan's wording beneath them."""
+    keys = await signer_keys(session, record)
+    held = await candidates(session, record)
+    picks = await chosen(session, record, held)
     return {
         "can_edit": can_edit,
         "choices": [{"key": k, "label": v} for k, v in NOTICE_SIGNER_LABELS.items()],
-        "signers": await signer_keys(session, record),
+        "signers": keys,
         "department_signers": await department_signers(session, record),
         "custom": record.notice or {},
         "standard": await standard(session, record),
+        "holders": held,  # who holds each role a notice is signed in
+        "names": picks,  # who signs in each, as things stand
+        # Signers several people could be and nobody is chosen for: printed with the role alone.
+        "unnamed": [k for k in keys if k in held and len(held[k]) > 1 and picks[k] is None],
+        # The Exam Office and the root admin choose the Controller of Examinations here too.
+        "can_set_controller": can_set_controller,
     }
+
+
+def sets_controller(principal: Principal) -> bool:
+    """Who chooses the Controller of Examinations for the whole university (owner, 2026-11-22)."""
+    return principal.is_root_admin or "exam_office" in principal.office_roles
+
+
+async def set_controller(
+    session: AsyncSession, principal: Principal, user_id: uuid.UUID | None
+) -> None:
+    """The Controller of Examinations named on every notice: someone in the Exam Office."""
+    if user_id is not None:
+        office = await holders(session, None, "exam_office")
+        if str(user_id) not in {p["id"] for p in office}:
+            raise ApiError(422, "not_a_holder", "That person is not in the Exam Office.")
+    row = await session.get(Settings, 1)
+    await update(session, principal, row, {"exam_controller_id": user_id})
+
+
+async def _check_names(
+    session: AsyncSession, record: Record, names: dict[str, str] | None
+) -> dict[str, str]:
+    """A chosen signer must hold that role today. The Controller of Examinations is chosen once
+    for the university (settings), never per department or notice."""
+    if "exam_office" in (names or {}):
+        raise ApiError(
+            422,
+            "controller_is_university_wide",
+            "The Controller of Examinations is chosen once for the whole university, by the "
+            "Exam Office or the root admin.",
+        )
+    held = await candidates(session, record)
+    for key, uid in (names or {}).items():
+        if key not in held or uid not in {p["id"] for p in held[key]}:
+            raise ApiError(
+                422,
+                "not_a_holder",
+                f"That person does not hold the role of {NOTICE_SIGNER_LABELS[key]}.",
+            )
+    return dict(names or {})
 
 
 async def change(
     session: AsyncSession, principal: Principal, record: Record, changes: dict[str, Any]
 ) -> None:
     """This seminar's or viva's notice only; what is left empty follows the department."""
+    changes = {**changes, "names": await _check_names(session, record, changes.get("names"))}
     custom = {k: v for k, v in changes.items() if v}
     await update(session, principal, record, {"notice": custom or None})
 
 
 async def change_department(
-    session: AsyncSession, principal: Principal, record: Record, keys: list[str] | None
+    session: AsyncSession,
+    principal: Principal,
+    record: Record,
+    keys: list[str] | None,
+    names: dict[str, str] | None = None,
 ) -> None:
-    """Who signs every notice of this kind in the department, unless one says otherwise."""
+    """Who signs every notice of this kind in the department, unless one says otherwise; and
+    who signs in a role several people hold, for all its notices (seminars and vivas alike)."""
+    checked = await _check_names(session, record, names)
     unit = await session.get(OrgUnit, await unit_of(session, record))
     column = UNIT_COLUMN[kind_of(record)].key
-    await update(session, principal, unit, {column: keys})
+    await update(
+        session, principal, unit, {column: keys, "notice_names": {**unit.notice_names, **checked}}
+    )

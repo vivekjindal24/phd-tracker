@@ -42,7 +42,9 @@ admins, SECURITY.md §3), `notice_signers` text[] (who signs the unit's seminar
 notices, in signing order; CHECK ⊆ exam_office / drc_secretary / admin / drc_chair /
 unit_head / dean; null: admin, unit_head, dean — PRD F17b), `viva_notice_signers`
 text[] (likewise for the unit's viva notices; null: exam_office, unit_head, dean;
-migration 0049). A unit can be soft-deleted only when it has no live child
+migration 0049), `notice_names` jsonb (default `{}`, CHECK object; who signs the unit's
+notices in a role several people hold — `{signer key: user id}`, for seminars and vivas
+alike; migration 0052). A unit can be soft-deleted only when it has no live child
 units, scholars or faculty.
 
 **faculty_requests** — a request to faculty outside the sender's view: `kind`
@@ -137,7 +139,9 @@ university's own progress report sections, used only while the toggle is on), `s
 questions, "form_name", "questions": [...]}`, PRD F15; a PATCH merges per kind),
 `phd_forms` jsonb (default `{}`, CHECK object; per form of the PhD file —
 enums.PHD_FORMS — any of `{"title", "number", "copy_to": [...]}`; a PATCH merges
-per form and drops an emptied one; PRD F17 part 4, migration 0050), `phd_index`
+per form and drops an emptied one; PRD F17 part 4, migration 0050), `exam_controller_id` FK users (who signs every notice as Controller of Examinations when
+several hold the Exam Office role; set by the Exam Office or the root admin; migration 0052),
+`phd_index`
 jsonb (default `[]`, CHECK array; the university's own index of the PhD file: rows
 of `{"title", "sources": [...]}`, each source `annexure:<key>`, `form:<key>` or
 `paper:<annexure>.<kind>` placed once — phd_index.py; empty: Anveshan's annexures;
@@ -234,7 +238,8 @@ registration / pre_synopsis, default progress), `title`, `starts_at`
 timestamptz, `venue`, `report_due` date, `report_year`, `period` (all three
 set exactly when `kind` = progress: `ck_seminars_report`), `notes`,
 `notice` jsonb (the department admin's changes to this seminar's notice: any of
-`signers`, `announcement`, `closing`, `copy_to`; null: none — PRD F17b), `status` CHECK (scheduled / cancelled), `created_by`. Cancelling sets status;
+`signers`, `announcement`, `closing`, `copy_to`, and `names` — who signs in a role several
+people hold; null: none — PRD F17b), `status` CHECK (scheduled / cancelled), `created_by`. Cancelling sets status;
 rows are never deleted.
 **seminar_scholars** — `seminar_id`, `scholar_id` (UNIQUE pair),
 `hardcopy_received_on` date, `draft_points` jsonb (supervisor's working list

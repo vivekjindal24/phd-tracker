@@ -501,7 +501,10 @@ demand, from what is already recorded.
   place of its generated page (owner, 2026-11-21). *Built:* the viva's notice
   (with the examination board) and attendance sheet, from the arrangement:
   signed by the Controller of Examinations, the HoD and the Dean by default,
-  changed by the department admin as for seminars;
+  changed by the department admin as for seminars. A notice never guesses a
+  signatory: a role several people hold is named only once chosen — by the
+  department admin, and for the Controller of Examinations once for the whole
+  university by the Exam Office or the root admin (owner, 2026-11-22);
   **Download notice** on the seminar for those who run it, and in the PhD file
   before the seminar's report.
 - **Names are the university's:** each annexure's title and form number (e.g.

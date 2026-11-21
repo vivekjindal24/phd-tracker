@@ -6,6 +6,7 @@ import { api } from "@/lib/api";
 import { ROLE_LABELS } from "@/lib/types";
 import type { AssignedRole, OfficeRole, OrgUnit } from "@/lib/types";
 import { errorText, useFetch } from "@/lib/useFetch";
+import type { Save } from "./save";
 
 type Holder = {
   id: string;
@@ -33,7 +34,11 @@ const depth = (u: OrgUnit) => u.path.split(".").length - 1;
 
 /** Who holds each appointed role: the university-wide offices, and the head and admin of
  *  each unit. The API decides who may appoint; this card is shown to the root admin. */
-export function Offices({ emailConfigured }: { emailConfigured: boolean }) {
+export function Offices({ emailConfigured, controllerId, save }: {
+  emailConfigured: boolean;
+  controllerId: string | null; // who signs notices as Controller of Examinations
+  save: Save;
+}) {
   const { data: holders, error: loadError, reload } = useFetch<Holder[]>("/role-holders");
   const { data: units, error: unitsError } = useFetch<OrgUnit[]>("/org-units");
   const [role, setRole] = useState<AssignedRole>("vice_chancellor");
@@ -106,6 +111,15 @@ export function Offices({ emailConfigured }: { emailConfigured: boolean }) {
               <ol className="chain-steps">
                 {mine.map((h) => holderRow(h, `${h.full_name} · ${h.email}`, ROLE_LABELS[o.role]))}
               </ol>
+              {o.role === "exam_office" && mine.length > 1 && (
+                <Field label="Signs notices as Controller of Examinations" hint="Several people are in the Exam Office; this one is named on every notice.">
+                  <select value={controllerId ?? ""} disabled={busy}
+                    onChange={(e) => save("/settings/exam-controller", "PUT", { user_id: e.target.value || null }).catch(() => {})}>
+                    <option value="">Nobody chosen (printed without a name)</option>
+                    {mine.map((h) => <option key={h.user_id} value={h.user_id}>{h.full_name}</option>)}
+                  </select>
+                </Field>
+              )}
             </li>
           );
         })}

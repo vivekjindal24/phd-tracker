@@ -375,6 +375,7 @@ class SettingsOut(BaseModel):
     phd_form_defaults: dict[str, str]  # Anveshan's title of each, in career order
     phd_index: list[PhdIndexRow]  # the university's own index; empty: Anveshan's annexures
     phd_sources: list[dict[str, str]]  # what a row may draw on: key, label, group
+    exam_controller_id: uuid.UUID | None  # who signs notices as Controller of Examinations
     min_coursework_credits: float
     min_coursework_cgpa: float
     max_duration_years: int
@@ -421,6 +422,12 @@ class SettingsUpdate(BaseModel):
             if len(names) != len(set(names)):
                 raise ValueError("report sections must have different names")
         return self
+
+
+class ExamControllerIn(BaseModel):
+    """The Controller of Examinations on every notice; null: nobody chosen."""
+
+    user_id: uuid.UUID | None
 
 
 class ModuleUpdate(BaseModel):
@@ -932,12 +939,14 @@ NoticeLine = Annotated[str, StringConstraints(strip_whitespace=True, min_length=
 class NoticeIn(BaseModel):
     """The department admin's changes to one seminar's notice; null or left out: the default."""
 
-    signers: list[NoticeSigner] | None = Field(default=None, min_length=1, max_length=5)
+    signers: list[NoticeSigner] | None = Field(default=None, min_length=1, max_length=6)
     announcement: (
         Annotated[str, StringConstraints(strip_whitespace=True, max_length=2000)] | None
     ) = None
     closing: Annotated[str, StringConstraints(strip_whitespace=True, max_length=500)] | None = None
     copy_to: list[NoticeLine] | None = Field(default=None, max_length=20)
+    # Who signs in a role several people hold (the Exam Office, the admin, the head, the Dean).
+    names: dict[NoticeSigner, uuid.UUID] | None = None
 
     @model_validator(mode="after")
     def _order(self) -> "NoticeIn":
@@ -948,7 +957,8 @@ class NoticeIn(BaseModel):
 class DepartmentSignersIn(BaseModel):
     """Who signs every seminar notice of the department; null: back to the default."""
 
-    signers: list[NoticeSigner] | None = Field(default=None, min_length=1, max_length=5)
+    signers: list[NoticeSigner] | None = Field(default=None, min_length=1, max_length=6)
+    names: dict[NoticeSigner, uuid.UUID] | None = None  # for all the department's notices
 
     @model_validator(mode="after")
     def _order(self) -> "DepartmentSignersIn":

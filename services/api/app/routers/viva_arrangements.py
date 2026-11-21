@@ -192,7 +192,7 @@ async def notice(
     session: AsyncSession = Depends(get_session),
 ) -> dict[str, Any]:
     ctx, can_edit = await _notice_ctx(session, principal, arrangement_id)
-    return await notices.view(session, ctx.item, can_edit)  # type: ignore[arg-type]
+    return await notices.view(session, ctx.item, can_edit, notices.sets_controller(principal))  # type: ignore[arg-type]
 
 
 @router.put("/viva-arrangements/{arrangement_id}/notice")
@@ -206,9 +206,9 @@ async def change_notice(
     ctx, can_edit = await _notice_ctx(session, principal, arrangement_id)
     if not can_edit:
         raise forbidden()
-    await notices.change(session, principal, ctx.item, body.model_dump())  # type: ignore[arg-type]
+    await notices.change(session, principal, ctx.item, body.model_dump(mode="json"))  # type: ignore[arg-type]
     await session.commit()
-    return await notices.view(session, ctx.item, True)  # type: ignore[arg-type]
+    return await notices.view(session, ctx.item, True, notices.sets_controller(principal))  # type: ignore[arg-type]
 
 
 @router.put("/viva-arrangements/{arrangement_id}/notice/department")
@@ -222,6 +222,8 @@ async def change_department_signers(
     ctx, can_edit = await _notice_ctx(session, principal, arrangement_id)
     if not can_edit:
         raise forbidden()
-    await notices.change_department(session, principal, ctx.item, body.signers)  # type: ignore[arg-type]
+    await notices.change_department(
+        session, principal, ctx.item, body.signers, body.model_dump(mode="json")["names"]
+    )  # type: ignore[arg-type]
     await session.commit()
-    return await notices.view(session, ctx.item, True)  # type: ignore[arg-type]
+    return await notices.view(session, ctx.item, True, notices.sets_controller(principal))  # type: ignore[arg-type]

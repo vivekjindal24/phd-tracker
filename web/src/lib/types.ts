@@ -76,6 +76,7 @@ export type SettingsData = {
   phd_form_defaults: Record<string, string>; // Anveshan's title of each form, in career order
   phd_index: PhdIndexRow[]; // the university's own index; empty: Anveshan's annexures
   phd_sources: { key: string; label: string; group: string }[]; // what a row may draw on
+  exam_controller_id: string | null; // who signs notices as Controller of Examinations
   min_coursework_credits: number;
   min_coursework_cgpa: number;
   max_duration_years: number;

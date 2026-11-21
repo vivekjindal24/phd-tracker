@@ -359,7 +359,12 @@ async def notice(
     session: AsyncSession = Depends(get_session),
 ) -> dict[str, Any]:
     seminar, path = await _notice_seminar(session, principal, seminar_id, edit=False)
-    return await notices.view(session, seminar, seminars.can_edit_notice(principal, path))
+    return await notices.view(
+        session,
+        seminar,
+        seminars.can_edit_notice(principal, path),
+        notices.sets_controller(principal),
+    )
 
 
 @router.put("/{seminar_id}/notice")
@@ -371,9 +376,9 @@ async def change_notice(
 ) -> dict[str, Any]:
     """This seminar's notice only; what is left empty follows the department and Anveshan."""
     seminar, _ = await _notice_seminar(session, principal, seminar_id, edit=True)
-    await notices.change(session, principal, seminar, body.model_dump())
+    await notices.change(session, principal, seminar, body.model_dump(mode="json"))
     await session.commit()
-    return await notices.view(session, seminar, True)
+    return await notices.view(session, seminar, True, notices.sets_controller(principal))
 
 
 @router.put("/{seminar_id}/notice/department")
@@ -386,6 +391,8 @@ async def change_department_signers(
     """Who signs every seminar notice of this seminar's department, unless a seminar says
     otherwise."""
     seminar, _ = await _notice_seminar(session, principal, seminar_id, edit=True)
-    await notices.change_department(session, principal, seminar, body.signers)
+    await notices.change_department(
+        session, principal, seminar, body.signers, body.model_dump(mode="json")["names"]
+    )
     await session.commit()
-    return await notices.view(session, seminar, True)
+    return await notices.view(session, seminar, True, notices.sets_controller(principal))

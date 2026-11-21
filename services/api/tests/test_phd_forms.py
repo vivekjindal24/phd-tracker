@@ -434,3 +434,95 @@ async def test_the_university_writes_its_own_index(client, world):
     assert res.status_code == 422 and "whole" in res.json()["error"]["message"]
     res = await client.patch(f"{API}/settings", headers=root, json={"phd_index": []})
     assert res.json()["phd_index"] == []  # back to Anveshan's annexures
+
+
+async def test_a_role_several_people_hold_is_named_only_once_someone_is_chosen(client, world):
+    from tests.test_seminar_forms import schedule
+
+    seminar_id = (await schedule(client, world, kind="registration")).json()["id"]
+    url = f"{API}/seminars/{seminar_id}/notice"
+    admin = auth(world.admin_a1.id)
+
+    async def admin_line():
+        res = await client.get(f"{API}/internal/seminars/{seminar_id}/notice", headers=admin)
+        (notice,) = res.json()["forms"]
+        return next(s for s in notice["signed_by"] if s["role"].startswith("Department Admin"))
+
+    # Two people are admins of the department: no name is guessed, and the card says so.
+    view = (await client.get(url, headers=admin)).json()
+    assert {p["name"] for p in view["holders"]["admin"]} == {
+        world.admin_a1.full_name,
+        world.meera.full_name,
+    }
+    assert view["unnamed"] == ["admin"] and (await admin_line())["name"] == ""
+
+    # Chosen for this seminar: printed by name.
+    res = await client.put(url, headers=admin, json={"names": {"admin": str(world.admin_a1.id)}})
+    assert res.status_code == 200, res.text
+    assert res.json()["unnamed"] == [] and (await admin_line())["name"] == world.admin_a1.full_name
+
+    # Chosen for the department: every notice of it, unless one chooses otherwise.
+    await client.put(url, headers=admin, json={})
+    res = await client.put(
+        f"{url}/department", headers=admin, json={"names": {"admin": str(world.meera.id)}}
+    )
+    assert res.status_code == 200, res.text
+    line = await admin_line()
+    assert line["name"] == world.meera.full_name
+    assert line["role"] == "Department Admin & Head of Department"  # she is the head as well
+
+    # Someone who does not hold the role cannot be chosen.
+    bad = await client.put(url, headers=admin, json={"names": {"admin": str(world.sup_b1.id)}})
+    assert bad.status_code == 422 and bad.json()["error"]["code"] == "not_a_holder"
+
+
+async def test_the_controller_of_examinations_is_chosen_once_for_the_university(
+    client,
+    session,
+    world,
+    documents_on,  # noqa: F811
+):
+    from app.models import RoleAssignment
+
+    _, aid = await ready_arrangement(client, session, world)
+    session.add(RoleAssignment(user_id=world.library.id, role="exam_office"))  # a second one
+    await session.commit()
+    url = f"{API}/viva-arrangements/{aid}/notice"
+
+    async def controller_line():
+        res = await client.get(
+            f"{API}/internal/viva-arrangements/{aid}/notice", headers=auth(world.exam_office.id)
+        )
+        (notice,) = res.json()["forms"]
+        return notice["signed_by"][0]
+
+    view = (await client.get(url, headers=auth(world.exam_office.id))).json()
+    assert view["unnamed"] == ["exam_office"] and view["can_set_controller"]
+    assert (await controller_line()) == {
+        "name": "",
+        "role": "Controller of Examinations",
+        "signature": None,
+    }
+
+    # Not per department or per viva ...
+    res = await client.put(
+        url, headers=auth(world.admin_a1.id), json={"names": {"exam_office": str(world.library.id)}}
+    )
+    assert res.status_code == 422 and res.json()["error"]["code"] == "controller_is_university_wide"
+    # ... but once, by the Exam Office or the root admin, from someone in the Exam Office.
+    chosen = {"user_id": str(world.exam_office.id)}
+    assert (
+        await client.put(
+            f"{API}/settings/exam-controller", headers=auth(world.admin_a1.id), json=chosen
+        )
+    ).status_code == 403
+    res = await client.put(
+        f"{API}/settings/exam-controller", headers=auth(world.exam_office.id), json=chosen
+    )
+    assert res.status_code == 200 and res.json()["exam_controller_id"] == chosen["user_id"]
+    assert (await controller_line())["name"] == world.exam_office.full_name
+    outsider = {"user_id": str(world.admin_a1.id)}
+    res = await client.put(
+        f"{API}/settings/exam-controller", headers=auth(world.root_admin.id), json=outsider
+    )
+    assert res.status_code == 422 and res.json()["error"]["code"] == "not_a_holder"

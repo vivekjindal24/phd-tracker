@@ -4,16 +4,16 @@ from fastapi import APIRouter, Depends, Request
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import apr, branding, grading, phd_index
+from app import apr, branding, grading, notices, phd_index
 from app.auth.deps import current_principal, require_root_admin
 from app.auth.principal import Principal
 from app.crud import update
 from app.db import get_session
 from app.enums import PHD_FORMS, SEMINAR_KINDS, ItemType, ModuleKey
-from app.errors import ApiError
+from app.errors import ApiError, forbidden
 from app.models import ApprovalChain, Module, Settings
 from app.notify import email_configured
-from app.schemas import ChainIn, ModuleUpdate, SettingsOut, SettingsUpdate
+from app.schemas import ChainIn, ExamControllerIn, ModuleUpdate, SettingsOut, SettingsUpdate
 
 router = APIRouter(prefix="/settings", tags=["settings"])
 
@@ -44,6 +44,7 @@ async def _read(session: AsyncSession) -> SettingsOut:
             "phd_forms": {k: settings.phd_forms.get(k, {}) for k in PHD_FORMS},
             "phd_form_defaults": PHD_FORMS,
             "phd_index": settings.phd_index,
+            "exam_controller_id": settings.exam_controller_id,
             "phd_sources": phd_index.sources(),
             "min_coursework_credits": settings.min_coursework_credits,
             "min_coursework_cgpa": settings.min_coursework_cgpa,
@@ -83,6 +84,21 @@ async def update_settings(
         merged = {**row.phd_forms, **changes["phd_forms"]}
         changes["phd_forms"] = {k: v for k, v in merged.items() if any(v.values())}
     await update(session, principal, row, {**changes, "updated_by": principal.user_id})
+    await session.commit()
+    return await _read(session)
+
+
+@router.put("/exam-controller", response_model=SettingsOut)
+async def set_exam_controller(
+    body: ExamControllerIn,
+    principal: Principal = Depends(current_principal),
+    session: AsyncSession = Depends(get_session),
+) -> SettingsOut:
+    """Who signs notices as the Controller of Examinations, for the whole university: chosen by
+    the Exam Office or the root admin among those in the Exam Office."""
+    if not notices.sets_controller(principal):
+        raise forbidden()
+    await notices.set_controller(session, principal, body.user_id)
     await session.commit()
     return await _read(session)
 

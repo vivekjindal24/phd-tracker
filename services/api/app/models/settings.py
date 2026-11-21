@@ -85,6 +85,11 @@ class Settings(Timestamps, Base):
     # The PhD file's forms as this university names them (enums.PHD_FORMS): per form, any of
     # title, number ("Form VII-A") and copy_to; what is missing is Anveshan's (PRD F17, part 4).
     phd_forms: Mapped[dict[str, Any]] = mapped_column(JSONB, server_default=text("'{}'::jsonb"))
+    # Who signs notices as the Controller of Examinations when several hold the Exam Office role;
+    # set by the Exam Office or the root admin, for the whole university (notices.py).
+    exam_controller_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id")
+    )
     # The university's own index of the PhD file: rows of {title, sources} (phd_index.py);
     # empty: Anveshan's annexures.
     phd_index: Mapped[list[dict[str, Any]]] = mapped_column(

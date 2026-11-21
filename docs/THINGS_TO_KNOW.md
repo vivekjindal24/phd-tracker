@@ -52,7 +52,9 @@ remove a point only when the behaviour itself changes.
     *(2026-11-20)*
 7. **Names on the forms come from the records.** The Chairperson and Secretary of the DRC
     come from the department's research committee, and the Dean is the head of the faculty
-    above the department. Where these are not recorded, the line prints with the role only.
+    above the department. Where these are not recorded, the line prints with the role only;
+    so it does where several people hold the role and none has been chosen (9g), rather than
+    guess who signs.
     The advisory committee that signs is the one in office on the date of the event.
     *(2026-11-20)*
 8. **A progress seminar has no form of its own.** Its paper is the progress report, which has
@@ -79,7 +81,7 @@ remove a point only when the behaviour itself changes.
     and (for the synopsis seminar) the registration seminar's date. Only those who run the
     department's seminars (its head and admin, and the Dean above) download it, from the
     seminar page; it is also in the PhD file before the seminar's report. Each signer is the
-    holder of that role in the department (the first by name if several hold it); the "copy to"
+    holder of that role in the department (see 9g when several hold it); the "copy to"
     list is Anveshan's own until it becomes a university setting. The date printed is the day
     the seminar was scheduled. *(owner, 2026-11-21)*
 9d. **The department admin decides who signs the notices and what they say.** On a seminar's
@@ -107,6 +109,17 @@ remove a point only when the behaviour itself changes.
     Before the viva, a copy printed by someone who may not see examiner names says "Name
     withheld until the viva" in place of the external examiner. In the signed PhD file, an
     approved scan of either replaces its generated page (point 20). *(owner, 2026-11-21)*
+9g. **A notice never guesses who signs.** Before every print, Anveshan checks who holds each
+    signing role today: the Exam Office (Controller of Examinations), the department admin, the
+    head and the Dean. One holder is named. Where several hold it (two department admins, two
+    heads), the Notice card asks "Who signs as …" and the department admin chooses — for that
+    seminar or viva, or for every notice of the department (seminars and vivas alike). The
+    Controller of Examinations is chosen once for the whole university, never per department:
+    by the Exam Office (on a viva's Notice card) or the root admin (Settings → Offices), from
+    those in the Exam Office; department admins see the choice. Until someone is chosen the
+    line prints with the role alone and the card warns. A choice holds only while that person still holds the role; someone who does not
+    hold it cannot be chosen. The Dean line on the other generated forms follows the same
+    rule. *(owner, 2026-11-22)*
 10. **The unsigned PhD file is for printing and signing.** It holds the generated forms only,
     with signature and date lines, and leaves out the specimen signatures and the uploaded
     scans. The signed one holds both. *(2026-11-20)*

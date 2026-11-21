@@ -17,7 +17,7 @@ from sqlalchemy import (
     false,
     text,
 )
-from sqlalchemy.dialects.postgresql import ARRAY, CITEXT, UUID
+from sqlalchemy.dialects.postgresql import ARRAY, CITEXT, JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.enums import (
@@ -62,6 +62,7 @@ class OrgUnit(DomainRow, Base):
             f"viva_notice_signers <@ ARRAY[{sql_in(NOTICE_SIGNERS)}]::text[]",
             name="ck_org_units_viva_notice_signers",
         ),
+        CheckConstraint("jsonb_typeof(notice_names) = 'object'", name="ck_org_units_notice_names"),
         Index(
             "ix_org_units_name_trgm",
             "name",
@@ -81,6 +82,8 @@ class OrgUnit(DomainRow, Base):
     # Who signs the unit's seminar notices, in order (enums.NOTICE_SIGNERS); null: the default.
     notice_signers: Mapped[list[str] | None] = mapped_column(ARRAY(Text))
     viva_notice_signers: Mapped[list[str] | None] = mapped_column(ARRAY(Text))  # likewise, vivas
+    # Who signs a notice in a role several people hold: {signer key: user id} (notices.py).
+    notice_names: Mapped[dict[str, str]] = mapped_column(JSONB, server_default=text("'{}'::jsonb"))
 
 
 class User(DomainRow, Base):
