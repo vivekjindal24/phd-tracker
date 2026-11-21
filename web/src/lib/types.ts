@@ -513,7 +513,20 @@ export type FileOwner =
   | "utilisation_certificates"
   | "ethics_clearances"
   | "progress_reports"
-  | "signed_copies";
+  | "signed_copies"
+  | "announcements";
+/** A notice on the notice board; `unit` null: the whole university. */
+export type Notice = {
+  id: string;
+  unit: Ref | null;
+  title: string;
+  body: string;
+  pinned: boolean;
+  ends_on: string | null;
+  posted_by: string | null;
+  posted_at: string;
+  can_manage: boolean;
+};
 export type CommentTarget =
   | "scholars"
   | "meetings"

@@ -5,6 +5,7 @@ from datetime import date, datetime
 from typing import Any
 
 from sqlalchemy import (
+    Boolean,
     CheckConstraint,
     Date,
     DateTime,
@@ -29,7 +30,7 @@ from app.enums import (
     SSO_PROVIDERS,
     sql_in,
 )
-from app.models.base import Base
+from app.models.base import Base, DomainRow
 
 
 def _uuid_pk() -> Mapped[uuid.UUID]:
@@ -187,3 +188,25 @@ class JobRun(Base):
     job_name: Mapped[str] = mapped_column(Text)
     run_date: Mapped[date] = mapped_column(Date)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class Announcement(DomainRow, Base):
+    """A notice on the notice board: for the whole university (no unit) or for one department
+    and everything below it, posted by the Research Office, the root admin or the unit's admin
+    (announcements.py). Its file, if any, hangs off it in files (owner `announcements`)."""
+
+    __tablename__ = "announcements"
+    __table_args__ = (
+        CheckConstraint("char_length(title) BETWEEN 1 AND 200", name="ck_announcements_title"),
+        CheckConstraint("char_length(body) <= 5000", name="ck_announcements_body"),
+        Index("ix_announcements_unit_id", "unit_id"),
+    )
+
+    unit_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("org_units.id")
+    )
+    title: Mapped[str] = mapped_column(Text)
+    body: Mapped[str] = mapped_column(Text, server_default=text("''"))
+    pinned: Mapped[bool] = mapped_column(Boolean, server_default=text("false"))
+    ends_on: Mapped[date | None] = mapped_column(Date)  # off the board after this day
+    posted_by: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"))

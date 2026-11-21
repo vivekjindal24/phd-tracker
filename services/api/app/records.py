@@ -6,7 +6,17 @@ import uuid
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import grants, items, meetings, reviews, scope, signed_copies, thesis, workflow
+from app import (
+    announcements,
+    grants,
+    items,
+    meetings,
+    reviews,
+    scope,
+    signed_copies,
+    thesis,
+    workflow,
+)
 from app.auth.principal import Principal
 from app.errors import ApiError, forbidden
 from app.models import (
@@ -118,6 +128,9 @@ async def require_file_read(
     if table == "signed_copies":
         await signed_copies.require_read(session, principal, record_id)
         return
+    if table == "announcements":  # a notice's file: whoever reads the notice
+        await announcements.get_or_403(session, principal, record_id)
+        return
     await require_read(session, principal, table, record_id)
 
 
@@ -192,6 +205,10 @@ async def require_write(
         return
     if table == "signed_copies":  # removed only as a whole copy (signed_copies.remove)
         await signed_copies.require_upload(session, principal, record_id)
+        return
+    if table == "announcements":  # whoever may post the notice attaches its file
+        notice = await announcements.get_or_403(session, principal, record_id)
+        announcements.require_post(principal, await announcements.path_of(session, notice))
         return
     if table == "scholars":
         scholar = await scope.get_scholar_or_403(session, principal, record_id)

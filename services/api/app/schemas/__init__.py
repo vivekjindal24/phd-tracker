@@ -434,6 +434,26 @@ class ExamControllerIn(BaseModel):
     user_id: uuid.UUID | None
 
 
+class NoticeBoardIn(BaseModel):
+    """A notice for the notice board; no unit: the whole university."""
+
+    unit_id: uuid.UUID | None = None
+    title: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)]
+    body: Annotated[str, StringConstraints(strip_whitespace=True, max_length=5000)] = ""
+    pinned: bool = False
+    ends_on: date | None = None  # off the board after this day
+
+
+class NoticeBoardUpdate(BaseModel):
+    title: (
+        Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)]
+        | None
+    ) = None
+    body: Annotated[str, StringConstraints(strip_whitespace=True, max_length=5000)] | None = None
+    pinned: bool | None = None
+    ends_on: date | None = None
+
+
 class ModuleUpdate(BaseModel):
     enabled: bool
 

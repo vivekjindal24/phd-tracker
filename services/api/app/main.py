@@ -10,6 +10,7 @@ from app.db import get_session
 from app.errors import install_error_handlers
 from app.routers import (
     admissions,
+    announcements,
     audit,
     auth,
     branding,
@@ -118,6 +119,7 @@ for module in (
     verify,
     coursework,
     admissions,
+    announcements,
     duration,
     committee,
     comprehensive,

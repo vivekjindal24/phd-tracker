@@ -1,0 +1,19 @@
+/* The notice board: notices beside the form to post one; stacked on narrow screens. */
+.notices {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: var(--space-5);
+  align-items: start;
+}
+.notices-list {
+  display: grid;
+  gap: var(--space-4);
+}
+.notices-list h2 .badge {
+  vertical-align: middle;
+}
+@media (max-width: 960px) {
+  .notices {
+    grid-template-columns: 1fr;
+  }
+}

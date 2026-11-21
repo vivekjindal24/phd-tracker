@@ -464,6 +464,16 @@ new profile. Heads of the unit see the list read-only.
   the nearest unit at or above the project's unit (the scholar's unit for a
   fellowship), never the person who entered it.
 
+## Flow 12b — Notice board (PRD F18)
+
+The Research Office, the root admin or a department admin → **Notices** → **Post
+a notice**: for the whole university or a department, title, text, optional
+"take it down after" date, pin → **Post notice**; everyone it is for is told
+(portal and email). Attach a file to the posted notice (**Add a file**). Its
+poster can **Pin to the top** / **Unpin** or **Remove** it. Everyone sees the
+latest three on Home and all current ones on **Notices**; **Past notices** shows
+those taken down by their date.
+
 ## Flow 12 — Notifications
 
 Bell icon with unread count → inbox (newest first, mark read). Each item

@@ -656,6 +656,18 @@ legal proof; the electronic approval is the record of it.
   (Decided 2026-11-19). Later, when a
   university asks: a code by text message, and Aadhaar eSign.
 
+**F18 — Notice board** (Decided 2026-11-22). Notices for the whole university
+or for one department — a fee notice, a seminar week, a holiday — each with a
+title, text, an optional file (e.g. the fee notice as a PDF), an optional
+"take it down after" date and a pin. The Research Office and the root admin
+post anywhere; a department admin posts to their unit and the units inside it.
+A university notice reaches everyone; a department notice reaches that
+department's scholars, faculty, heads and admins (and those of the units inside
+it) and the heads and admins above it; the offices and the root admin read every
+notice. Everyone it is for is told in the portal and by email (category
+"notice", which each person may mute). Home shows the latest three; **Notices**
+lists current and past ones. Every post, edit and removal is audited.
+
 ### 6.3 Optional modules
 
 **M1 — Publications** (chain). Title, authors, type (journal / conference /
@@ -819,6 +831,9 @@ Intentionally NOT in this version:
   GFR 12-A, M8).
 - Plagiarism-check API integration (scores are entered by the Library).
 - Payroll/accounting integration (the ledger records, it does not pay).
+- Fees: a university's own fee system keeps scholars' fees; Anveshan keeps no
+  fee records or payment status. A fee notice goes on the notice board (F18)
+  (Decided 2026-11-22, owner).
 - Multiple universities in one installation (one installation per
   university).
 - Google Calendar integration; GitHub mirroring; two-way WhatsApp (replies,

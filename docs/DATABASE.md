@@ -445,6 +445,12 @@ disbursements − expenses in date order, computed on read
 
 ### 3.7 Cross-cutting
 
+**announcements** — the notice board (PRD F18; migration 0054): `unit_id` FK
+org_units (null: the whole university; indexed), `title` (CHECK 1–200), `body`
+(CHECK ≤ 5000), `pinned` bool, `ends_on` date (off the board after it), `posted_by`
+FK users, timestamps, soft delete. Its file hangs off it in **files** (owner
+`announcements`).
+
 **files** — `storage_key` (UNIQUE; `<table>/<record>/<file id>/<safe name>`),
 `file_name`, `content_type` (allowlist in `app/files.py`: PDF, Office, images,
 text/CSV, zip), `size_bytes` (CHECK > 0; the `MAX_UPLOAD_MB` cap is checked at

@@ -192,6 +192,19 @@ remove a point only when the behaviour itself changes.
     width of a signed name; a single forwarding officer signs at the right, as on the paper
     forms. *(owner, 2026-11-20)*
 
+## Notice board (PRD F18)
+
+- **Anveshan keeps no fees.** The university's own fee system keeps scholars' fees and
+  payments. A fee notice goes on the notice board instead, as a notice with the PDF
+  attached. *(owner, 2026-11-22)*
+- **Who posts, who reads.** The Research Office and the root admin post to the whole
+  university or any department; a department admin posts to their department (and the units
+  inside it). A university notice reaches everyone; a department notice reaches that
+  department's people and the heads and admins above it. Each new notice is sent in the portal
+  and by email; anyone can turn off the emails ("A notice is posted on the notice board" under
+  Email me when…). A notice with a "take it down after" date moves to past notices the day
+  after. *(owner, 2026-11-22)*
+
 ## Screens
 
 - **One date format for the whole university.** Settings → University identity → Date format

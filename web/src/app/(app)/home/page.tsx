@@ -11,6 +11,7 @@ import { MILESTONE_LABELS, ROLE_LABELS, STAGES } from "@/lib/types";
 import type { ItemState, MilestoneType, Ref } from "@/lib/types";
 import { useFetch } from "@/lib/useFetch";
 import "./home.css";
+import { NoticeBoardCard } from "@/components/NoticeBoardCard";
 
 type DueStatus = "upcoming" | "due_soon" | "overdue" | "submitted";
 type Overdue = { scholar: Ref; seminar: Ref; report_due: string };
@@ -196,6 +197,7 @@ export default function HomePage() {
         <Owl pose={d && d.queue_count === 0 ? "idle" : "reading"} size={150} />
       </section>
       <ErrorText>{error}</ErrorText>
+      <NoticeBoardCard />
       {d && (
         <>
           {(d.queue_count > 0 || !sch) && (

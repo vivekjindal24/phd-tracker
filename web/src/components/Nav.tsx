@@ -17,6 +17,7 @@ const onlyScholar = (me: Me) => me.roles.length === 1 && me.roles[0] === "schola
 // Grouped navigation (DESIGN_SYSTEM.md §4). Only pages that exist are listed.
 const NAV: Entry[] = [
   { href: "/home", label: "Home", show: () => true },
+  { href: "/notices", label: "Notices", show: () => true },
   {
     label: "Work",
     items: [

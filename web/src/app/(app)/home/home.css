@@ -172,3 +172,11 @@ a.tile:hover {
   font: 700 var(--text-sm) / 1 var(--font-body), system-ui, sans-serif;
   margin-left: var(--space-2);
 }
+
+/* The latest notices from the notice board, above the dashboard. */
+.notice-board-card {
+  margin-bottom: var(--space-5);
+}
+.notice-board-card .plain-list {
+  margin-bottom: var(--space-3);
+}

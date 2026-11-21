@@ -35,6 +35,7 @@ from app.models.seminars import (
 )
 from app.models.settings import ApprovalChain, Module, Settings, UniversityLogo
 from app.models.system import (
+    Announcement,
     AuditLog,
     JobRun,
     LoginAttempt,
@@ -63,6 +64,7 @@ from app.models.workflow import ApprovalActionRow, SupervisorStandIn
 
 __all__ = [
     "Admission",
+    "Announcement",
     "ApprovalActionRow",
     "ApprovalChain",
     "AuditLog",

@@ -89,6 +89,7 @@ NotificationCategory = Literal[
     "fellowship_ending",
     "grant_alert",
     "seminar",
+    "notice",  # a notice posted on the notice board
     "system",
 ]
 NOTIFICATION_CATEGORIES = get_args(NotificationCategory)
@@ -373,6 +374,7 @@ FileOwner = Literal[
     "thesis_reviews",
     "ethics_clearances",
     "signed_copies",
+    "announcements",
 ]
 FILE_OWNER_TABLES = get_args(FileOwner)
 FileStatus = Literal["pending", "ready"]

@@ -321,6 +321,13 @@ ledger; the warnings the person confirmed are checked server-side.
 forms, so scope, caps and uniqueness are checked once, in one place; the
 root admin may import anywhere.
 
+**Notice board** (`announcements.py`): the Research Office and the root admin post
+anywhere; an admin posts to their unit and the units inside it; nobody else posts.
+A university notice is read by everyone; a department notice by that unit's people
+(scholars, faculty, heads, admins, and those of units inside it) and the heads and
+admins above it; offices and the root admin read every notice. A notice's file is
+read by whoever reads the notice and attached only by whoever may post it.
+
 Disabled modules: every route of the module → 404 `module_disabled`
 regardless of role, and so does a NAAC sheet built from that module.
 
