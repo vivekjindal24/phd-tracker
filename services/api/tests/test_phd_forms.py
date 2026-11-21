@@ -526,3 +526,35 @@ async def test_the_controller_of_examinations_is_chosen_once_for_the_university(
         f"{API}/settings/exam-controller", headers=auth(world.root_admin.id), json=outsider
     )
     assert res.status_code == 422 and res.json()["error"]["code"] == "not_a_holder"
+
+
+async def test_the_other_forms_name_the_dean_the_department_chose(client, session, world):
+    from app.models import RoleAssignment
+    from tests.test_seminar_forms import schedule
+
+    await form(client, world, reference="DRC/2026/14")
+    seminar_id = (await schedule(client, world)).json()["id"]
+    # A second head of the faculty: who is Dean on the department's forms is now unclear.
+    session.add(
+        RoleAssignment(user_id=world.hod_a2.id, role="unit_head", unit_id=world.school_a.id)
+    )
+    await session.commit()
+
+    async def dean_on_committee_form():
+        view = (
+            await client.get(
+                f"{API}/internal/scholars/{world.s_a1.id}/phd-file", headers=auth(world.admin_a1.id)
+            )
+        ).json()
+        return next(
+            s for s in entry(view, "advisory_committee")["signed_by"] if s["role"] == "Dean"
+        )
+
+    assert (await dean_on_committee_form())["name"] == ""  # never guessed
+    res = await client.put(
+        f"{API}/seminars/{seminar_id}/notice/department",
+        headers=auth(world.admin_a1.id),
+        json={"names": {"dean": str(world.dean_a.id)}},
+    )
+    assert res.status_code == 200, res.text
+    assert (await dean_on_committee_form())["name"] == world.dean_a.full_name

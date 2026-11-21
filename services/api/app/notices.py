@@ -163,6 +163,21 @@ async def candidates(session: AsyncSession, record: Record) -> dict[str, list[di
     }
 
 
+async def department_signer(session: AsyncSession, unit_id: uuid.UUID, key: str) -> str | None:
+    """Who signs a department's other forms in a role (the Dean on the appointment of a
+    supervisor, on the formation of a committee): the person the department chose on its
+    Notice card, while they still hold the role; else the only one who holds it; else nobody,
+    and the line prints with the role alone (owner, 2026-11-22)."""
+    unit = await session.get(OrgUnit, unit_id)
+    if unit is None:
+        return None
+    on = unit.parent_id if key == "dean" else unit.id
+    people = await holders(session, on, "unit_head" if key == "dean" else key)
+    pick = (unit.notice_names or {}).get(key)
+    match = next((p["name"] for p in people if p["id"] == pick), None)
+    return match or (people[0]["name"] if len(people) == 1 else None)
+
+
 async def department_names(session: AsyncSession, record: Record) -> dict[str, str]:
     unit = await unit_of(session, record)
     return await session.scalar(select(OrgUnit.notice_names).where(OrgUnit.id == unit)) or {}

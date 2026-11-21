@@ -139,7 +139,6 @@ def form(
 
 ATTENDANCE_ROWS = 18  # one A4 page of rows on the attendance sheet, the named ones included
 signer = notices.signer
-holder = notices.holder
 
 
 def _named(method: Callable[..., Awaitable[Form]]) -> Callable[..., Awaitable[Form]]:
@@ -212,10 +211,7 @@ class Forms:
             members = await committee.members(self.session, drc.id) if drc else []
             chair = next((m["name"] for m in members if m["role"] == "chairperson"), None)
             secretary = next((m["name"] for m in members if m["role"] == "secretary"), None)
-            parent = await self.session.scalar(
-                select(OrgUnit.parent_id).where(OrgUnit.id == self.scholar.unit_id)
-            )
-            dean = await holder(self.session, parent, "unit_head")
+            dean = await notices.department_signer(self.session, self.scholar.unit_id, "dean")
             self._officers = {"chair": chair, "secretary": secretary, "dean": dean}
         return self._officers
 

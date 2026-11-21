@@ -118,8 +118,9 @@ remove a point only when the behaviour itself changes.
     by the Exam Office (on a viva's Notice card) or the root admin (Settings → Offices), from
     those in the Exam Office; department admins see the choice. Until someone is chosen the
     line prints with the role alone and the card warns. A choice holds only while that person still holds the role; someone who does not
-    hold it cannot be chosen. The Dean line on the other generated forms follows the same
-    rule. *(owner, 2026-11-22)*
+    hold it cannot be chosen. The Dean line on the other generated forms (appointment of a
+    supervisor, formation of the advisory committee) takes the Dean chosen for the department
+    on its Notice card, by the same rule. *(owner, 2026-11-22)*
 10. **The unsigned PhD file is for printing and signing.** It holds the generated forms only,
     with signature and date lines, and leaves out the specimen signatures and the uploaded
     scans. The signed one holds both. *(2026-11-20)*
