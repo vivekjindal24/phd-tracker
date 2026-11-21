@@ -209,7 +209,7 @@ async def test_a_seminar_notice_is_signed_by_the_admin_the_head_and_the_dean(cli
     ).json()
     notice = entry(view, "pre_synopsis_seminar", 0)
     assert notice["title"] == "Pre-Thesis Synopsis Seminar: Circular"
-    assert "scheduled on 20 November 2026 (Friday) at 10:00 AM in Bosch Hall." in notice["intro"]
+    assert "scheduled on 20 Nov 2026 (Friday) at 10:00 am in Bosch Hall." in notice["intro"]
     assert [s["role"] for s in notice["signed_by"]] == [
         "Department Admin",
         "Head of Department",
@@ -558,3 +558,29 @@ async def test_the_other_forms_name_the_dean_the_department_chose(client, sessio
     )
     assert res.status_code == 200, res.text
     assert (await dean_on_committee_form())["name"] == world.dean_a.full_name
+
+
+async def test_one_date_format_for_the_whole_university(client, world):
+    from tests.test_seminar_forms import schedule
+
+    seminar_id = (await schedule(client, world)).json()["id"]
+    root = auth(world.root_admin.id)
+    res = await client.patch(f"{API}/settings", headers=root, json={"date_format": "dd/mm/yyyy"})
+    assert res.status_code == 200 and res.json()["date_format"] == "dd/mm/yyyy"
+
+    # The screens (who am I), the PDFs (branding) and the generated text all follow it.
+    me = (await client.get(f"{API}/auth/me", headers=auth(world.admin_a1.id))).json()
+    assert me["date_format"] == "dd/mm/yyyy"
+    assert (await client.get(f"{API}/branding")).json()["date_format"] == "dd/mm/yyyy"
+    res = await client.get(
+        f"{API}/internal/seminars/{seminar_id}/notice", headers=auth(world.admin_a1.id)
+    )
+    (notice,) = res.json()["forms"]
+    assert "scheduled on 20/11/2026 (Friday) at 10:00 am" in notice["intro"]
+
+    bad = await client.patch(f"{API}/settings", headers=root, json={"date_format": "dd mm yy"})
+    assert bad.status_code == 422
+    other = await client.patch(
+        f"{API}/settings", headers=auth(world.admin_a1.id), json={"date_format": "yyyy-mm-dd"}
+    )
+    assert other.status_code == 403

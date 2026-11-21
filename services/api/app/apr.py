@@ -7,6 +7,7 @@ from typing import Any
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app import dates
 from app.auth.principal import Principal
 from app.enums import DEFAULT_APR_SECTIONS
 from app.errors import ApiError
@@ -94,5 +95,5 @@ async def activity(session: AsyncSession, scholar: Scholar, year: int, period: s
             )
             .order_by(Conference.event_date)
         )
-        conferences = [f"{name} ({day:%d %b %Y})" for name, day in rows]
+        conferences = [f"{name} ({dates.day(day)})" for name, day in rows]
     return {"meetings": meetings or 0, "publications": publications, "conferences": conferences}

@@ -10,7 +10,7 @@ from sqlalchemy import cast, func, literal, select
 from sqlalchemy.dialects.postgresql import distinct_on, insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import items, reviews, workflow
+from app import dates, items, reviews, workflow
 from app.config import settings
 from app.dashboard import DUE_SOON_DAYS, SUBMITTED, deadlines_query
 from app.db import get_session
@@ -62,7 +62,7 @@ async def _fellowships_ending(session: AsyncSession, today: date) -> int:
             session,
             [u for u in (scholar_user, supervisor_user) if u],
             "fellowship_ending",
-            f"Fellowship ends on {ends:%d %b %Y}",
+            f"Fellowship ends on {dates.day(ends)}",
             f"The fellowship ends in {FELLOWSHIP_NOTICE_DAYS} days. Speak to the research "
             "office about an extension or the next step.",
             "/fellowships",
@@ -94,7 +94,7 @@ async def _ethics_expiring(session: AsyncSession, today: date) -> int:
             session,
             [u for u in (scholar_user, supervisor_user) if u],
             "system",
-            f"Ethics clearance ends on {ends:%d %b %Y}",
+            f"Ethics clearance ends on {dates.day(ends)}",
             f"The ethics clearance lapses in {ETHICS_NOTICE_DAYS} days. Apply to the ethics "
             "committee for renewal if the work is still going on.",
             f"/scholars/{scholar_id}",
@@ -119,7 +119,7 @@ async def _projects_ending(session: AsyncSession, today: date) -> int:
             session,
             await pi_and_office_user_ids(session, project),
             "grant_alert",
-            f"Project ends on {ends:%d %b %Y}: {project.title}",
+            f"Project ends on {dates.day(ends)}: {project.title}",
             f"The project ends in {PROJECT_NOTICE_DAYS} days. Plan the final utilisation "
             "certificate and any extension request with the agency.",
             f"/projects/{project.id}",
@@ -144,7 +144,7 @@ async def _apr_reminders(session: AsyncSession, today: date) -> tuple[int, int]:
                 session,
                 [scholar.user_id],
                 "apr_due",
-                f"Progress report due {seminar.report_due:%d %b %Y}",
+                f"Progress report due {dates.day(seminar.report_due)}",
                 f"Your {period} progress report is due in {DUE_SOON_DAYS} days, ahead of "
                 f"{seminar.title}.",
                 "/reports",
@@ -159,7 +159,7 @@ async def _apr_reminders(session: AsyncSession, today: date) -> tuple[int, int]:
                 [u for u in (scholar.user_id, supervisor) if u],
                 "apr_due",
                 "Progress report overdue",
-                f"The {period} progress report was due on {seminar.report_due:%d %b %Y} and "
+                f"The {period} progress report was due on {dates.day(seminar.report_due)} and "
                 "has not been submitted.",
                 "/reports",
             )

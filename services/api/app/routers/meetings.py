@@ -5,7 +5,7 @@ from sqlalchemy import Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
-from app import meetings, scope
+from app import dates, meetings, scope
 from app.auth.principal import Principal
 from app.crud import insert, update
 from app.db import get_session
@@ -146,7 +146,7 @@ async def create_meeting(
             session,
             [other],
             "system",
-            f"Meeting on {body.meeting_date:%d %b %Y} logged",
+            f"Meeting on {dates.day(body.meeting_date)} logged",
             body.agenda[:200],
             f"/meetings/{meeting.id}",
         )

@@ -8,7 +8,7 @@ from typing import Any, Literal
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import committee
+from app import committee, dates
 from app.auth.principal import Principal
 from app.crud import update
 from app.enums import LOCAL_TZ, NOTICE_SIGNER_LABELS, OFFICE_ROLES, SEMINAR_KIND_LABELS
@@ -110,12 +110,12 @@ async def standard(session: AsyncSession, record: Record) -> dict[str, Any]:
     key = f"{record.kind}_notice" if isinstance(record, Seminar) else "viva_notice"
     seminar = isinstance(record, Seminar)
     when = (record.starts_at if seminar else record.scheduled_at).astimezone(LOCAL_TZ)
-    at = f"{when:%I:%M %p}".lstrip("0")  # 4:30 PM, as the paper notices read
+    at = dates.clock(when)  # 4:30 pm
     link = None if seminar else record.online_link
     return {
         "announcement": (
             f"This is for your kind information that the {name(record)} of the following "
-            f"research scholar has been scheduled on {when:%d %B %Y} ({when:%A}) at {at}"
+            f"research scholar has been scheduled on {dates.day(when)} ({when:%A}) at {at}"
             + (f" in {record.venue}." if record.venue else ".")
             + (f" It may also be joined online at {link}." if link else "")
         ),

@@ -11,7 +11,7 @@ from typing import Any
 from sqlalchemy import ColumnElement, select, true
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import committee, coursework, phd_forms, scope, seminars, supervision, thesis
+from app import committee, coursework, dates, phd_forms, scope, seminars, supervision, thesis
 from app.auth.principal import Principal
 from app.enums import LOCAL_TZ, PHD_ANNEXURES
 from app.models import (
@@ -47,11 +47,7 @@ Entry = dict[str, Any]
 
 
 def _d(day: date | datetime | None) -> str:
-    if day is None:
-        return "—"
-    if isinstance(day, datetime):
-        day = day.astimezone(LOCAL_TZ).date()
-    return f"{day.day} {day:%b %Y}"
+    return dates.day(day)
 
 
 def _day(at: date | datetime | None) -> date | None:

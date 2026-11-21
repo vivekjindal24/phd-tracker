@@ -12,7 +12,7 @@ from typing import Any
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import storage
+from app import dates, storage
 from app.auth.principal import Principal
 from app.auth.service import EMAIL_NOT_CONFIGURED, email_password_link, hash_token
 from app.auth.service import issue_password_link as _password_link
@@ -159,7 +159,7 @@ async def send_invitation(session: AsyncSession, review: ThesisReview, raw: str)
             "",
             f"Title: {await _thesis_title(session, review)}",
             f"Abstract: {review.abstract}",
-            f"Review deadline: {review.deadline:%d %b %Y}",
+            f"Review deadline: {dates.day(review.deadline)}",
             "",
             f"Accept or decline here (the link works for {INVITE_TTL.days} days):",
             f"{settings.app_base_url}/review-invitation/{raw}",
@@ -432,7 +432,7 @@ async def daily(session: AsyncSession, run_on: date) -> dict[str, int]:
             [review.reviewer_user_id],
             "system",
             "Your thesis review is due soon",
-            f"The deadline is {review.deadline:%d %b %Y}.",
+            f"The deadline is {dates.day(review.deadline)}.",
             f"/review/{review.id}",
         )
         reminders += 1

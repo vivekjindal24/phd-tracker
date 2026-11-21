@@ -7,6 +7,11 @@ import { api, BRANDING_CHANGED, logoUrl } from "@/lib/api";
 import type { Branding, OrgUnit, SettingsData } from "@/lib/types";
 import { errorText, useFetch } from "@/lib/useFetch";
 import type { Save } from "./save";
+import { setDateFormat, writeDay } from "@/lib/format";
+import type { DateFormat } from "@/lib/format";
+
+const DATE_FORMATS: DateFormat[] = ["d_mon_yyyy", "d_month_yyyy", "dd/mm/yyyy", "dd-mm-yyyy", "dd.mm.yyyy",
+  "yyyy-mm-dd", "mm/dd/yyyy"];
 
 /** The one place for the university's name, address, logo and what it calls a department's
  *  research committee. The name is stored on the root
@@ -65,6 +70,17 @@ export function BrandingSettings({ data, save }: { data: SettingsData; save: Sav
         </Field>
         <Button kind="secondary" type="submit" disabled={!root}>Save details</Button>
       </form>
+      <Field label="Date format" hint="How every date is written: on all screens, PDFs, notices and emails.">
+        <select value={data.date_format} disabled={!root} onChange={(e) => {
+          const format = e.target.value as DateFormat;
+          run(async () => {
+            await save("/settings", "PATCH", { date_format: format });
+            setDateFormat(format); // this browser at once; others when they next load a page
+          });
+        }}>
+          {DATE_FORMATS.map((f) => <option key={f} value={f}>{writeDay(2026, 11, 21, f)}</option>)}
+        </select>
+      </Field>
       {branding.data?.has_logo && (
         <img src={logoUrl(branding.data.logo_version)} alt={`${branding.data.university} logo`} height={72} />
       )}

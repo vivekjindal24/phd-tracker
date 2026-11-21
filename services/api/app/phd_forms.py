@@ -16,7 +16,7 @@ from typing import Any
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import committee, coursework, grading, items, notices, scope, viva
+from app import committee, coursework, dates, grading, items, notices, scope, viva
 from app.auth.principal import Principal
 from app.enums import (
     LOCAL_TZ,
@@ -96,11 +96,7 @@ def _rac_says(recommended: list[tuple[str, str]]) -> str:
 
 
 def _d(day: date | datetime | None) -> str:
-    if day is None:
-        return "—"
-    if isinstance(day, datetime):
-        day = day.astimezone(LOCAL_TZ).date()
-    return f"{day:%d/%m/%Y}"
+    return dates.day(day)
 
 
 def form(
@@ -710,14 +706,13 @@ class Forms:
         """Approval to conduct the viva (Form X) with the board constituted for it (Form XI)."""
         table, approvers = await self.approvals("viva_arrangement", a.id)
         board = await self._board(a.id, await self._names(a))
-        when = a.scheduled_at.astimezone(LOCAL_TZ)
         return form(
             "viva_approval",
             "Approval for Conduct of Viva-Voce Examination",
             [
                 *await self.particulars(),
                 ("Title of the Thesis", thesis_title),
-                ("Date and time", f"{when:%d/%m/%Y, %H:%M}"),
+                ("Date and time", dates.when(a.scheduled_at)),
                 ("Venue", a.venue),
                 ("Online link", a.online_link),
             ],

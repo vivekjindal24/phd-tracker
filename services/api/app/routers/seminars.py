@@ -9,7 +9,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
-from app import grading, notices, scope, seminars
+from app import dates, grading, notices, scope, seminars
 from app.auth.deps import current_principal
 from app.auth.principal import Principal
 from app.crud import insert, soft_delete, update
@@ -213,11 +213,11 @@ async def _set_members(
 
 
 async def _announce(session: AsyncSession, seminar: Seminar, path: str, verb: str) -> None:
-    when = seminar.starts_at.astimezone().strftime("%d %b %Y, %H:%M")
+    when = dates.when(seminar.starts_at)
     venue = seminar.venue or "venue to be announced"
     body = f"{when} · {venue}"
     if seminar.report_due:
-        body += f" · report due {seminar.report_due:%d %b %Y}"
+        body += f" · report due {dates.day(seminar.report_due)}"
     notify(
         session,
         await seminars.recipients(session, seminar, path),

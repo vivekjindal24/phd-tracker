@@ -2,6 +2,7 @@
  *  Every response is validated with zod: a malformed upstream is a loud 500, never a
  *  silently blank PDF (CODE_STYLE.md §3). */
 import { z } from "zod";
+import { setDateFormat } from "./dates.ts";
 
 export class UpstreamError extends Error {
   constructor(
@@ -224,7 +225,10 @@ export async function fetchView<T>(
   });
   const body: unknown = await res.json().catch(() => null);
   if (!res.ok) throw new UpstreamError(res.status, body);
-  return schema.parse(body); // throws ZodError -> 500 export_failed
+  const view = schema.parse(body); // throws ZodError -> 500 export_failed
+  const format = (body as { date_format?: unknown } | null)?.date_format;
+  if (typeof format === "string") setDateFormat(format); // dates as the university writes them
+  return view;
 }
 
 // ponytail: a filtered list is read whole into memory, 200 rows a request; stream the CSV if

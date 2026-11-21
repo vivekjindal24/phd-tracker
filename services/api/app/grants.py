@@ -10,7 +10,7 @@ from typing import Any
 from sqlalchemy import ColumnElement, cast, exists, func, literal, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import scope
+from app import dates, scope
 from app.auth.principal import Principal
 from app.crud import update
 from app.enums import LEDGER_HEADS, ModuleKey
@@ -251,7 +251,7 @@ def inr(amount: float) -> str:
 
 
 def _day(value: date) -> str:
-    return value.strftime("%-d %b %Y")
+    return dates.day(value)
 
 
 def ledger_warnings(

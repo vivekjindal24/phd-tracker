@@ -9,6 +9,7 @@ from fastapi import Request
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app import dates
 from app.auth.principal import Principal
 from app.crud import insert, soft_delete
 from app.errors import ApiError
@@ -47,6 +48,7 @@ async def public_view(session: AsyncSession) -> dict[str, Any]:
         "address": await _address(session),
         "has_logo": logo is not None,
         "logo_version": logo.created_at.timestamp() if logo else None,
+        "date_format": dates.current(),
     }
 
 
@@ -56,6 +58,7 @@ async def export_fields(session: AsyncSession) -> dict[str, Any]:
         "university": await _name(session),
         "address": await _address(session),
         "logo": base64.b64encode(logo.content).decode() if logo else None,
+        "date_format": dates.current(),  # the PDFs write dates as the screens do
     }
 
 

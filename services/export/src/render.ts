@@ -4,6 +4,7 @@ import { inflateSync } from "node:zlib";
 import PDFDocument from "pdfkit";
 import QRCode from "qrcode";
 import type { CertificateView, TableView, RegisterView, ReportView, UcView } from "./api.ts";
+import { day, stamp } from "./dates.ts";
 
 const MILESTONES: Record<string, string> = {
   coursework: "Coursework",
@@ -32,10 +33,7 @@ const RATINGS: Record<string, string> = {
   unsatisfactory: "Unsatisfactory",
 };
 
-export const day = (iso: string | null) =>
-  iso ? new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "—";
-const stamp = (iso: string) =>
-  new Date(iso).toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+export { day };
 
 export function toBuffer(doc: PDFKit.PDFDocument): Promise<Buffer> {
   return new Promise((resolve, reject) => {

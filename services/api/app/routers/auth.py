@@ -3,6 +3,7 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app import dates
 from app.auth import service, sso
 from app.auth.deps import any_principal, current_principal
 from app.auth.principal import Principal
@@ -137,6 +138,7 @@ async def me(
         scholar_id=principal.scholar_id,
         is_root_admin=principal.is_root_admin,
         co_supervision=principal.co_supervision,
+        date_format=dates.current(),
         modules=modules,
         unread_notifications=await unread_count(session, principal.user_id),
         email_muted=list(user.email_muted),

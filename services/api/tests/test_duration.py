@@ -24,7 +24,7 @@ def test_limit_is_admission_plus_six_years_plus_extensions():
     s = scholar(date(2020, 7, 1))
     plain = duration.assess(s, [], LIMITS, TODAY)
     assert plain["limit_date"] == date(2026, 7, 1) and plain["status"] == "over"
-    assert plain["warnings"] == ["Past the maximum duration since 01 Jul 2026"]
+    assert plain["warnings"] == ["Past the maximum duration since 1 Jul 2026"]
     extended = duration.assess(
         s, [adj("extension", date(2026, 7, 1), date(2027, 6, 30))], LIMITS, TODAY
     )
@@ -144,7 +144,7 @@ async def test_leadership_view(client, session, world):
     assert rows["Dept A1"]["dropout_rate"] == 0.5
     assert rows["Dept A2"]["median_years_to_complete"] == 4.5
     risk = {r["scholar"]["name"]: r["reasons"] for r in school["at_risk"]}
-    assert "Past the maximum duration since 01 Jul 2021" in risk["Scholar A1"]
+    assert "Past the maximum duration since 1 Jul 2021" in risk["Scholar A1"]
     assert "No supervision meeting logged yet" in risk["Scholar A1"]
     assert "Scholar A1B" not in risk  # left: not at risk, counted as a drop-out
 

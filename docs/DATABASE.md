@@ -139,7 +139,9 @@ university's own progress report sections, used only while the toggle is on), `s
 questions, "form_name", "questions": [...]}`, PRD F15; a PATCH merges per kind),
 `phd_forms` jsonb (default `{}`, CHECK object; per form of the PhD file —
 enums.PHD_FORMS — any of `{"title", "number", "copy_to": [...]}`; a PATCH merges
-per form and drops an emptied one; PRD F17 part 4, migration 0050), `exam_controller_id` FK users (who signs every notice as Controller of Examinations when
+per form and drops an emptied one; PRD F17 part 4, migration 0050), `date_format` text (default d_mon_yyyy, CHECK one of d_mon_yyyy / d_month_yyyy /
+dd/mm/yyyy / dd-mm-yyyy / dd.mm.yyyy / yyyy-mm-dd / mm/dd/yyyy; how every date is written —
+dates.py; migration 0053), `exam_controller_id` FK users (who signs every notice as Controller of Examinations when
 several hold the Exam Office role; set by the Exam Office or the root admin; migration 0052),
 `phd_index`
 jsonb (default `[]`, CHECK array; the university's own index of the PhD file: rows

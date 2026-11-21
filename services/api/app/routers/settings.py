@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, Request
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import apr, branding, grading, notices, phd_index
+from app import apr, branding, dates, grading, notices, phd_index
 from app.auth.deps import current_principal, require_root_admin
 from app.auth.principal import Principal
 from app.crud import update
@@ -45,6 +45,7 @@ async def _read(session: AsyncSession) -> SettingsOut:
             "phd_form_defaults": PHD_FORMS,
             "phd_index": settings.phd_index,
             "exam_controller_id": settings.exam_controller_id,
+            "date_format": settings.date_format,
             "phd_sources": phd_index.sources(),
             "min_coursework_credits": settings.min_coursework_credits,
             "min_coursework_cgpa": settings.min_coursework_cgpa,
@@ -85,6 +86,8 @@ async def update_settings(
         changes["phd_forms"] = {k: v for k, v in merged.items() if any(v.values())}
     await update(session, principal, row, {**changes, "updated_by": principal.user_id})
     await session.commit()
+    if "date_format" in changes:
+        dates.use(changes["date_format"])  # at once here; other workers within a minute
     return await _read(session)
 
 

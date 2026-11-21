@@ -287,6 +287,18 @@ VivaOutcome = Literal["pass", "redefend", "fail"]
 VIVA_OUTCOMES = get_args(VivaOutcome)
 # ponytail: one zone for every install (Indian universities); a setting if that ever changes.
 LOCAL_TZ = ZoneInfo("Asia/Kolkata")
+# How the university writes a date, everywhere (dates.py); one choice in Settings.
+DateFormat = Literal[
+    "d_mon_yyyy",
+    "d_month_yyyy",
+    "dd/mm/yyyy",
+    "dd-mm-yyyy",
+    "dd.mm.yyyy",
+    "yyyy-mm-dd",
+    "mm/dd/yyyy",
+]
+DATE_FORMATS = get_args(DateFormat)
+DEFAULT_DATE_FORMAT = "d_mon_yyyy"
 # A viva board's members besides the supervisor, who always sits on it (PRD M3, Form XI).
 VivaBoardRole = Literal["chairperson", "external_examiner", "member"]
 VIVA_BOARD_ROLES = get_args(VivaBoardRole)

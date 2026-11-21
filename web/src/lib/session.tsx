@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import type { ReactNode } from "react";
 import { api, ApiError, hasStoredSession, login as apiLogin, logout as apiLogout } from "./api";
 import type { Me } from "./types";
+import { setDateFormat } from "@/lib/format";
 
 type Session = {
   me: Me | null;
@@ -31,7 +32,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   const reload = useCallback(async () => {
     try {
-      setMe(await api<Me>("/auth/me"));
+      const who = await api<Me>("/auth/me");
+      setDateFormat(who.date_format); // before any page renders a date
+      setMe(who);
       setError(null);
       setExpired(false);
     } catch (e) {

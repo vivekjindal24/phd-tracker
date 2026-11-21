@@ -1,9 +1,12 @@
 import logging
 
-from fastapi import APIRouter, FastAPI
+from fastapi import APIRouter, Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from app import dates
 from app.config import settings
+from app.db import get_session
 from app.errors import install_error_handlers
 from app.routers import (
     admissions,
@@ -55,7 +58,13 @@ from app.sorting import TOTAL_HEADER
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s %(message)s")
 
-app = FastAPI(title="Anveshan API", version="0.1.0")
+
+async def _date_format(session: AsyncSession = Depends(get_session)) -> None:
+    """Every request writes dates as the university chose (dates.py)."""
+    await dates.refresh(session)
+
+
+app = FastAPI(title="Anveshan API", version="0.1.0", dependencies=[Depends(_date_format)])
 logging.getLogger("anveshan").info("CORS allowed origins: %s", list(settings.cors_origins))
 app.add_middleware(
     CORSMiddleware,

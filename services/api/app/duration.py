@@ -14,6 +14,7 @@ from datetime import date, timedelta
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app import dates
 from app.enums import STAGES
 from app.models import Scholar, Settings, TimeAdjustment
 
@@ -71,7 +72,7 @@ def assess(
         status = "unknown"  # no admission date recorded
     elif days_left < 0:
         status = "over"
-        warnings.insert(0, f"Past the maximum duration since {limit_date:%d %b %Y}")
+        warnings.insert(0, f"Past the maximum duration since {dates.day(limit_date)}")
     elif days_left <= NEAR_LIMIT_DAYS:
         status = "near"
         warnings.insert(0, f"{days_left} days left before the maximum duration")

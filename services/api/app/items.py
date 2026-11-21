@@ -11,7 +11,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
-from app import apr, coursework, ethics, grants, scope, signatures, signing, workflow
+from app import apr, coursework, dates, ethics, grants, scope, signatures, signing, workflow
 from app.auth.principal import Principal
 from app.crud import update
 from app.enums import LOCAL_TZ, STAGES
@@ -260,7 +260,7 @@ REGISTRY: dict[str, ItemKind] = {
     "viva_arrangement": ItemKind(
         VivaArrangement,
         "viva_arrangements",
-        lambda a: f"Viva on {a.scheduled_at.astimezone(LOCAL_TZ):%d %b %Y}",
+        lambda a: f"Viva on {dates.day(a.scheduled_at.astimezone(LOCAL_TZ))}",
         _viva_content,
         "documents",
         before_submit=_viva_ready,

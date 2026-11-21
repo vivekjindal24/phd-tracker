@@ -14,10 +14,9 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import items, thesis
+from app import dates, items, thesis
 from app.auth.principal import Principal
 from app.branding import public_view
-from app.enums import LOCAL_TZ
 from app.errors import ApiError
 from app.models import (
     ExaminerReport,
@@ -36,7 +35,7 @@ ROLE_ORDER = ("chairperson", "external_examiner", "member")
 
 
 def when(at: datetime) -> str:
-    return f"{at.astimezone(LOCAL_TZ):%d %b %Y, %I:%M %p} IST"
+    return f"{dates.when(at)} IST"
 
 
 async def held(session: AsyncSession, arrangement_id: uuid.UUID) -> bool:

@@ -57,6 +57,15 @@ from tests.world import World, build_world  # noqa: E402
 API_DIR = Path(__file__).resolve().parent.parent
 
 
+@pytest.fixture(autouse=True)
+def default_date_format() -> None:
+    """Each test starts with the default date format, whatever an earlier test chose."""
+    from app import dates
+    from app.enums import DEFAULT_DATE_FORMAT
+
+    dates.use(DEFAULT_DATE_FORMAT)
+
+
 @pytest.fixture(scope="session", autouse=True)
 def migrated() -> None:
     for junk in API_DIR.rglob("._*"):  # exFAT AppleDouble files break alembic

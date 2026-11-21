@@ -9,7 +9,7 @@ from sqlalchemy import Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
-from app import directory, scope
+from app import dates, directory, scope
 from app.auth.deps import current_principal
 from app.auth.principal import Principal
 from app.crud import insert, soft_delete, update
@@ -218,7 +218,7 @@ async def set_stand_in(
         [stand_in.user_id],
         "approval_waiting",
         f"You are {principal.full_name}'s stand-in",
-        f"From {body.starts_on:%d %b %Y} to {body.ends_on:%d %b %Y} you can approve or send "
+        f"From {dates.day(body.starts_on)} to {dates.day(body.ends_on)} you can approve or send "
         "back items waiting at their supervisor step. They appear in your queue.",
         "/queue",
     )

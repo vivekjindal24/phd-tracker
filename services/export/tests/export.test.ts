@@ -8,6 +8,7 @@ import { createApp, loadConfig } from "../src/server.ts";
 import { phdFileView, seminarPaperView, reportView } from "../src/api.ts";
 import { certificatePdf, csvCell, reportPdf, tableCsv } from "../src/render.ts";
 import { phdFilePdf, seminarPaperPdf } from "../src/phd-file.ts";
+import { day } from "../src/dates.ts";
 
 const REPORT_ID = "6f1c2a7e-3b4d-4e5f-8a9b-0c1d2e3f4a5b";
 const JUNK_ID = "00000000-0000-4000-8000-000000000000";
@@ -354,6 +355,14 @@ test("a long index runs onto a second page before the annexures, rows never over
     note: "Not on record" }));
   const pdf = await phdFilePdf(phdFileView.parse({ ...phdFile, annexures: rows }));
   assert.ok((await PDFLibDocument.load(pdf)).getPageCount() >= 2); // all index, no annexure pages
+});
+
+test("dates follow the university's format, in India's time", () => {
+  assert.equal(day("2026-09-03"), "3 Sep 2026");
+  assert.equal(day("2026-11-20T23:00:00Z"), "21 Nov 2026"); // already the 21st in India
+  assert.equal(day("2026-09-03", "dd/mm/yyyy"), "03/09/2026");
+  assert.equal(day("2026-09-03", "mm/dd/yyyy"), "09/03/2026");
+  assert.equal(day(null), "—");
 });
 
 test("NAAC CSV keeps numbers and neutralises formulas", () => {

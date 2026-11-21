@@ -17,6 +17,7 @@ from app.enums import (
     Category,
     CommentTarget,
     CoSupervision,
+    DateFormat,
     Designation,
     FileOwner,
     FileSlot,
@@ -119,6 +120,7 @@ class MeOut(BaseModel):
     scholar_id: uuid.UUID | None
     is_root_admin: bool
     co_supervision: CoSupervision
+    date_format: DateFormat  # how the university writes dates on every screen
     modules: dict[str, bool]
     unread_notifications: int
     email_muted: list[str]
@@ -376,6 +378,7 @@ class SettingsOut(BaseModel):
     phd_index: list[PhdIndexRow]  # the university's own index; empty: Anveshan's annexures
     phd_sources: list[dict[str, str]]  # what a row may draw on: key, label, group
     exam_controller_id: uuid.UUID | None  # who signs notices as Controller of Examinations
+    date_format: DateFormat
     min_coursework_credits: float
     min_coursework_cgpa: float
     max_duration_years: int
@@ -403,6 +406,7 @@ class SettingsUpdate(BaseModel):
     seminar_forms: dict[SeminarKind, SeminarForm] | None = None  # merged per kind
     phd_forms: dict[str, PhdFormName] | None = None  # merged per form
     phd_index: list[PhdIndexRow] | None = Field(default=None, max_length=80)  # replaced whole
+    date_format: DateFormat | None = None
     min_coursework_credits: float | None = Field(default=None, ge=0, le=40)
     min_coursework_cgpa: float | None = Field(default=None, ge=0, le=10)
     max_duration_years: int | None = Field(default=None, ge=3, le=12)

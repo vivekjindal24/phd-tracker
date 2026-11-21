@@ -19,7 +19,9 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from app.enums import (
     CO_SUPERVISION,
+    DATE_FORMATS,
     DEFAULT_APR_SECTIONS,
+    DEFAULT_DATE_FORMAT,
     DEFAULT_DEPARTMENT_COMMITTEE,
     DEFAULT_RUBRIC,
     DEFAULT_SEMINAR_FORMS,
@@ -52,6 +54,7 @@ class Settings(Timestamps, Base):
         CheckConstraint("jsonb_typeof(seminar_forms) = 'object'", name="ck_settings_seminar_forms"),
         CheckConstraint("jsonb_typeof(phd_forms) = 'object'", name="ck_settings_phd_forms"),
         CheckConstraint("jsonb_typeof(phd_index) = 'array'", name="ck_settings_phd_index"),
+        CheckConstraint(f"date_format IN ({sql_in(DATE_FORMATS)})", name="ck_settings_date_format"),
         CheckConstraint("min_coursework_credits BETWEEN 0 AND 40", name="ck_settings_min_credits"),
         CheckConstraint("min_coursework_cgpa BETWEEN 0 AND 10", name="ck_settings_min_cgpa"),
         CheckConstraint("max_duration_years BETWEEN 3 AND 12", name="ck_settings_max_years"),
@@ -85,6 +88,8 @@ class Settings(Timestamps, Base):
     # The PhD file's forms as this university names them (enums.PHD_FORMS): per form, any of
     # title, number ("Form VII-A") and copy_to; what is missing is Anveshan's (PRD F17, part 4).
     phd_forms: Mapped[dict[str, Any]] = mapped_column(JSONB, server_default=text("'{}'::jsonb"))
+    # How the university writes a date on every screen, PDF, notice and email (dates.py).
+    date_format: Mapped[str] = mapped_column(Text, server_default=text(f"'{DEFAULT_DATE_FORMAT}'"))
     # Who signs notices as the Controller of Examinations when several hold the Exam Office role;
     # set by the Exam Office or the root admin, for the whole university (notices.py).
     exam_controller_id: Mapped[uuid.UUID | None] = mapped_column(

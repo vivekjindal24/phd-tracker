@@ -10,7 +10,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
-from app import meetings, scope, seminars
+from app import dates, meetings, scope, seminars
 from app.auth.deps import current_principal
 from app.auth.principal import Principal
 from app.db import get_session
@@ -208,7 +208,7 @@ async def timeline(
                 "kind": "seminar",
                 "title": s.title,
                 # Only a progress seminar reviews a report; the other kinds say what they are.
-                "detail": f"Report due {s.report_due:%d %b %Y}"
+                "detail": f"Report due {dates.day(s.report_due)}"
                 if s.report_due
                 else SEMINAR_KIND_LABELS[s.kind],
                 "link": f"/seminars/{s.id}",
@@ -300,7 +300,7 @@ async def search(
         out["meetings"] = [
             {
                 "title": m.agenda,
-                "detail": f"{n} · {m.meeting_date:%d %b %Y}",
+                "detail": f"{n} · {dates.day(m.meeting_date)}",
                 "link": f"/meetings/{m.id}",
             }
             for m, sc, path, n in rows
@@ -367,6 +367,6 @@ async def search(
         .limit(GROUP_LIMIT)
     )
     out["seminars"] = [
-        {"title": t, "detail": f"{s:%d %b %Y}", "link": f"/seminars/{i}"} for i, t, s in rows
+        {"title": t, "detail": f"{dates.day(s)}", "link": f"/seminars/{i}"} for i, t, s in rows
     ]
     return out

@@ -11,7 +11,7 @@ from typing import Any
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import dashboard, directory, duration, scope
+from app import dashboard, dates, directory, duration, scope
 from app.models import Faculty, Meeting, Milestone, OrgUnit, Scholar, User
 
 QUIET_DAYS = 120  # no supervision meeting logged for four months
@@ -116,7 +116,7 @@ async def _at_risk(session: AsyncSession, scholar_rows, today: date) -> list[dic
     reasons: dict[uuid.UUID, list[str]] = defaultdict(list)
     for row in await dashboard.overdue_reports(session, Scholar.id.in_(ids)):
         reasons[row["scholar"]["id"]].append(
-            f"Progress report overdue since {row['report_due']:%d %b}"
+            f"Progress report overdue since {dates.day(row['report_due'])}"
         )
     assessed = await duration.assess_many(session, [s for s, _ in current], today)
     for sid, a in assessed.items():
@@ -136,7 +136,7 @@ async def _at_risk(session: AsyncSession, scholar_rows, today: date) -> list[dic
         settled = s.admission_date is None or s.admission_date < quiet_since
         if settled and (last is None or last < quiet_since):
             reasons[s.id].append(
-                f"No supervision meeting logged since {last:%d %b %Y}"
+                f"No supervision meeting logged since {dates.day(last)}"
                 if last
                 else "No supervision meeting logged yet"
             )

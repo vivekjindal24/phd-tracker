@@ -6,6 +6,7 @@ import uuid
 from sqlalchemy import exists, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app import dates
 from app.auth.principal import Principal
 from app.crud import insert
 from app.enums import LOCAL_TZ, MILESTONE_TYPES, SEMINAR_KIND_LABELS
@@ -111,7 +112,7 @@ async def from_seminar(
         Milestone.deleted_at.is_(None),
     ):
         return
-    held = f"{seminar.starts_at.astimezone(LOCAL_TZ):%d %b %Y}"
+    held = f"{dates.day(seminar.starts_at.astimezone(LOCAL_TZ))}"
     counted = [
         f"{recommendations.count(k)} {words}"
         for k, words in RECOMMENDATION_WORDS.items()

@@ -194,9 +194,14 @@ remove a point only when the behaviour itself changes.
 
 ## Screens
 
-- **Dates read the same for everyone.** Screens write dates as Indian forms do — "21 Nov
-  2026", "Wed, 22 Sept 2027, 4:30 pm" — whatever language the viewer's browser is set to,
-  as the PDFs do; times are in the viewer's own time zone. *(2026-11-22)*
+- **One date format for the whole university.** Settings → University identity → Date format
+  sets how every date is written, in one go: on every screen, PDF, notice, form, email and
+  reminder. Choices: 21 Nov 2026 (the default), 21 November 2026, 21/11/2026, 21-11-2026,
+  21.11.2026, 2026-11-21 and 11/21/2026. Month names are always English and never follow the
+  viewer's browser language. Times are written "4:30 pm" — on screens in the viewer's time
+  zone, on PDFs and emails in India's. CSV downloads keep 2026-11-21 so spreadsheets sort them.
+  A change shows at once for whoever made it; others see it on their next page load and the
+  server within a minute. Only the root admin changes it. *(owner, 2026-11-22)*
 
 ## Setting up a real installation
 

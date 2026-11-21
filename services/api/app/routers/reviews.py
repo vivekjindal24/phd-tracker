@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import reviews, thesis
+from app import dates, reviews, thesis
 from app.auth.deps import current_principal, current_reviewer
 from app.auth.principal import Principal
 from app.crud import insert, soft_delete, update
@@ -91,7 +91,7 @@ async def update_review(
             [review.reviewer_user_id],
             "system",
             "Your review deadline has changed",
-            f"It is now {review.deadline:%d %b %Y}.",
+            f"It is now {dates.day(review.deadline)}.",
             f"/review/{review.id}",
         )
     await session.commit()

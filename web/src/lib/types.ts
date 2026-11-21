@@ -1,3 +1,4 @@
+import type { DateFormat } from "@/lib/format";
 /** Mirrors of the API's response models (services/api/app/schemas/). */
 
 export type OfficeRole = "vice_chancellor" | "research_office" | "exam_office" | "library";
@@ -35,6 +36,7 @@ export type Me = {
   is_root_admin: boolean;
   is_reviewer: boolean;
   co_supervision: CoSupervision;
+  date_format: DateFormat; // how the university writes dates, everywhere
   modules: Record<ModuleKey, boolean>;
   unread_notifications: number;
   email_muted: string[];
@@ -77,6 +79,7 @@ export type SettingsData = {
   phd_index: PhdIndexRow[]; // the university's own index; empty: Anveshan's annexures
   phd_sources: { key: string; label: string; group: string }[]; // what a row may draw on
   exam_controller_id: string | null; // who signs notices as Controller of Examinations
+  date_format: DateFormat;
   min_coursework_credits: number;
   min_coursework_cgpa: number;
   max_duration_years: number;
