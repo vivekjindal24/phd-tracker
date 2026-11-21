@@ -14,6 +14,7 @@ from app import meetings, scope, seminars
 from app.auth.deps import current_principal
 from app.auth.principal import Principal
 from app.db import get_session
+from app.enums import SEMINAR_KIND_LABELS
 from app.models import (
     Conference,
     CourseworkClearance,
@@ -206,7 +207,10 @@ async def timeline(
                 "at": s.starts_at,
                 "kind": "seminar",
                 "title": s.title,
-                "detail": f"Report due {s.report_due:%d %b %Y}",
+                # Only a progress seminar reviews a report; the other kinds say what they are.
+                "detail": f"Report due {s.report_due:%d %b %Y}"
+                if s.report_due
+                else SEMINAR_KIND_LABELS[s.kind],
                 "link": f"/seminars/{s.id}",
                 "badge": "cancelled" if s.status == "cancelled" else None,
             }

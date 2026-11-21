@@ -189,7 +189,9 @@
   align-items: center;
   gap: var(--space-3);
 }
-.rubric input {
+.rubric input,
+.phd-index input,
+.phd-index select {
   font: inherit;
   border: 0;
   border-radius: var(--radius-sm);
@@ -201,7 +203,8 @@
 .rubric input[type="number"] {
   width: 80px;
 }
-.rubric button {
+.rubric button,
+.phd-index .row button {
   width: 30px;
   height: 30px;
   border: 0;
@@ -279,4 +282,12 @@
 }
 .phd-index .chips select {
   max-width: 100%;
+}
+.phd-index .chips .badge button {
+  border: 0;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  font-weight: 800;
+  padding: 0 2px;
 }

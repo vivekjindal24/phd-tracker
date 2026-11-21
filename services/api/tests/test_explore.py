@@ -127,3 +127,14 @@ async def test_search_is_scoped_and_respects_redaction(client, world):
     assert dean["meetings"] == []  # unshared minutes never surface through search
     short = await client.get("/api/v1/search?q=a", headers=auth(world.dean_a.id))
     assert short.status_code == 422
+
+
+async def test_timeline_lists_a_seminar_with_no_report_period(client, world):
+    from tests.test_seminar_forms import schedule
+
+    assert (await schedule(client, world, kind="pre_synopsis")).status_code == 201
+    url = f"/api/v1/scholars/{world.s_a1.id}/timeline"
+    res = await client.get(url, headers=auth(world.admin_a1.id))
+    assert res.status_code == 200, res.text  # once broke: "Report due" of a seminar with none
+    (seminar,) = [e for e in res.json() if e["kind"] == "seminar"]
+    assert seminar["detail"] == "Pre-synopsis seminar"
