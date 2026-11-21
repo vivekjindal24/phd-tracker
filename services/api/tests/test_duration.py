@@ -4,7 +4,7 @@ from datetime import date
 
 from app import duration
 from app.models import Milestone, Scholar, TimeAdjustment
-from tests.conftest import auth
+from tests.conftest import auth, unassign_supervisor
 
 LIMITS = duration.Limits(
     max_years=6, max_extension_days=730, max_relaxation_days=730, max_maternity_leave_days=240
@@ -86,6 +86,7 @@ async def test_time_records_are_scoped(client, session, world):
 
 
 async def test_leaving_frees_the_supervisors_slot(client, session, world):
+    await unassign_supervisor(session, world.s_a1b.id)
     world.meera_faculty.max_scholars = 1  # meera guides scholar_a1
     session.add(world.meera_faculty)
     await session.commit()

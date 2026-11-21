@@ -21,6 +21,7 @@ from app.models.org import (
     Scholar,
     Signature,
     SupervisorAppointment,
+    SupervisorChange,
     User,
 )
 from app.models.reports import ProgressReport
@@ -115,6 +116,7 @@ __all__ = [
     "SigningCode",
     "SsoState",
     "SupervisorAppointment",
+    "SupervisorChange",
     "SupervisorStandIn",
     "ThesisReview",
     "ThesisReviewComment",

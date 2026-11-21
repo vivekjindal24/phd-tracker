@@ -454,6 +454,31 @@ class NoticeBoardUpdate(BaseModel):
     ends_on: date | None = None
 
 
+class SupervisorChangeIn(BaseModel):
+    """A proposed change of supervisor (supervisor_changes.py)."""
+
+    to_faculty_id: uuid.UUID
+    reason: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=2000)]
+    scholar_consent: bool = False
+    order_ref: Annotated[str, StringConstraints(strip_whitespace=True, max_length=200)] | None = (
+        None
+    )
+    effective_on: date | None = None  # the order's date; else the day it is approved
+
+
+class SupervisorChangeUpdate(BaseModel):
+    to_faculty_id: uuid.UUID | None = None
+    reason: (
+        Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=2000)]
+        | None
+    ) = None
+    scholar_consent: bool | None = None
+    order_ref: Annotated[str, StringConstraints(strip_whitespace=True, max_length=200)] | None = (
+        None
+    )
+    effective_on: date | None = None
+
+
 class ModuleUpdate(BaseModel):
     enabled: bool
 
@@ -652,6 +677,8 @@ class AppointmentOut(BaseModel):
 class SupervisionView(BaseModel):
     appointments: list[AppointmentOut]  # current first, then the latest ended
     can_manage: bool
+    open_change: dict[str, Any] | None = None  # a change of supervisor under way
+    can_propose_change: bool = False
 
 
 class FacultyOut(BaseModel):

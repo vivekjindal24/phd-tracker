@@ -148,9 +148,10 @@ supervisees; scholar sees self; the three offices are university-wide.
 Acceptance: a HoD of Physics never sees a Chemistry scholar (403); a person
 with two roles sees the union of both scopes, never more.
 
-**F3 — Configurable approval chains.** Seven item types go through approval
+**F3 — Configurable approval chains.** Eight item types go through approval
 chains: **progress report, publication, thesis submission, coursework
-clearance, no-dues clearance, fellowship claim, viva arrangement**. The root admin configures one chain per item type **for the
+clearance, no-dues clearance, fellowship claim, viva arrangement, change of
+supervisor**. The root admin configures one chain per item type **for the
 whole university** (not per unit). Default chains:
 
 | Item | Initiator | Chain |
@@ -162,6 +163,16 @@ whole university** (not per unit). Default chains:
 | No-dues clearance (when the university requires it, M3) | Scholar | Supervisor (lab dues) → Department → Library (books) → Research Office (fees) |
 | Fellowship claim (module Fellowships, M6) | Scholar | Supervisor (certifies the month) → Department → Research Office |
 | Viva arrangement (M3: Forms X and XI) | Exam Office (date, place, board) | Vice Chancellor |
+| Change of supervisor (Decided 2026-11-22) | Department admin (new supervisor, reason, scholar's consent, order no. and date) | Department → Research Office |
+
+A scholar's **first** supervisor is appointed directly by the department admin. Once a
+scholar has one, a different supervisor comes only through an approved **change of
+supervisor**: the change happens on the final approval, from the order's date (else that
+day); the old appointment is ended and kept in the supervision history; the old
+supervisor, the new one and the scholar are told. One change can be under way per
+scholar; it is refused at submit and at the final approval if the scholar's supervisor
+has meanwhile changed or the new one has reached their UGC limit. Items already waiting
+at the supervisor step move to the new supervisor by themselves.
 
 "Department" step = the head **or** an admin of the scholar's own unit.
 A chain may also carry a **Vice Chancellor** step (any holder of that role

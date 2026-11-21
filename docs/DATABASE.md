@@ -157,7 +157,7 @@ University-wide switches that are not modules live here.
 
 **approval_chains** — `item_type` PK CHECK (`progress_report`,
 `publication`, `coursework_clearance`, `thesis_submission`,
-`no_dues_clearance`, `fellowship_claim`, `viva_arrangement`), `steps` jsonb:
+`no_dues_clearance`, `fellowship_claim`, `viva_arrangement`, `supervisor_change`), `steps` jsonb:
 ordered array of `{"kind": …}` where kind ∈ `supervisor` / `department` /
 `research_office` / `exam_office` / `library` / `vice_chancellor`; CHECK non-empty array (kinds
 validated by Pydantic). One chain per item type, university-wide. Seeded with
@@ -219,6 +219,16 @@ else is appointed or the role is emptied; correctable afterwards on a past row).
 partial unique `uq_supervisor_appointment_open (scholar_id, role) WHERE ended_on
 IS NULL` on live rows. Existing supervisors were backfilled as open rows with no
 order.
+
+**supervisor_changes** (migration 0055; approvable, item type `supervisor_change`,
+initiator the department admin; PRD F3) — `scholar_id` (indexed), `from_faculty_id` FK
+faculty (nullable; the supervisor when proposed), `to_faculty_id` FK faculty, `from_name`
+/ `to_name` (the names when proposed), `reason` (1–2000 chars), `scholar_consent` bool,
+`order_ref`, `effective_on` date (the order's date; NULL = the day it is approved) +
+approval columns. Partial unique `uq_supervisor_change_open (scholar_id) WHERE state <>
+'approved' AND deleted_at IS NULL` — one change under way per scholar. On the final
+approval the change is made through `app/supervision.py`: the open appointment ends and a
+new one opens with this order and date.
 
 **comprehensive_exams** (Form VI, migration 0042) — `scholar_id` (indexed),
 `attempt` (CHECK ≥ 1; partial unique `uq_comprehensive_attempt (scholar_id,

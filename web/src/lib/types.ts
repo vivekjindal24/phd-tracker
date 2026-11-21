@@ -13,7 +13,8 @@ export type ItemType =
   | "thesis_submission"
   | "no_dues_clearance"
   | "fellowship_claim"
-  | "viva_arrangement";
+  | "viva_arrangement"
+  | "supervisor_change";
 export type ModuleKey =
   | "publications"
   | "conferences"
@@ -129,6 +130,7 @@ export const ITEM_LABELS: Record<ItemType, string> = {
   no_dues_clearance: "No-dues clearance",
   fellowship_claim: "Fellowship claim",
   viva_arrangement: "Viva arrangement",
+  supervisor_change: "Change of supervisor",
 };
 
 export const MODULE_LABELS: Record<ModuleKey, string> = {
@@ -539,7 +541,8 @@ export type CommentTarget =
   | "coursework_clearances"
   | "no_dues_clearances"
   | "fellowship_claims"
-  | "viva_arrangements";
+  | "viva_arrangements"
+  | "supervisor_changes";
 /** Named places for a scholar's own documents in the PhD file. */
 export type FileSlot = "employer_noc" | "entrance_minutes";
 export const FILE_SLOT_LABELS: Record<FileSlot, string> = {
@@ -1019,4 +1022,19 @@ export type Appointment = {
   order_ref: string | null;
   ended_on: string | null;
 };
-export type SupervisionView = { appointments: Appointment[]; can_manage: boolean };
+export type SupervisionView = {
+  appointments: Appointment[];
+  can_manage: boolean;
+  open_change: { id: string; state: ItemState; to: string } | null; // a change under way
+  can_propose_change: boolean;
+};
+/** A proposed change of supervisor (item content). */
+export type SupervisorChangeContent = {
+  scholar_id: string;
+  from: Ref | null;
+  to: Ref;
+  reason: string;
+  scholar_consent: boolean;
+  order_ref: string | null;
+  effective_on: string | null;
+};

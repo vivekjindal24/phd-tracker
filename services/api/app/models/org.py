@@ -37,6 +37,7 @@ from app.enums import (
     sql_in,
 )
 from app.models.base import Base, DomainRow, Ltree
+from app.models.workflow import ApprovalColumns, approval_constraints
 
 LIVE = text("deleted_at IS NULL")
 
@@ -295,3 +296,38 @@ class SupervisorAppointment(DomainRow, Base):
     appointed_on: Mapped[date | None] = mapped_column(Date)  # from the order; null = unknown
     order_ref: Mapped[str | None] = mapped_column(Text)
     ended_on: Mapped[date | None] = mapped_column(Date)  # null: the current appointment
+
+
+class SupervisorChange(ApprovalColumns, DomainRow, Base):
+    """A change of a scholar's supervisor, through its approval chain (owner, 2026-11-22): the
+    department admin proposes the new supervisor with the reason; on the final approval the
+    change happens (supervision.change), with the order reference and date on the new
+    appointment. One open change per scholar."""
+
+    __tablename__ = "supervisor_changes"
+    __table_args__ = (
+        *approval_constraints("supervisor_changes"),
+        CheckConstraint(
+            "char_length(reason) BETWEEN 1 AND 2000", name="ck_supervisor_changes_reason"
+        ),
+        Index(
+            "uq_supervisor_change_open",
+            "scholar_id",
+            unique=True,
+            postgresql_where=text("state <> 'approved' AND deleted_at IS NULL"),
+        ),
+    )
+
+    scholar_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("scholars.id"), index=True
+    )
+    from_faculty_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("faculty.id")
+    )  # the supervisor when it was proposed
+    to_faculty_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("faculty.id"))
+    from_name: Mapped[str | None] = mapped_column(Text)  # names as they were when proposed
+    to_name: Mapped[str] = mapped_column(Text)
+    reason: Mapped[str] = mapped_column(Text)
+    scholar_consent: Mapped[bool] = mapped_column(Boolean, server_default=text("false"))
+    order_ref: Mapped[str | None] = mapped_column(Text)  # the order appointing the new one
+    effective_on: Mapped[date | None] = mapped_column(Date)  # the order's date; else approval's

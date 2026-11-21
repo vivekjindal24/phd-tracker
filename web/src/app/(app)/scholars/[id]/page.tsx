@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import { Button, Card, ErrorText, Field, PageHeader } from "@/components/ui/kit";
@@ -128,6 +128,8 @@ function AssignCard({
   }
 
   const options = faculty?.filter((f) => f.id !== current?.id) ?? [];
+  // A scholar's existing supervisor changes only through an approved change of supervisor.
+  if (kind === "supervisor" && current) return <ProposeChange scholar={scholar} options={options} />;
   return (
     <div className="assign">
       <Field label={kind === "supervisor" ? "Supervisor" : "Co-supervisor"}
@@ -146,6 +148,75 @@ function AssignCard({
       <Button kind="secondary" disabled={busy || choice === (current?.id ?? "")} onClick={save}>
         Save {kind}
       </Button>
+    </div>
+  );
+}
+
+/** Propose a change of supervisor: reason, the scholar's consent, the order; it goes up its
+ *  approval chain from its item page, and the supervisor changes only once it is approved. */
+function ProposeChange({ scholar, options }: { scholar: Scholar; options: Faculty[] }) {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [to, setTo] = useState("");
+  const [reason, setReason] = useState("");
+  const [consent, setConsent] = useState(false);
+  const [orderRef, setOrderRef] = useState("");
+  const [on, setOn] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  async function propose(e: FormEvent) {
+    e.preventDefault();
+    setError(null);
+    try {
+      const item = await api<{ id: string }>(`/scholars/${scholar.id}/supervisor-changes`, {
+        method: "POST",
+        body: JSON.stringify({
+          to_faculty_id: to, reason, scholar_consent: consent,
+          order_ref: orderRef || null, effective_on: on || null,
+        }),
+      });
+      router.push(`/items/supervisor_change/${item.id}`);
+    } catch (err) {
+      setError(errorText(err));
+    }
+  }
+
+  return (
+    <div className="assign">
+      <Field label="Supervisor"><span>{scholar.supervisor?.name}</span></Field>
+      {!open ? (
+        <Button kind="secondary" onClick={() => setOpen(true)}>Propose a change of supervisor</Button>
+      ) : (
+        <form className="stack-form" onSubmit={propose}>
+          <Field label="New supervisor" hint="Only supervisors below their limit are listed.">
+            <select required value={to} onChange={(e) => setTo(e.target.value)}>
+              <option value="">Choose…</option>
+              {options.map((f) => (
+                <option key={f.id} value={f.id}>{f.full_name} · {f.unit.name} ({f.load}/{f.max_scholars})</option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Reason">
+            <textarea required rows={3} maxLength={2000} value={reason} onChange={(e) => setReason(e.target.value)} />
+          </Field>
+          <label className="check">
+            <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
+            The scholar consents to the change
+          </label>
+          <div className="row">
+            <Field label="Order no. (optional)"><input maxLength={200} value={orderRef} onChange={(e) => setOrderRef(e.target.value)} /></Field>
+            <Field label="From the day (optional)" hint="Left empty: the day it is approved.">
+              <input type="date" value={on} onChange={(e) => setOn(e.target.value)} />
+            </Field>
+          </div>
+          <ErrorText>{error}</ErrorText>
+          <div className="row">
+            <Button kind="primary" type="submit">Propose the change</Button>
+            <Button kind="ghost" onClick={() => setOpen(false)}>Cancel</Button>
+          </div>
+          <p className="muted">You then submit it from its page; the supervisor changes once it is approved.</p>
+        </form>
+      )}
     </div>
   );
 }

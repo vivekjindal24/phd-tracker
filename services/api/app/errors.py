@@ -29,6 +29,11 @@ CONSTRAINT_ERRORS: dict[str, tuple[int, str, str]] = {
         "This month has already been claimed.",
     ),
     "uq_thesis_active": (409, "duplicate_thesis", "A thesis submission already exists."),
+    "uq_supervisor_change_open": (
+        409,
+        "change_already_open",
+        "A change of supervisor is already under way for this scholar.",
+    ),
     "uq_thesis_review_active": (
         409,
         "reviewer_already_invited",

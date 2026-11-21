@@ -3,7 +3,7 @@
 every appointment, past and present. Both change only here, so they never disagree."""
 
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from typing import Any
 
 from sqlalchemy import select
@@ -35,21 +35,32 @@ async def change(
     scholar: Scholar,
     role: str,
     faculty_id: uuid.UUID | None,
+    *,
+    on: date | None = None,
+    order_ref: str | None = None,
 ) -> None:
     """Make `faculty_id` the scholar's supervisor (or co-supervisor), or nobody: the current
-    appointment ends today and a new one opens. Checks of who may be appointed are the caller's."""
+    appointment ends `on` (today if not given) and a new one opens, with the order behind it
+    when known (an approved change of supervisor). Checks of who may be appointed are the
+    caller's."""
     if getattr(scholar, COLUMN[role]) == faculty_id:
         return
-    today = datetime.now(UTC).date()
+    day = on or datetime.now(UTC).date()
     open_row = await current(session, scholar.id, role)
     if open_row is not None:
-        await update(session, principal, open_row, {"ended_on": today})
+        await update(session, principal, open_row, {"ended_on": day})
     await update(session, principal, scholar, {COLUMN[role]: faculty_id})
     if faculty_id is not None:
         await insert(
             session,
             principal,
-            SupervisorAppointment(scholar_id=scholar.id, faculty_id=faculty_id, role=role),
+            SupervisorAppointment(
+                scholar_id=scholar.id,
+                faculty_id=faculty_id,
+                role=role,
+                appointed_on=on,
+                order_ref=order_ref,
+            ),
         )
 
 

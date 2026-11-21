@@ -145,6 +145,17 @@ async def client():
         yield c
 
 
+async def unassign_supervisor(session, scholar_id) -> None:
+    """A scholar with no supervisor yet, so that one is appointed directly; changing an existing
+    supervisor goes through an approved change of supervisor (supervisor_changes.py)."""
+    from app import supervision
+    from app.models import Scholar
+
+    scholar = await session.get(Scholar, scholar_id)
+    await supervision.change(session, None, scholar, "supervisor", None)
+    await session.commit()
+
+
 def auth(user_id) -> dict[str, str]:
     return {"Authorization": f"Bearer {create_access_token(user_id)}"}
 

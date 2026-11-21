@@ -192,6 +192,20 @@ remove a point only when the behaviour itself changes.
     width of a signed name; a single forwarding officer signs at the right, as on the paper
     forms. *(owner, 2026-11-20)*
 
+## Change of supervisor
+
+- **A supervisor changes only on approval.** The department admin appoints a scholar's first
+  supervisor directly. After that, the admin proposes a change with the reason, the
+  scholar's consent and the order; it goes Department → Research Office (the root admin can
+  change this chain in Settings → Approval chains), and only the final approval makes the
+  change, from the order's date or else that day. The old supervisor stays in the
+  supervision history. A bulk import still loads supervisors as given. *(owner,
+  2026-11-22)*
+- **Work waiting on the old supervisor moves to the new one.** A progress report or other item
+  at the supervisor step is then waiting on the new supervisor. *(owner, 2026-11-22)*
+- **The co-supervisor is not covered.** A co-supervisor is still set or changed directly by the
+  department admin. *(owner, 2026-11-22)*
+
 ## Notice board (PRD F18)
 
 - **Anveshan keeps no fees.** The university's own fee system keeps scholars' fees and

@@ -33,12 +33,16 @@ async def test_past_supervisors_stay_on_record(client, world):
     )
     assert fixed.status_code == 200, fixed.text
 
-    # A new supervisor opens a new appointment; Meera's ends but stays, with its order.
-    await client.put(
-        f"{scholar_url(world)}/supervisor",
-        headers=admin,
-        json={"faculty_id": str(world.sup_a2_faculty.id)},
-    )
+    # A new supervisor (an approved change) opens a new appointment; Meera's ends but stays.
+    from tests.test_supervisor_changes import act, propose
+
+    cid = (await propose(client, world, effective_on=None)).json()["id"]
+    for user, action in (
+        (world.admin_a1, "submit"),
+        (world.admin_a1, "approve"),
+        (world.research_office, "approve"),
+    ):
+        assert (await act(client, user, cid, action)).status_code == 200
     rows = [
         a
         for a in (await client.get(url, headers=admin)).json()["appointments"]

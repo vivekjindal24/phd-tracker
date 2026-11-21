@@ -219,6 +219,25 @@ contents of a record are read there, never in the log.
    only"), **Modules** (switches), **Co-supervision** (Off / View /
    View + approve).
 
+## Flow 5c — Change of supervisor (PRD F3)
+
+1. Department admin → scholar's profile → **Propose a change of supervisor** (shown in
+   place of the supervisor picker once the scholar has a supervisor): new supervisor
+   (only supervisors below their limit are listed), reason, **The scholar consents to
+   the change**, and optionally the order no. and the day it takes effect.
+2. **Propose the change** → the item page of the proposal (a draft): **Submit for
+   approval**, or **Withdraw this proposal**. The profile's Supervision card shows
+   "A change of supervisor to … is under way" with a link.
+3. The chain (Department → Research Office by default) acts as in Flow 2; sent back, it
+   returns to the department admin.
+4. On the final approval the supervisor changes; the Supervision card shows the new one
+   as current and the old one with its end date. The old supervisor, the new one and
+   the scholar get a notification and email.
+
+**Errors:** a second proposal while one is under way → 409; the scholar's supervisor
+changed meanwhile, or the new supervisor reached their limit → refused at submit or at
+the final approval, with the reason shown.
+
 ## Flow 5b — Asking someone from another department
 
 1. On a seminar, the unit's head or admin or a scholar's supervisor uses **Ask

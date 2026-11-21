@@ -11,7 +11,18 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
-from app import apr, coursework, dates, ethics, grants, scope, signatures, signing, workflow
+from app import (
+    apr,
+    coursework,
+    dates,
+    ethics,
+    grants,
+    scope,
+    signatures,
+    signing,
+    supervisor_changes,
+    workflow,
+)
 from app.auth.principal import Principal
 from app.crud import update
 from app.enums import LOCAL_TZ, STAGES
@@ -29,6 +40,7 @@ from app.models import (
     Scholar,
     Settings,
     Signature,
+    SupervisorChange,
     ThesisSubmission,
     User,
     VivaArrangement,
@@ -266,6 +278,14 @@ REGISTRY: dict[str, ItemKind] = {
         before_submit=_viva_ready,
         on_approved=_viva_approved,
     ),
+    "supervisor_change": ItemKind(
+        SupervisorChange,
+        "supervisor_changes",
+        supervisor_changes.title,
+        supervisor_changes.content,
+        before_submit=supervisor_changes.ready,
+        on_approved=supervisor_changes.approved,
+    ),
 }
 
 
@@ -368,7 +388,11 @@ async def chain_for(session: AsyncSession, ctx: ItemContext) -> list[dict[str, A
 
 
 def _initiator_label(item_type: str) -> str:
-    return "the scholar" if workflow.INITIATOR[item_type] == "scholar" else "the Exam Office"
+    return {
+        "scholar": "the scholar",
+        "department": "the department admin",
+        "exam_office": "the Exam Office",
+    }[workflow.INITIATOR[item_type]]
 
 
 async def view(session: AsyncSession, principal: Principal, ctx: ItemContext) -> dict[str, Any]:

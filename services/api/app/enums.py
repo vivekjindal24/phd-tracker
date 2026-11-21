@@ -55,6 +55,7 @@ ItemType = Literal[
     "no_dues_clearance",
     "fellowship_claim",
     "viva_arrangement",
+    "supervisor_change",
 ]
 ITEM_TYPES = get_args(ItemType)
 SigningAction = Literal["approve", "send_back"]
@@ -356,6 +357,7 @@ CommentTarget = Literal[
     "no_dues_clearances",
     "fellowship_claims",
     "viva_arrangements",
+    "supervisor_changes",
 ]
 COMMENT_TARGETS = get_args(CommentTarget)
 
@@ -471,6 +473,8 @@ INITIATOR: dict[str, str] = {
     "no_dues_clearance": "scholar",
     "fellowship_claim": "scholar",
     "viva_arrangement": "exam_office",
+    # the department admin proposes a new supervisor (owner, 2026-11-22)
+    "supervisor_change": "department",
 }
 DEFAULT_CHAINS: dict[str, tuple[str, ...]] = {
     "progress_report": ("supervisor", "department", "research_office"),
@@ -482,6 +486,8 @@ DEFAULT_CHAINS: dict[str, tuple[str, ...]] = {
     "fellowship_claim": ("supervisor", "department", "research_office"),
     # PRD M3: the Exam Office proposes the viva (Form X) and its board (Form XI); the VC approves
     "viva_arrangement": ("vice_chancellor",),
+    # the department recommends, the Research Office approves; the change happens on approval
+    "supervisor_change": ("department", "research_office"),
     "thesis_submission": (
         "supervisor",
         "department",

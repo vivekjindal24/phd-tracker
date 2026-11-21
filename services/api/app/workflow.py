@@ -37,6 +37,7 @@ ITEM_LABELS = {
     "no_dues_clearance": "No-dues clearance",
     "fellowship_claim": "Fellowship claim",
     "viva_arrangement": "Viva arrangement",
+    "supervisor_change": "Change of supervisor",
 }
 STEP_LABELS = {
     "supervisor": "Supervisor",
@@ -88,6 +89,8 @@ def current_kind(ctx: ItemContext) -> str | None:
 def is_initiator(principal: Principal, ctx: ItemContext) -> bool:
     if INITIATOR[ctx.item_type] == "scholar":
         return principal.scholar_id == ctx.scholar.id
+    if INITIATOR[ctx.item_type] == "department":  # an admin over the scholar's unit
+        return principal.covers("admin", ctx.scholar_unit_path)
     return INITIATOR[ctx.item_type] in principal.office_roles
 
 

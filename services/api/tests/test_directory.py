@@ -3,7 +3,7 @@
 from sqlalchemy import select, update
 
 from app.models import Notification, Settings
-from tests.conftest import auth
+from tests.conftest import auth, unassign_supervisor
 
 
 async def _rolls(client, user, query=""):
@@ -43,6 +43,7 @@ async def test_co_supervisor_hidden_while_setting_off(client, world, session):
 
 
 async def test_admin_assigns_cross_unit_supervisor_and_both_are_told(client, world, session):
+    await unassign_supervisor(session, world.s_a1b.id)
     res = await client.put(
         f"/api/v1/scholars/{world.s_a1b.id}/supervisor",
         json={"faculty_id": str(world.sup_b1_faculty.id)},
@@ -53,7 +54,8 @@ async def test_admin_assigns_cross_unit_supervisor_and_both_are_told(client, wor
     assert {world.sup_b1.id, world.scholar_a1b.id} <= told
 
 
-async def test_ugc_cap_blocks_over_assignment(client, world):
+async def test_ugc_cap_blocks_over_assignment(client, world, session):
+    await unassign_supervisor(session, world.s_a1b.id)
     # Lower Meera's cap to her current load (1), then try to give her another scholar.
     cap = await client.patch(
         f"/api/v1/faculty/{world.meera_faculty.id}",
@@ -81,7 +83,8 @@ async def test_only_admin_over_the_unit_assigns(client, world):
     assert other_unit.status_code == 403
 
 
-async def test_non_supervising_faculty_cannot_be_assigned(client, world):
+async def test_non_supervising_faculty_cannot_be_assigned(client, world, session):
+    await unassign_supervisor(session, world.s_a2.id)
     await client.patch(
         f"/api/v1/faculty/{world.co_sup_faculty.id}",
         json={"can_supervise": False},

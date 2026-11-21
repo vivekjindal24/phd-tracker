@@ -16,7 +16,7 @@ from app.crud import update
 from app.db import get_session
 from app.enums import STAGES, Stage, StudyMode
 from app.errors import ApiError, forbidden
-from app.models import Faculty, OrgUnit, Scholar, SupervisorAppointment, User
+from app.models import Faculty, OrgUnit, Scholar, SupervisorAppointment, SupervisorChange, User
 from app.rbac import can, require_perm
 from app.schemas import (
     AppointmentOrderIn,
@@ -276,9 +276,22 @@ async def _supervision(
     session: AsyncSession, principal: Principal, scholar: Scholar
 ) -> dict[str, Any]:
     path = await scope.unit_path(session, scholar.unit_id)
+    can_manage = can(principal, "scholars", "update") and principal.covers("admin", path)
+    open_change = await session.scalar(
+        select(SupervisorChange).where(
+            SupervisorChange.scholar_id == scholar.id,
+            SupervisorChange.state != "approved",
+            SupervisorChange.deleted_at.is_(None),
+        )
+    )
     return {
         "appointments": await supervision.history(
             session, scholar.id, with_co=principal.co_supervision != "off"
         ),
-        "can_manage": can(principal, "scholars", "update") and principal.covers("admin", path),
+        "can_manage": can_manage,
+        # A change of supervisor under way, and whether the caller may propose one.
+        "open_change": {"id": open_change.id, "state": open_change.state, "to": open_change.to_name}
+        if open_change
+        else None,
+        "can_propose_change": can_manage and scholar.supervisor_id is not None and not open_change,
     }

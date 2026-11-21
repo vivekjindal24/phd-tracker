@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { Button, Card, ErrorText, Field } from "@/components/ui/kit";
@@ -56,6 +57,12 @@ export function SupervisionCard({ scholarId }: { scholarId: string }) {
   return (
     <Card className="coursework">
       <h2>Supervision</h2>
+      {v.open_change && (
+        <p className="field-hint" role="status">
+          A change of supervisor to <strong>{v.open_change.to}</strong> is under way.{" "}
+          <Link href={`/items/supervisor_change/${v.open_change.id}`}>Open it</Link>
+        </p>
+      )}
       {v.appointments.length === 0 ? <p className="muted">No supervisor appointed yet.</p> : (
         <ul className="plain-list">
           {v.appointments.map((a) => (

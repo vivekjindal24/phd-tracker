@@ -119,26 +119,17 @@ async def assign_supervisor(
     await require_admin_over_scholar(session, principal, scholar)
     if faculty_id == scholar.supervisor_id:
         return
+    if scholar.supervisor_id is not None and announce:  # bulk import loads history quietly
+        raise ApiError(
+            409,
+            "supervisor_change_needs_approval",
+            "This scholar has a supervisor. Propose a change of supervisor instead; it takes "
+            "effect once it is approved.",
+        )
     if faculty_id is None:
         await supervision.change(session, principal, scholar, "supervisor", None)
         return
-    faculty = await _live_faculty(session, faculty_id, lock=True)
-    if not faculty.can_supervise:
-        raise ApiError(422, "cannot_supervise", "This faculty member is not a supervisor.")
-    if faculty_id == scholar.co_supervisor_id:
-        raise ApiError(
-            422,
-            "already_co_supervisor",
-            "This person is already the co-supervisor; remove that first.",
-        )
-    if counts_toward_cap(scholar) and (
-        await supervisor_load(session, faculty_id) >= faculty.max_scholars
-    ):
-        raise ApiError(
-            409,
-            "supervisor_cap_exceeded",
-            f"This supervisor already guides {cap_text(faculty.max_scholars)}, their limit.",
-        )
+    faculty = await check_supervisor(session, scholar, faculty_id)
     await supervision.change(session, principal, scholar, "supervisor", faculty_id)
     if not announce:
         return
@@ -157,6 +148,31 @@ async def assign_supervisor(
         "Your supervisor has been assigned",
         link=f"/scholars/{scholar.id}",
     )
+
+
+async def check_supervisor(
+    session: AsyncSession, scholar: Scholar, faculty_id: uuid.UUID
+) -> Faculty:
+    """Whether this faculty member may become the scholar's supervisor: one who supervises,
+    not their co-supervisor, below their limit (UGC)."""
+    faculty = await _live_faculty(session, faculty_id, lock=True)
+    if not faculty.can_supervise:
+        raise ApiError(422, "cannot_supervise", "This faculty member is not a supervisor.")
+    if faculty_id == scholar.co_supervisor_id:
+        raise ApiError(
+            422,
+            "already_co_supervisor",
+            "This person is already the co-supervisor; remove that first.",
+        )
+    if counts_toward_cap(scholar) and (
+        await supervisor_load(session, faculty_id) >= faculty.max_scholars
+    ):
+        raise ApiError(
+            409,
+            "supervisor_cap_exceeded",
+            f"This supervisor already guides {cap_text(faculty.max_scholars)}, their limit.",
+        )
+    return faculty
 
 
 async def recheck_cap(session: AsyncSession, scholar: Scholar) -> None:
