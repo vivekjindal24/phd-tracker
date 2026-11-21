@@ -4,7 +4,7 @@ import type { AddressInfo } from "node:net";
 import { after, before, test } from "node:test";
 import { inflateSync } from "node:zlib";
 import express from "express";
-import { PDFDocument } from "pdf-lib";
+import { PDFDocument } from "@cantoo/pdf-lib";
 import { createApp, loadConfig } from "../src/server.ts";
 import { stampPdf } from "../src/stamp.ts";
 

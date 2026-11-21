@@ -2,7 +2,7 @@
  *  form printed as the university's form on a page of its own, the rest summed up together — and
  *  after each entry the scans of its papers signed by hand (F17b). An annexure with nothing to show
  *  is listed with the reason, never left out. */
-import { PDFDocument as PDFLibDocument, StandardFonts } from "pdf-lib";
+import { PDFDocument as PDFLibDocument, StandardFonts } from "@cantoo/pdf-lib";
 import PDFDocument from "pdfkit";
 import type { FormView as Form, PhdFileView, SeminarPaperView } from "./api.ts";
 import type { Brand } from "./render.ts";
@@ -25,18 +25,32 @@ function signedMark(entries: Entry[]): string {
   return marks.every(Boolean) ? "Signed" : "Unsigned";
 }
 
+/** A scanned PDF, opened. Phone scanning apps (CamScanner, Adobe Scan …) lock their PDFs against
+ *  editing while leaving them open to read — an empty password opens those. Returns why not, if not. */
+async function openScanPdf(bytes: Uint8Array): Promise<PDFLibDocument | string> {
+  try {
+    return await PDFLibDocument.load(bytes);
+  } catch (e) {
+    if (!/encrypted/i.test(String(e))) return "is not a readable PDF";
+  }
+  return PDFLibDocument.load(bytes, { password: "" }).catch(() => "is protected by a password");
+}
+
 /** Puts an approved scan after its entry: an image on a page of its own; a PDF's pages on blank
- *  pages kept for them, drawn in afterwards with pdf-lib. A scan that cannot be read leaves a note,
- *  never a failed file. */
+ *  pages kept for them, drawn in afterwards with pdf-lib. A scan that cannot be used leaves a note
+ *  saying why, never a failed file. */
 async function drawScan(doc: PDFKit.PDFDocument, heading: string, scan: Scan | undefined, slots: Placeholder[]) {
-  const unreadable = () => {
-    doc.addPage().font("Helvetica-Oblique").fontSize(10)
-      .text(`The signed copy of "${heading}" could not be read here; open it in the portal.`);
+  const note = (why: string, fresh = true) => {
+    console.error(`a signed copy ${why}: ${heading}`);
+    if (fresh) doc.addPage();
+    doc.font("Helvetica-Oblique").fontSize(10)
+      .text(`The signed copy of "${heading}" ${why}, so it is not printed here; open it in the portal.`);
   };
-  if (!scan) return unreadable();
+  if (!scan) return note("could not be downloaded from the file store");
   if (scan.type === "application/pdf") {
-    const src = await PDFLibDocument.load(scan.bytes).catch(() => null);
-    if (!src || src.getPageCount() === 0) return unreadable();
+    const src = await openScanPdf(scan.bytes);
+    if (typeof src === "string") return note(src);
+    if (src.getPageCount() === 0) return note("has no pages");
     for (let index = 0; index < src.getPageCount(); index++) {
       doc.addPage();
       slots.push({ page: doc.bufferedPageRange().count - 1, src, index });
@@ -50,7 +64,7 @@ async function drawScan(doc: PDFKit.PDFDocument, heading: string, scan: Scan | u
       { fit: [doc.page.width - left - right, doc.page.height - top - bottom], align: "center" });
   } catch (e) {
     console.error("a signed copy could not be drawn:", e);
-    doc.text(`The signed copy of "${heading}" could not be read here; open it in the portal.`);
+    note("is not a readable image", false); // its page is open already
   }
 }
 
@@ -63,7 +77,7 @@ async function fillPlaceholders(pdf: Buffer, slots: Placeholder[]): Promise<Buff
     const target = out.getPage(page);
     const { width, height } = target.getSize();
     if (!src.getPage(index).node.Contents()) { // nothing pdf-lib can embed (it would fail on save)
-      target.drawText(`Page ${index + 1} of this signed copy could not be read here; open it in the portal.`,
+      target.drawText(`Page ${index + 1} of this signed copy is blank or unreadable; open it in the portal.`,
         { x: margin, y: height - margin - 10, size: 10, font });
       continue;
     }

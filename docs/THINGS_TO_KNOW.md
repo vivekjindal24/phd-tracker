@@ -152,8 +152,11 @@ remove a point only when the behaviour itself changes.
     PDF. Uploading again replaces the copy in use; the old one stays on record.
     *(2026-11-19)*
 19. **Only PDF, PNG or JPEG.** The scans go into the PhD file as pages, so Word and other
-    files are refused. A scan that cannot be read (locked, damaged, a blank page) leaves a note
-    in the file instead of breaking it. *(2026-11-19)*
+    files are refused. A scan that cannot be used leaves a page saying why, instead of breaking
+    the file: it could not be downloaded from the file store, it is not a readable PDF or image,
+    or it is protected by a password (re-save it without one and upload again). PDFs from phone
+    scanning apps (CamScanner, Adobe Scan …) are locked against editing but open without a
+    password; those print like any other. *(2026-11-19; locked scans 2026-11-22)*
 20. **An approved paper marks its entry "Signed" in the index**, and its pages follow the
     entry in the downloaded file, in the order listed in point 15. *(2026-11-19)*
     A seminar's notice, report and attendance sheet, and a viva's notice and attendance sheet,

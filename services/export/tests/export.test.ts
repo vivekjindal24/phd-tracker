@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import type { AddressInfo } from "node:net";
 import { after, before, test } from "node:test";
 import express from "express";
-import { PDFDocument as PDFLibDocument } from "pdf-lib";
+import { PDFDocument as PDFLibDocument } from "@cantoo/pdf-lib";
 import { createApp, loadConfig } from "../src/server.ts";
 import { phdFileView, seminarPaperView, reportView } from "../src/api.ts";
 import { certificatePdf, csvCell, reportPdf, tableCsv } from "../src/render.ts";
@@ -327,6 +327,25 @@ test("a seminar paper's approved scan takes its generated page's place in the si
   assert.equal((await PDFLibDocument.load(await phdFilePdf(view, scans))).getPageCount(), 5);
   // Unsigned: index and the three generated pages, to print and sign.
   assert.equal((await PDFLibDocument.load(await phdFilePdf(view, scans, false))).getPageCount(), 4);
+});
+
+test("a scanning app's locked PDF prints; one that needs a password leaves a note", async () => {
+  const scanned = async (userPassword: string) => {
+    const pdf = await PDFLibDocument.create();
+    pdf.addPage([300, 400]).drawText("Signed: Dr. Meera", { x: 20, y: 200 });
+    pdf.addPage([300, 400]).drawText("Page 2", { x: 20, y: 200 });
+    pdf.encrypt({ userPassword, ownerPassword: "app-owner" }); // as CamScanner and the like save
+    return { bytes: await pdf.save(), type: "application/pdf" };
+  };
+  const copy = { kind: "signed_copy", label: "Signed copy", copy: { id: "s", content_type: "application/pdf", scan_url: "https://bucket/s" } };
+  const view = phdFileView.parse({ ...phdFile, annexures: [{ key: "employer_noc", title: "NOC", date: null, note: null,
+    entries: [{ ...entry("NOC", true), papers: [copy] }] }] });
+  const pages = async (userPassword: string) =>
+    (await PDFLibDocument.load(await phdFilePdf(view, new Map([["s", await scanned(userPassword)]])))).getPageCount();
+  // index, the entry's summary, and the two scanned pages
+  assert.equal(await pages(""), 4);
+  // index, the summary, and one page saying it is protected by a password
+  assert.equal(await pages("secret"), 3);
 });
 
 test("a long index runs onto a second page before the annexures, rows never overlapping", async () => {

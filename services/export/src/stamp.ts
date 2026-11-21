@@ -1,6 +1,6 @@
 /** Prints a reviewer copy's random code on every page (PRD M3). The code holds no details: only
  *  the API can say whose copy it was. Small and repeated, so a screenshot or a crop keeps one. */
-import { degrees, PDFDocument, rgb, StandardFonts } from "pdf-lib";
+import { degrees, PDFDocument, rgb, StandardFonts } from "@cantoo/pdf-lib";
 
 const SIZE = 8;
 const MARGIN = 14;
