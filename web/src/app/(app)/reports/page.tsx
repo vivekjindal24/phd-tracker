@@ -11,6 +11,7 @@ import { useSession } from "@/lib/session";
 import { STATE_LABELS } from "@/lib/types";
 import type { ItemState, ReportRow } from "@/lib/types";
 import { usePagedFetch } from "@/lib/useFetch";
+import { formatDay } from "@/lib/format";
 
 export default function ReportsPage() {
   const { me } = useSession();
@@ -61,7 +62,7 @@ export default function ReportsPage() {
               </td>
               <td>{r.scholar.name}</td>
               <td><StateBadge state={r.state} waitingOn={r.waiting_on} /></td>
-              <td className="mono">{new Date(r.updated_at).toLocaleDateString()}</td>
+              <td className="mono">{formatDay(r.updated_at)}</td>
             </tr>
           ))}
         </Table>

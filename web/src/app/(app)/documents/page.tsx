@@ -13,6 +13,7 @@ import { DOC_KIND_LABELS } from "@/lib/types";
 import type { DocKind, DocumentItem } from "@/lib/types";
 import { errorText, usePagedFetch } from "@/lib/useFetch";
 import { listPath } from "@/components/ScholarFilter";
+import { formatDay } from "@/lib/format";
 
 function NewDocument() {
   const router = useRouter();
@@ -70,7 +71,7 @@ export default function DocumentsPage() {
               <td>{d.scholar.name}</td>
               <td>{DOC_KIND_LABELS[d.doc_kind]}</td>
               <td className="mono">{d.versions.length}</td>
-              <td className="mono">{new Date(d.updated_at).toLocaleDateString()}</td>
+              <td className="mono">{formatDay(d.updated_at)}</td>
             </tr>
           ))}
         </Table>

@@ -7,6 +7,7 @@ import type { CommentTarget } from "@/lib/types";
 import { errorText, useFetch } from "@/lib/useFetch";
 import { Button, Card, ErrorText } from "./ui/kit";
 import "./comments.css";
+import { formatStamp } from "@/lib/format";
 
 type CommentItem = { id: string; author: string; author_id: string; body: string; created_at: string; mine: boolean };
 
@@ -56,7 +57,7 @@ export function Comments({ target, recordId }: { target: CommentTarget; recordId
           <li key={c.id} className={c.mine ? "mine" : undefined}>
             <div className="comment-head">
               <strong>{c.author}</strong>
-              <time dateTime={c.created_at}>{new Date(c.created_at).toLocaleString()}</time>
+              <time dateTime={c.created_at}>{formatStamp(c.created_at)}</time>
               {c.mine && <button type="button" className="comment-delete" onClick={() => remove(c.id)}
                 aria-label="Delete your comment">Delete</button>}
             </div>

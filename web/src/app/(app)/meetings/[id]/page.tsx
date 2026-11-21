@@ -7,7 +7,7 @@ import { Comments } from "@/components/Comments";
 import { ShareChecks } from "@/components/meetings/ShareChecks";
 import { Button, Card, ErrorText, Field, PageHeader } from "@/components/ui/kit";
 import { api } from "@/lib/api";
-import { formatDate } from "@/lib/format";
+import { formatDate, formatStamp } from "@/lib/format";
 import type { Meeting, MeetingShare } from "@/lib/types";
 import { errorText, useFetch } from "@/lib/useFetch";
 import "../meetings.css";
@@ -94,8 +94,8 @@ export default function MeetingDetail() {
           </Card>
         )}
         <p className="stamp">
-          Logged {new Date(m.created_at).toLocaleString()}
-          {m.updated_at !== m.created_at && ` · last edited ${new Date(m.updated_at).toLocaleString()}`}
+          Logged {formatStamp(m.created_at)}
+          {m.updated_at !== m.created_at && ` · last edited ${formatStamp(m.updated_at)}`}
         </p>
         <p><Link href="/meetings">← All meetings</Link></p>
       </div>

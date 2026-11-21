@@ -323,7 +323,7 @@ export default function ScholarProfile() {
             <dt>Research title</dt>
             <dd>{scholar.research_title ?? <span className="muted">Not set</span>}</dd>
             <dt>Admitted</dt>
-            <dd>{scholar.admission_date ?? <span className="muted">Not recorded</span>}</dd>
+            <dd>{scholar.admission_date ? formatDate(scholar.admission_date) : <span className="muted">Not recorded</span>}</dd>
             <dt>Mode</dt>
             <dd>{scholar.study_mode ? STUDY_MODE_LABELS[scholar.study_mode] : NOT_RECORDED}</dd>
             {scholar.sees_personal && (

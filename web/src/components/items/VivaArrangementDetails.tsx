@@ -7,7 +7,7 @@ import { DownloadButton } from "@/components/DownloadButton";
 import { NoticeCard } from "@/components/NoticeCard";
 import { Button, Card, ErrorText, Field } from "@/components/ui/kit";
 import { api } from "@/lib/api";
-import { formatDate } from "@/lib/format";
+import { formatDate, formatWhen } from "@/lib/format";
 import { VIVA_BOARD_ROLE_LABELS } from "@/lib/types";
 import type { Faculty, ItemView, VivaArrangementContent, VivaBoard, VivaBoardRole } from "@/lib/types";
 import { errorText, useFetch } from "@/lib/useFetch";
@@ -195,7 +195,7 @@ export function VivaArrangementDetails({ item, onSaved }: { item: ItemView; onSa
           </>
         ) : (
           <dl className="kv">
-            <dt>Date and time</dt><dd>{new Date(c.scheduled_at).toLocaleString()}</dd>
+            <dt>Date and time</dt><dd>{formatWhen(c.scheduled_at)}</dd>
             {c.venue && <><dt>Venue</dt><dd>{c.venue}</dd></>}
             {c.online_link && <><dt>Online</dt><dd><a href={c.online_link} rel="noopener noreferrer" target="_blank">{c.online_link}</a></dd></>}
             {c.notes && <><dt>Notes</dt><dd className="prose">{c.notes}</dd></>}

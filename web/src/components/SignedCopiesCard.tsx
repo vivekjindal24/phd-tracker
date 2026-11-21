@@ -6,13 +6,13 @@ import { api } from "@/lib/api";
 import { openFile, uploadFile } from "@/lib/upload";
 import { errorText, useFetch } from "@/lib/useFetch";
 import "./attachments.css";
+import { formatDay } from "@/lib/format";
 
 type Copy = { id: string; file_id: string; file_name: string; uploaded_by: string; uploaded_at: string; approved_at: string | null };
 type Paper = { kind: string; label: string; copy: Copy | null; may_upload: boolean; may_approve: boolean };
 type Entry = { heading: string; date: string | null; record: string | null; papers: Paper[] };
 type PhdFile = { handles_copies: boolean; annexures: { key: string; title: string; entries: Entry[] }[] };
 
-const day = (at: string) => new Date(at).toLocaleDateString();
 
 /** Signed copies of the PhD file's papers (PRD F17b): each entry's papers signed by hand — a
  *  seminar's notification, report and attendance sheet, the viva's papers, the examiners' letters…
@@ -94,8 +94,8 @@ export function SignedCopiesCard({ scholarId }: { scholarId: string }) {
                               {c.file_name}
                             </button>
                             <span className="muted">
-                              Uploaded by {c.uploaded_by} on {day(c.uploaded_at)} ·{" "}
-                              {c.approved_at ? `approved on ${day(c.approved_at)}` : "waiting for approval"}
+                              Uploaded by {c.uploaded_by} on {formatDay(c.uploaded_at)} ·{" "}
+                              {c.approved_at ? `approved on ${formatDay(c.approved_at)}` : "waiting for approval"}
                             </span>
                             {p.may_approve && !c.approved_at && (
                               <Button kind="primary" disabled={busy !== null}

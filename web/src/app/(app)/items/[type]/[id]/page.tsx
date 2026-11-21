@@ -23,6 +23,7 @@ import { RATING_LABELS } from "@/lib/types";
 import type { CommentTarget, ItemType, ItemView, Rating } from "@/lib/types";
 import { errorText, useFetch } from "@/lib/useFetch";
 import "./item.css";
+import { formatStamp } from "@/lib/format";
 
 const ACTION_TEXT: Record<string, string> = {
   submit: "submitted",
@@ -303,7 +304,7 @@ export default function ItemPage() {
                     <strong>{h.actor}</strong>{h.on_behalf_of && <> (on behalf of {h.on_behalf_of})</>} {ACTION_TEXT[h.action] ?? h.action}
                     {h.step && h.action !== "submit" && ` at ${h.step}`}
                     {h.to && ` → ${h.to}`}
-                    <time dateTime={h.at}>{new Date(h.at).toLocaleString()}</time>
+                    <time dateTime={h.at}>{formatStamp(h.at)}</time>
                     {h.rating && <> <span className={`badge ${h.rating === "satisfactory" ? "badge-approved" : "badge-sent_back"}`}>{RATING_LABELS[h.rating]}</span></>}
                     {h.comment && <blockquote>{h.comment}</blockquote>}
                     {h.signature && <img className="history-signature" src={h.signature} alt={`Signature of ${h.actor}`} />}

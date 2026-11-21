@@ -8,6 +8,7 @@ import type { FileItem, FileOwner, FileSlot } from "@/lib/types";
 import { openFile, uploadFile } from "@/lib/upload";
 import { errorText, useFetch } from "@/lib/useFetch";
 import "./attachments.css";
+import { formatDay } from "@/lib/format";
 
 function size(bytes: number): string {
   if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
@@ -85,7 +86,7 @@ export function Attachments({
           {data.map((f) => (
             <li key={f.id}>
               <button type="button" className="file-name" onClick={() => open(f)}>{f.file_name}</button>
-              <span className="muted">{size(f.size_bytes)} · {new Date(f.created_at).toLocaleDateString()}</span>
+              <span className="muted">{size(f.size_bytes)} · {formatDay(f.created_at)}</span>
               {canUpload && (!removeOwnOnly || f.uploaded_by === me?.id) && (
                 <Button kind="ghost" onClick={() => remove(f)}>Remove</Button>
               )}

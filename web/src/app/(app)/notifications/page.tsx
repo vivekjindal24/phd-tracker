@@ -9,6 +9,7 @@ import { api, ApiError } from "@/lib/api";
 import { useSession } from "@/lib/session";
 import type { NotificationItem } from "@/lib/types";
 import "./notifications.css";
+import { formatStamp } from "@/lib/format";
 
 // Mirrors the API's NotificationCategory; muting affects that channel only (PRD F5).
 const CATEGORIES: [string, string][] = [
@@ -209,7 +210,7 @@ export default function NotificationsPage() {
               <div>
                 <strong>{n.title}</strong>
                 {n.body && <p>{n.body}</p>}
-                <time dateTime={n.created_at}>{new Date(n.created_at).toLocaleString()}</time>
+                <time dateTime={n.created_at}>{formatStamp(n.created_at)}</time>
               </div>
               <div className="inbox-actions">
                 {n.link && <Link href={n.link} onClick={(e) => open(e, n)}>Open</Link>}

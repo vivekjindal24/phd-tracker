@@ -9,7 +9,7 @@ import { Celebrate, firstTime } from "@/components/Celebrate";
 import { DownloadButton } from "@/components/DownloadButton";
 import { Button, Card, ErrorText, Field } from "@/components/ui/kit";
 import { api } from "@/lib/api";
-import { formatDate } from "@/lib/format";
+import { formatDate, formatWhen } from "@/lib/format";
 import { RECOMMENDATION_LABELS, VIVA_LABELS } from "@/lib/types";
 import { EXAMINER_ORIGIN_LABELS } from "@/lib/types";
 import type { Evaluation, ExaminerOrigin, Recommendation, VivaOutcome } from "@/lib/types";
@@ -250,7 +250,7 @@ export function ThesisEvaluation({ thesisId, isOwn }: { thesisId: string; isOwn:
         <ul className="plain-list">
           {ev.arrangements.map((a) => (
             <li key={a.id}>
-              <Link href={`/items/viva_arrangement/${a.id}`}>Arranged for {new Date(a.scheduled_at).toLocaleString()}</Link>
+              <Link href={`/items/viva_arrangement/${a.id}`}>Arranged for {formatWhen(a.scheduled_at)}</Link>
               {" "}{a.held ? <span className="muted">· held</span> : <StateBadge state={a.state} waitingOn={null} />}
             </li>
           ))}

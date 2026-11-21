@@ -13,6 +13,7 @@ import { api } from "@/lib/api";
 import { useSession } from "@/lib/session";
 import type { ItemView, NoDuesMine, ThesisRow } from "@/lib/types";
 import { errorText, useFetch, usePagedFetch } from "@/lib/useFetch";
+import { formatDay } from "@/lib/format";
 
 function StartThesis() {
   const router = useRouter();
@@ -109,7 +110,7 @@ export default function ThesisPage() {
               <td><Link href={`/items/thesis_submission/${t.id}`}>{t.title}</Link></td>
               <td>{t.scholar.name}</td>
               <td><StateBadge state={t.state} waitingOn={t.waiting_on} /></td>
-              <td className="mono">{new Date(t.updated_at).toLocaleDateString()}</td>
+              <td className="mono">{formatDay(t.updated_at)}</td>
             </tr>
           ))}
         </Table>

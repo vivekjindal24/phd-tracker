@@ -4,7 +4,7 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import { Button, ErrorText, Field } from "@/components/ui/kit";
 import { api } from "@/lib/api";
-import { formatDate } from "@/lib/format";
+import { formatDate, formatStamp } from "@/lib/format";
 import { EXAMINER_ORIGIN_LABELS, REVIEW_STATUS_LABELS } from "@/lib/types";
 import type { Evaluation, ExaminerOrigin, ReviewCopyTrace, ReviewRow } from "@/lib/types";
 import { errorText } from "@/lib/useFetch";
@@ -133,7 +133,7 @@ function TraceCode() {
       <ErrorText>{error}</ErrorText>
       {trace && (
         <p role="status">
-          {trace.reviewer_name} ({trace.reviewer_email}) · {trace.kind === "download" ? "downloaded" : "viewed"} <time dateTime={trace.issued_at}>{new Date(trace.issued_at).toLocaleString()}</time> · {trace.thesis_title}
+          {trace.reviewer_name} ({trace.reviewer_email}) · {trace.kind === "download" ? "downloaded" : "viewed"} <time dateTime={trace.issued_at}>{formatStamp(trace.issued_at)}</time> · {trace.thesis_title}
         </p>
       )}
     </form>

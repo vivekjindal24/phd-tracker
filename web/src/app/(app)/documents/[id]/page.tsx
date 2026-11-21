@@ -14,6 +14,7 @@ import { errorText, useFetch } from "@/lib/useFetch";
 import "@/components/attachments.css";
 import "@/components/items/items.css";
 import "./document.css";
+import { formatStamp } from "@/lib/format";
 
 function NewVersion({ doc, onSaved }: { doc: DocumentItem; onSaved: (d: DocumentItem) => void }) {
   const [file, setFile] = useState<File | null>(null);
@@ -85,7 +86,7 @@ export default function DocumentPage() {
                 <li key={v.id}>
                   <strong>v{v.version_no}</strong>{" "}
                   <button type="button" className="file-name" onClick={() => open(v.file_id)}>{v.file_name}</button>
-                  <time dateTime={v.created_at}>{new Date(v.created_at).toLocaleString()}</time>
+                  <time dateTime={v.created_at}>{formatStamp(v.created_at)}</time>
                   {v.note && <blockquote>{v.note}</blockquote>}
                 </li>
               ))}

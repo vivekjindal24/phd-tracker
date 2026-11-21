@@ -192,6 +192,12 @@ remove a point only when the behaviour itself changes.
     width of a signed name; a single forwarding officer signs at the right, as on the paper
     forms. *(owner, 2026-11-20)*
 
+## Screens
+
+- **Dates read the same for everyone.** Screens write dates as Indian forms do — "21 Nov
+  2026", "Wed, 22 Sept 2027, 4:30 pm" — whatever language the viewer's browser is set to,
+  as the PDFs do; times are in the viewer's own time zone. *(2026-11-22)*
+
 ## Setting up a real installation
 
 24. **Two-factor sign-in and signing approvals are off by default.** They are off for the
