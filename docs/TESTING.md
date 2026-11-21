@@ -37,6 +37,10 @@
 ### services/api — pytest
 - Runs against **real Postgres DDL**: `conftest.py` applies
   `alembic upgrade head` to a scratch DB and truncates between tests.
+- **One run at a time per test database.** Each test truncates every table as it
+  ends, so two runs sharing a database wipe each other's rows and fail at random.
+  `conftest.py` takes a Postgres advisory lock before migrating; a second run waits
+  ("Another test run is using the test database") until the first ends.
 - Fixtures build a small tree (Root → School A {Dept A1, Dept A2}, School B
   {Dept B1}) and mint one user per role, plus a multi-role user (supervisor +
   HoD of A1 + admin of A1).

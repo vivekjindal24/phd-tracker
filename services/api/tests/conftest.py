@@ -3,6 +3,7 @@
 import os
 import subprocess
 import sys
+from collections.abc import Iterator
 from pathlib import Path
 
 
@@ -66,8 +67,28 @@ def default_date_format() -> None:
     dates.use(DEFAULT_DATE_FORMAT)
 
 
+TEST_RUN_LOCK = 4_242_001  # Postgres advisory lock: one test run per test database at a time
+
+
 @pytest.fixture(scope="session", autouse=True)
-def migrated() -> None:
+def one_run_at_a_time() -> Iterator[None]:
+    """Each test empties every table when it ends, so two runs on one test database wipe each
+    other's rows mid-test and fail at random (test_scoped_like_the_unit, 19 Nov). A second run
+    waits here, before migrating, until the first has finished."""
+    import psycopg
+
+    conn = psycopg.connect(_TEST_DB.replace("postgresql+psycopg://", "postgresql://", 1))
+    conn.autocommit = True
+    row = conn.execute("SELECT pg_try_advisory_lock(%s)", (TEST_RUN_LOCK,)).fetchone()
+    if not (row and row[0]):
+        print("\nAnother test run is using the test database; waiting for it.", file=sys.stderr)
+        conn.execute("SELECT pg_advisory_lock(%s)", (TEST_RUN_LOCK,))
+    yield
+    conn.close()  # releases the lock
+
+
+@pytest.fixture(scope="session", autouse=True)
+def migrated(one_run_at_a_time: None) -> None:
     for junk in API_DIR.rglob("._*"):  # exFAT AppleDouble files break alembic
         junk.unlink(missing_ok=True)
     subprocess.run([sys.executable, "-m", "alembic", "upgrade", "head"], cwd=API_DIR, check=True)
