@@ -30,7 +30,7 @@ class Limits:
     max_maternity_leave_days: int
 
 
-def _add_years(d: date, years: int) -> date:
+def add_years(d: date, years: int) -> date:
     try:
         return d.replace(year=d.year + years)
     except ValueError:  # 29 February
@@ -60,7 +60,7 @@ def assess(
         )
     limit_date = days_left = None
     if scholar.admission_date is not None:
-        limit_date = _add_years(scholar.admission_date, limits.max_years) + timedelta(
+        limit_date = add_years(scholar.admission_date, limits.max_years) + timedelta(
             days=days["extension"] + days["relaxation"]
         )
         days_left = (limit_date - today).days

@@ -398,8 +398,14 @@ first shows **No-dues clearance**: the scholar requests it and it runs its own
 chain — Supervisor (lab) → Department → Library → Research Office (fees);
 submitting the thesis before it is approved is refused with "Get your no-dues
 clearance approved before submitting the thesis."
+Until the thesis is submitted, the page shows **Before you submit · n of m
+met**: the thesis gates the university has switched on (Settings → UGC
+rules) — years since admission and approved publications — each with Met or
+Not yet and what is missing. Submitting before they are met is refused with
+409 `thesis_gate`, naming what is missing.
 Scholar uploads the final thesis → Supervisor → Department → **Library**
-enters plagiarism tool + score and approves → **Exam Office** records receipt
+enters plagiarism tool + score and approves (a score above the university's
+limit cannot be approved: the Library sends it back) → **Exam Office** records receipt
 and examiners → Research Office final approval → scholar stage moves to
 Thesis Submitted.
 After approval, on the thesis page: Exam Office adds each **examiner report**

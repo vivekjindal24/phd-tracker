@@ -87,6 +87,10 @@ export type SettingsData = {
   max_extension_days: number;
   max_relaxation_days: number;
   max_maternity_leave_days: number;
+  min_duration_years: number;
+  max_plagiarism_percent: number;
+  min_publications: number;
+  publications_indexed_only: boolean;
   modules: Record<ModuleKey, boolean>;
   chains: Record<ItemType, { kind: StepKind }[]>;
   email_configured: boolean;
@@ -868,6 +872,7 @@ export type LedgerView = {
 export type UtilisationCertificate = { id: string; period_start: string; period_end: string; submitted_on: string | null };
 
 export type NoDuesMine = { required: boolean; item: ItemView | null };
+export type ThesisGate = { label: string; met: boolean; detail: string };
 
 export type FacultyRequest = {
   id: string;

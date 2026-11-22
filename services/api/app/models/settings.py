@@ -59,6 +59,11 @@ class Settings(Timestamps, Base):
         CheckConstraint("min_coursework_cgpa BETWEEN 0 AND 10", name="ck_settings_min_cgpa"),
         CheckConstraint("max_duration_years BETWEEN 3 AND 12", name="ck_settings_max_years"),
         CheckConstraint(
+            "min_duration_years BETWEEN 0 AND 6 AND min_publications BETWEEN 0 AND 10 "
+            "AND max_plagiarism_percent BETWEEN 0 AND 100",
+            name="ck_settings_thesis_gates",
+        ),
+        CheckConstraint(
             "max_extension_days BETWEEN 0 AND 1825 AND max_relaxation_days BETWEEN 0 AND 1825 "
             "AND max_maternity_leave_days BETWEEN 0 AND 1825",
             name="ck_settings_time_limits",
@@ -119,6 +124,15 @@ class Settings(Timestamps, Base):
     max_extension_days: Mapped[int] = mapped_column(Integer, server_default=text("730"))
     max_relaxation_days: Mapped[int] = mapped_column(Integer, server_default=text("730"))
     max_maternity_leave_days: Mapped[int] = mapped_column(Integer, server_default=text("240"))
+    # Thesis submission gates (thesis_gates.py; owner, 2026-11-22). UGC 2022 reg. 10: not
+    # before 3 years from admission (0: no minimum). UGC 2018 plagiarism regulations: up to 10%
+    # similarity is Level 0. UGC 2022 asks for no publications; many ordinances still do.
+    min_duration_years: Mapped[int] = mapped_column(Integer, server_default=text("3"))
+    max_plagiarism_percent: Mapped[float] = mapped_column(
+        Numeric(5, 2, asdecimal=False), server_default=text("10")
+    )
+    min_publications: Mapped[int] = mapped_column(Integer, server_default=text("0"))
+    publications_indexed_only: Mapped[bool] = mapped_column(Boolean, server_default=text("false"))
     updated_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"))
 
 

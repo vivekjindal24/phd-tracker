@@ -5,11 +5,8 @@ import type { FormEvent } from "react";
 import { Attachments } from "@/components/Attachments";
 import { Button, Card, ErrorText, Field } from "@/components/ui/kit";
 import { api } from "@/lib/api";
-import type { ItemView, ThesisContent } from "@/lib/types";
-import { errorText } from "@/lib/useFetch";
-
-/** UGC (Promotion of Academic Integrity) Regulations 2018: up to 10% similarity is Level 0. */
-const UGC_LEVEL0_MAX = 10;
+import type { ItemView, SettingsData, ThesisContent } from "@/lib/types";
+import { errorText, useFetch } from "@/lib/useFetch";
 
 function StepForm({
   title,
@@ -92,7 +89,9 @@ export function ThesisDetails({ item, onSaved }: { item: ItemView; onSaved: (v: 
   const atLibrary = item.can_act && item.waiting_on === "Library";
   const atExam = item.can_act && item.waiting_on === "Exam Office";
   const atVc = item.can_act && item.waiting_on === "Vice Chancellor";
-  const over = c.plagiarism_score !== null && c.plagiarism_score > UGC_LEVEL0_MAX;
+  // The university's limit (UGC 2018: Level 0 is up to 10%); above it the Library sends it back.
+  const limit = useFetch<SettingsData>("/settings").data?.max_plagiarism_percent;
+  const over = c.plagiarism_score !== null && limit !== undefined && c.plagiarism_score > limit;
   return (
     <>
       <Card>
@@ -103,9 +102,11 @@ export function ThesisDetails({ item, onSaved }: { item: ItemView; onSaved: (v: 
             {c.plagiarism_score === null ? <span className="muted">Not done yet</span> : (
               <>
                 {c.plagiarism_score}% · {c.plagiarism_tool}{" "}
-                <span className={`badge ${over ? "badge-sent_back" : "badge-approved"}`}>
-                  {over ? `Above ${UGC_LEVEL0_MAX}%` : "Within UGC Level 0"}
-                </span>
+                {limit !== undefined && (
+                  <span className={`badge ${over ? "badge-sent_back" : "badge-approved"}`}>
+                    {over ? `Above the ${limit}% limit` : `Within the ${limit}% limit`}
+                  </span>
+                )}
               </>
             )}
           </dd>

@@ -695,6 +695,14 @@ per version) and supervisor feedback (comments). Drafts are visible only to
 scholar and supervisor. **Thesis submission** (chain): title, final file,
 plagiarism tool + score and the plagiarism-check certificate (entered by
 Library at its step), examiners (entered by Exam Office at its step).
+**Submission gates** (Decided 2026-11-22; university settings, they block):
+the scholar cannot submit before `min_duration_years` from admission (UGC
+2022: 3; 0 = none; an unrecorded admission date blocks) nor with fewer than
+`min_publications` approved publications that are accepted or published
+(default 0 = off; optionally only those indexed in Scopus, Web of Science or
+UGC-CARE) → 409 `thesis_gate`. The Library cannot approve a plagiarism score
+above `max_plagiarism_percent` (UGC 2018 Level 0: 10%) → 422
+`workflow_violation`; it sends the thesis back.
 **After submission** (Decided 2026-10-24), on the approved thesis:
 - **Examiner reports:** the Exam Office records each examiner's report —
   received date, recommendation (accept / minor revision / major revision /

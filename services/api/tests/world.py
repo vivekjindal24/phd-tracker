@@ -8,6 +8,7 @@ One user per role, plus Meera: supervisor of scholar a1, HoD of A1 and admin of 
 
 import uuid
 from dataclasses import dataclass
+from datetime import date
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -83,6 +84,8 @@ async def _scholar(
         roll_number=roll,
         supervisor_id=sup.id,
         co_supervisor_id=co.id if co else None,
+        # Four years in: past the thesis's minimum duration, well inside the maximum.
+        admission_date=date.today().replace(year=date.today().year - 4, day=1),
     )
     session.add(s)
     await session.flush()

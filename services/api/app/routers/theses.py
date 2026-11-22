@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import certificate, items, scope, thesis, viva, workflow
+from app import certificate, items, scope, thesis, thesis_gates, viva, workflow
 from app.auth.principal import Principal
 from app.crud import insert, update
 from app.db import get_session
@@ -29,7 +29,7 @@ from app.models import Scholar as ScholarRow
 from app.modules import require_module
 from app.notify import notify
 from app.rbac import require_perm
-from app.schemas import ItemView, NoDuesMine
+from app.schemas import ItemView, NoDuesMine, ThesisGateOut
 from app.schemas.research import (
     CertificateRevokeIn,
     DepositIn,
@@ -114,6 +114,19 @@ async def create_thesis(
     await session.commit()
     ctx = await thesis.load_thesis(session, principal, row.id)
     return await items.view(session, principal, ctx)
+
+
+@router.get("/theses/gates/mine", response_model=list[ThesisGateOut])
+async def my_thesis_gates(
+    principal: Principal = Depends(require_perm("thesis_submissions", "create")),
+    session: AsyncSession = Depends(get_session),
+) -> list[thesis_gates.Gate]:
+    """What the scholar must clear before submitting, as the university has set it."""
+    if principal.scholar_id is None:
+        raise ApiError(403, "forbidden", "Only scholars submit a thesis.")
+    scholar = await session.get(ScholarRow, principal.scholar_id)
+    assert scholar is not None
+    return await thesis_gates.gates(session, scholar)
 
 
 @router.get("/no-dues/mine", response_model=NoDuesMine)

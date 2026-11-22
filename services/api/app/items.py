@@ -21,6 +21,7 @@ from app import (
     signatures,
     signing,
     supervisor_changes,
+    thesis_gates,
     workflow,
 )
 from app.auth.principal import Principal
@@ -63,6 +64,7 @@ class ItemKind:
     # every approver gives a rating and written remarks, not a bare approval (PRD F8)
     assessed: bool = False
     before_submit: Hook | None = None  # raise to refuse a submit / resubmit
+    before_approve: Hook | None = None  # raise to refuse an approval at the current step
     on_approved: Hook | None = None  # side effects of the final approval
 
 
@@ -155,6 +157,7 @@ async def _thesis_ready(session: AsyncSession, principal: Principal, ctx: ItemCo
             "Get your no-dues clearance approved before submitting the thesis.",
         )
     await ethics.require_recorded(session, ctx.scholar.id)
+    await thesis_gates.require_cleared(session, ctx.scholar)
 
 
 async def _thesis_approved(session: AsyncSession, principal: Principal, ctx: ItemContext) -> None:
@@ -243,6 +246,7 @@ REGISTRY: dict[str, ItemKind] = {
             "exam_office": (("examiners", "the examiners"),),
         },
         before_submit=_thesis_ready,
+        before_approve=thesis_gates.require_plagiarism_within_limit,
         on_approved=_thesis_approved,
     ),
     "coursework_clearance": ItemKind(
@@ -329,6 +333,8 @@ async def approve(
         rating = None
     elif not (rating and comment) and await workflow.can_act(session, principal, ctx):
         raise workflow.violation("Give a rating and written remarks before approving.")
+    if kind.before_approve and await workflow.can_act(session, principal, ctx):
+        await kind.before_approve(session, principal, ctx)
     await workflow.approve(session, principal, ctx, comment, rating, signature_id)
     if ctx.item.state == "approved" and kind.on_approved:
         await kind.on_approved(session, principal, ctx)

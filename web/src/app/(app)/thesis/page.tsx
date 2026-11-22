@@ -11,7 +11,7 @@ import { Button, Card, ErrorText, PageHeader, Table } from "@/components/ui/kit"
 import { ListFoot } from "@/components/ListFoot";
 import { api } from "@/lib/api";
 import { useSession } from "@/lib/session";
-import type { ItemView, NoDuesMine, ThesisRow } from "@/lib/types";
+import type { ItemView, NoDuesMine, ThesisGate, ThesisRow } from "@/lib/types";
 import { errorText, useFetch, usePagedFetch } from "@/lib/useFetch";
 import { formatDay } from "@/lib/format";
 
@@ -79,6 +79,27 @@ function NoDues() {
   );
 }
 
+/** What the university asks of a scholar before the thesis can be submitted. */
+function Gates() {
+  const { data, error } = useFetch<ThesisGate[]>("/theses/gates/mine");
+  if (!data) return <ErrorText>{error}</ErrorText>;
+  if (data.length === 0) return null;
+  const met = data.filter((g) => g.met).length;
+  return (
+    <Card>
+      <h2>Before you submit · {met} of {data.length} met</h2>
+      <ul className="module-list">
+        {data.map((g) => (
+          <li key={g.label}>
+            <span><strong>{g.label}</strong> <span className="muted">{g.detail}</span></span>{" "}
+            <span className={`badge ${g.met ? "badge-approved" : "badge-sent_back"}`}>{g.met ? "Met" : "Not yet"}</span>
+          </li>
+        ))}
+      </ul>
+    </Card>
+  );
+}
+
 export default function ThesisPage() {
   const { me } = useSession();
   const filter = useScholarFilter();
@@ -93,6 +114,7 @@ export default function ThesisPage() {
       {/* Not for a scholar: filtering would hide their own thesis card above the list. */}
       {!me?.scholar_id && filter.fields && <div className="toolbar">{filter.fields}</div>}
       <ErrorText>{error}</ErrorText>
+      {me?.scholar_id && (!mine || mine.state === "draft" || mine.state === "sent_back") && <Gates />}
       {me?.scholar_id && <NoDues />}
       {data && me?.scholar_id && (mine ? (
         <Card>

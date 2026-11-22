@@ -152,7 +152,11 @@ migration 0051),
 `min_coursework_cgpa` numeric(4,2) (default 5.5, CHECK 0–10),
 `max_duration_years` (default 6, CHECK 3–12), `max_extension_days` (730),
 `max_relaxation_days` (730), `max_maternity_leave_days` (240) — the UGC rule
-values the university's ordinance sets, `updated_by`, `updated_at`.
+values the university's ordinance sets; the thesis gates (migration 0056,
+CHECK `ck_settings_thesis_gates`): `min_duration_years` (default 3, 0–6; 0 = no
+minimum), `max_plagiarism_percent` numeric(5,2) (default 10, 0–100),
+`min_publications` (default 0 = off, 0–10), `publications_indexed_only` bool
+(default false); `updated_by`, `updated_at`.
 University-wide switches that are not modules live here.
 
 **approval_chains** — `item_type` PK CHECK (`progress_report`,

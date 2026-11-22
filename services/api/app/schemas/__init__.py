@@ -385,6 +385,10 @@ class SettingsOut(BaseModel):
     max_extension_days: int
     max_relaxation_days: int
     max_maternity_leave_days: int
+    min_duration_years: int
+    max_plagiarism_percent: float
+    min_publications: int
+    publications_indexed_only: bool
     modules: dict[ModuleKey, bool]
     chains: dict[ItemType, list[ChainStep]]
     email_configured: bool  # from the server's environment; forms offer email links only if set
@@ -413,6 +417,10 @@ class SettingsUpdate(BaseModel):
     max_extension_days: int | None = Field(default=None, ge=0, le=MAX_ADJUSTMENT_DAYS)
     max_relaxation_days: int | None = Field(default=None, ge=0, le=MAX_ADJUSTMENT_DAYS)
     max_maternity_leave_days: int | None = Field(default=None, ge=0, le=MAX_ADJUSTMENT_DAYS)
+    min_duration_years: int | None = Field(default=None, ge=0, le=6)
+    max_plagiarism_percent: float | None = Field(default=None, ge=0, le=100)
+    min_publications: int | None = Field(default=None, ge=0, le=10)
+    publications_indexed_only: bool | None = None
 
     @model_validator(mode="after")
     def _unique_criteria(self) -> "SettingsUpdate":
@@ -798,6 +806,14 @@ class ItemView(BaseModel):
     send_back_targets: list[SendBackTarget]
     blocked_reason: str | None
     history: list[HistoryEntry]
+
+
+class ThesisGateOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    label: str
+    met: bool
+    detail: str
 
 
 class NoDuesMine(BaseModel):

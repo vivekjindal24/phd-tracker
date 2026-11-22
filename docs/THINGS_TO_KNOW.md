@@ -208,6 +208,22 @@ remove a point only when the behaviour itself changes.
 - **The co-supervisor is not covered.** A co-supervisor is still set or changed directly by the
   department admin. *(owner, 2026-11-22)*
 
+## Thesis submission gates
+
+- **The gates block; they do not warn.** A scholar cannot submit the thesis before 3 years
+  from admission, nor with fewer approved publications than the university asks for. The
+  Library cannot approve a plagiarism score above 10%; it sends the thesis back. All three are
+  set in Settings → UGC rules. *(owner, 2026-11-22)*
+- **Defaults follow UGC.** 3 years (UGC 2022), a 10% plagiarism limit (UGC 2018, Level 0) and no
+  publications (UGC 2022 dropped them). A university whose ordinance asks for papers sets the
+  number, and can count only Scopus, Web of Science or UGC-CARE papers. Only approved papers
+  that are accepted or published count. *(owner, 2026-11-22)*
+- **The admission date must be recorded.** With a minimum duration set, a scholar with no
+  admission date cannot submit until the department records it. Check the admission dates
+  after a bulk import. *(owner, 2026-11-22)*
+- **The scholar sees the list first.** The thesis page shows "Before you submit · 1 of 2 met",
+  saying what is still missing. *(owner, 2026-11-22)*
+
 ## Notice board (PRD F18)
 
 - **Anveshan keeps no fees.** The university's own fee system keeps scholars' fees and
