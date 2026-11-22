@@ -118,6 +118,12 @@ def _is_step_supervisor(principal: Principal, ctx: ItemContext) -> bool:
     )
 
 
+def _head_signs(ctx: ItemContext) -> bool:
+    """An item the department admin starts is signed at the Department step by the head, not
+    by another admin (owner, 2026-11-22)."""
+    return INITIATOR[ctx.item_type] == "department"
+
+
 def holds_step(principal: Principal, ctx: ItemContext, kind: str) -> bool:
     """Role-level answer: does the caller fill a step of this kind for this scholar?"""
     if principal.user_id == ctx.scholar.user_id:
@@ -128,7 +134,9 @@ def holds_step(principal: Principal, ctx: ItemContext, kind: str) -> bool:
         )
     if kind == "department":
         path = ctx.scholar_unit_path
-        return principal.covers("unit_head", path) or principal.covers("admin", path)
+        return principal.covers("unit_head", path) or (
+            not _head_signs(ctx) and principal.covers("admin", path)
+        )
     return kind in OFFICE_ROLES and kind in principal.office_roles
 
 
@@ -165,8 +173,13 @@ async def can_act(session: AsyncSession, principal: Principal, ctx: ItemContext)
     last = await _last_action(session, ctx)
     if not (holds_step(principal, ctx, kind) or _head_steps_in(principal, ctx, kind, last)):
         return False
-    # No one approves two consecutive steps of the same item (SECURITY.md §4).
-    return not (last and last.action == "approve" and last.actor_id == principal.user_id)
+    # No one approves two consecutive steps of the same item, nor the step right after their
+    # own submit (SECURITY.md §4).
+    return not (
+        last
+        and last.action in ("approve", "submit", "resubmit")
+        and last.actor_id == principal.user_id
+    )
 
 
 def assert_editable(principal: Principal, ctx: ItemContext) -> None:
@@ -216,7 +229,9 @@ async def step_actor_ids(
                 .join(OrgUnit, OrgUnit.id == RoleAssignment.unit_id)
                 .where(
                     RoleAssignment.deleted_at.is_(None),
-                    RoleAssignment.role.in_(("unit_head", "admin")),
+                    RoleAssignment.role.in_(
+                        ("unit_head",) if _head_signs(ctx) else ("unit_head", "admin")
+                    ),
                     RoleAssignment.user_id != actor,
                     OrgUnit.path.op("@>")(cast(literal(ctx.scholar_unit_path), Ltree)),
                 )
@@ -441,6 +456,19 @@ async def send_back(
         initiator = INITIATOR[ctx.item_type]
         if initiator == "scholar":
             ids = [ctx.scholar.user_id]
+        elif initiator == "department":  # the admin who submitted it
+            ids = list(
+                await session.scalars(
+                    select(ApprovalActionRow.actor_id)
+                    .where(
+                        ApprovalActionRow.item_type == ctx.item_type,
+                        ApprovalActionRow.item_id == ctx.item.id,
+                        ApprovalActionRow.action.in_(("submit", "resubmit")),
+                    )
+                    .order_by(ApprovalActionRow.at.desc())
+                    .limit(1)
+                )
+            )
         else:
             ids = await step_actor_ids(session, ctx, initiator, principal.user_id)
         notify(session, ids, "sent_back", f"{ctx.label} sent back", comment, ctx.link)

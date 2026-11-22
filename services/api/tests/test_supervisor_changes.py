@@ -47,8 +47,12 @@ async def test_a_supervisor_changes_only_once_the_chain_approves(client, session
 
     sent = await act(client, world.admin_a1, cid, "submit")
     assert sent.status_code == 200
-    assert sent.json()["send_back_targets"][0]["label"] == "Back to the department admin"
-    assert (await act(client, world.admin_a1, cid, "approve")).status_code == 200  # Department
+    assert sent.json()["send_back_targets"] == []  # the proposer can't act on it any more
+    head = await client.get(f"{API}/items/supervisor_change/{cid}", headers=auth(world.meera.id))
+    assert head.json()["send_back_targets"][0]["label"] == "Back to the department admin"
+    # The proposer never signs it; nor another admin: the Department step is the head's.
+    assert (await act(client, world.admin_a1, cid, "approve")).status_code == 422
+    assert (await act(client, world.meera, cid, "approve")).status_code == 200  # HoD
     scholar = await session.get(Scholar, world.s_a1.id)
     await session.refresh(scholar)
     assert scholar.supervisor_id == world.meera_faculty.id  # not yet: the office approves last
@@ -107,3 +111,18 @@ async def test_the_proposal_is_edited_or_withdrawn_while_a_draft(client, world):
     gone = await client.delete(f"{API}/supervisor-changes/{cid}", headers=auth(world.admin_a1.id))
     assert gone.status_code == 204
     assert (await propose(client, world)).status_code == 201  # withdrawn: no longer open
+
+
+async def test_sent_back_to_the_admin_who_submitted(client, session, world):
+    cid = (await propose(client, world)).json()["id"]
+    await act(client, world.admin_a1, cid, "submit")
+    res = await client.post(
+        f"{API}/items/supervisor_change/{cid}/send-back",
+        headers=auth(world.meera.id),
+        json={"comment": "Attach the scholar's consent letter."},
+    )
+    assert res.status_code == 200, res.text
+    told = await session.scalars(
+        select(Notification.user_id).where(Notification.category == "sent_back")
+    )
+    assert list(told) == [world.admin_a1.id]

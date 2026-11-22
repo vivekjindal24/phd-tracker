@@ -228,8 +228,9 @@ contents of a record are read there, never in the log.
 2. **Propose the change** → the item page of the proposal (a draft): **Submit for
    approval**, or **Withdraw this proposal**. The profile's Supervision card shows
    "A change of supervisor to … is under way" with a link.
-3. The chain (Department → Research Office by default) acts as in Flow 2; sent back, it
-   returns to the department admin.
+3. The chain (Department → Research Office by default) acts as in Flow 2. The HoD signs
+   the Department step (the Dean, if the HoD proposed it); the proposing admin cannot.
+   Sent back, it returns to the admin who submitted it.
 4. On the final approval the supervisor changes; the Supervision card shows the new one
    as current and the old one with its end date. The old supervisor, the new one and
    the scholar get a notification and email.

@@ -162,7 +162,7 @@ role's scope (§2).
 | no-dues clearance | CR own, submit | R, step | R, step (department) | R, step (department) | R, step | R | R, step |
 | examiner reports | R own after release† | R after release† | R | R | R | CRU, release | R |
 | thesis reviewers (invite, deadline, trace a code) | — | — | — | — | — | CRU | — |
-| change of supervisor (PRD F3; the supervisor changes only on approval) | R own | R | R, step (department) | CRUD while draft / sent back, submit; R subtree‡; step (department) | R, step | — | — |
+| change of supervisor (PRD F3; the supervisor changes only on approval) | R own | R | R, step (department) | CRUD while draft / sent back, submit; R subtree‡ (never the step it submitted) | R, step | — | — |
 | viva arrangement (date, place, board; external examiners unnamed as †) | R own | R | R | R | R | CRUD while draft / sent back, submit, email examiners | R |
 | viva | R own | R | R | R | R | CRU (only against an approved arrangement) | R |
 | provisional certificate | R own | R | R | R | R, issue, revoke | R | R |
@@ -352,11 +352,14 @@ regardless of role, and so does a NAAC sheet built from that module.
     or an ancestor of it (nearest-first, but any of them may act). The
     notification goes to the nearest unit with a head/admin *other than the
     actor who moved the item*: a HoD who approved as supervisor hands the
-    step to the Dean;
+    step to the Dean. On an item the department admin starts (a change of
+    supervisor) only a `unit_head` holds this step, not another admin: the
+    HoD, or the Dean when the HoD is the proposer *(owner, 2026-11-22)*;
   - `research_office` / `exam_office` / `library` / `vice_chancellor` → any
     holder of that role.
 - **No self-approval:** a user may not act on an item about themselves, and
-  may not act on two consecutive steps of the same item (the engine checks
+  may not act on two consecutive steps of the same item, nor on the step
+  right after their own submit or resubmit (the engine checks
   `approval_actions`); the next eligible person must act.
 - Send back: approver chooses the initiator or any earlier step; comment
   required. Illegal action/role/state → 422 `workflow_violation`.

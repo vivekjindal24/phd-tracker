@@ -39,7 +39,7 @@ async def test_past_supervisors_stay_on_record(client, world):
     cid = (await propose(client, world, effective_on=None)).json()["id"]
     for user, action in (
         (world.admin_a1, "submit"),
-        (world.admin_a1, "approve"),
+        (world.meera, "approve"),  # the HoD signs the Department step
         (world.research_office, "approve"),
     ):
         assert (await act(client, user, cid, action)).status_code == 200

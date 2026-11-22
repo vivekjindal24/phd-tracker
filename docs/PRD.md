@@ -163,7 +163,7 @@ whole university** (not per unit). Default chains:
 | No-dues clearance (when the university requires it, M3) | Scholar | Supervisor (lab dues) → Department → Library (books) → Research Office (fees) |
 | Fellowship claim (module Fellowships, M6) | Scholar | Supervisor (certifies the month) → Department → Research Office |
 | Viva arrangement (M3: Forms X and XI) | Exam Office (date, place, board) | Vice Chancellor |
-| Change of supervisor (Decided 2026-11-22) | Department admin (new supervisor, reason, scholar's consent, order no. and date) | Department → Research Office |
+| Change of supervisor (Decided 2026-11-22) | Department admin (new supervisor, reason, scholar's consent, order no. and date) | Department (HoD, never the proposer) → Research Office |
 
 A scholar's **first** supervisor is appointed directly by the department admin. Once a
 scholar has one, a different supervisor comes only through an approved **change of

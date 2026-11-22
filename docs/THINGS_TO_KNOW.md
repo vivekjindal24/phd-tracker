@@ -201,6 +201,8 @@ remove a point only when the behaviour itself changes.
   change, from the order's date or else that day. The old supervisor stays in the
   supervision history. A bulk import still loads supervisors as given. *(owner,
   2026-11-22)*
+- **The HoD signs the Department step, never the proposer.** Another department admin cannot
+  sign it either. If the HoD proposed the change, the Dean signs. *(owner, 2026-11-22)*
 - **Work waiting on the old supervisor moves to the new one.** A progress report or other item
   at the supervisor step is then waiting on the new supervisor. *(owner, 2026-11-22)*
 - **The co-supervisor is not covered.** A co-supervisor is still set or changed directly by the
