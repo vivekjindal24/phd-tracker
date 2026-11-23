@@ -4,7 +4,7 @@ import uuid
 from typing import Any
 
 from fastapi import APIRouter, Depends, Query, Response
-from sqlalchemy import select
+from sqlalchemy import case, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import grievances
@@ -36,7 +36,11 @@ async def list_grievances(
     )
     if status:
         stmt = stmt.where(Grievance.status == status)
-    stmt = stmt.order_by(Grievance.created_at.desc(), Grievance.id)
+    # Those someone must still decide first, soonest deadline on top; then the rest, newest first.
+    pending = case((Grievance.status.in_(("open", "appealed")), 0), else_=1)
+    stmt = stmt.order_by(
+        pending, case((pending == 0, Grievance.due_on)), Grievance.created_at.desc(), Grievance.id
+    )
     rows = (await page_of(session, response, stmt, limit, offset)).scalars().all()
     return [await grievances.view(session, principal, g) for g in rows]
 

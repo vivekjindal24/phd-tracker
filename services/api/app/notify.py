@@ -35,6 +35,7 @@ WHATSAPP_TEXT: dict[str, str] = {
     "grant_alert": "A research grant needs attention",
     "seminar": "There is an update on a progress seminar",
     "notice": "A new notice is on the notice board",
+    "grievance": "There is an update on a grievance",
     "system": "There is a new update for you",
 }
 

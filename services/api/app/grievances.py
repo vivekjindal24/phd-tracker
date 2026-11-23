@@ -12,7 +12,7 @@ import uuid
 from datetime import UTC, date, datetime, timedelta
 from typing import Any
 
-from sqlalchemy import ColumnElement, false, or_, select, true
+from sqlalchemy import ColumnElement, false, func, or_, select, true
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import dates
@@ -152,7 +152,7 @@ async def _scholar_user(session: AsyncSession, g: Grievance) -> uuid.UUID:
 def _tell(session: AsyncSession, users: list[uuid.UUID], title: str, g: Grievance) -> None:
     """Never the grievance's words in a notification or email: only that there is one."""
     notify(
-        session, users, "system", title, "Open it in Anveshan to read it.", f"/grievances/{g.id}"
+        session, users, "grievance", title, "Open it in Anveshan to read it.", f"/grievances/{g.id}"
     )
 
 
@@ -304,3 +304,56 @@ async def daily(session: AsyncSession, day: date) -> dict[str, int]:
             _tell(session, [*holders, *vcs], "A grievance is past its deadline", g)
             counts["grievances_overdue"] += 1
     return counts
+
+
+async def home(session: AsyncSession, principal: Principal) -> dict[str, Any] | None:
+    """Home's grievance tiles: what waits on the caller to decide (with its deadlines), what
+    waits on the scholar's answer, and for the Vice Chancellor what is past its deadline."""
+    appellate = await appeals_to(session)
+    deciding = [
+        status
+        for role, status in (("grievance_cell", "open"), (appellate, "appealed"))
+        if role in principal.office_roles
+    ]
+    is_vc = "vice_chancellor" in principal.office_roles
+    if not (deciding or is_vc or principal.scholar_id):
+        return None
+    live = (Grievance.deleted_at.is_(None), visible(principal, appellate))
+    day = today()
+    out: dict[str, Any] = {
+        "decides": bool(deciding),  # holds a deciding role, even with nothing waiting
+        "to_decide": 0,
+        "overdue": 0,
+        "next_due": None,
+        "to_answer": 0,
+    }
+
+    async def count(*where: ColumnElement[bool]) -> int:
+        return await session.scalar(select(func.count()).where(*live, *where)) or 0
+
+    if deciding:
+        dues = list(
+            await session.scalars(
+                select(Grievance.due_on).where(
+                    *live,
+                    Grievance.status.in_(deciding),
+                    Grievance.scholar_id != principal.scholar_id
+                    if principal.scholar_id
+                    else true(),
+                )
+            )
+        )
+        out |= {
+            "to_decide": len(dues),
+            "overdue": sum(d < day for d in dues),
+            "next_due": min((d for d in dues if d >= day), default=None),
+        }
+    if principal.scholar_id:
+        out["to_answer"] = await count(
+            Grievance.scholar_id == principal.scholar_id, Grievance.status == "decided"
+        )
+    if is_vc:
+        out["past_deadline"] = await count(
+            Grievance.status.in_(("open", "appealed")), Grievance.due_on < day
+        )
+    return out

@@ -220,7 +220,8 @@ returns 404 `module_disabled`.
 **F5 — Notifications.** In-app inbox plus email (SMTP): item waiting for your
 step, item sent back to you, item approved, APR due in 14 days / overdue,
 meeting tomorrow, fellowship ending in 60 days. A user can mute email per
-category; in-app is always on. A notification is read once its person opens
+category; in-app is always on. Grievance notices (F19) cannot be muted, on email
+or WhatsApp: they carry legal deadlines (Decided 2026-11-23). A notification is read once its person opens
 the page it points to, however they got there, or acts on the item it is about
 (from the item, the queue or anywhere else) — not only by clicking it in the
 inbox (Decided 2026-11-19).
@@ -428,6 +429,12 @@ not an application: the ethics committee decides outside the system.
 - Offices: their queue (items at their step), oldest first.
 - Admin: people and setup gaps in their unit (scholars without supervisor,
   units without head).
+- Grievance cell / Ombudsperson (or the VC, where appeals go to them): grievances
+  to decide, with how many are past the deadline or the next deadline; someone
+  holding only a grievance role sees no approval tile. Vice Chancellor:
+  grievances past their deadline, university-wide, when any are. Scholar: a
+  tile when their grievance has a decision to accept or appeal (Decided
+  2026-11-23).
 
 **F11 — Scholar timeline.** One page per scholar: meetings, reports,
 milestones, publications, coursework, thesis — in date order, each item
@@ -695,6 +702,9 @@ Notifications and emails say only that there is a grievance, never its words.
 The daily job reminds whoever must decide 3 days before the deadline and tells
 them and the Vice Chancellor the day after it is missed. A sexual-harassment
 complaint is pointed to the Internal Complaints Committee, outside Anveshan.
+The list puts grievances still to be decided first, soonest deadline on top;
+Home shows each role what waits on them (F10); grievance notices cannot be
+muted (F5).
 
 ### 6.3 Optional modules
 

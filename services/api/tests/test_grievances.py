@@ -190,3 +190,49 @@ async def test_the_audit_log_keeps_no_words_and_shows_no_rows(client, session, w
         res = await client.get("/api/v1/audit-log", params={"limit": 500}, headers=auth(user.id))
         assert res.status_code == 200, user.full_name
         assert {r["record_id"] for r in res.json()} & {gid, str(paper.id)} == set()
+
+
+async def test_home_shows_each_role_what_waits_on_them(client, session, world, panel):
+    cell, ombudsperson = panel
+
+    async def home(user):
+        res = await client.get("/api/v1/dashboard", headers=auth(user.id))
+        assert res.status_code == 200, res.text
+        return res.json()["grievances"]
+
+    first, second = await filed(client, world), await filed(client, world)
+    late = await session.get(Grievance, uuid.UUID(second))
+    late.due_on = date.today() - timedelta(days=2)
+    await session.commit()
+    mine = await home(cell)
+    assert (mine["decides"], mine["to_decide"], mine["overdue"]) == (True, 2, 1)
+    assert mine["next_due"] == str(grievances.working_days_after(date.today(), 15))
+    assert (await home(world.vice_chancellor))["past_deadline"] == 1
+    assert (await home(ombudsperson))["to_decide"] == 0
+    assert await home(world.dean_a) is None  # no grievance role, no scholar: no tile
+    assert (await home(world.meera))["to_decide"] == 0  # on the cell, but supervises both
+    # The list puts what must still be decided first, the overdue one on top.
+    listed = (await client.get(API, headers=auth(cell.id))).json()
+    assert [g["id"] for g in listed] == [second, first]
+
+    await step(client, cell, first, "decide", {"text": "Resolved."})
+    assert (await home(world.scholar_a1))["to_answer"] == 1
+    await step(client, world.scholar_a1, first, "appeal", {"reason": "Not resolved."})
+    assert (await home(ombudsperson))["to_decide"] == 1
+    listed = (await client.get(API, headers=auth(cell.id))).json()
+    assert listed[0]["id"] == second  # overdue before the appeal due in 30 days
+
+
+async def test_grievance_notices_cannot_be_muted(client, session, world, panel):
+    cell, _ = panel
+    for path, body in (
+        ("/api/v1/auth/me/email-muted", {"email_muted": ["grievance"]}),
+        ("/api/v1/auth/me/whatsapp", {"whatsapp_number": None, "whatsapp_muted": ["grievance"]}),
+    ):
+        res = await client.put(path, headers=auth(cell.id), json=body)
+        assert res.status_code == 422, path
+    gid = await filed(client, world)
+    told = await session.scalar(
+        select(Notification.category).where(Notification.link == f"/grievances/{gid}")
+    )
+    assert told == "grievance"

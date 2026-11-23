@@ -525,6 +525,11 @@ it) → **Grievances** lists every one it may read, with each deadline → opens
 scholar is told → **Accept and close**, or **Appeal to the Ombudsperson** (or the
 Vice Chancellor) with why, until the date shown → the decider is told → **Record
 the decision on the appeal**, which closes it; the scholar and the cell are told.
+Home shows the cell and the Ombudsperson **Grievances to decide** (and how many
+are past the deadline, or the next deadline), the Vice Chancellor **Grievances
+past their deadline** when any are, and the scholar **Your grievance has a
+decision** while it waits on their answer. **Grievances** lists those still to
+be decided first, soonest deadline on top.
 Root admin → Settings → Offices: appoint the **Grievance cell** and the
 **Ombudsperson**, and choose who decides appeals. A step out of turn → 409
 `grievance_state`; anyone else opening it → 403.

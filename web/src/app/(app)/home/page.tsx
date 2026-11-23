@@ -51,6 +51,8 @@ type Dashboard = {
   };
   supervisor?: { load: number; max_scholars: number; scholars: { id: string; name: string; stage: string }[]; overdue_reports: Overdue[] };
   units: UnitSection[];
+  // Absent for someone with no grievance role and no scholar record (grievances.home).
+  grievances: { decides: boolean; to_decide: number; overdue: number; next_due: string | null; to_answer: number; past_deadline?: number } | null;
 };
 
 const DUE_TEXT: Record<DueStatus, [string, string]> = {
@@ -176,12 +178,51 @@ function UnitBlock({ u }: { u: UnitSection }) {
   );
 }
 
+/** What waits on a grievance decider, and for the Vice Chancellor what is past its deadline. */
+function GrievanceTiles({ g }: { g: NonNullable<Dashboard["grievances"]> }) {
+  const late = g.past_deadline ?? 0;
+  if (!g.decides && late === 0) return null;
+  const sub = g.overdue > 0 ? `${g.overdue} past the deadline` : g.next_due ? `next due ${formatDate(g.next_due)}` : null;
+  return (
+    <section className="dash-section" aria-label="Grievances">
+      <div className="bento">
+        {g.decides && (
+          <Tile label="Grievances to decide" value={g.to_decide} href="/grievances"
+            tone={g.overdue ? "tile-coral" : g.to_decide ? "tile-accent" : "tile-sage"}>
+            {sub && <span className="tile-sub">{sub}</span>}
+          </Tile>
+        )}
+        {late > 0 && (
+          <Tile label="Grievances past their deadline" value={late} href="/grievances" tone="tile-coral">
+            <span className="tile-sub">university-wide</span>
+          </Tile>
+        )}
+      </div>
+    </section>
+  );
+}
+
+const GRIEVANCE_ROLES = new Set(["grievance_cell", "ombudsperson"]);
+
+// "Prof. Kavita Rao" -> "Kavita"; "Justice (Retd.) S. K. Menon" -> "S. K. Menon": titles go, and
+// a name starting with initials keeps the surname rather than greeting an initial.
+const HONORIFIC = /^(?:(?:dr|prof|mr|mrs|ms|shri|smt|kumari|justice)\.?|\(retd\.?\))\s+/i;
+function greetingName(full: string): string {
+  let name = full.trim();
+  while (HONORIFIC.test(name)) name = name.replace(HONORIFIC, "");
+  const first = name.split(" ")[0] ?? name;
+  return /^[A-Z]\.$/.test(first) ? name : first;
+}
+
 export default function HomePage() {
   const { me } = useSession();
   const { data: d, error } = useFetch<Dashboard>("/dashboard");
   if (!me) return null;
-  const firstName = me.full_name.replace(/^(Dr\.|Prof\.)\s+/, "").split(" ")[0];
+  const firstName = greetingName(me.full_name);
   const sch = d?.scholar;
+  // Someone who only handles grievances has no approval queue to show.
+  const grievanceOnly = !me.is_root_admin && me.roles.every((r) => GRIEVANCE_ROLES.has(r));
+  const toDecide = d?.grievances?.decides ? d.grievances.to_decide : 0;
 
   return (
     <>
@@ -191,16 +232,18 @@ export default function HomePage() {
           <h1>
             {d && d.queue_count > 0
               ? `${d.queue_count} item${d.queue_count === 1 ? " is" : "s are"} waiting for you`
+              : toDecide > 0 ? `${toDecide} grievance${toDecide === 1 ? " is" : "s are"} waiting for you`
               : sch?.next_seminar ? "Your next seminar is coming up" : "Welcome back"}
           </h1>
         </div>
-        <Owl pose={d && d.queue_count === 0 ? "idle" : "reading"} size={150} />
+        <Owl pose={d && d.queue_count === 0 && toDecide === 0 ? "idle" : "reading"} size={150} />
       </section>
       <ErrorText>{error}</ErrorText>
       <NoticeBoardCard />
       {d && (
         <>
-          {(d.queue_count > 0 || !sch) && (
+          {d.grievances && <GrievanceTiles g={d.grievances} />}
+          {(d.queue_count > 0 || (!sch && !grievanceOnly)) && (
             <section className="dash-section">
               <div className="bento">
                 <Tile label="Waiting for your decision" value={d.queue_count} href="/queue" tone={d.queue_count ? "tile-accent" : "tile-sage"}>
@@ -218,6 +261,11 @@ export default function HomePage() {
           {sch && (
             <section className="dash-section" aria-label="Your research">
               <div className="bento">
+                {(d.grievances?.to_answer ?? 0) > 0 && (
+                  <Tile label="Your grievance has a decision" href="/grievances" tone="tile-butter tile-wide">
+                    <span>Accept it, or appeal within 15 days of the decision.</span>
+                  </Tile>
+                )}
                 {sch.profile_incomplete && (
                   <Tile label="Complete your profile" href={`/scholars/${me.scholar_id}`} tone="tile-wide">
                     <span>A few details about you are not on record yet. It takes a minute.</span>

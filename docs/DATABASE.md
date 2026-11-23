@@ -517,7 +517,9 @@ fellowship_claims), `author_id`, `body`
 
 **notifications** — `user_id` (indexed), `category` CHECK
 (approval_waiting / sent_back / approved / apr_due / meeting_tomorrow /
-fellowship_ending / grant_alert / seminar / system), `title`, `body`, `link`, `read_at`,
+fellowship_ending / grant_alert / seminar / notice / system / grievance; `grievance`
+since migration 0059, and never in `users.email_muted` / `whatsapp_muted` — the API
+refuses it), `title`, `body`, `link`, `read_at`,
 `email_status` CHECK (not_sent / sent / failed / muted), `email_error`,
 `whatsapp_status` (same CHECK), `whatsapp_error`.
 
@@ -607,7 +609,8 @@ modules only, filtered by `scope.py`.
 (`--reset-passwords` resets seeded accounts). Seeds: university tree
 (Anveshan Demo University → School of Engineering {Computer Science,
 Electronics}, School of Sciences {Physics, Chemistry}); root admin; research
-office, exam office and library users; a HoD per department, a Dean per
+office, exam office and library users; a grievance cell member and an
+Ombudsperson, with one open grievance from an ECE scholar; a HoD per department, a Dean per
 school, a department admin; supervisors across designations (one HoD is also
 a supervisor); scholars across stages with admission dates (one always about
 four months from the UGC maximum, so the leadership view shows a scholar at

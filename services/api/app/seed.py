@@ -15,7 +15,7 @@ from datetime import date, timedelta
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import supervision
+from app import grievances, supervision
 from app.auth.service import hash_password
 from app.crud import insert
 from app.db import SessionLocal, engine
@@ -27,6 +27,7 @@ from app.models import (
     Enrolment,
     Faculty,
     Fellowship,
+    Grievance,
     LedgerEntry,
     Module,
     OrgUnit,
@@ -62,6 +63,8 @@ DEMO_STAFF = [
     ("dean.eng", "Prof. Arvind Menon", [("unit_head", "ENG")]),
     ("dean.sci", "Prof. Leela Iyer", [("unit_head", "SCI")]),
     ("drc.cse", "Rohit Verma", [("admin", "CSE")]),
+    ("grievance", "Prof. Anjali Deshmukh", [("grievance_cell", None)]),
+    ("ombudsperson", "Justice (Retd.) S. K. Menon", [("ombudsperson", None)]),
 ]
 # (login, full name, designation, unit, extra roles)
 DEMO_FACULTY = [
@@ -231,6 +234,21 @@ async def _demo_records(
                 grade_points=grade[1] if grade else None,
             ),
         )
+    # A grievance waiting on the grievance cell, so the cell's Home and list show one.
+    await insert(
+        session,
+        None,
+        Grievance(
+            scholar_id=scholars["neha"].id,
+            category="evaluation",
+            subject="Coursework marks not shown before the result",
+            description="The marks of my Research Methodology course were published without the "
+            "answer sheets being shown, as the coursework rules require. I asked the course "
+            "coordinator twice by email in October.",
+            status="open",
+            due_on=grievances.working_days_after(date.today(), grievances.CELL_WORKING_DAYS),
+        ),
+    )
     priya = scholars["priya"].id
     await insert(
         session,

@@ -33,8 +33,8 @@ from app.enums import (
     MilestoneStatus,
     MilestoneType,
     ModuleKey,
+    MutableCategory,
     NoticeSigner,
-    NotificationCategory,
     PanelKind,
     Period,
     Rating,
@@ -520,14 +520,14 @@ class NotificationOut(Out):
 
 
 class EmailMutedIn(BaseModel):
-    email_muted: list[NotificationCategory] = Field(max_length=20)
+    email_muted: list[MutableCategory] = Field(max_length=20)
 
 
 class WhatsappIn(BaseModel):
     """Own number only; null clears it (opts out)."""
 
     whatsapp_number: Annotated[str, StringConstraints(pattern=WHATSAPP_NUMBER_RE)] | None
-    whatsapp_muted: list[NotificationCategory] = Field(max_length=20)
+    whatsapp_muted: list[MutableCategory] = Field(max_length=20)
 
 
 # --- files ------------------------------------------------------------------------------

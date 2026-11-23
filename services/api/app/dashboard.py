@@ -8,7 +8,7 @@ from typing import Any
 from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import coursework, directory, duration, items, scope, seminars
+from app import coursework, directory, duration, grievances, items, scope, seminars
 from app.auth.principal import Principal
 from app.enums import STAGES
 from app.models import (
@@ -397,6 +397,7 @@ async def build(session: AsyncSession, principal: Principal) -> dict[str, Any]:
     ]
     if principal.scholar_id:
         out["scholar"] = await _scholar_section(session, principal)
+    out["grievances"] = await grievances.home(session, principal)
     if principal.faculty_id and principal.can_supervise:
         out["supervisor"] = await _supervisor_section(session, principal)
     by_unit: dict[uuid.UUID, tuple[str, list[str]]] = {}

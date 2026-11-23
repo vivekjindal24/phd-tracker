@@ -90,7 +90,9 @@ SSO_PROVIDERS = get_args(SsoProvider)
 AuditAction = Literal["insert", "update", "soft_delete", "restore", "transition", "lookup"]
 AUDIT_ACTIONS = get_args(AuditAction)
 
-NotificationCategory = Literal[
+# What a person may mute (email, WhatsApp); grievance notices carry legal deadlines and are
+# always delivered (grievances.py).
+MutableCategory = Literal[
     "approval_waiting",
     "sent_back",
     "approved",
@@ -102,6 +104,7 @@ NotificationCategory = Literal[
     "notice",  # a notice posted on the notice board
     "system",
 ]
+NotificationCategory = Literal[MutableCategory, "grievance"]
 NOTIFICATION_CATEGORIES = get_args(NotificationCategory)
 # E.164: "+" then country code and number, 8-15 digits (users.whatsapp_number CHECK).
 WHATSAPP_NUMBER_RE = r"^\+[1-9][0-9]{7,14}$"

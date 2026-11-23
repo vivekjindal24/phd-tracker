@@ -53,7 +53,7 @@ function EmailSettings() {
           </label>
         ))}
       </fieldset>
-      <p className="muted">Everything still arrives here in your inbox; this only changes email.</p>
+      <p className="muted">Everything still arrives here in your inbox; this only changes email. Grievance updates are always emailed: they carry deadlines.</p>
       <ErrorText>{error}</ErrorText>
     </Card>
   );
