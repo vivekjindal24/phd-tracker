@@ -18,6 +18,7 @@ from app.enums import (
     PubType,
     Recommendation,
     ReviewStatus,
+    Verification,
     VivaBoardRole,
     VivaOutcome,
 )
@@ -116,6 +117,39 @@ class PublicationRow(BaseModel):
     state: ItemState
     waiting_on: str | None
     updated_at: datetime
+
+
+class FacultyPublicationRow(BaseModel):
+    """A faculty member's paper in a list (faculty_papers.py)."""
+
+    id: uuid.UUID
+    faculty: Ref
+    unit: str
+    title: str
+    venue: str
+    pub_type: PubType
+    pub_year: int
+    indexing: list[Indexing]
+    verification: Verification
+    updated_at: datetime
+
+
+class FacultyPublicationView(FacultyPublicationRow):
+    authors: str
+    issn_isbn: str | None
+    doi: str | None
+    pub_status: PubStatus
+    library_note: str | None  # why the Library returned it; shown while returned
+    checked_at: datetime | None
+    checked_by: str | None
+    can_edit: bool  # the author, until the Library verifies it
+    can_check: bool  # the Library, on someone else's paper
+
+
+class ReturnIn(BaseModel):
+    """Why the Library returns a faculty paper: what to correct (PRD M1)."""
+
+    note: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=2000)]
 
 
 class ConferenceIn(BaseModel):

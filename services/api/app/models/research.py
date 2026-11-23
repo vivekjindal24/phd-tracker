@@ -1,10 +1,11 @@
-"""Research record modules: publications (approvable) and conferences (DATABASE.md §3.4-3.5).
-Publication state changes only via app/workflow.py; `pub_status` is bibliographic, not state."""
+"""Research record modules: publications (approvable), faculty publications and conferences
+(DATABASE.md §3.4-3.5). Publication state changes only via app/workflow.py; `pub_status` is
+bibliographic, not state."""
 
 import uuid
-from datetime import date
+from datetime import date, datetime
 
-from sqlalchemy import CheckConstraint, Date, ForeignKey, Index, Integer, Text, text
+from sqlalchemy import CheckConstraint, Date, DateTime, ForeignKey, Index, Integer, Text, text
 from sqlalchemy.dialects.postgresql import ARRAY, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -15,6 +16,7 @@ from app.enums import (
     INDEXINGS,
     PUB_STATUSES,
     PUB_TYPES,
+    VERIFICATIONS,
     sql_in,
 )
 from app.models.base import Base, DomainRow
@@ -25,23 +27,22 @@ def _trgm(name: str, column: str) -> Index:
     return Index(name, column, postgresql_using="gin", postgresql_ops={column: "gin_trgm_ops"})
 
 
-class Publication(ApprovalColumns, DomainRow, Base):
-    __tablename__ = "publications"
-    __table_args__ = (
-        *approval_constraints("publications"),
-        CheckConstraint(f"pub_type IN ({sql_in(PUB_TYPES)})", name="ck_publications_type"),
-        CheckConstraint(f"pub_status IN ({sql_in(PUB_STATUSES)})", name="ck_publications_status"),
+def _publication_checks(table: str) -> tuple:
+    return (
+        CheckConstraint(f"pub_type IN ({sql_in(PUB_TYPES)})", name=f"ck_{table}_type"),
+        CheckConstraint(f"pub_status IN ({sql_in(PUB_STATUSES)})", name=f"ck_{table}_status"),
         CheckConstraint(
-            f"indexing <@ ARRAY[{sql_in(INDEXINGS)}]::text[]", name="ck_publications_indexing"
+            f"indexing <@ ARRAY[{sql_in(INDEXINGS)}]::text[]", name=f"ck_{table}_indexing"
         ),
-        CheckConstraint("pub_year BETWEEN 1950 AND 2100", name="ck_publications_year"),
-        _trgm("ix_publications_title_trgm", "title"),
-        _trgm("ix_publications_venue_trgm", "venue"),
+        CheckConstraint("pub_year BETWEEN 1950 AND 2100", name=f"ck_{table}_year"),
+        _trgm(f"ix_{table}_title_trgm", "title"),
+        _trgm(f"ix_{table}_venue_trgm", "venue"),
     )
 
-    scholar_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("scholars.id"), index=True
-    )
+
+class PublicationFields:
+    """What a paper is, whoever records it: a scholar or a member of faculty."""
+
     title: Mapped[str] = mapped_column(Text)
     authors: Mapped[str] = mapped_column(Text)
     pub_type: Mapped[str] = mapped_column(Text)
@@ -51,6 +52,43 @@ class Publication(ApprovalColumns, DomainRow, Base):
     doi: Mapped[str | None] = mapped_column(Text)
     pub_year: Mapped[int] = mapped_column(Integer)
     pub_status: Mapped[str] = mapped_column(Text)
+
+
+class Publication(PublicationFields, ApprovalColumns, DomainRow, Base):
+    __tablename__ = "publications"
+    __table_args__ = (*approval_constraints("publications"), *_publication_checks("publications"))
+
+    scholar_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("scholars.id"), index=True
+    )
+
+
+class FacultyPublication(PublicationFields, DomainRow, Base):
+    """A faculty member's paper (PRD M1): no chain; the Library verifies it or returns it with
+    a note (faculty_papers.py). Only verified ones count in the NAAC sheets."""
+
+    __tablename__ = "faculty_publications"
+    __table_args__ = (
+        *_publication_checks("faculty_publications"),
+        CheckConstraint(
+            f"verification IN ({sql_in(VERIFICATIONS)})",
+            name="ck_faculty_publications_verification",
+        ),
+        CheckConstraint(
+            "(verification = 'waiting' AND checked_at IS NULL)"
+            " OR (verification = 'verified' AND checked_at IS NOT NULL)"
+            " OR (verification = 'returned' AND checked_at IS NOT NULL AND library_note <> '')",
+            name="ck_faculty_publications_check",
+        ),
+    )
+
+    faculty_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("faculty.id"), index=True
+    )
+    verification: Mapped[str] = mapped_column(Text, server_default=text("'waiting'"))
+    library_note: Mapped[str | None] = mapped_column(Text)
+    checked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    checked_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"))
 
 
 class Conference(DomainRow, Base):

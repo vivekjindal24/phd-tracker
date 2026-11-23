@@ -404,6 +404,16 @@ large the university. The meeting form lists only the caller's own scholars
    (e.g. to the scholar: "Journal not in UGC-CARE list") → Research Office
    approves.
 
+**Faculty publications.** Any member of faculty → **Research → Faculty
+publications → Add your publication**: the same form, DOI fill-in and ORCID
+import (imported papers go to the Library, not drafts) → **Save and send to the
+Library** → the paper's page, to attach it. The Library sees **Faculty papers to
+verify** on Home → the list filtered to "With the Library" → a paper → corrects
+indexing and DOI → **Verify**, or writes a note → **Return**. The author is told
+and sees **Your papers returned by the Library** on Home; they correct it (**Save
+and send back**) and it returns to the Library. A verified paper shows who
+verified it and when, and can no longer be edited, removed or attached to.
+
 ## Flow 8 — Thesis submission (module)
 
 When the university requires it (Settings → UGC rules), the thesis page
@@ -447,7 +457,9 @@ Revoked and a new certificate can be issued with a new serial.
 The Research Office or root admin opens **NAAC data**, picks a range of academic
 years (July to June, up to ten) and downloads a CSV per sheet: projects and
 grants, scholars registered and awarded per guide, publications with indexing,
-books and chapters. Sheets carry the underlying rows, never computed scores.
+books and chapters. Sheets carry the underlying rows, never computed scores. The
+publication sheets hold scholars' approved papers and faculty's verified ones, a
+paper with one DOI once ("Recorded by" names each).
 
 ## Flow 9 — Coursework (module)
 

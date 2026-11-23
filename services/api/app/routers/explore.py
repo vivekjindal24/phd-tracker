@@ -10,7 +10,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
-from app import dates, meetings, scope, seminars
+from app import dates, faculty_papers, meetings, scope, seminars
 from app.auth.deps import current_principal
 from app.auth.principal import Principal
 from app.db import get_session
@@ -19,6 +19,7 @@ from app.models import (
     Conference,
     CourseworkClearance,
     Faculty,
+    FacultyPublication,
     Meeting,
     Milestone,
     OrgUnit,
@@ -353,6 +354,30 @@ async def search(
                 "link": f"/items/publication/{p.id}",
             }
             for p, n in rows
+        ]
+
+    out["faculty_publications"] = []
+    if (principal.faculty_id or can(principal, "faculty_publications", "read")) and (
+        await module_enabled(session, "publications")
+    ):
+        rows = await session.execute(
+            faculty_papers.base_query(principal)
+            .where(
+                or_(
+                    FacultyPublication.title.icontains(q, autoescape=True),
+                    FacultyPublication.venue.icontains(q, autoescape=True),
+                )
+            )
+            .order_by(FacultyPublication.pub_year.desc())
+            .limit(GROUP_LIMIT)
+        )
+        out["faculty_publications"] = [
+            {
+                "title": p.title,
+                "detail": f"{n} · {p.venue} · {p.pub_year}",
+                "link": f"/faculty-publications/{p.id}",
+            }
+            for p, _, n, _, _ in rows
         ]
 
     open_ = await seminars.open_to_faculty(session)

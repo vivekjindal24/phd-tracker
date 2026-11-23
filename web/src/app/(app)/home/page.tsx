@@ -26,6 +26,7 @@ type UnitSection = {
   supervisor_load: { name: string; load: number; max: number }[];
   children: { id: string; name: string; scholars: number; overdue: number }[];
   publications_this_year: number | null;
+  faculty_publications_this_year: number | null;
   without_supervisor?: Ref[];
   units_without_head?: Ref[];
 };
@@ -53,6 +54,8 @@ type Dashboard = {
   units: UnitSection[];
   // Absent for someone with no grievance role and no scholar record (grievances.home).
   grievances: { decides: boolean; to_decide: number; overdue: number; next_due: string | null; to_answer: number; past_deadline?: number } | null;
+  // Null unless the Library or a member of faculty, with publications on (faculty_papers.home).
+  faculty_papers: { to_verify: number; returned: number } | null;
 };
 
 const DUE_TEXT: Record<DueStatus, [string, string]> = {
@@ -123,6 +126,9 @@ function UnitBlock({ u }: { u: UnitSection }) {
         <Tile label="Stuck over 14 days" value={u.stuck_items.length} tone={u.stuck_items.length ? "tile-butter" : ""} />
         {u.publications_this_year !== null && (
           <Tile label="Publications this year" value={u.publications_this_year} href="/publications" tone="tile-sage" />
+        )}
+        {u.faculty_publications_this_year !== null && (
+          <Tile label="Faculty publications this year" value={u.faculty_publications_this_year} href="/faculty-publications?verification=verified" tone="tile-sage" />
         )}
       </div>
       <div className="dash-grid">
@@ -202,6 +208,27 @@ function GrievanceTiles({ g }: { g: NonNullable<Dashboard["grievances"]> }) {
   );
 }
 
+/** The Library's faculty papers to verify, and a member of faculty's papers it returned. */
+function FacultyPaperTiles({ f, isLibrary }: { f: NonNullable<Dashboard["faculty_papers"]>; isLibrary: boolean }) {
+  if (!isLibrary && f.returned === 0) return null;
+  return (
+    <section className="dash-section" aria-label="Faculty publications">
+      <div className="bento">
+        {isLibrary && (
+          <Tile label="Faculty papers to verify" value={f.to_verify} href="/faculty-publications?verification=waiting"
+            tone={f.to_verify ? "tile-accent" : "tile-sage"} />
+        )}
+        {f.returned > 0 && (
+          <Tile label="Your papers returned by the Library" value={f.returned}
+            href="/faculty-publications?verification=returned" tone="tile-butter">
+            <span className="tile-sub">correct them to send them back</span>
+          </Tile>
+        )}
+      </div>
+    </section>
+  );
+}
+
 const GRIEVANCE_ROLES = new Set(["grievance_cell", "ombudsperson"]);
 
 // "Prof. Kavita Rao" -> "Kavita"; "Justice (Retd.) S. K. Menon" -> "S. K. Menon": titles go, and
@@ -223,6 +250,8 @@ export default function HomePage() {
   // Someone who only handles grievances has no approval queue to show.
   const grievanceOnly = !me.is_root_admin && me.roles.every((r) => GRIEVANCE_ROLES.has(r));
   const toDecide = d?.grievances?.decides ? d.grievances.to_decide : 0;
+  const isLibrary = me.roles.includes("library");
+  const toVerify = isLibrary ? (d?.faculty_papers?.to_verify ?? 0) : 0;
 
   return (
     <>
@@ -233,16 +262,18 @@ export default function HomePage() {
             {d && d.queue_count > 0
               ? `${d.queue_count} item${d.queue_count === 1 ? " is" : "s are"} waiting for you`
               : toDecide > 0 ? `${toDecide} grievance${toDecide === 1 ? " is" : "s are"} waiting for you`
+              : toVerify > 0 ? `${toVerify} faculty paper${toVerify === 1 ? " is" : "s are"} waiting for you`
               : sch?.next_seminar ? "Your next seminar is coming up" : "Welcome back"}
           </h1>
         </div>
-        <Owl pose={d && d.queue_count === 0 && toDecide === 0 ? "idle" : "reading"} size={150} />
+        <Owl pose={d && d.queue_count === 0 && toDecide === 0 && toVerify === 0 ? "idle" : "reading"} size={150} />
       </section>
       <ErrorText>{error}</ErrorText>
       <NoticeBoardCard />
       {d && (
         <>
           {d.grievances && <GrievanceTiles g={d.grievances} />}
+          {d.faculty_papers && <FacultyPaperTiles f={d.faculty_papers} isLibrary={isLibrary} />}
           {(d.queue_count > 0 || (!sch && !grievanceOnly)) && (
             <section className="dash-section">
               <div className="bento">

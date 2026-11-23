@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import (
     announcements,
+    faculty_papers,
     grants,
     grievances,
     items,
@@ -24,6 +25,7 @@ from app.models import (
     Conference,
     Document,
     EthicsClearance,
+    FacultyPublication,
     Meeting,
     Milestone,
     OrgUnit,
@@ -138,7 +140,18 @@ async def require_file_read(
     if table == "announcements":  # a notice's file: whoever reads the notice
         await announcements.get_or_403(session, principal, record_id)
         return
+    if table == "faculty_publications":  # whoever reads the paper
+        await _faculty_paper(session, principal, record_id)
+        return
     await require_read(session, principal, table, record_id)
+
+
+async def _faculty_paper(
+    session: AsyncSession, principal: Principal, record_id: uuid.UUID
+) -> FacultyPublication:
+    if not await module_enabled(session, "publications"):
+        raise ApiError(404, "module_disabled", "This feature is not enabled.")
+    return (await faculty_papers.get_or_403(session, principal, record_id))[0]
 
 
 async def document_or_403(
@@ -215,6 +228,10 @@ async def require_write(
         return
     if table == "grievances":  # the scholar or the cell while open; the appeal's decider then
         await grievances.require_attach(session, principal, record_id)
+        return
+    if table == "faculty_publications":  # the author, until the Library verifies it
+        paper = await _faculty_paper(session, principal, record_id)
+        faculty_papers.require_editable(principal, paper)
         return
     if table == "announcements":  # whoever may post the notice attaches its file
         notice = await announcements.get_or_403(session, principal, record_id)

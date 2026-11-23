@@ -724,6 +724,19 @@ check digit); their public works are listed, and the chosen ones with a DOI
 (up to 50 at a time) are filled from Crossref and saved as drafts. A DOI
 already recorded, unknown to Crossref, or missing authors, venue or year is
 skipped with the reason; a work without a DOI is added by hand.
+**Faculty publications** (Decided 2026-11-23): any member of faculty (a faculty
+record, whatever role they hold) records their own papers the same way — by
+hand, from a DOI, or from ORCID. There is no chain: each goes straight to the
+Library, which corrects indexing and DOI and **verifies** it, or **returns** it
+with a note saying what to correct; the corrected paper goes back to the
+Library. A verified paper is locked; the Library may return it for a later
+correction. The author may remove one not yet verified; the Library never
+verifies its own. Read by the author, the Library, the Research Office and the
+Vice Chancellor, and heads and admins over the author's unit. The Library is
+told of each new or corrected paper (one notice for an ORCID import), the
+author when it is verified or returned; Home shows the Library what waits and
+the author what came back. Only verified, published faculty papers count in
+the NAAC sheets (M9), alongside scholars' approved ones.
 
 **M2 — Conferences & talks.** Event, type (paper presented / poster /
 attended / invited talk / workshop), date, place, title, certificate file.
@@ -876,7 +889,9 @@ years, the Research Office and root admin export the research data NAAC
 Criterion 3 asks for, one sheet each: funded projects and grants received per
 year; PhD scholars registered and awarded per guide per year; publications per
 year with indexing (UGC-CARE / Scopus / WoS); books and chapters. Built from
-the records already kept — no extra data entry. Metric numbering follows the
+the records already kept — no extra data entry. Publications are the scholars'
+(approved) and the faculty's (verified by the Library, M1); a paper both
+recorded under one DOI is one row naming each of them ("Recorded by"). Metric numbering follows the
 framework in force; the sheets carry the underlying rows, not computed scores.
 
 ## 7. Non-Goals

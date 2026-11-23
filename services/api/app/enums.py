@@ -259,6 +259,9 @@ Indexing = Literal["scopus", "wos", "ugc_care", "other"]
 INDEXINGS = get_args(Indexing)
 PubStatus = Literal["submitted", "accepted", "published"]
 PUB_STATUSES = get_args(PubStatus)
+# A faculty paper with the Library: waiting -> verified, or returned with a note (PRD M1).
+Verification = Literal["waiting", "returned", "verified"]
+VERIFICATIONS = get_args(Verification)
 ConferenceType = Literal["paper_presented", "poster", "attended", "invited_talk", "workshop"]
 CONFERENCE_TYPES = get_args(ConferenceType)
 
@@ -378,6 +381,7 @@ FileOwner = Literal[
     "scholars",
     "progress_reports",
     "publications",
+    "faculty_publications",
     "conferences",
     "documents",
     "thesis_submissions",

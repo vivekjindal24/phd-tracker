@@ -8,12 +8,22 @@ from typing import Any
 from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import coursework, directory, duration, grievances, items, scope, seminars
+from app import (
+    coursework,
+    directory,
+    duration,
+    faculty_papers,
+    grievances,
+    items,
+    scope,
+    seminars,
+)
 from app.auth.principal import Principal
 from app.enums import STAGES
 from app.models import (
     ApprovalActionRow,
     Faculty,
+    FacultyPublication,
     Fellowship,
     Meeting,
     Milestone,
@@ -330,6 +340,7 @@ async def _unit_section(
         "supervisor_load": [{"name": n, "load": load, "max": m} for n, m, load in loads],
         "children": children,
         "publications_this_year": None,
+        "faculty_publications_this_year": None,
     }
     if "publication" in kinds:
         section["publications_this_year"] = await session.scalar(
@@ -341,6 +352,18 @@ async def _unit_section(
                 Publication.deleted_at.is_(None),
                 Publication.state == "approved",
                 Publication.pub_year == now.year,
+            )
+        )
+    if await module_enabled(session, "publications"):
+        section["faculty_publications_this_year"] = await session.scalar(
+            select(func.count())
+            .select_from(FacultyPublication)
+            .join(Faculty, Faculty.id == FacultyPublication.faculty_id)
+            .where(
+                Faculty.unit_id.in_(units),
+                FacultyPublication.deleted_at.is_(None),
+                FacultyPublication.verification == "verified",
+                FacultyPublication.pub_year == now.year,
             )
         )
     if "admin" in roles:
@@ -398,6 +421,7 @@ async def build(session: AsyncSession, principal: Principal) -> dict[str, Any]:
     if principal.scholar_id:
         out["scholar"] = await _scholar_section(session, principal)
     out["grievances"] = await grievances.home(session, principal)
+    out["faculty_papers"] = await faculty_papers.home(session, principal)
     if principal.faculty_id and principal.can_supervise:
         out["supervisor"] = await _supervisor_section(session, principal)
     by_unit: dict[uuid.UUID, tuple[str, list[str]]] = {}

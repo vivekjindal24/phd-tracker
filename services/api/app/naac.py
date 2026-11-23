@@ -1,6 +1,7 @@
 """NAAC Criterion 3 research data (PRD M9): the underlying rows, one sheet each, built from
 records already kept. Metric numbers and scores are not computed here: the framework changes,
-the rows do not. Publications carry a calendar `pub_year`, so they are filtered on that year."""
+the rows do not. Publications carry a calendar `pub_year`, so they are filtered on that year;
+they are the scholars' and the faculty's both, each paper once."""
 
 from collections.abc import Awaitable, Callable
 from datetime import date
@@ -13,6 +14,7 @@ from sqlalchemy.orm import aliased
 from app.enums import ModuleKey
 from app.models import (
     Faculty,
+    FacultyPublication,
     LedgerEntry,
     Milestone,
     OrgUnit,
@@ -112,10 +114,13 @@ async def _scholars(session: AsyncSession, period: Period) -> Rows:
 
 
 async def _publication_rows(
-    session: AsyncSession, period: Period, *conditions: Any
-) -> list[tuple[Publication, str, str]]:
+    session: AsyncSession, period: Period, types: tuple[str, ...]
+) -> list[tuple[Any, str, str]]:
+    """Published papers of the years: scholars' approved through their chain and faculty's
+    verified by the Library. A paper both recorded (one DOI) is one row naming each of them."""
     start, end = period
-    rows = await session.execute(
+    years = (start.year, end.year)
+    scholars = await session.execute(
         select(Publication, User.full_name, OrgUnit.name)
         .join(Scholar, Scholar.id == Publication.scholar_id)
         .join(User, User.id == Scholar.user_id)
@@ -124,16 +129,36 @@ async def _publication_rows(
             Publication.deleted_at.is_(None),
             Publication.state == "approved",
             Publication.pub_status == "published",
-            Publication.pub_year.between(start.year, end.year),
-            *conditions,
+            Publication.pub_year.between(*years),
+            Publication.pub_type.in_(types),
         )
-        .order_by(Publication.pub_year, Publication.title)
     )
-    return [tuple(r) for r in rows]
+    faculty = await session.execute(
+        select(FacultyPublication, User.full_name, OrgUnit.name)
+        .join(Faculty, Faculty.id == FacultyPublication.faculty_id)
+        .join(User, User.id == Faculty.user_id)
+        .join(OrgUnit, OrgUnit.id == Faculty.unit_id)
+        .where(
+            FacultyPublication.deleted_at.is_(None),
+            FacultyPublication.verification == "verified",
+            FacultyPublication.pub_status == "published",
+            FacultyPublication.pub_year.between(*years),
+            FacultyPublication.pub_type.in_(types),
+        )
+    )
+    papers: dict[Any, tuple[Any, list[str], list[str]]] = {}
+    for rows, who in ((scholars, "scholar"), (faculty, "faculty")):
+        for p, name, unit in rows:
+            _, names, units = papers.setdefault(p.doi.lower() if p.doi else p.id, (p, [], []))
+            names.append(f"{name} ({who})")
+            if unit not in units:
+                units.append(unit)
+    ordered = sorted(papers.values(), key=lambda e: (e[0].pub_year, e[0].title))
+    return [(p, "; ".join(names), "; ".join(units)) for p, names, units in ordered]
 
 
 async def _publications(session: AsyncSession, period: Period) -> Rows:
-    rows = await _publication_rows(session, period, Publication.pub_type.in_(JOURNAL_TYPES))
+    rows = await _publication_rows(session, period, JOURNAL_TYPES)
     return [
         [
             p.pub_year,
@@ -154,7 +179,7 @@ async def _publications(session: AsyncSession, period: Period) -> Rows:
 
 
 async def _books(session: AsyncSession, period: Period) -> Rows:
-    rows = await _publication_rows(session, period, Publication.pub_type == "book_chapter")
+    rows = await _publication_rows(session, period, ("book_chapter",))
     return [
         [p.pub_year, p.title, p.authors, p.venue, p.issn_isbn, p.doi, name, unit]
         for p, name, unit in rows
@@ -214,14 +239,14 @@ SHEETS: dict[str, tuple[str, list[str], Callable[[AsyncSession, Period], Awaitab
             "UGC-CARE",
             "Scopus",
             "Web of Science",
-            "Scholar",
+            "Recorded by",
             "Unit",
         ],
         _publications,
     ),
     "books": (
         "Books and chapters",
-        ["Year", "Title", "Authors", "Publisher / venue", "ISBN", "DOI", "Scholar", "Unit"],
+        ["Year", "Title", "Authors", "Publisher / venue", "ISBN", "DOI", "Recorded by", "Unit"],
         _books,
     ),
 }

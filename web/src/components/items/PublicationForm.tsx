@@ -35,8 +35,8 @@ export function IndexingChecks({ value, onChange }: { value: Indexing[]; onChang
   );
 }
 
-/** Paste a DOI, and Crossref fills the rest of the form; the scholar checks it before saving. */
-function DoiFill({ onFound }: { onFound: (d: DoiDetails) => void }) {
+/** Paste a DOI, and Crossref fills the rest of the form; the author checks it before saving. */
+function DoiFill({ base, onFound }: { base: string; onFound: (d: DoiDetails) => void }) {
   const [q, setQ] = useState("");
   const [note, setNote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -47,7 +47,7 @@ function DoiFill({ onFound }: { onFound: (d: DoiDetails) => void }) {
     setError(null);
     setNote(null);
     try {
-      const d = await api<DoiDetails>(`/publications/doi?q=${encodeURIComponent(q)}`);
+      const d = await api<DoiDetails>(`${base}/doi?q=${encodeURIComponent(q)}`);
       onFound(d);
       setNote(d.already_recorded
         ? "Filled in from Crossref, but you have already recorded a publication with this DOI."
@@ -74,13 +74,16 @@ function DoiFill({ onFound }: { onFound: (d: DoiDetails) => void }) {
   );
 }
 
-/** The scholar's publication details — used for a new publication and for edits. */
+/** A paper's details — new or edited, a scholar's (`/publications`) or faculty's
+ *  (`/faculty-publications`); `base` is the list whose DOI lookup the form uses. */
 export function PublicationForm({
   initial,
   submitLabel,
   onSubmit,
   onCancel,
+  base = "/publications",
 }: {
+  base?: string;
   initial: PublicationContent;
   submitLabel: string;
   onSubmit: (value: PublicationContent) => Promise<void>;
@@ -107,7 +110,7 @@ export function PublicationForm({
 
   return (
     <form className="stack-form" onSubmit={submit}>
-      <DoiFill onFound={({ already_recorded: _, pub_year, issn_isbn, ...d }) =>
+      <DoiFill base={base} onFound={({ already_recorded: _, pub_year, issn_isbn, ...d }) =>
         setV((prev) => ({ ...prev, ...d, issn_isbn: issn_isbn ?? prev.issn_isbn, pub_year: pub_year ?? prev.pub_year }))} />
       <Field label="Title">
         <input required maxLength={500} value={v.title} onChange={(e) => set("title", e.target.value)} />

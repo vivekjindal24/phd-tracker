@@ -5,7 +5,7 @@ import uuid
 from typing import Any
 
 from fastapi import APIRouter, Depends, Query, Response
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import doi, items, orcid, scope, workflow
@@ -110,14 +110,8 @@ async def look_up_doi(
     if principal.scholar_id is None:
         raise ApiError(403, "forbidden", "Scholars record their own publications.")
     found = await doi.lookup(q)
-    mine = await session.scalar(
-        select(Publication.id).where(
-            Publication.scholar_id == principal.scholar_id,
-            func.lower(Publication.doi) == found["doi"].lower(),
-            Publication.deleted_at.is_(None),
-        )
-    )
-    return found | {"already_recorded": mine is not None}
+    have = await orcid.recorded_dois(session, Publication, {"scholar_id": principal.scholar_id})
+    return found | {"already_recorded": found["doi"].lower() in have}
 
 
 def _own_scholar(principal: Principal) -> uuid.UUID:
@@ -133,7 +127,7 @@ async def orcid_works(
     session: AsyncSession = Depends(get_session),
 ) -> list[dict[str, Any]]:
     """The works on a public ORCID record, for the scholar to choose which to bring in."""
-    have = await orcid.recorded_dois(session, _own_scholar(principal))
+    have = await orcid.recorded_dois(session, Publication, {"scholar_id": _own_scholar(principal)})
     return [
         w | {"already_recorded": bool(w["doi"]) and w["doi"].lower() in have}
         for w in await orcid.works(q)
@@ -147,8 +141,8 @@ async def import_publications(
     session: AsyncSession = Depends(get_session),
 ) -> dict[str, Any]:
     """Each chosen DOI, filled from Crossref, becomes a draft to check and submit."""
-    _own_scholar(principal)
-    out = await orcid.import_dois(session, principal, body.dois)
+    owner = {"scholar_id": _own_scholar(principal)}
+    out = await orcid.import_dois(session, principal, body.dois, Publication, owner)
     await session.commit()
     return out
 

@@ -158,6 +158,7 @@ role's scope (§2).
 | seminar grades | R own after finalise | R own scholars'; finalise own scholars | R | R | R | — | — |
 | to-do list | R, tick done (own) | R own scholars' | R | R | R | — | — |
 | publications | CRU own, submit | R, step | R | R | R, step | — | R, step |
+| faculty publications§ | — | — | R subtree | R subtree | R | — | R, verify, return (never its own) |
 | conferences | CRUD own | R | R | R | R | — | R |
 | documents & versions | CRU own | R, comment | — | — | — | — | — |
 | thesis submissions | CR own, submit | R, step | R, step (department) | R, step (department) | R, step | R, step | R, step |
@@ -186,6 +187,12 @@ role's scope (§2).
 | NAAC data (M9) | — | — | — | root admin only | R | — | — |
 | exports | own record | supervisees | subtree | subtree | all | coursework, thesis | publications, thesis |
 | audit log | — | — | — | R in subtree | R | — | — |
+
+§ Faculty publications belong to a member of faculty, not to a role: anyone with a faculty
+record (whatever roles they hold, or none) creates, reads and updates their own, and removes
+one the Library has not verified; once verified only the Library's return reopens it
+(409 `already_verified`). Another member of faculty reads none (403). The rule is
+`faculty_papers.py` with `scope.faculty_publication_predicate`.
 
 **Vice Chancellor** (no column above: one rule in `rbac.py`): R on every
 entity the research_office column reads, and nothing else — no C, U or D

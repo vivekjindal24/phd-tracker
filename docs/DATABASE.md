@@ -304,6 +304,15 @@ other}, `doi`, `pub_year`, `pub_status` CHECK (submitted / accepted /
 published) + approval columns. `pub_status` is a bibliographic fact entered
 by the scholar; it is **not** workflow state.
 
+**faculty_publications** (module `publications`; migration 0060) — `faculty_id` FK faculty,
+the same paper columns and CHECKs as `publications` (`title`, `authors`, `pub_type`, `venue`,
+`issn_isbn`, `indexing`, `doi`, `pub_year`, `pub_status`), no approval columns. `verification`
+CHECK (waiting / returned / verified, default waiting), `library_note` (why it was returned),
+`checked_at`, `checked_by` FK users. `ck_faculty_publications_check`: waiting has no
+`checked_at`; verified and returned have one, and returned has a note. Only
+`faculty_papers.py` moves `verification`. Files hang off it (`files.table_name =
+'faculty_publications'`). Trigram indexes on `title` and `venue`.
+
 **thesis_submissions** (module `documents`) — `scholar_id`, `title`,
 `plagiarism_tool`, `plagiarism_score` numeric(5,2) CHECK 0–100 (both writable
 only by the Library step and required before it approves), `examiners` text
@@ -491,7 +500,8 @@ pair `(table_name, record_id)` with a CHECK whitelist that each phase widens by
 migration (Phase 1: `scholars`; Phase 3 adds `publications`, `conferences`,
 `documents`, `thesis_submissions`, `examiner_reports`, `vivas`,
 `shodhganga_deposits`; Phase 5 adds `utilisation_certificates`; migration 0045
-adds `signed_copies`, whose files must be PDF, PNG or JPEG). Visibility
+adds `signed_copies`, whose files must be PDF, PNG or JPEG; 0057 `grievances`; 0060
+`faculty_publications`). Visibility
 is the owner record's
 `get_or_403`. Soft delete keeps the object in the bucket (retention).
 
@@ -590,7 +600,7 @@ supervisor visibility. Projects anchor on
 Trigram GIN indexes on: users.full_name, scholars.roll_number,
 scholars.research_title, org_units.name, progress_reports.summary,
 meetings.agenda, milestones.resolution_number, publications.title,
-publications.venue, projects.title. `GET /search?q=` ILIKEs across enabled
+publications.venue, faculty_publications.title, faculty_publications.venue, projects.title. `GET /search?q=` ILIKEs across enabled
 modules only, filtered by `scope.py`.
 
 ## 7. Migration Rules

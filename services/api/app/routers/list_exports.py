@@ -23,6 +23,7 @@ from app.routers import (
     conferences,
     documents,
     faculty,
+    faculty_publications,
     fellowship_claims,
     fellowships,
     meetings,
@@ -128,6 +129,12 @@ _add("seminars", "Progress seminars", seminars.list_seminars, None, (
 _add("publications", "Publications", publications.list_publications, "publications", (
     ("Title", "title"), *SCHOLAR, ("Type", "pub_type~"), ("Venue", "venue"), ("Year", "pub_year"),
     ("Indexed in", "indexing~"), *STATE,
+))  # fmt: skip
+_add("faculty-publications", "Faculty publications",
+     faculty_publications.list_faculty_publications, "publications", (
+    ("Title", "title"), ("Faculty", "faculty.name"), ("Department", "unit"),
+    ("Type", "pub_type~"), ("Venue", "venue"), ("Year", "pub_year"), ("Indexed in", "indexing~"),
+    ("Library", "verification~"), ("Last change", "updated_at"),
 ))  # fmt: skip
 _add("theses", "Thesis submissions", theses.list_theses, "documents", (
     ("Thesis", "title"), *SCHOLAR, *STATE,

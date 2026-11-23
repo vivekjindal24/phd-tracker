@@ -9,8 +9,8 @@ import { useSession } from "@/lib/session";
 const SHEETS = [
   ["projects", "Funded projects and grants received"],
   ["scholars", "PhD scholars registered and awarded per guide"],
-  ["publications", "Publications with UGC-CARE, Scopus and WoS indexing"],
-  ["books", "Books and chapters"],
+  ["publications", "Publications with UGC-CARE, Scopus and WoS indexing (scholars’ approved, faculty’s verified)"],
+  ["books", "Books and chapters (scholars’ and faculty’s)"],
 ] as const;
 const YEARS_SHOWN = 12;
 const DEFAULT_SPAN = 4;

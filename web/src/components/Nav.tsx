@@ -17,7 +17,7 @@ const onlyScholar = (me: Me) => me.roles.length === 1 && me.roles[0] === "schola
 // The grievance cell and the Ombudsperson read grievances only: every other entry is decided
 // as if they did not hold those roles, and someone holding nothing else sees just these.
 const GRIEVANCE_ROLES = new Set(["grievance_cell", "ombudsperson"]);
-const ANYONE = new Set(["/home", "/notices", "/grievances", "/account"]);
+const ANYONE = new Set(["/home", "/notices", "/grievances", "/account", "/faculty-publications"]);
 function shows(item: Item, me: Me): boolean {
   if (ANYONE.has(item.href)) return item.show(me);
   const roles = me.roles.filter((r) => !GRIEVANCE_ROLES.has(r));
@@ -46,6 +46,8 @@ const NAV: Entry[] = [
     label: "Research",
     items: [
       { href: "/publications", label: "Publications", show: (me) => me.modules.publications && !me.roles.every((r) => r === "exam_office") },
+      // Any member of faculty records their own, whatever role they hold (or none).
+      { href: "/faculty-publications", label: "Faculty publications", show: (me) => me.modules.publications && (me.faculty_id !== null || me.roles.some((r) => r === "library" || r === "unit_head" || r === "admin" || r === "research_office" || r === "vice_chancellor")) },
       { href: "/conferences", label: "Conferences & talks", show: (me) => me.modules.conferences && !me.roles.every((r) => r === "exam_office") },
       { href: "/documents", label: "Drafts & chapters", show: (me) => me.modules.documents && (me.scholar_id !== null || me.roles.includes("supervisor")) },
       { href: "/thesis", label: "Thesis", show: (me) => me.modules.documents },

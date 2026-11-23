@@ -94,6 +94,14 @@ MATRIX: dict[str, dict[str, frozenset[str]]] = {
         "research_office": frozenset({R}),
         "library": frozenset({R}),
     },
+    # Faculty record their own papers (by faculty_id, whatever role they hold: faculty_papers.py);
+    # the Library verifies or returns them.
+    "faculty_publications": {
+        "unit_head": frozenset({R}),
+        "admin": frozenset({R}),
+        "research_office": frozenset({R}),
+        "library": frozenset({R, U}),
+    },
     "conferences": {
         "scholar": frozenset({R, C, U, D}),
         "supervisor": frozenset({R}),

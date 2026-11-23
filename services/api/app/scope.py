@@ -10,7 +10,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.principal import Principal
 from app.enums import OFFICE_ROLES, UNIT_ROLES
 from app.errors import forbidden
-from app.models import OrgUnit, Project, ProjectMember, RoleAssignment, Scholar, User
+from app.models import (
+    FacultyPublication,
+    OrgUnit,
+    Project,
+    ProjectMember,
+    RoleAssignment,
+    Scholar,
+    User,
+)
 from app.models.base import Ltree
 from app.models.org import Faculty
 from app.rbac import roles_allowed
@@ -103,6 +111,14 @@ def faculty_predicate(principal: Principal) -> ColumnElement[bool]:
     if paths:
         clauses.append(Faculty.unit_id.in_(subtree_unit_ids(paths)))
     return or_(*clauses) if clauses else false()
+
+
+def faculty_publication_predicate(principal: Principal) -> ColumnElement[bool]:
+    """Faculty papers the caller reads (SECURITY.md §3): their own; the Library, Research Office
+    and Vice Chancellor all; heads and admins those of faculty in their subtree. The query joins
+    Faculty."""
+    own = [FacultyPublication.faculty_id == principal.faculty_id] if principal.faculty_id else []
+    return or_(*own, unit_predicate(principal, "faculty_publications", Faculty.unit_id))
 
 
 def org_tree_predicate(principal: Principal) -> ColumnElement[bool]:

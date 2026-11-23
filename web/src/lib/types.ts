@@ -486,6 +486,38 @@ export type PublicationContent = {
   pub_year: number;
   pub_status: PubStatus;
 };
+/** A faculty paper with the Library (PRD M1): no chain, verified or returned with a note. */
+export type Verification = "waiting" | "returned" | "verified";
+export const VERIFICATION_LABELS: Record<Verification, string> = {
+  waiting: "With the Library",
+  returned: "Returned to you",
+  verified: "Verified",
+};
+/** The badge class each shows in, matching the item states' colours. */
+export const VERIFICATION_BADGE: Record<Verification, string> = {
+  waiting: "badge-in_review",
+  returned: "badge-sent_back",
+  verified: "badge-approved",
+};
+export type FacultyPublicationRow = {
+  id: string;
+  faculty: Ref;
+  unit: string;
+  title: string;
+  venue: string;
+  pub_type: PubType;
+  pub_year: number;
+  indexing: Indexing[];
+  verification: Verification;
+  updated_at: string;
+};
+export type FacultyPublication = FacultyPublicationRow & PublicationContent & {
+  library_note: string | null;
+  checked_at: string | null;
+  checked_by: string | null;
+  can_edit: boolean;
+  can_check: boolean;
+};
 export type PublicationRow = {
   id: string;
   scholar: Ref;
@@ -523,6 +555,7 @@ export type FileOwner =
   | "thesis_reviews"
   | "scholars"
   | "publications"
+  | "faculty_publications"
   | "conferences"
   | "documents"
   | "thesis_submissions"

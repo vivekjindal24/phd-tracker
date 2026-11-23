@@ -27,7 +27,13 @@ from app.models.org import (
 )
 from app.models.reports import ProgressReport
 from app.models.requests import FacultyRequest
-from app.models.research import ComprehensiveExam, Conference, EthicsClearance, Publication
+from app.models.research import (
+    ComprehensiveExam,
+    Conference,
+    EthicsClearance,
+    FacultyPublication,
+    Publication,
+)
 from app.models.seminars import (
     Seminar,
     SeminarGrade,
@@ -84,6 +90,7 @@ __all__ = [
     "EthicsClearance",
     "ExaminerReport",
     "Faculty",
+    "FacultyPublication",
     "FacultyRequest",
     "Fellowship",
     "FellowshipClaim",

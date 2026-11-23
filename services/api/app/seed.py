@@ -10,7 +10,7 @@ import argparse
 import asyncio
 import os
 import sys
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -26,6 +26,7 @@ from app.models import (
     Course,
     Enrolment,
     Faculty,
+    FacultyPublication,
     Fellowship,
     Grievance,
     LedgerEntry,
@@ -206,6 +207,7 @@ async def demo(session: AsyncSession) -> None:
         await supervision.change(session, None, scholars[login], "supervisor", faculty[sup].id)
     await _demo_records(session, units, scholars)
     await _demo_grants(session, units, faculty, scholars)
+    await _demo_faculty_papers(session, faculty)
 
     await session.execute(update(Module).values(enabled=True))
     await session.commit()
@@ -288,6 +290,43 @@ async def _demo_records(
             interview_date=date.today() - timedelta(days=14),
             interview_result="selected",
             admitted_on=date.today(),
+        ),
+    )
+
+
+async def _demo_faculty_papers(session: AsyncSession, faculty: dict[str, Faculty]) -> None:
+    """One faculty paper the Library has verified and one waiting, so the Library's Home and the
+    NAAC sheet show faculty papers."""
+    library = await session.scalar(select(User.id).where(User.email == f"library@{DOMAIN}"))
+    await insert(
+        session,
+        None,
+        FacultyPublication(
+            faculty_id=faculty["rajesh"].id,
+            title="Energy-aware scheduling for edge inference on low-cost devices",
+            authors="Rajesh Nair, Sunita Gupta",
+            pub_type="journal",
+            venue="Journal of Systems Architecture",
+            indexing=["scopus", "wos"],
+            pub_year=date.today().year,
+            pub_status="published",
+            verification="verified",
+            checked_at=datetime.now(UTC),
+            checked_by=library,
+        ),
+    )
+    await insert(
+        session,
+        None,
+        FacultyPublication(
+            faculty_id=faculty["meera"].id,
+            title="A survey of speech corpora for Indian languages",
+            authors="Meera Krishnan",
+            pub_type="journal",
+            venue="Language Resources and Evaluation",
+            indexing=["scopus"],
+            pub_year=date.today().year,
+            pub_status="published",
         ),
     )
 

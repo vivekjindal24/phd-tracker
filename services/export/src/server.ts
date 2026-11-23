@@ -37,7 +37,7 @@ const naacQuery = z.object({
 });
 
 const listName = z.enum(["scholars", "faculty", "milestones", "reports", "meetings", "seminars", "publications",
-  "theses", "conferences", "documents", "admissions", "fellowships", "projects", "audit-log"]);
+  "faculty-publications", "theses", "conferences", "documents", "admissions", "fellowships", "fellowship-claims", "projects", "audit-log"]);
 // The API validates each filter; here only the shape: plain short key=value pairs.
 const listQuery = z.record(z.string().regex(/^[a-z_]{1,40}$/), z.string().max(200));
 

@@ -262,6 +262,18 @@ remove a point only when the behaviour itself changes.
   check, mark indexed, attach and submit. Works without a DOI, and works the scholar's ORCID
   record keeps private, are added by hand. Up to 50 at a time; a long list takes a little
   while, because Crossref is asked one paper at a time. *(owner, 2026-11-23)*
+- **Faculty record their own papers too.** Under Research → Faculty publications, any member
+  of faculty (even one who supervises nobody and holds no other role) adds papers by hand,
+  from a DOI or from ORCID. There is no approval chain: the Library verifies each one or
+  returns it with a note, and once verified it is locked unless the Library returns it.
+  *(owner, 2026-11-23)*
+- **Only verified faculty papers count in NAAC.** The NAAC publication sheets add the
+  faculty's verified papers to the scholars' approved ones. A paper a scholar and their
+  supervisor both recorded under the same DOI is one row naming both; one recorded without
+  a DOI cannot be matched and appears once per person who recorded it. *(owner, 2026-11-23)*
+- **Who sees faculty papers.** The author, the Library, the Research Office, the Vice
+  Chancellor, and heads and admins over the author's department. Other members of faculty
+  do not. *(owner, 2026-11-23)*
 - **Not yet:** reading the DOI out of an uploaded PDF, keeping the ORCID iD on the profile,
   and checking the journal against predatory lists. *(owner, 2026-11-23)*
 

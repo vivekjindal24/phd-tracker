@@ -16,8 +16,10 @@ function note(w: OrcidWork): string | null {
   return null;
 }
 
-/** The scholar's works from their public ORCID record, brought in as drafts through their DOIs. */
-export function OrcidImport() {
+/** Works from the author's public ORCID record, brought in through their DOIs: a scholar's as
+ *  drafts (`/publications`), faculty's straight to the Library (`/faculty-publications`). */
+export function OrcidImport({ base = "/publications" }: { base?: string }) {
+  const toLibrary = base === "/faculty-publications";
   const [id, setId] = useState("");
   const [works, setWorks] = useState<OrcidWork[] | null>(null);
   const [chosen, setChosen] = useState<Set<string>>(new Set());
@@ -40,7 +42,7 @@ export function OrcidImport() {
   function list(e: FormEvent) {
     e.preventDefault();
     run(async () => {
-      const found = await api<OrcidWork[]>(`/publications/orcid?q=${encodeURIComponent(id)}`);
+      const found = await api<OrcidWork[]>(`${base}/orcid?q=${encodeURIComponent(id)}`);
       setWorks(found);
       setResult(null);
       setChosen(new Set(found.filter((w) => !note(w)).slice(0, MAX_IMPORT).map((w) => w.doi as string)));
@@ -58,7 +60,7 @@ export function OrcidImport() {
 
   function bringIn() {
     run(async () => {
-      setResult(await api<DoiImportOut>("/publications/import", {
+      setResult(await api<DoiImportOut>(`${base}/import`, {
         method: "POST",
         body: JSON.stringify({ dois: [...chosen] }),
       }));
@@ -69,7 +71,9 @@ export function OrcidImport() {
   return (
     <Card>
       <h2>Import from ORCID</h2>
-      <p className="muted">Bring in all your papers at once. Each one with a DOI is filled in from Crossref and saved as a draft; check it, tick where it is indexed, attach the paper and submit it.</p>
+      <p className="muted">{toLibrary
+        ? "Bring in all your papers at once. Each one with a DOI is filled in from Crossref and goes to the Library to verify; open each to check it, tick where it is indexed and attach the paper."
+        : "Bring in all your papers at once. Each one with a DOI is filled in from Crossref and saved as a draft; check it, tick where it is indexed, attach the paper and submit it."}</p>
       <form className="row" onSubmit={list}>
         <Field label="Your ORCID iD" hint="Like 0000-0002-1825-0097, or your orcid.org link.">
           <input required maxLength={100} value={id} onChange={(e) => setId(e.target.value)} />
@@ -94,13 +98,13 @@ export function OrcidImport() {
             ))}
           </Table>
           <Button kind="primary" disabled={busy || chosen.size === 0} onClick={bringIn}>
-            {busy ? "Importing…" : `Import ${chosen.size} as drafts`}
+            {busy ? "Importing…" : toLibrary ? `Import ${chosen.size}` : `Import ${chosen.size} as drafts`}
           </Button>
         </>
       )}
       {result && (
         <div role="status">
-          <p>{result.created.length} draft{result.created.length === 1 ? "" : "s"} added. <Link href="/publications">See your publications</Link></p>
+          <p>{result.created.length} {toLibrary ? "paper" : "draft"}{result.created.length === 1 ? "" : "s"} added. <Link href={base}>See your publications</Link></p>
           {result.skipped.length > 0 && (
             <ul>{result.skipped.map((s) => <li key={s.doi}><span className="mono">{s.doi}</span>: {s.reason}</li>)}</ul>
           )}

@@ -1,7 +1,7 @@
-"""List a researcher's works from their public ORCID record (owner, 2026-11-23), so a scholar can
-bring in their papers at once. ORCID's summaries rarely carry authors or the venue, so each
-chosen work is filled from Crossref through its DOI (doi.py); a work without a DOI is added by
-hand. Only the ORCID iD leaves the server; no key is needed for public records."""
+"""List a researcher's works from their public ORCID record (owner, 2026-11-23), so a scholar or a
+member of faculty can bring in their papers at once. ORCID's summaries rarely carry authors or
+the venue, so each chosen work is filled from Crossref through its DOI (doi.py); a work without
+a DOI is added by hand. Only the ORCID iD leaves the server; no key is needed for public records."""
 
 import asyncio
 import logging
@@ -10,7 +10,7 @@ import uuid
 from typing import Any
 
 import httpx
-from sqlalchemy import func, select
+from sqlalchemy import ColumnElement, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import doi
@@ -18,7 +18,7 @@ from app.auth.principal import Principal
 from app.crud import insert
 from app.doi import USER_AGENT
 from app.errors import ApiError
-from app.models import Publication
+from app.models import FacultyPublication, Publication
 
 log = logging.getLogger("anveshan.orcid")
 ORCID = "https://pub.orcid.org/v3.0/"
@@ -100,13 +100,19 @@ async def works(raw: str) -> list[dict[str, Any]]:
 CONCURRENT_LOOKUPS = 1
 
 
-async def recorded_dois(session: AsyncSession, scholar_id: uuid.UUID) -> set[str]:
+# Whose papers: the model and its owner column, e.g. (Publication, {"scholar_id": ...}).
+PaperModel = type[Publication] | type[FacultyPublication]
+
+
+def _owned(model: PaperModel, owner: dict[str, uuid.UUID]) -> list[ColumnElement[bool]]:
+    return [getattr(model, k) == v for k, v in owner.items()] + [model.deleted_at.is_(None)]
+
+
+async def recorded_dois(
+    session: AsyncSession, model: PaperModel, owner: dict[str, uuid.UUID]
+) -> set[str]:
     rows = await session.scalars(
-        select(func.lower(Publication.doi)).where(
-            Publication.scholar_id == scholar_id,
-            Publication.doi.is_not(None),
-            Publication.deleted_at.is_(None),
-        )
+        select(func.lower(model.doi)).where(*_owned(model, owner), model.doi.is_not(None))
     )
     return set(rows)
 
@@ -119,12 +125,16 @@ def _incomplete(found: dict[str, Any]) -> str | None:
 
 
 async def import_dois(
-    session: AsyncSession, principal: Principal, dois: list[str]
+    session: AsyncSession,
+    principal: Principal,
+    dois: list[str],
+    model: PaperModel,
+    owner: dict[str, uuid.UUID],
 ) -> dict[str, list[dict[str, Any]]]:
-    """Each DOI, filled from Crossref, becomes the scholar's draft publication; a DOI already
-    recorded, unknown to Crossref, or missing a required field is skipped with the reason."""
-    assert principal.scholar_id is not None
-    have = await recorded_dois(session, principal.scholar_id)
+    """Each DOI, filled from Crossref, becomes the owner's paper (a scholar's draft, or a faculty
+    paper waiting for the Library); a DOI already recorded, unknown to Crossref, or missing a
+    required field is skipped with the reason."""
+    have = await recorded_dois(session, model, owner)
     unique: dict[str, str] = {}
     for d in dois:
         unique.setdefault(d.lower(), d)  # DOIs ignore case; keep the first spelling
@@ -146,8 +156,6 @@ async def import_dois(
             skipped.append({"doi": d, "reason": reason})
             continue
         assert isinstance(found, dict)
-        pub = await insert(
-            session, principal, Publication(scholar_id=principal.scholar_id, **found)
-        )
+        pub = await insert(session, principal, model(**owner, **found))
         created.append({"id": pub.id, "title": pub.title})
     return {"created": created, "skipped": skipped}
