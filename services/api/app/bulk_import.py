@@ -28,6 +28,8 @@ from app.enums import (
     GENDERS,
     MILESTONE_STATUSES,
     MILESTONE_TYPES,
+    MINORITIES,
+    NATIONALITIES,
     STAGES,
     STUDY_MODES,
     UGC_CAP,
@@ -86,6 +88,11 @@ SCHOLARS = (
     Column("gender", "Gender", False, "Optional: " + " / ".join(GENDERS) + ".", ""),
     Column("category", "Category", False, "Optional: " + " / ".join(CATEGORIES) + ".", ""),
     Column("has_disability", "Person with disability", False, "Optional: yes / no.", ""),
+    Column(
+        "minority", "Minority community", False, "Optional: " + " / ".join(MINORITIES) + ".", ""
+    ),
+    Column("nationality", "Nationality", False, "Optional: " + " / ".join(NATIONALITIES) + ".", ""),
+    Column("country", "Country", False, "For an NRI, a PIO or a foreign national only.", ""),
 )
 HISTORY = (
     Column(
@@ -367,6 +374,10 @@ async def _plan_scholars(ctx: _Context, rows: list[Row], report: Report) -> list
         mode, gender = c.choice("study_mode", STUDY_MODES), c.choice("gender", GENDERS)
         category = c.choice("category", CATEGORIES)
         disability = c.choice("has_disability", ("yes", "no"))
+        minority = c.choice("minority", MINORITIES)
+        nationality, country = c.choice("nationality", NATIONALITIES), c.text("country", 100)
+        if (country is None) != (nationality in (None, "indian")):
+            c.error("country", "give it for an NRI, a PIO or a foreign national, and only then")
         sup, sup_load = _faculty_ref(c, faculty, "supervisor_email")
         co, _ = _faculty_ref(c, faculty, "co_supervisor_email")
         if co and co_mode == "off":
@@ -403,6 +414,9 @@ async def _plan_scholars(ctx: _Context, rows: list[Row], report: Report) -> list
             gender=gender,
             category=category,
             has_disability=None if disability is None else disability == "yes",
+            minority=minority,
+            nationality=nationality,
+            country=country,
         )
         plan.append(_scholar_with_guides(ctx, email, name, profile, sup, co))
     return plan

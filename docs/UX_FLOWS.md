@@ -296,7 +296,9 @@ had, current first, each with its dates and appointing order; a change of
 supervisor in Manage ends the old appointment and adds the new one, and the
 admin records or corrects any appointment's order there, and a past
 appointment's end date. The scholar's
-father's name sits with the personal details (the scholar fills it once). On a
+father's name, minority community and nationality (with the country for an
+NRI, a PIO or a foreign national) sit with the personal details (the scholar
+fills each once). On a
 progress report, whoever acts at the current step may state the
 **Recommendation** — may continue with / without assistantship — printed on the
 PDF.

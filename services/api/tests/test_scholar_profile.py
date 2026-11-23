@@ -82,6 +82,10 @@ async def test_scholar_fills_in_what_is_missing_but_cannot_change_it(client, wor
     rest = await _fill(client, world.scholar_a1b, study_mode="full_time", has_disability=False)
     assert rest.status_code == 200 and rest.json()["has_disability"] is False
     home = await client.get("/api/v1/dashboard", headers=auth(world.scholar_a1b.id))
+    assert home.json()["scholar"]["profile_incomplete"] is True  # minority, nationality
+    last = await _fill(client, world.scholar_a1b, minority="none", nationality="indian")
+    assert last.status_code == 200, last.text
+    home = await client.get("/api/v1/dashboard", headers=auth(world.scholar_a1b.id))
     assert home.json()["scholar"]["profile_incomplete"] is False
     # Only scholars have a profile of their own, and only the four fields are theirs to fill.
     assert (await _fill(client, world.sup_a2, gender="male")).status_code == 403

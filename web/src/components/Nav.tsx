@@ -74,6 +74,7 @@ const NAV: Entry[] = [
   },
   { href: "/leadership", label: "Leadership", show: (me) => me.roles.some((r) => r === "unit_head" || r === "admin" || r === "research_office" || r === "vice_chancellor") },
   { href: "/naac", label: "NAAC data", show: (me) => me.is_root_admin || me.roles.some((r) => r === "research_office" || r === "vice_chancellor") },
+  { href: "/returns", label: "NIRF and AISHE", show: (me) => me.roles.some((r) => r === "research_office" || r === "vice_chancellor") },
   { href: "/register", label: "Register", show: (me) => me.roles.some((r) => r !== "library") },
   { href: "/audit", label: "Audit log", show: (me) => me.roles.some((r) => r === "admin" || r === "research_office" || r === "vice_chancellor") },
   { href: "/settings", label: "Settings", show: (me) => me.is_root_admin },

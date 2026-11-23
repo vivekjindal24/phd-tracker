@@ -56,6 +56,7 @@ export type OrgUnit = {
   code: string;
   path: string;
   cross_unit_directory: boolean;
+  aishe_discipline: string | null;
 };
 
 /** How the university names one form of the PhD file (PRD F17); empty: Anveshan's. */
@@ -192,6 +193,9 @@ export type Scholar = {
   gender: Gender | null;
   category: Category | null;
   has_disability: boolean | null;
+  minority: Minority | null;
+  nationality: Nationality | null;
+  country: string | null; // an NRI's, PIO's or foreign national's
   father_name: string | null;
   directory_only: boolean;
 };
@@ -201,6 +205,19 @@ export type Gender = "female" | "male" | "transgender";
 export const GENDER_LABELS: Record<Gender, string> = { female: "Female", male: "Male", transgender: "Transgender" };
 export type Category = "general" | "obc" | "sc" | "st" | "ews";
 export const CATEGORY_LABELS: Record<Category, string> = { general: "General", obc: "OBC", sc: "SC", st: "ST", ews: "EWS" };
+/** AISHE counts the Muslim minority and the other notified minorities apart. */
+export type Minority = "none" | "muslim" | "christian" | "sikh" | "buddhist" | "jain" | "parsi";
+export const MINORITY_LABELS: Record<Minority, string> = {
+  none: "Not from a minority community", muslim: "Muslim", christian: "Christian", sikh: "Sikh",
+  buddhist: "Buddhist", jain: "Jain", parsi: "Parsi (Zoroastrian)",
+};
+/** AISHE's foreign students: NRIs, PIOs and other foreign nationals, each with a country. */
+export type Nationality = "indian" | "nri" | "pio" | "foreign";
+export const NATIONALITY_LABELS: Record<Nationality, string> = {
+  indian: "Indian", nri: "Indian, non-resident (NRI)", pio: "Person of Indian origin (PIO / OCI)", foreign: "Foreign national",
+};
+/** AISHE's disability is benchmark disability (RPwD Act 2016). */
+export const DISABILITY_LABEL = "Person with benchmark disability (40% or more)";
 export type LeftReason = "withdrawn" | "cancelled";
 export const LEFT_LABELS: Record<LeftReason, string> = { withdrawn: "Withdrew", cancelled: "Registration cancelled" };
 

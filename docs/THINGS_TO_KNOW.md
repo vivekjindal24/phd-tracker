@@ -299,6 +299,34 @@ remove a point only when the behaviour itself changes.
   application number (spaces and case ignored) is one row in NAAC naming both.
   *(owner, 2026-11-23)*
 
+## NIRF and AISHE (PRD M9)
+
+- **Only the research-degree tables.** NIRF's Ph.D. student details, sponsored research and
+  patents, and AISHE's Ph.D. enrolment, foreign students and examination results. The rest of
+  both returns (staff, finance, infrastructure, UG/PG students) and AISHE's Ph.D. approved
+  intake (seats) are filled outside Anveshan. *(owner, 2026-11-23)*
+- **The Research Office and the Vice Chancellor download them, not the root admin.** They count
+  category, disability, minority community and nationality, which the root admin does not read.
+  *(security model, 2026-11-23)*
+- **Two new profile fields.** A scholar's minority community and nationality (with the country
+  for an NRI, a PIO or a foreign national). They are personal data, like category: the
+  scholar fills each once and the department admin corrects it; the import has columns for
+  both. *(owner, 2026-11-23)*
+- **Each department's AISHE discipline is set once** by the root admin in Settings → University
+  structure, as AISHE names it. Left blank, the column is empty.
+- **How the counts are made.** NIRF "pursuing": admitted by 30 June of the year and neither
+  awarded nor gone by then. AISHE enrolment: on the rolls at any time in the year (so a
+  scholar awarded mid-year is counted); year of study from the admission date. AISHE
+  "appeared": the viva was held in the year; "awarded": the degree was awarded in it. NIRF
+  sponsored research: projects that received a grant entry in the financial year (April to
+  March), agencies counted once whatever the spelling's case or spaces. Patents: verified ones,
+  by calendar year.
+- **Disability means benchmark disability.** AISHE's PwBD is 40% or more under the RPwD Act
+  2016, and the profile now says so.
+- **Gaps are shown, not hidden.** A scholar whose category or gender is not recorded is
+  counted in a column of their own; those with no admission date are named at the end, so
+  their profiles can be completed before filing.
+
 ## Not in Anveshan
 
 - **Consultancy.** Paid work faculty do for outside clients, and its revenue, is not recorded

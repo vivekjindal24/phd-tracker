@@ -27,6 +27,8 @@ from app.enums import (
     GENDERS,
     GRIEVANCE_ROLES,
     LEFT_REASONS,
+    MINORITIES,
+    NATIONALITIES,
     NOTICE_SIGNERS,
     NOTIFICATION_CATEGORIES,
     OFFICE_ROLES,
@@ -65,6 +67,10 @@ class OrgUnit(DomainRow, Base):
             name="ck_org_units_viva_notice_signers",
         ),
         CheckConstraint("jsonb_typeof(notice_names) = 'object'", name="ck_org_units_notice_names"),
+        CheckConstraint(
+            "aishe_discipline IS NULL OR char_length(aishe_discipline) BETWEEN 1 AND 200",
+            name="ck_org_units_aishe_discipline",
+        ),
         Index(
             "ix_org_units_name_trgm",
             "name",
@@ -81,6 +87,7 @@ class OrgUnit(DomainRow, Base):
     code: Mapped[str] = mapped_column(Text)
     path: Mapped[str] = mapped_column(Ltree)
     cross_unit_directory: Mapped[bool] = mapped_column(Boolean, server_default=false())
+    aishe_discipline: Mapped[str | None] = mapped_column(Text)  # as AISHE names it (returns.py)
     # Who signs the unit's seminar notices, in order (enums.NOTICE_SIGNERS); null: the default.
     notice_signers: Mapped[list[str] | None] = mapped_column(ARRAY(Text))
     viva_notice_signers: Mapped[list[str] | None] = mapped_column(ARRAY(Text))  # likewise, vivas
@@ -219,6 +226,15 @@ class Scholar(DomainRow, Base):
         CheckConstraint(f"study_mode IN ({sql_in(STUDY_MODES)})", name="ck_scholars_study_mode"),
         CheckConstraint(f"gender IN ({sql_in(GENDERS)})", name="ck_scholars_gender"),
         CheckConstraint(f"category IN ({sql_in(CATEGORIES)})", name="ck_scholars_category"),
+        CheckConstraint(f"minority IN ({sql_in(MINORITIES)})", name="ck_scholars_minority"),
+        CheckConstraint(
+            f"nationality IN ({sql_in(NATIONALITIES)})", name="ck_scholars_nationality"
+        ),
+        CheckConstraint(
+            "(country IS NULL) = (nationality IS NULL OR nationality = 'indian')"
+            " AND (country IS NULL OR char_length(country) BETWEEN 1 AND 100)",
+            name="ck_scholars_country",
+        ),
         CheckConstraint(
             f"(left_on IS NULL AND left_reason IS NULL) OR "
             f"(left_on IS NOT NULL AND left_reason IN ({sql_in(LEFT_REASONS)}))",
@@ -252,6 +268,9 @@ class Scholar(DomainRow, Base):
     gender: Mapped[str | None] = mapped_column(Text)
     category: Mapped[str | None] = mapped_column(Text)
     has_disability: Mapped[bool | None] = mapped_column(Boolean)
+    minority: Mapped[str | None] = mapped_column(Text)
+    nationality: Mapped[str | None] = mapped_column(Text)
+    country: Mapped[str | None] = mapped_column(Text)  # an NRI's, PIO's or foreigner's
     supervisor_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("faculty.id"), index=True
     )

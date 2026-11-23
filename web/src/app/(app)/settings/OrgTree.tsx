@@ -51,13 +51,10 @@ export function OrgTree() {
     }
   }
 
-  async function setCrossUnit(unit: OrgUnit, open: boolean) {
+  async function change(unit: OrgUnit, body: Partial<Pick<OrgUnit, "cross_unit_directory" | "aishe_discipline">>) {
     setError(null);
     try {
-      await api(`/org-units/${unit.id}`, {
-        method: "PATCH",
-        body: JSON.stringify({ cross_unit_directory: open }),
-      });
+      await api(`/org-units/${unit.id}`, { method: "PATCH", body: JSON.stringify(body) });
       await load();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : String(err));
@@ -88,10 +85,19 @@ export function OrgTree() {
                 <input
                   type="checkbox"
                   checked={u.cross_unit_directory}
-                  onChange={(e) => setCrossUnit(u, e.target.checked)}
+                  onChange={(e) => change(u, { cross_unit_directory: e.target.checked })}
                 />
                 Sees all departments
               </label>
+            )}
+            {u.parent_id && (
+              <input className="tree-discipline" aria-label={`AISHE discipline of ${u.name}`} placeholder="AISHE discipline"
+                maxLength={200} defaultValue={u.aishe_discipline ?? ""} key={u.aishe_discipline ?? ""}
+                title="The discipline AISHE files this unit's Ph.D. scholars under, as AISHE names it"
+                onBlur={(e) => {
+                  const value = e.target.value.trim() || null;
+                  if (value !== u.aishe_discipline) change(u, { aishe_discipline: value });
+                }} />
             )}
             {u.parent_id && (
               <Button kind="ghost" onClick={() => remove(u)} aria-label={`Remove ${u.name}`}>

@@ -186,6 +186,7 @@ role's scope (§2).
 | comments | on any record they can R | ← | ← | ← | ← | ← | ← |
 | files | on any record they can R (upload where they can U/C) | ← | ← | ← | ← | ← | ← |
 | NAAC data (M9) | — | — | — | root admin only | R | — | — |
+| NIRF and AISHE tables (M9) | — | — | — | — | R (Research Office, Vice Chancellor) | — | — |
 | exports | own record | supervisees | subtree | subtree | all | coursework, thesis | publications, thesis |
 | audit log | — | — | — | R in subtree | R | — | — |
 
@@ -231,7 +232,8 @@ record, which scholar, when, the state change of a chain action and the
 names or amounts its reader has no right to. Drafts and their versions
 (`documents`, `document_versions`) are left out altogether.
 
-**Scholar personal fields:** `gender`, `category`, `has_disability` and `father_name` are
+**Scholar personal fields:** `gender`, `category`, `has_disability`, `minority`,
+`nationality`, `country` and `father_name` are
 returned only to the scholar, admins and heads whose unit covers the
 scholar's, the Research Office and the Vice Chancellor
 (`scope.sees_personal`); for everyone else in scope the API sends null and
@@ -364,7 +366,14 @@ Notifications carry no words of the grievance, the audit trail stores none, and 
 audit-log page lists no grievance row (§6, Audit).
 
 Disabled modules: every route of the module → 404 `module_disabled`
-regardless of role, and so does a NAAC sheet built from that module.
+regardless of role, and so does a NAAC sheet built from that module, or a
+NIRF table (sponsored research needs `projects`, patents `patents`).
+
+**NIRF and AISHE tables** (`/internal/returns/{sheet}`) count category,
+disability, minority community and nationality university wide, so only those
+who read every scholar's personal fields (`principal.reads_all`: the Research
+Office and the Vice Chancellor) download them. The root admin does not, as they
+do not read those fields on a scholar's page.
 
 ## 4. Approval Engine Rules (`workflow.py`)
 

@@ -38,7 +38,9 @@ root; partial unique index `uq_org_root` guarantees exactly one root),
 `code` (UNIQUE), `path` `ltree` (UNIQUE, GiST-indexed; maintained by the API
 on insert/move), `cross_unit_directory` bool (default false; set by the root
 admin, opens the faculty and scholars directories to that unit's heads and
-admins, SECURITY.md §3), `notice_signers` text[] (who signs the unit's seminar
+admins, SECURITY.md §3), `aishe_discipline` (nullable, 1–200 chars; the
+discipline AISHE files the unit's Ph.D. scholars under, set by the root admin;
+migration 0063), `notice_signers` text[] (who signs the unit's seminar
 notices, in signing order; CHECK ⊆ exam_office / drc_secretary / admin / drc_chair /
 unit_head / dean; null: admin, unit_head, dean — PRD F17b), `viva_notice_signers`
 text[] (likewise for the unit's viva notices; null: exam_office, unit_head, dean;
@@ -101,7 +103,12 @@ default Registered), `supervisor_id` FK faculty (indexed, nullable),
 `co_supervisor_id` FK faculty (indexed, nullable; CHECK ≠ `supervisor_id`;
 honoured only while `settings.co_supervision ≠ 'off'`; both mirror the open
 `supervisor_appointments` row and change only through `app/supervision.py`),
-`father_name` (nullable; personal data, as gender; migration 0042), `left_on` date +
+`father_name` (nullable; personal data, as gender; migration 0042), `minority`
+CHECK (none / muslim / christian / sikh / buddhist / jain / parsi), `nationality`
+CHECK (indian / nri / pio / foreign) and `country` (1–100 chars; set exactly when
+the nationality is nri, pio or foreign, `ck_scholars_country`) — all three
+nullable = not recorded, personal data as gender, counted by the AISHE tables
+(`app/returns.py`; migration 0063), `left_on` date +
 `left_reason` CHECK (withdrawn / cancelled) — both set or both NULL
 (`ck_scholars_left`). The admission a scholar came from is
 `admissions.scholar_id`. Only **current** scholars (not left, not Degree

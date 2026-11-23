@@ -32,8 +32,10 @@ from app.enums import (
     MeetingShare,
     MilestoneStatus,
     MilestoneType,
+    Minority,
     ModuleKey,
     MutableCategory,
+    Nationality,
     NoticeSigner,
     PanelKind,
     PatentVerifier,
@@ -146,6 +148,7 @@ class OrgUnitOut(Out):
     code: str
     path: str
     cross_unit_directory: bool
+    aishe_discipline: str | None
 
 
 class OrgUnitCreate(BaseModel):
@@ -160,6 +163,10 @@ class OrgUnitUpdate(BaseModel):
     kind: Name | None = None
     parent_id: uuid.UUID | None = None
     cross_unit_directory: bool = False  # exclude_unset: absent leaves it, null is a 422
+    aishe_discipline: (
+        Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)]
+        | None
+    ) = None  # null clears it
 
 
 class FacultyRequestIn(BaseModel):
@@ -601,6 +608,9 @@ class ScholarOut(BaseModel):
     gender: Gender | None
     category: Category | None
     has_disability: bool | None
+    minority: Minority | None
+    nationality: Nationality | None
+    country: str | None
     father_name: str | None
     directory_only: bool = False  # an opened department reading another unit's scholar
 
@@ -633,6 +643,16 @@ class StandIns(BaseModel):
 OrderRef = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)]
 
 
+Country = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)]
+
+
+def _country_matches(nationality: str | None, country: str | None) -> None:
+    """A country for an NRI, a PIO or a foreign national, none for an Indian (AISHE counts
+    foreign students by country)."""
+    if (country is None) != (nationality in (None, "indian")):
+        raise ValueError("give the country for an NRI, a PIO or a foreign national, and only then")
+
+
 class ScholarOwnProfile(BaseModel):
     """What a scholar fills in about themself; only while a field is still not recorded."""
 
@@ -641,7 +661,15 @@ class ScholarOwnProfile(BaseModel):
     gender: Gender | None = None
     category: Category | None = None
     has_disability: bool | None = None
+    minority: Minority | None = None
+    nationality: Nationality | None = None
+    country: Country | None = None
     father_name: Name | None = None
+
+    @model_validator(mode="after")
+    def _country_with_nationality(self) -> "ScholarOwnProfile":
+        _country_matches(self.nationality, self.country)
+        return self
 
 
 class ScholarUpdate(BaseModel):
@@ -658,6 +686,9 @@ class ScholarUpdate(BaseModel):
     gender: Gender | None = None
     category: Category | None = None
     has_disability: bool | None = None
+    minority: Minority | None = None
+    nationality: Nationality | None = None
+    country: Country | None = None
     father_name: Name | None = None
     # Withdrawn / cancelled: both together, or both null to undo (PRD Phase 4).
     left_on: date | None = None
@@ -668,6 +699,15 @@ class ScholarUpdate(BaseModel):
         fields = self.model_fields_set & {"left_on", "left_reason"}
         if fields and (len(fields) == 1 or (self.left_on is None) != (self.left_reason is None)):
             raise ValueError("give both the date and the reason the scholar left, or neither")
+        return self
+
+    @model_validator(mode="after")
+    def _country_with_nationality(self) -> "ScholarUpdate":
+        given = self.model_fields_set & {"nationality", "country"}
+        if len(given) == 1:
+            raise ValueError("give the nationality and the country together")
+        if given:
+            _country_matches(self.nationality, self.country)
         return self
 
 

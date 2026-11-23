@@ -103,6 +103,7 @@ _add("scholars", "Scholars", scholars.list_scholars, None, (
     ("Admitted on", "admission_date"), ("Mode", "study_mode~"),
     # Blank for a reader scope.sees_personal turns away, as on the page.
     ("Gender", "gender"), ("Category", "category"), ("Person with disability", "has_disability"),
+    ("Minority community", "minority"), ("Nationality", "nationality"), ("Country", "country"),
 ))  # fmt: skip
 _add("faculty", "Faculty", faculty.list_faculty, None, (
     ("Name", "full_name"), ("Email", "email"), ("Designation", "designation"),

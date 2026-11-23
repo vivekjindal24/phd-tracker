@@ -84,6 +84,9 @@ def _out(row, principal: Principal) -> ScholarOut:
         gender=s.gender if personal else None,
         category=s.category if personal else None,
         has_disability=s.has_disability if personal else None,
+        minority=s.minority if personal else None,
+        nationality=s.nationality if personal else None,
+        country=s.country if personal else None,
         father_name=s.father_name if personal else None,
     )
 

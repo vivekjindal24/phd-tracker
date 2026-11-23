@@ -94,6 +94,9 @@ before(async () => {
     if (req.path.endsWith("/register-view")) return res.json(register);
     if (req.path.endsWith("/phd-file")) return res.json(phdFile);
     if (req.path.endsWith("/notice") || req.path.endsWith("/attendance")) return res.json(notice);
+    if (req.path.startsWith("/api/v1/internal/returns/"))
+      return res.json({ university: "U", address: "", logo: null, title: "NIRF: Ph.D. student details, 2024-25",
+        columns: ["", "Full time"], rows: [["Graduated in 2024-25", 3]], generated_at: "2026-11-12T10:00:00Z", generated_by: "R" });
     if (req.path === "/api/v1/internal/lists/scholars") {
       // Three rows in all; the stub hands out two a page whatever limit is asked.
       const offset = Number(req.query.offset);
@@ -394,6 +397,16 @@ test("a list export pages to the total and forwards the page's filters and sort"
     "/api/v1/internal/lists/scholars?q=a&sort=-stage&limit=200&offset=0",
     "/api/v1/internal/lists/scholars?q=a&sort=-stage&limit=200&offset=2",
   ]);
+});
+
+test("a NIRF/AISHE table forwards the year; unknown sheets and odd years are refused", async () => {
+  const res = await get("/returns/nirf-phd.csv?year=2024");
+  assert.equal(res.status, 200);
+  assert.equal(seen.url, "/api/v1/internal/returns/nirf-phd?year=2024");
+  assert.match(res.headers.get("content-disposition") ?? "", /nirf-phd-2024\.csv/);
+  assert.ok((await res.text()).includes("Graduated in 2024-25,3"));
+  assert.equal((await get("/returns/salaries.csv?year=2024")).status, 422);
+  assert.equal((await get("/returns/aishe-enrolment.csv?year=24")).status, 422);
 });
 
 test("a list export refuses unknown lists and odd query keys", async () => {

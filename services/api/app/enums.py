@@ -356,6 +356,12 @@ Gender = Literal["female", "male", "transgender"]
 GENDERS = get_args(Gender)
 Category = Literal["general", "obc", "sc", "st", "ews"]
 CATEGORIES = get_args(Category)
+# AISHE counts the Muslim minority and the other notified minorities apart; "none": not from one.
+Minority = Literal["none", "muslim", "christian", "sikh", "buddhist", "jain", "parsi"]
+MINORITIES = get_args(Minority)
+# AISHE's foreign students: NRI, PIO (or OCI) and other foreign nationals, each by country.
+Nationality = Literal["indian", "nri", "pio", "foreign"]
+NATIONALITIES = get_args(Nationality)
 # Time records against the UGC maximum duration (Phase 4): extensions and the women/PwD
 # relaxation move the limit; leave is recorded and checked against its own limit.
 TimeKind = Literal["extension", "relaxation", "maternity_leave", "medical_leave", "other_leave"]

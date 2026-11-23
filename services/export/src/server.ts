@@ -36,6 +36,10 @@ const naacQuery = z.object({
   to_year: z.string().regex(/^\d{4}$/),
 });
 
+const returnsQuery = z.object({ year: z.string().regex(/^\d{4}$/) });
+const returnsSheet = z.enum(["nirf-phd", "nirf-sponsored", "nirf-patents", "aishe-enrolment", "aishe-foreign",
+  "aishe-results"]);
+
 const listName = z.enum(["scholars", "faculty", "milestones", "reports", "meetings", "seminars", "publications",
   "faculty-publications", "patents", "theses", "conferences", "documents", "admissions", "fellowships", "fellowship-claims", "projects", "audit-log"]);
 // The API validates each filter; here only the shape: plain short key=value pairs.
@@ -188,6 +192,18 @@ export function createApp(config: Config) {
       const q = input(naacQuery, req.query);
       const view = await fetchView(config.apiUrl, `/internal/naac/${sheet}?${new URLSearchParams(q)}`, auth(req), tableView);
       send(res, "text/csv; charset=utf-8", `naac-${sheet}-${q.from_year}-${q.to_year}.csv`, tableCsv(view));
+    } catch (e) {
+      next(e);
+    }
+  });
+
+  // NIRF's and AISHE's research-degree tables for one academic year.
+  app.get("/returns/:sheet.csv", async (req, res, next) => {
+    try {
+      const sheet = input(returnsSheet, req.params.sheet);
+      const q = input(returnsQuery, req.query);
+      const view = await fetchView(config.apiUrl, `/internal/returns/${sheet}?${new URLSearchParams(q)}`, auth(req), tableView);
+      send(res, "text/csv; charset=utf-8", `${sheet}-${q.year}.csv`, tableCsv(view));
     } catch (e) {
       next(e);
     }

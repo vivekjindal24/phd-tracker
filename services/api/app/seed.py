@@ -111,6 +111,30 @@ DEMO_SCHOLARS = [
     ),
     ("zoya", "Zoya Khan", "PHD-CHE-2023-006", "CHE", "deepa", "Coursework", date(2023, 7, 20)),
 ]
+# Their profiles, as AISHE counts them (returns.py); Zoya's is left for her to complete.
+_INDIAN = {"minority": "none", "nationality": "indian"}
+DEMO_PROFILES = {
+    "arun": _INDIAN | {"gender": "male", "category": "obc"},
+    "priya": _INDIAN | {"gender": "female", "category": "general"},
+    "vikram": _INDIAN | {"gender": "male", "category": "sc"},
+    "neha": _INDIAN | {"gender": "female", "category": "ews"},
+    "kabir": {
+        "gender": "male",
+        "category": "general",
+        "minority": "sikh",
+        "nationality": "nri",
+        "country": "United Arab Emirates",
+    },
+}
+PART_TIME = {"vikram"}
+DISABLED = {"neha"}
+# Each department's discipline as AISHE names it.
+DEMO_DISCIPLINES = {
+    "CSE": "Computer Science and Engineering",
+    "ECE": "Electronics and Communication Engineering",
+    "PHY": "Physics",
+    "CHE": "Chemistry",
+}
 # CSE catalogue (code, title, credits); Arun's grades leave one course ungraded and credits short.
 DEMO_COURSES = [
     ("CS801", "Research Methodology", 4, ("A", 8)),
@@ -169,6 +193,7 @@ async def demo(session: AsyncSession) -> None:
     }
     for code, name, kind, parent in DEMO_UNITS:
         units[code] = await create_unit(session, None, units[parent], name, kind, code)
+        units[code].aishe_discipline = DEMO_DISCIPLINES.get(code)
 
     for login, name, roles in DEMO_STAFF:
         user = await _user(session, f"{login}@{DOMAIN}", name, pw)
@@ -203,6 +228,9 @@ async def demo(session: AsyncSession) -> None:
                 roll_number=roll,
                 stage=stage,
                 admission_date=admitted,
+                study_mode="part_time" if login in PART_TIME else "full_time",
+                has_disability=(login in DISABLED) if login in DEMO_PROFILES else None,
+                **DEMO_PROFILES.get(login, {}),
             ),
         )
         await supervision.change(session, None, scholars[login], "supervisor", faculty[sup].id)

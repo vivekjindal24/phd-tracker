@@ -22,6 +22,7 @@ from app import (
     phd_file,
     phd_forms,
     phd_index,
+    returns,
     reviews,
     scope,
     seminars,
@@ -275,6 +276,38 @@ async def naac_view(
         "title": title,
         "columns": columns,
         "rows": await build(session, period),
+        "generated_at": datetime.now(UTC),
+        "generated_by": principal.full_name,
+    }
+
+
+@router.get("/returns/{sheet}")
+async def returns_view(
+    sheet: Literal[
+        "nirf-phd",
+        "nirf-sponsored",
+        "nirf-patents",
+        "aishe-enrolment",
+        "aishe-foreign",
+        "aishe-results",
+    ],
+    year: int = Query(ge=2000, le=2100),
+    principal: Principal = Depends(current_principal),
+    session: AsyncSession = Depends(get_session),
+) -> dict[str, Any]:
+    """NIRF's and AISHE's research-degree tables for academic year year-… (PRD M9). They count
+    category, disability, minority and nationality, which only the Research Office and the Vice
+    Chancellor read university wide (scope.sees_personal), so the root admin does not."""
+    if not principal.reads_all:
+        raise forbidden()
+    if sheet in returns.SHEET_MODULES:
+        await grants.require_module(session, returns.SHEET_MODULES[sheet])
+    title, columns, build = returns.SHEETS[sheet]
+    return {
+        **await branding.export_fields(session),
+        "title": f"{title}, {naac.academic_year(returns.ay_bounds(year)[0])}",
+        "columns": columns,
+        "rows": await build(session, year),
         "generated_at": datetime.now(UTC),
         "generated_by": principal.full_name,
     }

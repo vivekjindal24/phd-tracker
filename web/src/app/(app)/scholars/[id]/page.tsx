@@ -22,7 +22,10 @@ import { api } from "@/lib/api";
 import { formatDate } from "@/lib/format";
 import { useSession } from "@/lib/session";
 import { RequestMember } from "@/components/RequestMember";
-import { CATEGORY_LABELS, GENDER_LABELS, LEFT_LABELS, MILESTONE_LABELS, STAGES, STUDY_MODE_LABELS } from "@/lib/types";
+import {
+  CATEGORY_LABELS, DISABILITY_LABEL, GENDER_LABELS, LEFT_LABELS, MILESTONE_LABELS, MINORITY_LABELS, NATIONALITY_LABELS, STAGES,
+  STUDY_MODE_LABELS,
+} from "@/lib/types";
 import type { Faculty, LeftReason, Milestone, Scholar, Stage } from "@/lib/types";
 import { errorText, useFetch } from "@/lib/useFetch";
 import "./profile.css";
@@ -32,10 +35,14 @@ const NOT_RECORDED = <span className="muted">Not recorded</span>;
 const choices = (labels: Record<string, string>) =>
   Object.entries(labels).map(([k, l]) => <option key={k} value={k}>{l}</option>);
 
+/** An NRI, a PIO or a foreign national names a country (AISHE counts them by country). */
+const fromAbroad = (nationality: string) => nationality !== "" && nationality !== "indian";
+const COUNTRY_HINT = "The country they are from or live in, as AISHE lists it.";
+
 /** A scholar fills in their own details that are still not recorded; a recorded value is the
  *  admin's to correct (the API refuses a change here). */
 function OwnProfileCard({ scholar, onSaved }: { scholar: Scholar; onSaved: (s: Scholar) => void }) {
-  const [v, setV] = useState({ study_mode: "", gender: "", category: "", has_disability: "", father_name: "" });
+  const [v, setV] = useState({ study_mode: "", gender: "", category: "", has_disability: "", minority: "", nationality: "", country: "", father_name: "" });
   const [error, setError] = useState<string | null>(null);
   const missing = {
     father_name: scholar.father_name === null,
@@ -43,6 +50,8 @@ function OwnProfileCard({ scholar, onSaved }: { scholar: Scholar; onSaved: (s: S
     gender: scholar.gender === null,
     category: scholar.category === null,
     has_disability: scholar.has_disability === null,
+    minority: scholar.minority === null,
+    nationality: scholar.nationality === null,
   };
   if (!Object.values(missing).some(Boolean)) return null;
   const chosen = Object.entries(v).filter(([, value]) => value);
@@ -50,15 +59,17 @@ function OwnProfileCard({ scholar, onSaved }: { scholar: Scholar; onSaved: (s: S
   async function save(e: FormEvent) {
     e.preventDefault();
     setError(null);
-    const body = Object.fromEntries(chosen.map(([k, value]) => [k, k === "has_disability" ? value === "true" : value]));
+    const body = Object.fromEntries(chosen
+      .filter(([k]) => k !== "country" || fromAbroad(v.nationality))
+      .map(([k, value]) => [k, k === "has_disability" ? value === "true" : value]));
     try {
       onSaved(await api<Scholar>("/scholars/mine/profile", { method: "PUT", body: JSON.stringify(body) }));
-      setV({ study_mode: "", gender: "", category: "", has_disability: "", father_name: "" });
+      setV({ study_mode: "", gender: "", category: "", has_disability: "", minority: "", nationality: "", country: "", father_name: "" });
     } catch (err) {
       setError(errorText(err));
     }
   }
-  const field = (key: keyof typeof v, label: string, options: ReactNode) =>
+  const field = (key: keyof typeof missing, label: string, options: ReactNode) =>
     missing[key] && (
       <Field label={label}>
         <select value={v[key]} onChange={(e) => setV({ ...v, [key]: e.target.value })}>
@@ -72,7 +83,8 @@ function OwnProfileCard({ scholar, onSaved }: { scholar: Scholar; onSaved: (s: S
     <Card>
       <h2>Complete your profile</h2>
       <p className="muted">
-        The university reports these to UGC and AISHE. Your gender, category, disability status and father&apos;s name are seen only by
+        The university reports these to UGC and AISHE. Your gender, category, disability status, minority community, nationality and
+        father&apos;s name are seen only by
         you, your department&apos;s admins and head, the Research Office and the Vice Chancellor — not by your
         supervisor. Once saved, ask your department&apos;s admin if something needs correcting.
       </p>
@@ -80,7 +92,14 @@ function OwnProfileCard({ scholar, onSaved }: { scholar: Scholar; onSaved: (s: S
         {field("study_mode", "Mode", choices(STUDY_MODE_LABELS))}
         {field("gender", "Gender", choices(GENDER_LABELS))}
         {field("category", "Category", choices(CATEGORY_LABELS))}
-        {field("has_disability", "Person with disability", <><option value="true">Yes</option><option value="false">No</option></>)}
+        {field("has_disability", DISABILITY_LABEL, <><option value="true">Yes</option><option value="false">No</option></>)}
+        {field("minority", "Minority community", choices(MINORITY_LABELS))}
+        {field("nationality", "Nationality", choices(NATIONALITY_LABELS))}
+        {missing.nationality && fromAbroad(v.nationality) && (
+          <Field label="Country" hint={COUNTRY_HINT}>
+            <input required maxLength={100} value={v.country} onChange={(e) => setV({ ...v, country: e.target.value })} />
+          </Field>
+        )}
         {missing.father_name && (
           <Field label="Father's name" hint="As it should appear on the university's forms.">
             <input maxLength={200} value={v.father_name} onChange={(e) => setV({ ...v, father_name: e.target.value })} />
@@ -321,7 +340,7 @@ export default function ScholarProfile() {
   const [stage, setStage] = useState<Stage>("Registered");
   const [title, setTitle] = useState("");
   // "" = not recorded; sent as null.
-  const [profile, setProfile] = useState({ study_mode: "", gender: "", category: "", has_disability: "", father_name: "" });
+  const [profile, setProfile] = useState({ study_mode: "", gender: "", category: "", has_disability: "", minority: "", nationality: "", country: "", father_name: "" });
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
@@ -334,6 +353,9 @@ export default function ScholarProfile() {
       gender: scholar.gender ?? "",
       category: scholar.category ?? "",
       has_disability: scholar.has_disability === null ? "" : String(scholar.has_disability),
+      minority: scholar.minority ?? "",
+      nationality: scholar.nationality ?? "",
+      country: scholar.country ?? "",
       father_name: scholar.father_name ?? "",
     });
   }, [scholar]);
@@ -363,6 +385,9 @@ export default function ScholarProfile() {
             gender: profile.gender || null,
             category: profile.category || null,
             has_disability: profile.has_disability === "" ? null : profile.has_disability === "true",
+            minority: profile.minority || null,
+            nationality: profile.nationality || null,
+            country: fromAbroad(profile.nationality) ? profile.country.trim() || null : null,
             father_name: profile.father_name.trim() || null,
           }),
         }),
@@ -403,8 +428,12 @@ export default function ScholarProfile() {
                 <dd>{scholar.gender ? GENDER_LABELS[scholar.gender] : NOT_RECORDED}</dd>
                 <dt>Category</dt>
                 <dd>{scholar.category ? CATEGORY_LABELS[scholar.category] : NOT_RECORDED}</dd>
-                <dt>Person with disability</dt>
+                <dt>{DISABILITY_LABEL}</dt>
                 <dd>{scholar.has_disability === null ? NOT_RECORDED : scholar.has_disability ? "Yes" : "No"}</dd>
+                <dt>Minority community</dt>
+                <dd>{scholar.minority ? MINORITY_LABELS[scholar.minority] : NOT_RECORDED}</dd>
+                <dt>Nationality</dt>
+                <dd>{scholar.nationality ? NATIONALITY_LABELS[scholar.nationality] : NOT_RECORDED}{scholar.country && ` · ${scholar.country}`}</dd>
                 <dt>Father&apos;s name</dt>
                 <dd>{scholar.father_name ?? NOT_RECORDED}</dd>
               </>
@@ -455,13 +484,30 @@ export default function ScholarProfile() {
                   <Field label="Father's name">
                     <input maxLength={200} value={profile.father_name} onChange={(e) => setProfile({ ...profile, father_name: e.target.value })} />
                   </Field>
-                  <Field label="Person with disability" hint="Seen only by the scholar, their department's admins and head, the Research Office and the Vice Chancellor — as are gender, category and father's name.">
+                  <Field label={DISABILITY_LABEL} hint="Seen only by the scholar, their department's admins and head, the Research Office and the Vice Chancellor — as are gender, category, minority community, nationality and father's name.">
                     <select value={profile.has_disability} onChange={(e) => setProfile({ ...profile, has_disability: e.target.value })}>
                       <option value="">Not recorded</option>
                       <option value="true">Yes</option>
                       <option value="false">No</option>
                     </select>
                   </Field>
+                  <Field label="Minority community">
+                    <select value={profile.minority} onChange={(e) => setProfile({ ...profile, minority: e.target.value })}>
+                      <option value="">Not recorded</option>
+                      {choices(MINORITY_LABELS)}
+                    </select>
+                  </Field>
+                  <Field label="Nationality">
+                    <select value={profile.nationality} onChange={(e) => setProfile({ ...profile, nationality: e.target.value })}>
+                      <option value="">Not recorded</option>
+                      {choices(NATIONALITY_LABELS)}
+                    </select>
+                  </Field>
+                  {fromAbroad(profile.nationality) && (
+                    <Field label="Country" hint={COUNTRY_HINT}>
+                      <input required maxLength={100} value={profile.country} onChange={(e) => setProfile({ ...profile, country: e.target.value })} />
+                    </Field>
+                  )}
                 </>
               )}
               <ErrorText>{saveError}</ErrorText>

@@ -251,18 +251,22 @@ reached by an emailed request they accept, for one seminar panel or co-supervisi
 
 **Scholar profile** (Decided 2026-11-12). Each scholar also carries a study
 mode (full-time / part-time), gender (female / male / transgender), category
-(General / OBC / SC / ST / EWS) and whether they are a person with
-disability; each may be left "not recorded". They arrive three ways: as
+(General / OBC / SC / ST / EWS), whether they are a person with benchmark
+disability (40% or more, as AISHE counts PwBD), their minority community (none
+/ Muslim / Christian / Sikh / Buddhist / Jain / Parsi) and their nationality
+(Indian / NRI / PIO / foreign national, with the country for the last three);
+each may be left "not recorded" (Decided 2026-11-23 for minority and
+nationality, which AISHE asks for). They arrive three ways: as
 optional columns of the scholars import (F16); from the scholar, who is
 prompted on Home to complete their own profile and may fill in any field
 still not recorded (never change a recorded one → 409 `already_recorded`);
 and from the admin over the scholar's unit, who alone corrects a recorded
 value. The mode is seen by everyone who sees the
-scholar and filters the scholars list. Gender, category and disability are
-personal data: seen only by the scholar, the admins and heads over their unit,
+scholar and filters the scholars list. Gender, category, disability, minority
+community and nationality are personal data: seen only by the scholar, the admins and heads over their unit,
 the Research Office and the Vice Chancellor — not by supervisors or other
-faculty — on the page, in the list and in exported files alike. They are
-recorded only; no rule (duration, caps) reads them yet.
+faculty — on the page, in the list and in exported files alike. No rule
+(duration, caps) reads them; the NIRF and AISHE tables (M9) count them.
 
 **Co-supervisor** (university setting `co_supervision`, set by the root
 admin): `off` — none; `view` — a scholar may have one co-supervisor (any
@@ -899,6 +903,27 @@ recorded under one DOI is one row naming each of them ("Recorded by"). Patents
 published and granted (M10) are a sheet of their own. Metric numbering follows the
 framework in force; the sheets carry the underlying rows, not computed scores.
 
+**NIRF and AISHE research-degree tables** (Decided 2026-11-23). For one
+academic year, the Research Office and the Vice Chancellor download the
+research-degree tables of the two yearly returns, counted from the same
+records. The root admin does not: the tables count personal data, which they
+do not read (SECURITY.md §3). NIRF: Ph.D. scholars pursuing at the end of the
+year, full time and part time, and those graduated in each of the last three
+years; sponsored research per financial year (projects that received money in
+it, their funding agencies, the amount received, and the amount in words);
+verified patents published and granted per calendar year. AISHE: Ph.D.
+enrolment by faculty, department, AISHE discipline and year of study, General
+(EWS counted within it too) / EWS / SC / ST / OBC by male / female /
+transgender, with PwBD, Muslim minority and other minorities out of the total;
+foreign students (NRI / PIO / other foreign national, by country and gender);
+examination results (viva held, degree awarded) split the same way. A
+department's AISHE discipline is set once by the root admin (Settings →
+University structure). Nothing is dropped silently: a scholar whose category
+or gender is not recorded has a column of their own, and the number with no
+admission date is named at the end. Only these research-degree tables: the
+returns' other sections (staff, finance, infrastructure, UG/PG students) and
+the Ph.D. approved intake (seats) are filled outside Anveshan.
+
 **M10 — Patents** (Decided 2026-11-23). A member of faculty or a scholar
 records their own patents: title, inventors, application number, filing date,
 patent office, status (filed / published / granted, with the publication date,
@@ -923,7 +948,8 @@ by both a scholar and a member of faculty under one application number once.
 
 Intentionally NOT in this version:
 - A public applicant portal (admissions is internal record only).
-- NIRF/AISHE accreditation packs (NAAC Criterion 3 research data is M9),
+- NIRF/AISHE submissions beyond their research-degree tables (M9): staff,
+  finance, infrastructure, UG/PG students and the Ph.D. approved intake;
   Shodhganga sync (the deposit is recorded by hand, M3).
 - PFMS integration and agency-specific UC formats (the generated UC follows
   GFR 12-A, M8).
@@ -1029,8 +1055,8 @@ Each phase ends with a check-in with the owner before the next starts.
   may the supervisor see examiner names before the viva?
 - With single sign-on configured, should password login be switchable off?
   (Default: both stay on.)
-- NIRF / AISHE reporting pack: a non-goal today; revisit after the pilot with
-  real data in hand.
+- ~~NIRF / AISHE reporting pack~~ Resolved 2026-11-23: their research-degree
+  tables only (M9).
 - ~~Signing inside the portal (F17b): what proves the signer is present?~~
   Resolved 2026-11-18: a fresh authenticator code at each signature, then the
   admin-confirmed specimen signature is stamped.

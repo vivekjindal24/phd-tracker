@@ -187,7 +187,7 @@ async def _books(session: AsyncSession, period: Period) -> Rows:
     ]
 
 
-async def _patents(session: AsyncSession, period: Period) -> Rows:
+async def patent_rows(session: AsyncSession, period: Period) -> Rows:
     """Each verified patent published or granted in the years, a row per event (NAAC asks for
     patents published and awarded). One recorded by both a scholar and a member of faculty
     under the same application number is one row naming each."""
@@ -305,7 +305,7 @@ SHEETS: dict[str, tuple[str, list[str], Callable[[AsyncSession, Period], Awaitab
             "Recorded by",
             "Unit",
         ],
-        _patents,
+        patent_rows,
     ),
     "books": (
         "Books and chapters",

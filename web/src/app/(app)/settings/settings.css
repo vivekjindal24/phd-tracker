@@ -221,6 +221,17 @@
   gap: var(--space-2, 0.5rem);
   font-size: 0.875rem;
 }
+.tree-discipline {
+  font: inherit;
+  font-size: 0.875rem;
+  border: 0;
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  width: min(100%, 16rem);
+  background: var(--bg);
+  color: var(--ink);
+  box-shadow: var(--clay-shadow-pressed);
+}
 .settings-side,
 .settings-side .card {
   min-width: 0;
