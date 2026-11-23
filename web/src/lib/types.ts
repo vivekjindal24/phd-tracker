@@ -2,7 +2,8 @@ import type { DateFormat } from "@/lib/format";
 /** Mirrors of the API's response models (services/api/app/schemas/). */
 
 export type OfficeRole = "vice_chancellor" | "research_office" | "exam_office" | "library";
-export type AssignedRole = "unit_head" | "admin" | OfficeRole;
+export type GrievanceRole = "grievance_cell" | "ombudsperson";
+export type AssignedRole = "unit_head" | "admin" | OfficeRole | GrievanceRole;
 export type Role = "scholar" | "supervisor" | AssignedRole;
 export type CoSupervision = "off" | "view" | "approve";
 export type StepKind = "supervisor" | "department" | OfficeRole;
@@ -91,6 +92,7 @@ export type SettingsData = {
   max_plagiarism_percent: number;
   min_publications: number;
   publications_indexed_only: boolean;
+  grievance_appeals_to: AppealsTo;
   modules: Record<ModuleKey, boolean>;
   chains: Record<ItemType, { kind: StepKind }[]>;
   email_configured: boolean;
@@ -115,6 +117,8 @@ export const ROLE_LABELS: Record<Role, string> = {
   exam_office: "Exam Office",
   library: "Library",
   vice_chancellor: "Vice Chancellor",
+  grievance_cell: "Grievance cell",
+  ombudsperson: "Ombudsperson",
 };
 
 export const STEP_LABELS: Record<StepKind, string> = {
@@ -515,6 +519,7 @@ export type Conference = {
 };
 
 export type FileOwner =
+  | "grievances"
   | "thesis_reviews"
   | "scholars"
   | "publications"
@@ -1050,4 +1055,46 @@ export type SupervisorChangeContent = {
   scholar_consent: boolean;
   order_ref: string | null;
   effective_on: string | null;
+};
+
+/** A scholar's grievance (GET /grievances); who may read it is the API's (grievances.py). */
+export type AppealsTo = "ombudsperson" | "vice_chancellor";
+export type GrievanceCategory = "supervision" | "evaluation" | "coursework" | "fellowship" | "administration" | "other";
+export type GrievanceStatus = "open" | "decided" | "closed" | "appealed" | "appeal_decided" | "withdrawn";
+export const GRIEVANCE_CATEGORY_LABELS: Record<GrievanceCategory, string> = {
+  supervision: "Supervision",
+  evaluation: "Evaluation or examination",
+  coursework: "Coursework",
+  fellowship: "Fellowship or stipend",
+  administration: "Administration",
+  other: "Other",
+};
+export const GRIEVANCE_STATUS_LABELS: Record<GrievanceStatus, string> = {
+  open: "With the grievance cell",
+  decided: "Decided",
+  closed: "Closed",
+  appealed: "Appealed",
+  appeal_decided: "Appeal decided",
+  withdrawn: "Withdrawn",
+};
+export type Grievance = {
+  id: string;
+  scholar: { id: string; name: string };
+  category: GrievanceCategory;
+  subject: string;
+  description: string;
+  status: GrievanceStatus;
+  filed_at: string;
+  due_on: string | null;
+  decision: string | null;
+  decided_at: string | null;
+  decided_by: string | null;
+  appeal_closes_on: string | null;
+  appeal_reason: string | null;
+  appealed_at: string | null;
+  appeal_decision: string | null;
+  appeal_decided_at: string | null;
+  appeal_decided_by: string | null;
+  appeals_to: string;
+  can: { decide: boolean; withdraw: boolean; accept: boolean; appeal: boolean; decide_appeal: boolean; attach: boolean };
 };

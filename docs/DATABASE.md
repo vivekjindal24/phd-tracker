@@ -76,9 +76,10 @@ confirmed. A new upload soft-deletes the old row. The bytes stay out of
 `audit_log`.
 
 **role_assignments** — `user_id` FK, `role` CHECK (`unit_head` / `admin` /
-`research_office` / `exam_office` / `library` / `vice_chancellor`), `unit_id` FK org_units.
+`research_office` / `exam_office` / `library` / `vice_chancellor` / `grievance_cell` /
+`ombudsperson`; the last two since migration 0057), `unit_id` FK org_units.
 CHECK `ck_role_scope`: `unit_head` and `admin` require `unit_id`; the four
-office roles require `unit_id IS NULL` (university-wide). Partial unique
+office roles and the two grievance roles require `unit_id IS NULL` (university-wide). Partial unique
 `(user_id, role, unit_id) WHERE deleted_at IS NULL`. An `admin` at the root
 unit is the **root admin**. Scholar and supervisor are not rows here — they
 come from the profile tables below.
@@ -156,7 +157,9 @@ values the university's ordinance sets; the thesis gates (migration 0056,
 CHECK `ck_settings_thesis_gates`): `min_duration_years` (default 3, 0–6; 0 = no
 minimum), `max_plagiarism_percent` numeric(5,2) (default 10, 0–100),
 `min_publications` (default 0 = off, 0–10), `publications_indexed_only` bool
-(default false); `updated_by`, `updated_at`.
+(default false); `grievance_appeals_to` (CHECK `ombudsperson` / `vice_chancellor`,
+default `ombudsperson`; migration 0057: who decides a grievance appeal);
+`updated_by`, `updated_at`.
 University-wide switches that are not modules live here.
 
 **approval_chains** — `item_type` PK CHECK (`progress_report`,
@@ -464,6 +467,17 @@ org_units (null: the whole university; indexed), `title` (CHECK 1–200), `body`
 (CHECK ≤ 5000), `pinned` bool, `ends_on` date (off the board after it), `posted_by`
 FK users, timestamps, soft delete. Its file hangs off it in **files** (owner
 `announcements`).
+
+**grievances** — a scholar's grievance (PRD F19; migration 0057): `scholar_id` FK
+(indexed), `category` CHECK (`supervision` / `evaluation` / `coursework` /
+`fellowship` / `administration` / `other`), `subject` (CHECK 1–200), `description`
+(CHECK 1–5000), `status` CHECK (`open` / `decided` / `closed` / `appealed` /
+`appeal_decided` / `withdrawn`) — not an approvable item: its own lifecycle,
+changed only by `grievances.py` — `due_on` date (the cell's deadline, then the
+appeal's), `decision`, `decided_at`, `decided_by` FK users, `appeal_reason`,
+`appealed_at`, `appeal_decision`, `appeal_decided_at`, `appeal_decided_by` FK
+users, `closed_at`, timestamps, soft delete. Its papers hang off it in **files**
+(owner `grievances`).
 
 **files** — `storage_key` (UNIQUE; `<table>/<record>/<file id>/<safe name>`),
 `file_name`, `content_type` (allowlist in `app/files.py`: PDF, Office, images,

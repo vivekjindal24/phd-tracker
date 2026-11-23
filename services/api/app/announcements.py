@@ -13,6 +13,7 @@ from sqlalchemy import ColumnElement, cast, exists, literal, or_, select, true
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.principal import Principal
+from app.enums import OFFICE_ROLES
 from app.errors import forbidden
 from app.models import (
     Announcement,
@@ -40,7 +41,7 @@ def require_post(principal: Principal, unit_path: str | None) -> None:
 
 def visible(principal: Principal) -> ColumnElement[bool]:
     """Which notices the caller reads (module docstring)."""
-    if principal.is_root_admin or principal.office_roles:
+    if principal.is_root_admin or principal.office_roles & set(OFFICE_ROLES):
         return true()
     home = OrgUnit.__table__.alias("home")
     mine: list[ColumnElement[bool]] = []  # the units the caller belongs to

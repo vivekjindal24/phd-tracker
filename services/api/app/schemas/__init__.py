@@ -10,6 +10,7 @@ from app.enums import (
     NOTICE_SIGNERS,
     PHD_FORMS,
     WHATSAPP_NUMBER_RE,
+    AppealsTo,
     ApprovalBody,
     AssignedRole,
     Assistantship,
@@ -23,6 +24,8 @@ from app.enums import (
     FileSlot,
     FormAnswer,
     Gender,
+    GrievanceCategory,
+    GrievanceStatus,
     ItemState,
     ItemType,
     LeftReason,
@@ -389,6 +392,7 @@ class SettingsOut(BaseModel):
     max_plagiarism_percent: float
     min_publications: int
     publications_indexed_only: bool
+    grievance_appeals_to: AppealsTo
     modules: dict[ModuleKey, bool]
     chains: dict[ItemType, list[ChainStep]]
     email_configured: bool  # from the server's environment; forms offer email links only if set
@@ -421,6 +425,7 @@ class SettingsUpdate(BaseModel):
     max_plagiarism_percent: float | None = Field(default=None, ge=0, le=100)
     min_publications: int | None = Field(default=None, ge=0, le=10)
     publications_indexed_only: bool | None = None
+    grievance_appeals_to: AppealsTo | None = None
 
     @model_validator(mode="after")
     def _unique_criteria(self) -> "SettingsUpdate":
@@ -1192,3 +1197,58 @@ class AuditRow(BaseModel):
     to_state: str | None
     fields: list[str]  # columns an update changed
     scholar: Ref | None
+
+
+# --- grievances (grievances.py) ----------------------------------------------------------
+
+
+Statement = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=5000)]
+
+
+class GrievanceIn(BaseModel):
+    """A scholar's grievance (grievances.py)."""
+
+    category: GrievanceCategory
+    subject: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)]
+    description: Statement
+
+
+class GrievanceDecisionIn(BaseModel):
+    """The grievance cell's decision, or the appeal's, with its reasons."""
+
+    text: Statement
+
+
+class GrievanceAppealIn(BaseModel):
+    reason: Statement
+
+
+class GrievanceActions(BaseModel):
+    decide: bool
+    withdraw: bool
+    accept: bool
+    appeal: bool
+    decide_appeal: bool
+    attach: bool
+
+
+class GrievanceView(BaseModel):
+    id: uuid.UUID
+    scholar: Ref
+    category: GrievanceCategory
+    subject: str
+    description: str
+    status: GrievanceStatus
+    filed_at: datetime
+    due_on: date | None  # the deadline of whoever must decide now
+    decision: str | None
+    decided_at: datetime | None
+    decided_by: str | None
+    appeal_closes_on: date | None  # the last day to appeal, while decided
+    appeal_reason: str | None
+    appealed_at: datetime | None
+    appeal_decision: str | None
+    appeal_decided_at: datetime | None
+    appeal_decided_by: str | None
+    appeals_to: str  # "the Ombudsperson" or "the Vice Chancellor"
+    can: GrievanceActions

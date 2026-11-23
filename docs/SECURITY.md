@@ -120,7 +120,9 @@
 | research_office | role_assignments | university-wide |
 | exam_office | role_assignments | university-wide, own item types only |
 | library | role_assignments | university-wide, own item types only |
-| vice_chancellor | role_assignments | university-wide, read only; acts only on a Vice Chancellor chain step |
+| vice_chancellor | role_assignments | university-wide, read only; acts only on a Vice Chancellor chain step; reads every grievance |
+| grievance_cell | role_assignments | grievances only (never one from a scholar they supervise) |
+| ombudsperson | role_assignments | appealed grievances only, while appeals go to the Ombudsperson |
 
 A user with several roles gets the **union** of what each role allows — never
 a combination that no single role allows (e.g. a supervisor who is also the
@@ -328,6 +330,19 @@ A university notice is read by everyone; a department notice by that unit's peop
 (scholars, faculty, heads, admins, and those of units inside it) and the heads and
 admins above it; offices and the root admin read every notice. A notice's file is
 read by whoever reads the notice and attached only by whoever may post it.
+
+**Grievances** (`grievances.py`, PRD F19): the scholar files and reads their own;
+the grievance cell reads every one except those of scholars a member supervises or
+co-supervises, and decides while open; the Vice Chancellor reads every one; the
+Ombudsperson reads only appealed ones, and decides the appeal — or the Vice
+Chancellor does, where `settings.grievance_appeals_to = 'vice_chancellor'`, and
+then the Ombudsperson reads none. Supervisors, heads, admins, the Research Office,
+Exam Office, Library and the root admin read none (403). The two grievance roles
+read nothing else: they hold no other matrix row, and the notice board's "offices
+read every notice" covers the four offices only. A grievance's papers are read by
+whoever reads it and attached by the scholar or the cell while open, or by the
+appeal's decider while appealed. A step out of turn → 409 `grievance_state`.
+Notifications carry no words of the grievance.
 
 Disabled modules: every route of the module → 404 `module_disabled`
 regardless of role, and so does a NAAC sheet built from that module.

@@ -10,7 +10,7 @@ from sqlalchemy import cast, func, literal, select
 from sqlalchemy.dialects.postgresql import distinct_on, insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import dates, items, reviews, workflow
+from app import dates, grievances, items, reviews, workflow
 from app.config import settings
 from app.dashboard import DUE_SOON_DAYS, SUBMITTED, deadlines_query
 from app.db import get_session
@@ -301,6 +301,7 @@ async def daily(
     meetings = await _meetings_tomorrow(session, today)
     approvals_reminded, approvals_escalated = await _waiting_approvals(session, today)
     review_counts = await reviews.daily(session, today)
+    grievance_counts = await grievances.daily(session, today)
     await session.commit()
     return {
         "ran": True,
@@ -313,4 +314,5 @@ async def daily(
         "approval_reminders": approvals_reminded,
         "approval_escalations": approvals_escalated,
         **review_counts,
+        **grievance_counts,
     }

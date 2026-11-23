@@ -18,6 +18,7 @@ from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.enums import (
+    APPEALS_TO,
     CO_SUPERVISION,
     DATE_FORMATS,
     DEFAULT_APR_SECTIONS,
@@ -62,6 +63,9 @@ class Settings(Timestamps, Base):
             "min_duration_years BETWEEN 0 AND 6 AND min_publications BETWEEN 0 AND 10 "
             "AND max_plagiarism_percent BETWEEN 0 AND 100",
             name="ck_settings_thesis_gates",
+        ),
+        CheckConstraint(
+            f"grievance_appeals_to IN ({sql_in(APPEALS_TO)})", name="ck_settings_appeals_to"
         ),
         CheckConstraint(
             "max_extension_days BETWEEN 0 AND 1825 AND max_relaxation_days BETWEEN 0 AND 1825 "
@@ -133,6 +137,9 @@ class Settings(Timestamps, Base):
     )
     min_publications: Mapped[int] = mapped_column(Integer, server_default=text("0"))
     publications_indexed_only: Mapped[bool] = mapped_column(Boolean, server_default=text("false"))
+    # Who decides a scholar's appeal against the grievance cell (grievances.py; owner,
+    # 2026-11-23): the Ombudsperson UGC 2023 asks for, or the Vice Chancellor where chosen.
+    grievance_appeals_to: Mapped[str] = mapped_column(Text, server_default=text("'ombudsperson'"))
     updated_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"))
 
 

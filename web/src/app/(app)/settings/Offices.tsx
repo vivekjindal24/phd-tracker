@@ -4,7 +4,7 @@ import { type FormEvent, useState } from "react";
 import { Button, Card, ErrorText, Field } from "@/components/ui/kit";
 import { api } from "@/lib/api";
 import { ROLE_LABELS } from "@/lib/types";
-import type { AssignedRole, OfficeRole, OrgUnit } from "@/lib/types";
+import type { AppealsTo, AssignedRole, GrievanceRole, OfficeRole, OrgUnit } from "@/lib/types";
 import { errorText, useFetch } from "@/lib/useFetch";
 import type { Save } from "./save";
 
@@ -18,11 +18,13 @@ type Holder = {
 };
 type FoundUser = { id: string; email: string };
 
-const OFFICES: { role: OfficeRole; hint: string }[] = [
+const OFFICES: { role: OfficeRole | GrievanceRole; hint: string }[] = [
   { role: "vice_chancellor", hint: "Reads the whole university and decides wherever an approval chain names the Vice Chancellor." },
   { role: "research_office", hint: "Final approvals, the committee register, admissions and grants." },
   { role: "exam_office", hint: "Coursework grades, thesis receipt, examiners and the viva." },
   { role: "library", hint: "Publication checks, plagiarism score and the Shodhganga deposit." },
+  { role: "grievance_cell", hint: "Reads scholars' grievances (never one from a scholar they supervise) and decides them within 15 working days. Sees nothing else." },
+  { role: "ombudsperson", hint: "Decides a scholar's appeal against the grievance cell within 30 days, and sees only appealed grievances. UGC 2023 asks for someone from outside the university." },
 ];
 
 const UNIT_ROLES: { role: AssignedRole; label: string }[] = [
@@ -34,9 +36,10 @@ const depth = (u: OrgUnit) => u.path.split(".").length - 1;
 
 /** Who holds each appointed role: the university-wide offices, and the head and admin of
  *  each unit. The API decides who may appoint; this card is shown to the root admin. */
-export function Offices({ emailConfigured, controllerId, save }: {
+export function Offices({ emailConfigured, controllerId, appealsTo, save }: {
   emailConfigured: boolean;
   controllerId: string | null; // who signs notices as Controller of Examinations
+  appealsTo: AppealsTo; // who decides grievance appeals
   save: Save;
 }) {
   const { data: holders, error: loadError, reload } = useFetch<Holder[]>("/role-holders");
@@ -111,6 +114,15 @@ export function Offices({ emailConfigured, controllerId, save }: {
               <ol className="chain-steps">
                 {mine.map((h) => holderRow(h, `${h.full_name} · ${h.email}`, ROLE_LABELS[o.role]))}
               </ol>
+              {o.role === "ombudsperson" && (
+                <Field label="Appeals against the grievance cell are decided by" hint="UGC 2023 asks for an Ombudsperson; a university may let the Vice Chancellor decide instead.">
+                  <select value={appealsTo} disabled={busy}
+                    onChange={(e) => save("/settings", "PATCH", { grievance_appeals_to: e.target.value }).catch(() => {})}>
+                    <option value="ombudsperson">The Ombudsperson</option>
+                    <option value="vice_chancellor">The Vice Chancellor</option>
+                  </select>
+                </Field>
+              )}
               {o.role === "exam_office" && mine.length > 1 && (
                 <Field label="Signs notices as Controller of Examinations" hint="Several people are in the Exam Office; this one is named on every notice.">
                   <select value={controllerId ?? ""} disabled={busy}

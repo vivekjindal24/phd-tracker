@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app import (
     announcements,
     grants,
+    grievances,
     items,
     meetings,
     reviews,
@@ -131,6 +132,9 @@ async def require_file_read(
     if table == "signed_copies":
         await signed_copies.require_read(session, principal, record_id)
         return
+    if table == "grievances":  # evidence and orders: whoever reads the grievance
+        await grievances.get_or_403(session, principal, record_id)
+        return
     if table == "announcements":  # a notice's file: whoever reads the notice
         await announcements.get_or_403(session, principal, record_id)
         return
@@ -208,6 +212,9 @@ async def require_write(
         return
     if table == "signed_copies":  # removed only as a whole copy (signed_copies.remove)
         await signed_copies.require_upload(session, principal, record_id)
+        return
+    if table == "grievances":  # the scholar or the cell while open; the appeal's decider then
+        await grievances.require_attach(session, principal, record_id)
         return
     if table == "announcements":  # whoever may post the notice attaches its file
         notice = await announcements.get_or_403(session, principal, record_id)

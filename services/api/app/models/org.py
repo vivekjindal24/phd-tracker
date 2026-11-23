@@ -25,6 +25,7 @@ from app.enums import (
     CATEGORIES,
     DESIGNATIONS,
     GENDERS,
+    GRIEVANCE_ROLES,
     LEFT_REASONS,
     NOTICE_SIGNERS,
     NOTIFICATION_CATEGORIES,
@@ -165,7 +166,7 @@ class RoleAssignment(DomainRow, Base):
         CheckConstraint(f"role IN ({sql_in(ASSIGNED_ROLES)})", name="ck_role_assignments_role"),
         CheckConstraint(
             f"(role IN ({sql_in(UNIT_ROLES)}) AND unit_id IS NOT NULL)"
-            f" OR (role IN ({sql_in(OFFICE_ROLES)}) AND unit_id IS NULL)",
+            f" OR (role IN ({sql_in(OFFICE_ROLES + GRIEVANCE_ROLES)}) AND unit_id IS NULL)",
             name="ck_role_scope",
         ),
         Index(

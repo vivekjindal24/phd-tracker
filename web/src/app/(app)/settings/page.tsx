@@ -76,7 +76,8 @@ export default function SettingsPage() {
           <PhdForms data={data} save={save} />
           <PhdIndex data={data} save={save} />
           <RulesSettings data={data} save={save} />
-          <Offices emailConfigured={data.email_configured} controllerId={data.exam_controller_id} save={save} />
+          <Offices emailConfigured={data.email_configured} controllerId={data.exam_controller_id}
+            appealsTo={data.grievance_appeals_to} save={save} />
           <ChainEditor chains={data.chains} save={save} />
         </div>
       )}

@@ -208,6 +208,30 @@ remove a point only when the behaviour itself changes.
 - **The co-supervisor is not covered.** A co-supervisor is still set or changed directly by the
   department admin. *(owner, 2026-11-22)*
 
+## Grievances (PRD F19)
+
+- **Who reads a grievance.** The scholar, the grievance cell and the Vice Chancellor, and
+  whoever decides the appeal once it is appealed. Never the supervisor, the HoD, the Dean, a
+  department admin, the Research Office or the root admin. A cell member who supervises the
+  scholar does not see it either. *(owner, 2026-11-23)*
+- **Two new roles to appoint.** In Settings → Offices, the root admin appoints the
+  **Grievance cell** (the committee's members) and the **Ombudsperson** (UGC 2023 asks for
+  someone from outside the university; they get a login that shows grievances only). Without
+  a grievance cell nobody is told when a grievance is filed. *(owner, 2026-11-23)*
+- **Who decides appeals.** The Ombudsperson by default. The root admin can choose the Vice
+  Chancellor instead in Settings → Offices; the Ombudsperson then sees no grievances.
+  *(owner, 2026-11-23)*
+- **Deadlines.** The cell has 15 working days (Saturdays and Sundays skipped; the
+  university's holidays are not known, so a holiday still counts). The scholar may appeal for
+  15 days after the decision, and a decision nobody appeals closes after that. The appeal's
+  decider has 30 days. A reminder goes 3 days before each deadline, and the day after a missed
+  one the Vice Chancellor is told too. *(owner, 2026-11-23)*
+- **Emails say nothing of the grievance.** A notification or email only says there is a
+  grievance and links to it; the text is read in Anveshan after logging in.
+  *(owner, 2026-11-23)*
+- **Not covered:** sexual harassment goes to the Internal Complaints Committee (the form says
+  so); grievances are not anonymous (UGC asks for a named student). *(owner, 2026-11-23)*
+
 ## Publications
 
 - **Fill in from the DOI.** On Add publication the scholar pastes the DOI and the title,

@@ -12,6 +12,7 @@ from app.models.grants import (
     ProjectMember,
     UtilisationCertificate,
 )
+from app.models.grievances import Grievance
 from app.models.meetings import Meeting
 from app.models.milestones import CommitteeFormation, CommitteeMember, Milestone
 from app.models.org import (
@@ -87,6 +88,7 @@ __all__ = [
     "Fellowship",
     "FellowshipClaim",
     "FileRow",
+    "Grievance",
     "JobRun",
     "LedgerEntry",
     "LoginAttempt",

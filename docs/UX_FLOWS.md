@@ -513,6 +513,22 @@ poster can **Pin to the top** / **Unpin** or **Remove** it. Everyone sees the
 latest three on Home and all current ones on **Notices**; **Past notices** shows
 those taken down by their date.
 
+## Flow 12c — Grievance (PRD F19)
+
+Scholar → **Grievances** → **Raise a grievance**: about (supervision, evaluation,
+coursework, fellowship, administration, other), subject, what happened → **File the
+grievance** → its page, where they attach papers. The page says who reads it and
+that sexual harassment goes to the Internal Complaints Committee; **Withdraw this
+grievance** while it is with the cell. The grievance cell is told (no words of
+it) → **Grievances** lists every one it may read, with each deadline → opens it →
+**Decision of the grievance cell** with reasons → **Record the decision**. The
+scholar is told → **Accept and close**, or **Appeal to the Ombudsperson** (or the
+Vice Chancellor) with why, until the date shown → the decider is told → **Record
+the decision on the appeal**, which closes it; the scholar and the cell are told.
+Root admin → Settings → Offices: appoint the **Grievance cell** and the
+**Ombudsperson**, and choose who decides appeals. A step out of turn → 409
+`grievance_state`; anyone else opening it → 403.
+
 ## Flow 12 — Notifications
 
 Bell icon with unread count → inbox (newest first, mark read). Each item

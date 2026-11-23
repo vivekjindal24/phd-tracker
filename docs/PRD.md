@@ -679,6 +679,23 @@ notice. Everyone it is for is told in the portal and by email (category
 "notice", which each person may mute). Home shows the latest three; **Notices**
 lists current and past ones. Every post, edit and removal is audited.
 
+**F19 — Grievances** (Decided 2026-11-23; UGC Redressal of Grievances of Students
+Regulations, 2023). A scholar raises a grievance (about supervision, evaluation,
+coursework, fellowship, administration or other: subject, what happened, papers
+attached). The **grievance cell** (a university-wide role the root admin gives
+to the committee's members) decides it, with reasons, within 15 working days
+(Saturdays and Sundays skipped; holidays are not known). The scholar accepts, or
+appeals within 15 days; unappealed, it closes. The appeal goes to the
+**Ombudsperson** (a role of its own), or to the Vice Chancellor where the root
+admin has chosen so, who decides within 30 days. The scholar may withdraw it
+while it is with the cell. Read only by the scholar, the cell and the Vice
+Chancellor, and by the appeal's decider once appealed — never by the supervisor
+(even one sitting on the cell), heads, admins, other offices or the root admin.
+Notifications and emails say only that there is a grievance, never its words.
+The daily job reminds whoever must decide 3 days before the deadline and tells
+them and the Vice Chancellor the day after it is missed. A sexual-harassment
+complaint is pointed to the Internal Complaints Committee, outside Anveshan.
+
 ### 6.3 Optional modules
 
 **M1 — Publications** (chain). Title, authors, type (journal / conference /

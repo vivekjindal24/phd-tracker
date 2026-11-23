@@ -57,6 +57,7 @@ async def _read(session: AsyncSession) -> SettingsOut:
             "max_plagiarism_percent": settings.max_plagiarism_percent,
             "min_publications": settings.min_publications,
             "publications_indexed_only": settings.publications_indexed_only,
+            "grievance_appeals_to": settings.grievance_appeals_to,
             "modules": modules,
             "chains": chains,
             "email_configured": email_configured(),

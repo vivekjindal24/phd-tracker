@@ -5,11 +5,20 @@ from typing import Literal, get_args
 from zoneinfo import ZoneInfo
 
 AssignedRole = Literal[
-    "unit_head", "admin", "research_office", "exam_office", "library", "vice_chancellor"
+    "unit_head",
+    "admin",
+    "research_office",
+    "exam_office",
+    "library",
+    "vice_chancellor",
+    "grievance_cell",
+    "ombudsperson",
 ]
 ASSIGNED_ROLES = get_args(AssignedRole)
 UNIT_ROLES = ("unit_head", "admin")
 OFFICE_ROLES = ("research_office", "exam_office", "library", "vice_chancellor")
+# University-wide like an office, but they read grievances only (grievances.py, UGC 2023).
+GRIEVANCE_ROLES = ("grievance_cell", "ombudsperson")
 # Read every record, university wide: the Research Office and the Vice Chancellor.
 READ_ALL_ROLES = frozenset({"research_office", "vice_chancellor"})
 
@@ -377,8 +386,20 @@ FileOwner = Literal[
     "ethics_clearances",
     "signed_copies",
     "announcements",
+    "grievances",
 ]
 FILE_OWNER_TABLES = get_args(FileOwner)
+# A scholar's grievance (grievances.py; UGC Redressal of Grievances of Students Regs, 2023).
+GrievanceCategory = Literal[
+    "supervision", "evaluation", "coursework", "fellowship", "administration", "other"
+]
+GRIEVANCE_CATEGORIES = get_args(GrievanceCategory)
+# open (with the cell) -> decided -> closed (accepted, or not appealed in time) or appealed ->
+# appeal_decided; withdrawn by the scholar while open.
+GrievanceStatus = Literal["open", "decided", "closed", "appealed", "appeal_decided", "withdrawn"]
+GRIEVANCE_STATUSES = get_args(GrievanceStatus)
+AppealsTo = Literal["ombudsperson", "vice_chancellor"]
+APPEALS_TO = get_args(AppealsTo)
 FileStatus = Literal["pending", "ready"]
 FILE_STATUSES = get_args(FileStatus)
 # Named places for a scholar's own documents in the PhD file (files.slot, owner `scholars`).

@@ -1,0 +1,36 @@
+/* Grievance status chips use the state palette: with someone to decide (sky), waiting on the
+   scholar (butter), settled (sage); a withdrawn one stays the plain chip. */
+.grievance-open,
+.grievance-appealed,
+.grievance-decided,
+.grievance-closed,
+.grievance-appeal_decided {
+  color: var(--badge-ink);
+}
+.grievance-open,
+.grievance-appealed {
+  background: var(--sky);
+}
+.grievance-decided {
+  background: var(--butter);
+}
+.grievance-closed,
+.grievance-appeal_decided {
+  background: var(--sage);
+}
+
+.grievance-icc {
+  font-weight: 700;
+  color: var(--danger);
+}
+
+.grievance-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.grievance-step + .grievance-step {
+  margin-top: var(--space-5);
+  padding-top: var(--space-5);
+  border-top: 1px dashed var(--lilac);
+}

@@ -14,10 +14,22 @@ type Entry = Item | Group;
 const notOnlyOffice = (me: Me) => me.roles.some((r) => r !== "exam_office" && r !== "library");
 const onlyScholar = (me: Me) => me.roles.length === 1 && me.roles[0] === "scholar";
 
+// The grievance cell and the Ombudsperson read grievances only: every other entry is decided
+// as if they did not hold those roles, and someone holding nothing else sees just these.
+const GRIEVANCE_ROLES = new Set(["grievance_cell", "ombudsperson"]);
+const ANYONE = new Set(["/home", "/notices", "/grievances", "/account"]);
+function shows(item: Item, me: Me): boolean {
+  if (ANYONE.has(item.href)) return item.show(me);
+  const roles = me.roles.filter((r) => !GRIEVANCE_ROLES.has(r));
+  if (roles.length === 0 && !me.is_root_admin) return false;
+  return item.show({ ...me, roles });
+}
+
 // Grouped navigation (DESIGN_SYSTEM.md §4). Only pages that exist are listed.
 const NAV: Entry[] = [
   { href: "/home", label: "Home", show: () => true },
   { href: "/notices", label: "Notices", show: () => true },
+  { href: "/grievances", label: "Grievances", show: (me) => me.scholar_id !== null || me.roles.some((r) => r === "grievance_cell" || r === "ombudsperson" || r === "vice_chancellor") },
   {
     label: "Work",
     items: [
@@ -91,13 +103,13 @@ export function Nav({ me }: { me: Me }) {
     <nav className="nav" aria-label="Main navigation" ref={navRef}>
       {NAV.map((entry) => {
         if (!isGroup(entry)) {
-          return entry.show(me) ? (
+          return shows(entry, me) ? (
             <Link key={entry.label} href={entry.href} aria-current={active(entry.href) ? "page" : undefined}>
               {entry.label}
             </Link>
           ) : null;
         }
-        const visible = entry.items.filter((i) => i.show(me));
+        const visible = entry.items.filter((i) => shows(i, me));
         if (visible.length === 0) return null;
         const groupActive = visible.some((i) => active(i.href));
         return (

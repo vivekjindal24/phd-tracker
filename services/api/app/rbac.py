@@ -217,6 +217,14 @@ MATRIX: dict[str, dict[str, frozenset[str]]] = {
         "admin": frozenset({R}),
         "research_office": frozenset({R}),
     },
+    # Which grievances, and which step each may take, is grievances.py's: the Vice Chancellor
+    # decides appeals only where the university has chosen so (settings.grievance_appeals_to).
+    "grievances": {
+        "scholar": frozenset({R, C, U}),
+        "grievance_cell": frozenset({R, U}),
+        "ombudsperson": frozenset({R, U}),
+        "vice_chancellor": frozenset({R, U}),
+    },
 }
 
 # The Vice Chancellor reads whatever the Research Office reads and writes nothing; they decide
