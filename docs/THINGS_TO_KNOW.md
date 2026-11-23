@@ -213,7 +213,9 @@ remove a point only when the behaviour itself changes.
 - **Who reads a grievance.** The scholar, the grievance cell and the Vice Chancellor, and
   whoever decides the appeal once it is appealed. Never the supervisor, the HoD, the Dean, a
   department admin, the Research Office or the root admin. A cell member who supervises the
-  scholar does not see it either. *(owner, 2026-11-23)*
+  scholar does not see it either. The one way round this: the root admin appoints the
+  grievance roles and could appoint themselves. Anveshan does not stop it, but the
+  appointment shows in the audit log. *(owner, 2026-11-23)*
 - **Two new roles to appoint.** In Settings → Offices, the root admin appoints the
   **Grievance cell** (the committee's members) and the **Ombudsperson** (UGC 2023 asks for
   someone from outside the university; they get a login that shows grievances only). Without

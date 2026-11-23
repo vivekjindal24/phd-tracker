@@ -337,7 +337,10 @@ co-supervises, and decides while open; the Vice Chancellor reads every one; the
 Ombudsperson reads only appealed ones, and decides the appeal — or the Vice
 Chancellor does, where `settings.grievance_appeals_to = 'vice_chancellor'`, and
 then the Ombudsperson reads none. Supervisors, heads, admins, the Research Office,
-Exam Office, Library and the root admin read none (403). The two grievance roles
+Exam Office, Library and the root admin read none (403). The root admin appoints
+the grievance roles, so they could appoint themselves and read grievances; nothing
+blocks that, but the appointment is a `role_assignments` row the audit log keeps and
+shows (owner's choice, 2026-11-23). The two grievance roles
 read nothing else: they hold no other matrix row, and the notice board's "offices
 read every notice" covers the four offices only. A grievance's papers are read by
 whoever reads it and attached by the scholar or the cell while open, or by the

@@ -697,7 +697,9 @@ appeals within 15 days; unappealed, it closes. The appeal goes to the
 admin has chosen so, who decides within 30 days. The scholar may withdraw it
 while it is with the cell. Read only by the scholar, the cell and the Vice
 Chancellor, and by the appeal's decider once appealed — never by the supervisor
-(even one sitting on the cell), heads, admins, other offices or the root admin.
+(even one sitting on the cell), heads, admins, other offices or the root admin —
+unless the root admin appoints themselves to a grievance role, which the audit log
+records.
 Notifications and emails say only that there is a grievance, never its words.
 The daily job reminds whoever must decide 3 days before the deadline and tells
 them and the Vice Chancellor the day after it is missed. A sexual-harassment
