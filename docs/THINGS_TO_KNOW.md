@@ -303,6 +303,8 @@ remove a point only when the behaviour itself changes.
 
 - **Consultancy.** Paid work faculty do for outside clients, and its revenue, is not recorded
   here; the university keeps its NAAC/NIRF consultancy figures elsewhere. *(owner, 2026-11-23)*
+- **MoUs.** Agreements with other institutions or industry are a university-wide record (IQAC
+  or the ERP), not a research-degree one, so Anveshan does not keep them. *(owner, 2026-11-23)*
 
 ## Thesis submission gates
 

@@ -932,6 +932,9 @@ Intentionally NOT in this version:
 - Consultancy (paid work for outside clients) and its revenue: not part of this
   portal, NAAC/NIRF consultancy figures are kept outside it (Decided 2026-11-23,
   owner).
+- MoUs and collaboration agreements with other institutions or industry: a
+  university-wide (IQAC/ERP) record, not a research-degree one (Decided
+  2026-11-23, owner).
 - Fees: a university's own fee system keeps scholars' fees; Anveshan keeps no
   fee records or payment status. A fee notice goes on the notice board (F18)
   (Decided 2026-11-22, owner).
