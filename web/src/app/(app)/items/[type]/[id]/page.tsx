@@ -10,6 +10,7 @@ import { Celebrate, firstTime } from "@/components/Celebrate";
 import { ChainSteps } from "@/components/items/ChainSteps";
 import { ClaimDetails } from "@/components/items/ClaimDetails";
 import { ClearanceDetails } from "@/components/items/ClearanceDetails";
+import { PaperFile } from "@/components/items/PaperFile";
 import { PublicationDetails } from "@/components/items/PublicationDetails";
 import { ReportDetails } from "@/components/items/ReportDetails";
 import { ThesisDetails } from "@/components/items/ThesisDetails";
@@ -284,8 +285,7 @@ export default function ItemPage() {
           </Card>
           <ItemContent item={item} onSaved={setData} />
           {item.item_type === "publication" && (
-            <Attachments table="publications" recordId={item.id} canUpload={item.can_edit}
-              hint="The paper or acceptance letter, for the Library to check." />
+            <PaperFile table="publications" recordId={item.id} canUpload={item.can_edit} when="before you submit" />
           )}
           {item.item_type === "thesis_submission" && item.state === "approved" && (
             <ThesisEvaluation thesisId={item.id} isOwn={isOwn} />

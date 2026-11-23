@@ -10,7 +10,7 @@ from sqlalchemy import Select, func, select, true
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
-from app import notices, scope
+from app import items, notices, scope
 from app.auth.principal import Principal
 from app.crud import insert, soft_delete, update
 from app.errors import ApiError, forbidden
@@ -189,6 +189,12 @@ async def verify(
 ) -> None:
     """The Library confirms the indexing and DOI it checked; the paper then counts."""
     p, faculty = row[0], row[1]
+    if await items.paper_file_required(session) and not await items.has_file(session, ENTITY, p.id):
+        raise ApiError(
+            422,
+            "file_required",
+            "The university asks for the paper itself. Return it so the author attaches it.",
+        )
     if p.verification != "waiting":
         raise ApiError(
             409, "verification_state", "Only a paper waiting for the Library can be verified."

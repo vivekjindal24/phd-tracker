@@ -414,6 +414,12 @@ and sees **Your papers returned by the Library** on Home; they correct it (**Sav
 and send back**) and it returns to the Library. A verified paper shows who
 verified it and when, and can no longer be edited, removed or attached to.
 
+**The paper file** is optional on both: the box says so. Where the root admin has
+switched on **Settings → UGC rules → Require the paper file**, the box says when
+it is needed instead; **Submit** without it says "Attach the paper before
+submitting", and **Verify** without it tells the Library to return the paper so
+the author attaches it.
+
 ## Flow 8 — Thesis submission (module)
 
 When the university requires it (Settings → UGC rules), the thesis page

@@ -724,6 +724,10 @@ check digit); their public works are listed, and the chosen ones with a DOI
 (up to 50 at a time) are filled from Crossref and saved as drafts. A DOI
 already recorded, unknown to Crossref, or missing authors, venue or year is
 skipped with the reason; a work without a DOI is added by hand.
+**The paper file** (Decided 2026-11-23) is optional unless the university asks
+for it: with Settings → UGC rules "Require the paper file" on, a scholar cannot
+submit (or resubmit) a publication without it → 422 `workflow_violation`, and
+the Library cannot verify a faculty paper without it → 422 `file_required`.
 **Faculty publications** (Decided 2026-11-23): any member of faculty (a faculty
 record, whatever role they hold) records their own papers the same way — by
 hand, from a DOI, or from ORCID. There is no chain: each goes straight to the

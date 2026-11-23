@@ -157,7 +157,9 @@ values the university's ordinance sets; the thesis gates (migration 0056,
 CHECK `ck_settings_thesis_gates`): `min_duration_years` (default 3, 0–6; 0 = no
 minimum), `max_plagiarism_percent` numeric(5,2) (default 10, 0–100),
 `min_publications` (default 0 = off, 0–10), `publications_indexed_only` bool
-(default false); `grievance_appeals_to` (CHECK `ombudsperson` / `vice_chancellor`,
+(default false); `publication_file_required` bool (default false; migration 0061: the paper
+must be attached before a scholar submits a publication and before the Library verifies a
+faculty one); `grievance_appeals_to` (CHECK `ombudsperson` / `vice_chancellor`,
 default `ombudsperson`; migration 0057: who decides a grievance appeal);
 `updated_by`, `updated_at`.
 University-wide switches that are not modules live here.

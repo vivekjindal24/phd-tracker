@@ -92,6 +92,7 @@ export type SettingsData = {
   max_plagiarism_percent: number;
   min_publications: number;
   publications_indexed_only: boolean;
+  publication_file_required: boolean;
   grievance_appeals_to: AppealsTo;
   modules: Record<ModuleKey, boolean>;
   chains: Record<ItemType, { kind: StepKind }[]>;

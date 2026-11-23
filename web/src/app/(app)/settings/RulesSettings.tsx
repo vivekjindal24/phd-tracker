@@ -65,6 +65,11 @@ export function RulesSettings({ data, save }: { data: SettingsData; save: Save }
             onChange={(v) => save("/settings", "PATCH", { publications_indexed_only: v }).catch(() => {})} />
         </li>
         <li>
+          <span>The paper itself must be attached to every publication: a scholar cannot submit one without it, and the Library cannot verify a faculty paper without it. Off: attaching it is optional.</span>
+          <Switch checked={data.publication_file_required} label="Require the paper file"
+            onChange={(v) => save("/settings", "PATCH", { publication_file_required: v }).catch(() => {})} />
+        </li>
+        <li>
           <span>Everyone who logs in with a password also needs a code from an authenticator app. Switch this on for a live university; each person sets it up at their next log in.</span>
           <Switch checked={data.require_two_factor} label="Require two-factor login"
             onChange={(v) => save("/settings", "PATCH", { require_two_factor: v }).catch(() => {})} />

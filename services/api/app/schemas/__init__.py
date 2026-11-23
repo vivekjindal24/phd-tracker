@@ -392,6 +392,7 @@ class SettingsOut(BaseModel):
     max_plagiarism_percent: float
     min_publications: int
     publications_indexed_only: bool
+    publication_file_required: bool
     grievance_appeals_to: AppealsTo
     modules: dict[ModuleKey, bool]
     chains: dict[ItemType, list[ChainStep]]
@@ -425,6 +426,7 @@ class SettingsUpdate(BaseModel):
     max_plagiarism_percent: float | None = Field(default=None, ge=0, le=100)
     min_publications: int | None = Field(default=None, ge=0, le=10)
     publications_indexed_only: bool | None = None
+    publication_file_required: bool | None = None
     grievance_appeals_to: AppealsTo | None = None
 
     @model_validator(mode="after")

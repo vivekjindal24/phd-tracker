@@ -137,6 +137,9 @@ class Settings(Timestamps, Base):
     )
     min_publications: Mapped[int] = mapped_column(Integer, server_default=text("0"))
     publications_indexed_only: Mapped[bool] = mapped_column(Boolean, server_default=text("false"))
+    # The paper itself must be attached: before a scholar submits a publication, and before the
+    # Library verifies a faculty one (items.py, faculty_papers.py). Off: the file is optional.
+    publication_file_required: Mapped[bool] = mapped_column(Boolean, server_default=text("false"))
     # Who decides a scholar's appeal against the grievance cell (grievances.py; owner,
     # 2026-11-23): the Ombudsperson UGC 2023 asks for, or the Vice Chancellor where chosen.
     grievance_appeals_to: Mapped[str] = mapped_column(Text, server_default=text("'ombudsperson'"))

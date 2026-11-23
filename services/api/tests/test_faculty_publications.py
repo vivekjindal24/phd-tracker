@@ -1,13 +1,16 @@
 """Faculty publications (PRD M1, faculty_papers.py): recorded by the member of faculty, verified
 or returned by the Library, counted in NAAC once verified. No approval chain."""
 
+import uuid
+
 import httpx
 import pytest
 from sqlalchemy import select
+from sqlalchemy import update as sa_update
 
 from app import doi, orcid
 from app.crud import insert
-from app.models import Faculty, Notification
+from app.models import Faculty, FileRow, Notification, Settings
 from tests.conftest import auth
 from tests.test_naac import _publication, sheet
 from tests.test_orcid import ID, crossref_work, summary
@@ -265,3 +268,61 @@ async def test_off_with_the_publications_module(client, session, world):
     assert res.status_code == 404
     home = await client.get("/api/v1/dashboard", headers=auth(world.library.id))
     assert home.json()["faculty_papers"] is None
+
+
+async def attach(session, user, table: str, record_id: str) -> None:
+    await insert(
+        session,
+        None,
+        FileRow(
+            storage_key=f"{table}/{record_id}/x/paper.pdf",
+            file_name="paper.pdf",
+            content_type="application/pdf",
+            size_bytes=10,
+            status="ready",
+            uploaded_by=user.id,
+            table_name=table,
+            record_id=uuid.UUID(record_id),
+        ),
+    )
+    await session.commit()
+
+
+async def require_paper(session) -> None:
+    await session.execute(sa_update(Settings).values(publication_file_required=True))
+    await session.commit()
+
+
+async def test_the_paper_file_is_optional_unless_the_university_asks(client, session, world):
+    pid = (await add(client, world.sup_a2))["id"]
+    await require_paper(session)
+    res = await act(client, world.library, pid, "verify", {"indexing": []})
+    assert res.status_code == 422 and res.json()["error"]["code"] == "file_required"
+    await attach(session, world.sup_a2, "faculty_publications", pid)
+    assert (await act(client, world.library, pid, "verify", {"indexing": []})).status_code == 200
+
+
+async def test_a_scholar_attaches_the_paper_before_submitting_when_asked(client, session, world):
+    res = await client.post("/api/v1/publications", headers=auth(world.scholar_a1.id), json=PUB)
+    pid = res.json()["id"]
+    submit = f"/api/v1/items/publication/{pid}/submit"
+    await require_paper(session)
+    refused = await client.post(submit, headers=auth(world.scholar_a1.id))
+    assert refused.status_code == 422 and "Attach the paper" in refused.text
+    await attach(session, world.scholar_a1, "publications", pid)
+    assert (await client.post(submit, headers=auth(world.scholar_a1.id))).status_code == 200
+
+
+async def test_the_root_admin_switches_it(client, world):
+    url = "/api/v1/settings"
+    assert (await client.get(url, headers=auth(world.root_admin.id))).json()[
+        "publication_file_required"
+    ] is False
+    res = await client.patch(
+        url, headers=auth(world.root_admin.id), json={"publication_file_required": True}
+    )
+    assert res.json()["publication_file_required"] is True
+    other = await client.patch(
+        url, headers=auth(world.library.id), json={"publication_file_required": False}
+    )
+    assert other.status_code == 403

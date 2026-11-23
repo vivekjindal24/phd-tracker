@@ -116,19 +116,39 @@ def _thesis_content(t: ThesisSubmission, principal: Principal) -> dict[str, Any]
     }
 
 
-async def _thesis_has_file(session: AsyncSession, _: Principal, ctx: ItemContext) -> None:
+async def has_file(session: AsyncSession, table: str, record_id: uuid.UUID) -> bool:
+    """At least one uploaded (ready, not removed) file hangs off the record."""
     files = await session.scalar(
         select(func.count())
         .select_from(FileRow)
         .where(
-            FileRow.table_name == "thesis_submissions",
-            FileRow.record_id == ctx.item.id,
+            FileRow.table_name == table,
+            FileRow.record_id == record_id,
             FileRow.status == "ready",
             FileRow.deleted_at.is_(None),
         )
     )
-    if not files:
+    return bool(files)
+
+
+async def paper_file_required(session: AsyncSession) -> bool:
+    """The university asks for the paper itself with each publication (Settings; owner,
+    2026-11-23). Off by default: the file is optional."""
+    settings = await session.get(Settings, 1)
+    assert settings is not None, "settings row is seeded by migration 0001"
+    return settings.publication_file_required
+
+
+async def _thesis_has_file(session: AsyncSession, _: Principal, ctx: ItemContext) -> None:
+    if not await has_file(session, "thesis_submissions", ctx.item.id):
         raise workflow.violation("Upload the final thesis file before submitting.")
+
+
+async def _publication_ready(session: AsyncSession, _: Principal, ctx: ItemContext) -> None:
+    if await paper_file_required(session) and not await has_file(
+        session, "publications", ctx.item.id
+    ):
+        raise workflow.violation("Attach the paper before submitting: the university asks for it.")
 
 
 async def _no_dues_approved(session: AsyncSession, scholar_id: uuid.UUID) -> bool:
@@ -230,7 +250,12 @@ REGISTRY: dict[str, ItemKind] = {
         before_submit=apr.require_complete,
     ),
     "publication": ItemKind(
-        Publication, "publications", lambda p: p.title, _publication_content, "publications"
+        Publication,
+        "publications",
+        lambda p: p.title,
+        _publication_content,
+        "publications",
+        before_submit=_publication_ready,
     ),
     "thesis_submission": ItemKind(
         ThesisSubmission,

@@ -2,7 +2,7 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
-import { Attachments } from "@/components/Attachments";
+import { PaperFile } from "@/components/items/PaperFile";
 import { IndexingChecks, PublicationForm } from "@/components/items/PublicationForm";
 import { Button, Card, ErrorText, Field, PageHeader } from "@/components/ui/kit";
 import { api } from "@/lib/api";
@@ -135,8 +135,7 @@ export default function FacultyPublicationPage() {
           <ErrorText>{actError}</ErrorText>
         </Card>
       )}
-      <Attachments table="faculty_publications" recordId={p.id} canUpload={p.can_edit} title="The paper"
-        hint="The published paper or its first page, for the Library to check." />
+      <PaperFile table="faculty_publications" recordId={p.id} canUpload={p.can_edit} when="before the Library verifies it" />
       {p.can_check && <LibraryCheck key={p.verification} p={p} onSaved={setData} />}
     </>
   );

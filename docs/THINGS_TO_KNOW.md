@@ -271,6 +271,10 @@ remove a point only when the behaviour itself changes.
   faculty's verified papers to the scholars' approved ones. A paper a scholar and their
   supervisor both recorded under the same DOI is one row naming both; one recorded without
   a DOI cannot be matched and appears once per person who recorded it. *(owner, 2026-11-23)*
+- **Attaching the paper is optional by default.** A university that wants the paper itself
+  switches on Settings → UGC rules → "Require the paper file": then a scholar cannot submit a
+  publication without it, and the Library cannot verify a faculty paper without it. Papers
+  already submitted or verified are not affected. *(owner, 2026-11-23)*
 - **Who sees faculty papers.** The author, the Library, the Research Office, the Vice
   Chancellor, and heads and admins over the author's department. Other members of faculty
   do not. *(owner, 2026-11-23)*
