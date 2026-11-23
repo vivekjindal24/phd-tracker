@@ -929,6 +929,9 @@ Intentionally NOT in this version:
   GFR 12-A, M8).
 - Plagiarism-check API integration (scores are entered by the Library).
 - Payroll/accounting integration (the ledger records, it does not pay).
+- Consultancy (paid work for outside clients) and its revenue: not part of this
+  portal, NAAC/NIRF consultancy figures are kept outside it (Decided 2026-11-23,
+  owner).
 - Fees: a university's own fee system keeps scholars' fees; Anveshan keeps no
   fee records or payment status. A fee notice goes on the notice board (F18)
   (Decided 2026-11-22, owner).

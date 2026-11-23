@@ -299,6 +299,11 @@ remove a point only when the behaviour itself changes.
   application number (spaces and case ignored) is one row in NAAC naming both.
   *(owner, 2026-11-23)*
 
+## Not in Anveshan
+
+- **Consultancy.** Paid work faculty do for outside clients, and its revenue, is not recorded
+  here; the university keeps its NAAC/NIRF consultancy figures elsewhere. *(owner, 2026-11-23)*
+
 ## Thesis submission gates
 
 - **The gates block; they do not warn.** A scholar cannot submit the thesis before 3 years
