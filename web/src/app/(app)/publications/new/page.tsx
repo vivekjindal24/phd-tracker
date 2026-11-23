@@ -2,6 +2,7 @@
 
 import { RequireRole } from "@/components/ui/RequireRole";
 import { useRouter } from "next/navigation";
+import { OrcidImport } from "@/components/items/OrcidImport";
 import { EMPTY_PUBLICATION, PublicationForm } from "@/components/items/PublicationForm";
 import { Card, PageHeader } from "@/components/ui/kit";
 import { api } from "@/lib/api";
@@ -20,6 +21,7 @@ function NewPublicationForm() {
             router.push(`/items/publication/${item.id}`);
           }} />
       </Card>
+      <OrcidImport />
     </>
   );
 }

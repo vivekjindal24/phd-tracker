@@ -55,6 +55,34 @@ class DoiDetails(BaseModel):
     already_recorded: bool  # the scholar has a publication with this DOI already
 
 
+class OrcidWork(BaseModel):
+    put_code: int
+    title: str
+    year: int | None
+    kind: str  # ORCID's work type: journal-article, conference-paper, book-chapter, ...
+    doi: str | None  # without one the work is added by hand
+    already_recorded: bool
+
+
+class DoiImportIn(BaseModel):
+    dois: list[Doi] = Field(min_length=1, max_length=50)
+
+
+class DoiImported(BaseModel):
+    id: uuid.UUID
+    title: str
+
+
+class DoiSkipped(BaseModel):
+    doi: str
+    reason: str
+
+
+class DoiImportOut(BaseModel):
+    created: list[DoiImported]  # each new draft
+    skipped: list[DoiSkipped]
+
+
 class PublicationUpdate(BaseModel):
     title: LongTitle | None = None
     authors: (

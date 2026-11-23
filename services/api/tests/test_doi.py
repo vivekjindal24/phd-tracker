@@ -34,6 +34,8 @@ def crossref(monkeypatch):
             return httpx.Response(404)
         if request.url.path.endswith("/10.5555/down"):
             return httpx.Response(503)
+        if request.url.path.endswith("/10.5555/busy") and asked.count(request.url.path) == 1:
+            return httpx.Response(429, headers={"Retry-After": "0"})
         return httpx.Response(200, json={"message": WORK})
 
     monkeypatch.setattr(doi, "TRANSPORT", httpx.MockTransport(answer))
@@ -79,3 +81,8 @@ async def test_what_crossref_cannot_answer(client, world, crossref):
 
 async def test_only_scholars_look_up(client, world, crossref):
     assert (await look_up(client, world.meera, "10.5555/x")).status_code == 403
+
+
+async def test_a_busy_crossref_is_asked_once_more(client, world, crossref):
+    res = await look_up(client, world.scholar_a1, "10.5555/busy")
+    assert res.status_code == 200 and crossref == ["/works/10.5555/busy"] * 2

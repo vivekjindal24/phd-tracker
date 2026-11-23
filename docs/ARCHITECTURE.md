@@ -185,7 +185,9 @@ supervisors write seminar to-do points by hand.
 DOI lookup (`app/doi.py`) calls Crossref's public API
 (`https://api.crossref.org/works/<doi>`) with no key and no personal data;
 the API server needs outbound HTTPS to it, else scholars fill publications by
-hand.
+hand. ORCID import (`app/orcid.py`) reads `https://pub.orcid.org/v3.0/<iD>/works`
+the same way (public records, no key) and fills each chosen DOI through
+Crossref one at a time, retrying once when Crossref answers 429.
 The five SMTP variables are all-or-nothing: none set = email off (each
 notification records "Email is not configured on this server"); some set =
 startup error. Dev uses Brevo's SMTP relay; production the university's

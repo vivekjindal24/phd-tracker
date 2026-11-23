@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import doi, items, scope, workflow
+from app import doi, items, orcid, scope, workflow
 from app.auth.principal import Principal
 from app.crud import insert, update
 from app.db import get_session
@@ -20,6 +20,9 @@ from app.rbac import require_perm
 from app.schemas import ItemView
 from app.schemas.research import (
     DoiDetails,
+    DoiImportIn,
+    DoiImportOut,
+    OrcidWork,
     PublicationIn,
     PublicationRow,
     PublicationUpdate,
@@ -115,6 +118,39 @@ async def look_up_doi(
         )
     )
     return found | {"already_recorded": mine is not None}
+
+
+def _own_scholar(principal: Principal) -> uuid.UUID:
+    if principal.scholar_id is None:
+        raise ApiError(403, "forbidden", "Scholars record their own publications.")
+    return principal.scholar_id
+
+
+@router.get("/orcid", response_model=list[OrcidWork])
+async def orcid_works(
+    q: str = Query(min_length=1, max_length=100),
+    principal: Principal = Depends(require_perm("publications", "create")),
+    session: AsyncSession = Depends(get_session),
+) -> list[dict[str, Any]]:
+    """The works on a public ORCID record, for the scholar to choose which to bring in."""
+    have = await orcid.recorded_dois(session, _own_scholar(principal))
+    return [
+        w | {"already_recorded": bool(w["doi"]) and w["doi"].lower() in have}
+        for w in await orcid.works(q)
+    ]
+
+
+@router.post("/import", response_model=DoiImportOut)
+async def import_publications(
+    body: DoiImportIn,
+    principal: Principal = Depends(require_perm("publications", "create")),
+    session: AsyncSession = Depends(get_session),
+) -> dict[str, Any]:
+    """Each chosen DOI, filled from Crossref, becomes a draft to check and submit."""
+    _own_scholar(principal)
+    out = await orcid.import_dois(session, principal, body.dois)
+    await session.commit()
+    return out
 
 
 @router.post("", response_model=ItemView, status_code=201)

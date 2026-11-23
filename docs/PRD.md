@@ -689,7 +689,12 @@ DOI** (Decided 2026-11-22): the scholar pastes a DOI (or its doi.org link) and
 the form fills title, authors, type, venue, ISSN/ISBN and year from Crossref's
 public API; the scholar checks and saves as usual, and is told if they have
 already recorded that DOI. Indexing is never filled (Crossref does not know
-it). Only the DOI is sent out; no key is needed.
+it). Only the DOI is sent out; no key is needed. **Import from ORCID**
+(Decided 2026-11-23): the scholar gives their ORCID iD (checked against its
+check digit); their public works are listed, and the chosen ones with a DOI
+(up to 50 at a time) are filled from Crossref and saved as drafts. A DOI
+already recorded, unknown to Crossref, or missing authors, venue or year is
+skipped with the reason; a work without a DOI is added by hand.
 
 **M2 — Conferences & talks.** Event, type (paper presented / poster /
 attended / invited talk / workshop), date, place, title, certificate file.

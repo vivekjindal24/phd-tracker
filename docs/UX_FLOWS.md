@@ -352,7 +352,13 @@ department or Research Office to record it.
 **Add publication** opens with **Fill in from the DOI**: paste the DOI or its
 doi.org link → **Fill in** → the form below fills from Crossref with a note
 to check every field and tick the indexing (or that this DOI is already
-recorded). Not a DOI → 422 `doi_invalid`; Crossref has no record → 404
+recorded). Below the form, **Import from ORCID**: the ORCID iD (or its
+orcid.org link) → **Show my works** → the public works, each with a DOI ticked
+unless already recorded (no DOI or already recorded: shown but not
+selectable) → **Import n as drafts** → "n drafts added" with the skipped
+DOIs and why. Not an ORCID iD → 422 `orcid_invalid`; no public record → 404
+`orcid_not_found`; ORCID unreachable → 502 `orcid_lookup_failed`.
+Not a DOI → 422 `doi_invalid`; Crossref has no record → 404
 `doi_not_found`; Crossref unreachable → 502 `doi_lookup_failed`. Each says to
 fill in by hand, and the form stays usable.
 

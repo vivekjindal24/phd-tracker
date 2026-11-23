@@ -3,6 +3,7 @@ API answers with the title, authors, venue, ISSN/ISBN, year and type; the schola
 saves as usual. Only the DOI leaves the server. Indexing (Scopus, WoS, UGC-CARE) is not in
 Crossref: the scholar ticks it and the Library verifies it."""
 
+import asyncio
 import html
 import logging
 import re
@@ -27,6 +28,8 @@ PUB_TYPES = {
     "book-part": "book_chapter",
     "book-section": "book_chapter",
 }
+BUSY = 429  # Crossref's public pool sheds load; one wait-and-retry usually succeeds
+MAX_RETRY_WAIT_S = 5.0
 MAX_AUTHORS_CHARS = 2000
 MAX_TITLE_CHARS = 500
 
@@ -87,7 +90,12 @@ async def lookup(raw: str) -> dict[str, Any]:
         async with httpx.AsyncClient(
             timeout=TIMEOUT_S, transport=TRANSPORT, headers={"User-Agent": USER_AGENT}
         ) as client:
-            res = await client.get(CROSSREF + quote(doi, safe="/"))
+            url = CROSSREF + quote(doi, safe="/")
+            res = await client.get(url)
+            if res.status_code == BUSY:
+                wait = res.headers.get("Retry-After", "1")
+                await asyncio.sleep(min(float(wait) if wait.isdigit() else 1.0, MAX_RETRY_WAIT_S))
+                res = await client.get(url)
     except httpx.HTTPError as exc:
         log.warning("Crossref lookup of %s failed: %s", doi, exc)
         raise ApiError(

@@ -217,8 +217,13 @@ remove a point only when the behaviour itself changes.
 - **The server needs the internet for it.** The lookup goes from the university's server to
   api.crossref.org. Only the DOI is sent, never a name. Without outbound internet the button
   says so and the scholar types the details. *(owner, 2026-11-22)*
-- **Not yet:** reading the DOI out of an uploaded PDF, importing from ORCID, and checking
-  the journal against predatory lists. *(owner, 2026-11-22)*
+- **Import from ORCID.** On Add publication the scholar gives their ORCID iD and ticks which
+  of their public works to bring in; each is filled from Crossref and saved as a draft to
+  check, mark indexed, attach and submit. Works without a DOI, and works the scholar's ORCID
+  record keeps private, are added by hand. Up to 50 at a time; a long list takes a little
+  while, because Crossref is asked one paper at a time. *(owner, 2026-11-23)*
+- **Not yet:** reading the DOI out of an uploaded PDF, keeping the ORCID iD on the profile,
+  and checking the journal against predatory lists. *(owner, 2026-11-23)*
 
 ## Thesis submission gates
 
