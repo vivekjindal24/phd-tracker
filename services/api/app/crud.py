@@ -15,6 +15,20 @@ from app.models.base import Base
 REDACTED_COLUMNS = frozenset(
     {"password_hash", "token_hash", "verify_token", "totp_secret", "recovery_hashes"}
 )
+# A grievance's words stay on its own row and are never copied into the audit trail, nor are
+# the names of the papers attached to it (grievances.py; SECURITY.md §8).
+GRIEVANCE_WORDS = frozenset(
+    {"subject", "description", "decision", "appeal_reason", "appeal_decision"}
+)
+GRIEVANCE_FILE_NAMES = frozenset({"file_name", "storage_key"})
+
+
+def _redacted(obj: Base) -> frozenset[str]:
+    if obj.__tablename__ == "grievances":
+        return REDACTED_COLUMNS | GRIEVANCE_WORDS
+    if obj.__tablename__ == "files" and getattr(obj, "table_name", None) == "grievances":
+        return REDACTED_COLUMNS | GRIEVANCE_FILE_NAMES
+    return REDACTED_COLUMNS
 
 
 def _json(value: Any) -> Any:
@@ -26,10 +40,12 @@ def _json(value: Any) -> Any:
 
 
 def snapshot(obj: Base) -> dict[str, Any]:
-    """Column values for the audit trail, hashes redacted, bytes never included."""
+    """Column values for the audit trail, hashes and grievance words redacted, bytes never
+    included."""
+    redacted = _redacted(obj)
     out: dict[str, Any] = {}
     for column in inspect(obj).mapper.column_attrs:
-        if column.key in REDACTED_COLUMNS:
+        if column.key in redacted:
             out[column.key] = "[redacted]"
             continue
         value = getattr(obj, column.key)

@@ -524,7 +524,8 @@ fellowship_ending / grant_alert / seminar / system), `title`, `body`, `link`, `r
 **audit_log** — every mutation on every table: `table_name`, `record_id`,
 `action` CHECK (insert / update / soft_delete / restore / transition / lookup),
 `from_state` / `to_state`, `prev` / `data` jsonb snapshots (password hashes
-and token hashes redacted), `actor_id`, `actor_roles` text[], `at`. Written
+and token hashes redacted; a grievance's words and its papers' file names stored as
+"[redacted]", migration 0058 scrubbing earlier rows), `actor_id`, `actor_roles` text[], `at`. Written
 only by `crud.py` / `workflow.py`. "Every mutation" means every record a person
 creates or changes; operational rows are not audited: `notifications` (and
 their read flag), `refresh_tokens`, `password_tokens`, `login_attempts`, SSO

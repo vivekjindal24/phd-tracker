@@ -1,12 +1,14 @@
 """A scholar's grievance (grievances.py): who reads it, each step, appeals and deadlines."""
 
+import uuid
 from datetime import UTC, date, datetime, timedelta
 
 import pytest
 from sqlalchemy import select
 
 from app import grievances
-from app.models import Grievance, Notification
+from app.crud import insert
+from app.models import AuditLog, FileRow, Grievance, Notification
 from tests.conftest import auth
 from tests.world import _role, _user
 
@@ -155,3 +157,36 @@ async def test_evidence_is_attached_while_open(client, world, panel):
     await step(client, cell, gid, "decide", {"text": "Done."})
     closed = await client.post(url, headers=auth(world.scholar_a1.id), json=file)
     assert closed.status_code == 409
+
+
+async def test_the_audit_log_keeps_no_words_and_shows_no_rows(client, session, world, panel):
+    cell, _ = panel
+    gid = await filed(client, world)
+    await step(client, cell, gid, "decide", {"text": "Meetings fixed monthly from now."})
+    paper = await insert(
+        session,
+        None,
+        FileRow(
+            storage_key=f"grievances/{gid}/x/cancelled_meetings.pdf",
+            file_name="cancelled_meetings.pdf",
+            content_type="application/pdf",
+            size_bytes=10,
+            status="ready",
+            uploaded_by=world.scholar_a1.id,
+            table_name="grievances",
+            record_id=uuid.UUID(gid),
+        ),
+    )
+    await session.commit()
+    # Stored: who and when, never the words nor the papers' names.
+    rows = list(
+        await session.scalars(select(AuditLog).where(AuditLog.record_id.in_([gid, str(paper.id)])))
+    )
+    stored = str([(r.data, r.prev) for r in rows])
+    for words in ("Meetings keep", "cancelled", "monthly", "cancelled_meetings"):
+        assert words not in stored
+    # Shown: not even that a grievance or its paper exists, to anyone who reads the log.
+    for user in (world.root_admin, world.research_office, world.vice_chancellor, world.admin_a1):
+        res = await client.get("/api/v1/audit-log", params={"limit": 500}, headers=auth(user.id))
+        assert res.status_code == 200, user.full_name
+        assert {r["record_id"] for r in res.json()} & {gid, str(paper.id)} == set()

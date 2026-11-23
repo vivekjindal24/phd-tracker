@@ -20,9 +20,11 @@ from app.schemas import AuditRow
 from app.sorting import Sort, ordered, page_of
 
 router = APIRouter(tags=["audit"])
-# Drafts and their versions are the scholar's and supervisor's alone (PRD M3): not even that
-# one exists is shown here.
-HIDDEN_TABLES = ("documents", "document_versions")
+# Drafts and their versions are the scholar's and supervisor's alone (PRD M3), and grievances
+# are read only by those grievances.py names, so not even that one exists is shown here — nor
+# the papers attached to a grievance.
+HIDDEN_TABLES = ("documents", "document_versions", "grievances")
+FILE_OWNER = AuditLog.data["table_name"].astext
 SCHOLAR_ID = AuditLog.data["scholar_id"].astext
 BOOKKEEPING = ("updated_at", "updated_by")
 
@@ -67,7 +69,9 @@ async def read_audit_log(
     session: AsyncSession = Depends(get_session),
 ) -> list[dict[str, Any]]:
     stmt = select(AuditLog, User.full_name).outerjoin(User, User.id == AuditLog.actor_id)
-    stmt = stmt.where(AuditLog.table_name.not_in(HIDDEN_TABLES))
+    stmt = stmt.where(
+        AuditLog.table_name.not_in(HIDDEN_TABLES), FILE_OWNER.is_distinct_from("grievances")
+    )
     if not (principal.is_root_admin or principal.reads_all):
         # A scoped admin: only what concerns scholars of their subtree. Records with no scholar
         # (people, units, settings) stay with those who read the whole university.

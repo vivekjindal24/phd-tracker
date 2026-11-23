@@ -229,6 +229,10 @@ remove a point only when the behaviour itself changes.
 - **Emails say nothing of the grievance.** A notification or email only says there is a
   grievance and links to it; the text is read in Anveshan after logging in.
   *(owner, 2026-11-23)*
+- **Nor does the audit log.** The audit log never shows a grievance, not even that one
+  exists, to the root admin, the Research Office or a department admin. Its record keeps
+  who acted and when, but stores none of the words or the names of attached papers. The
+  grievance's own page is its history. *(owner, 2026-11-23)*
 - **Not covered:** sexual harassment goes to the Internal Complaints Committee (the form says
   so); grievances are not anonymous (UGC asks for a named student). *(owner, 2026-11-23)*
 

@@ -342,7 +342,8 @@ read nothing else: they hold no other matrix row, and the notice board's "office
 read every notice" covers the four offices only. A grievance's papers are read by
 whoever reads it and attached by the scholar or the cell while open, or by the
 appeal's decider while appealed. A step out of turn → 409 `grievance_state`.
-Notifications carry no words of the grievance.
+Notifications carry no words of the grievance, the audit trail stores none, and the
+audit-log page lists no grievance row (§6, Audit).
 
 Disabled modules: every route of the module → 404 `module_disabled`
 regardless of role, and so does a NAAC sheet built from that module.
@@ -419,7 +420,10 @@ regardless of role, and so does a NAAC sheet built from that module.
 - **Errors:** one envelope `{"error": {code, message, details}}`; messages
   never leak internals; unhandled exceptions log server-side, return 500.
 - **Audit:** every mutation writes `audit_log`; password and token hashes are
-  redacted from snapshots.
+  redacted from snapshots, and so are a grievance's words (subject, description,
+  decisions, appeal) and the names of papers attached to one (`crud.py`;
+  migration 0058 scrubbed rows written before). The audit-log page shows no row
+  about a grievance or its papers to anyone, as for drafts.
 
 ## 7. Token Storage Tradeoff (known, accepted)
 
