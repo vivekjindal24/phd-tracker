@@ -5,10 +5,10 @@ import uuid
 from typing import Any
 
 from fastapi import APIRouter, Depends, Query, Response
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import items, scope, workflow
+from app import doi, items, scope, workflow
 from app.auth.principal import Principal
 from app.crud import insert, update
 from app.db import get_session
@@ -18,7 +18,13 @@ from app.models import Publication, Scholar, User
 from app.modules import require_module
 from app.rbac import require_perm
 from app.schemas import ItemView
-from app.schemas.research import PublicationIn, PublicationRow, PublicationUpdate, VerificationIn
+from app.schemas.research import (
+    DoiDetails,
+    PublicationIn,
+    PublicationRow,
+    PublicationUpdate,
+    VerificationIn,
+)
 from app.sorting import Sort, ordered, page_of, ranked
 
 router = APIRouter(
@@ -89,6 +95,26 @@ async def list_publications(
             }
         )
     return out
+
+
+@router.get("/doi", response_model=DoiDetails)
+async def look_up_doi(
+    q: str = Query(min_length=1, max_length=300),
+    principal: Principal = Depends(require_perm("publications", "create")),
+    session: AsyncSession = Depends(get_session),
+) -> dict[str, Any]:
+    """The scholar's DOI, filled from Crossref; nothing is saved until they submit the form."""
+    if principal.scholar_id is None:
+        raise ApiError(403, "forbidden", "Scholars record their own publications.")
+    found = await doi.lookup(q)
+    mine = await session.scalar(
+        select(Publication.id).where(
+            Publication.scholar_id == principal.scholar_id,
+            func.lower(Publication.doi) == found["doi"].lower(),
+            Publication.deleted_at.is_(None),
+        )
+    )
+    return found | {"already_recorded": mine is not None}
 
 
 @router.post("", response_model=ItemView, status_code=201)

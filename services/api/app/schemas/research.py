@@ -41,6 +41,20 @@ class PublicationIn(BaseModel):
     pub_status: PubStatus
 
 
+class DoiDetails(BaseModel):
+    """What Crossref knows of a DOI, for the scholar to check before saving (doi.py)."""
+
+    doi: str
+    title: str
+    authors: str
+    pub_type: PubType
+    venue: str
+    issn_isbn: str | None
+    pub_year: int | None
+    pub_status: PubStatus
+    already_recorded: bool  # the scholar has a publication with this DOI already
+
+
 class PublicationUpdate(BaseModel):
     title: LongTitle | None = None
     authors: (

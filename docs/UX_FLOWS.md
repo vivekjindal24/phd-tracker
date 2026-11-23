@@ -349,6 +349,13 @@ department or Research Office to record it.
 
 ## Flow 7 — Publication verified by the Library (module)
 
+**Add publication** opens with **Fill in from the DOI**: paste the DOI or its
+doi.org link → **Fill in** → the form below fills from Crossref with a note
+to check every field and tick the indexing (or that this DOI is already
+recorded). Not a DOI → 422 `doi_invalid`; Crossref has no record → 404
+`doi_not_found`; Crossref unreachable → 502 `doi_lookup_failed`. Each says to
+fill in by hand, and the form stays usable.
+
 **Finding one scholar's records.** Publications, Progress reports, Meetings,
 Conferences, Fellowships and Thesis submissions each carry a **Search** box
 (part of a scholar's name or their roll number; on Publications and

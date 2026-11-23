@@ -182,6 +182,10 @@ unknown placeholder in the body stops startup): `CERTIFICATE_DEGREE`,
 AI (optional, all-or-nothing): `AI_BASE_URL`, `AI_API_KEY`, `AI_MODEL` — any
 OpenAI-compatible chat endpoint (Gemini in dev, Ollama in production); unset =
 supervisors write seminar to-do points by hand.
+DOI lookup (`app/doi.py`) calls Crossref's public API
+(`https://api.crossref.org/works/<doi>`) with no key and no personal data;
+the API server needs outbound HTTPS to it, else scholars fill publications by
+hand.
 The five SMTP variables are all-or-nothing: none set = email off (each
 notification records "Email is not configured on this server"); some set =
 startup error. Dev uses Brevo's SMTP relay; production the university's

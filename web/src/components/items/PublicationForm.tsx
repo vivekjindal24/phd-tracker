@@ -3,8 +3,9 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { Button, ErrorText, Field } from "@/components/ui/kit";
+import { api } from "@/lib/api";
 import { INDEXING_LABELS, PUB_STATUS_LABELS, PUB_TYPE_LABELS } from "@/lib/types";
-import type { Indexing, PubStatus, PubType, PublicationContent } from "@/lib/types";
+import type { DoiDetails, Indexing, PubStatus, PubType, PublicationContent } from "@/lib/types";
 import { errorText } from "@/lib/useFetch";
 
 export const EMPTY_PUBLICATION: PublicationContent = {
@@ -31,6 +32,45 @@ export function IndexingChecks({ value, onChange }: { value: Indexing[]; onChang
         </label>
       ))}
     </fieldset>
+  );
+}
+
+/** Paste a DOI, and Crossref fills the rest of the form; the scholar checks it before saving. */
+function DoiFill({ onFound }: { onFound: (d: DoiDetails) => void }) {
+  const [q, setQ] = useState("");
+  const [note, setNote] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  async function fill() {
+    setBusy(true);
+    setError(null);
+    setNote(null);
+    try {
+      const d = await api<DoiDetails>(`/publications/doi?q=${encodeURIComponent(q)}`);
+      onFound(d);
+      setNote(d.already_recorded
+        ? "Filled in from Crossref, but you have already recorded a publication with this DOI."
+        : "Filled in from Crossref. Check every field, and tick the indexing yourself: Crossref does not know it.");
+    } catch (err) {
+      setError(errorText(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="stack-form">
+      <div className="row">
+        <Field label="Fill in from the DOI" hint="Paste the DOI or its doi.org link.">
+          <input maxLength={300} value={q} placeholder="10.1234/abcd.5678" onChange={(e) => setQ(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); if (q.trim()) fill(); } }} />
+        </Field>
+        <Button kind="secondary" disabled={busy || !q.trim()} onClick={fill}>{busy ? "Looking up…" : "Fill in"}</Button>
+      </div>
+      {note && <p className="muted" role="status">{note}</p>}
+      <ErrorText>{error}</ErrorText>
+    </div>
   );
 }
 
@@ -67,6 +107,8 @@ export function PublicationForm({
 
   return (
     <form className="stack-form" onSubmit={submit}>
+      <DoiFill onFound={({ already_recorded: _, pub_year, issn_isbn, ...d }) =>
+        setV((prev) => ({ ...prev, ...d, issn_isbn: issn_isbn ?? prev.issn_isbn, pub_year: pub_year ?? prev.pub_year }))} />
       <Field label="Title">
         <input required maxLength={500} value={v.title} onChange={(e) => set("title", e.target.value)} />
       </Field>

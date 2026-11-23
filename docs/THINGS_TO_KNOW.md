@@ -208,6 +208,18 @@ remove a point only when the behaviour itself changes.
 - **The co-supervisor is not covered.** A co-supervisor is still set or changed directly by the
   department admin. *(owner, 2026-11-22)*
 
+## Publications
+
+- **Fill in from the DOI.** On Add publication the scholar pastes the DOI and the title,
+  authors, venue, ISSN/ISBN, type and year fill themselves from Crossref. The scholar still
+  checks each field and ticks where it is indexed: Crossref does not know Scopus, Web of
+  Science or UGC-CARE, and the Library still verifies it. *(owner, 2026-11-22)*
+- **The server needs the internet for it.** The lookup goes from the university's server to
+  api.crossref.org. Only the DOI is sent, never a name. Without outbound internet the button
+  says so and the scholar types the details. *(owner, 2026-11-22)*
+- **Not yet:** reading the DOI out of an uploaded PDF, importing from ORCID, and checking
+  the journal against predatory lists. *(owner, 2026-11-22)*
+
 ## Thesis submission gates
 
 - **The gates block; they do not warn.** A scholar cannot submit the thesis before 3 years

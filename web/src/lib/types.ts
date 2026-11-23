@@ -463,6 +463,12 @@ export const PUB_STATUS_LABELS: Record<PubStatus, string> = {
   accepted: "Accepted",
   published: "Published",
 };
+/** What Crossref knows of a DOI (GET /publications/doi). */
+export type DoiDetails = Omit<PublicationContent, "indexing" | "pub_year"> & {
+  doi: string;
+  pub_year: number | null;
+  already_recorded: boolean;
+};
 export type PublicationContent = {
   title: string;
   authors: string;

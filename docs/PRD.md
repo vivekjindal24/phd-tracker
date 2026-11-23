@@ -684,7 +684,12 @@ lists current and past ones. Every post, edit and removal is audited.
 **M1 — Publications** (chain). Title, authors, type (journal / conference /
 book chapter / patent), venue, ISSN/ISBN, indexing (Scopus / WoS / UGC-CARE /
 other / none — multiple), DOI, year, status (submitted / accepted /
-published), file. Library verifies indexing at its step.
+published), file. Library verifies indexing at its step. **Fill in from the
+DOI** (Decided 2026-11-22): the scholar pastes a DOI (or its doi.org link) and
+the form fills title, authors, type, venue, ISSN/ISBN and year from Crossref's
+public API; the scholar checks and saves as usual, and is told if they have
+already recorded that DOI. Indexing is never filled (Crossref does not know
+it). Only the DOI is sent out; no key is needed.
 
 **M2 — Conferences & talks.** Event, type (paper presented / poster /
 attended / invited talk / workshop), date, place, title, certificate file.
