@@ -120,13 +120,13 @@ async def test_returned_with_a_note_then_back_to_the_library(client, session, wo
     assert (await act(client, world.library, pid, "return", {"note": ""})).status_code == 422
     res = await act(client, world.library, pid, "return", {"note": "Not in Scopus: untick it."})
     assert res.json()["verification"] == "returned"
-    assert res.json()["library_note"] == "Not in Scopus: untick it."
+    assert res.json()["return_note"] == "Not in Scopus: untick it."
     told = await notices(session, world.sup_a2)
     assert [(n.category, n.body) for n in told] == [("sent_back", "Not in Scopus: untick it.")]
     other = await client.patch(f"{API}/{pid}", headers=auth(world.sup_b1.id), json={"title": "X"})
     assert other.status_code == 403
     fixed = await client.patch(f"{API}/{pid}", headers=auth(world.sup_a2.id), json={"indexing": []})
-    assert fixed.json()["verification"] == "waiting" and fixed.json()["library_note"] is None
+    assert fixed.json()["verification"] == "waiting" and fixed.json()["return_note"] is None
     assert len(await notices(session, world.library)) == 2  # added, then corrected
 
 

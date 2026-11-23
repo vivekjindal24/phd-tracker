@@ -11,6 +11,7 @@ const SHEETS = [
   ["scholars", "PhD scholars registered and awarded per guide"],
   ["publications", "Publications with UGC-CARE, Scopus and WoS indexing (scholars’ approved, faculty’s verified)"],
   ["books", "Books and chapters (scholars’ and faculty’s)"],
+  ["patents", "Patents published and granted (verified)"],
 ] as const;
 const YEARS_SHOWN = 12;
 const DEFAULT_SPAN = 4;

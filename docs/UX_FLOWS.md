@@ -420,6 +420,17 @@ it is needed instead; **Submit** without it says "Attach the paper before
 submitting", and **Verify** without it tells the Library to return the paper so
 the author attaches it.
 
+**Patents** (module). A member of faculty or a scholar → **Research → Patents →
+Add your patent**: title, inventors, application number, filing date, office,
+status (published adds its date; granted adds the grant date and patent number)
+→ **Save and send to be checked** → the patent's page, to attach the filing
+receipt or certificate. The chosen office (Settings → UGC rules: the Research
+Office or the Library) sees **Patents to verify** on Home → a patent → checks it
+against the patent office's record → **Verify**, or a note → **Return**. The
+inventor is told, sees **Your patents returned** on Home, corrects it and it
+goes back. When a verified patent is published or granted, its inventor opens
+it → **Update (e.g. it was granted)** → saved, it goes back to be checked.
+
 ## Flow 8 — Thesis submission (module)
 
 When the university requires it (Settings → UGC rules), the thesis page
@@ -465,7 +476,8 @@ years (July to June, up to ten) and downloads a CSV per sheet: projects and
 grants, scholars registered and awarded per guide, publications with indexing,
 books and chapters. Sheets carry the underlying rows, never computed scores. The
 publication sheets hold scholars' approved papers and faculty's verified ones, a
-paper with one DOI once ("Recorded by" names each).
+paper with one DOI once ("Recorded by" names each). With patents on, a further
+sheet lists verified patents published or granted in the years, a row each.
 
 ## Flow 9 — Coursework (module)
 

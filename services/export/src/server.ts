@@ -37,7 +37,7 @@ const naacQuery = z.object({
 });
 
 const listName = z.enum(["scholars", "faculty", "milestones", "reports", "meetings", "seminars", "publications",
-  "faculty-publications", "theses", "conferences", "documents", "admissions", "fellowships", "fellowship-claims", "projects", "audit-log"]);
+  "faculty-publications", "patents", "theses", "conferences", "documents", "admissions", "fellowships", "fellowship-claims", "projects", "audit-log"]);
 // The API validates each filter; here only the shape: plain short key=value pairs.
 const listQuery = z.record(z.string().regex(/^[a-z_]{1,40}$/), z.string().max(200));
 
@@ -184,7 +184,7 @@ export function createApp(config: Config) {
 
   app.get("/naac/:sheet.csv", async (req, res, next) => {
     try {
-      const sheet = input(z.enum(["projects", "scholars", "publications", "books"]), req.params.sheet);
+      const sheet = input(z.enum(["projects", "scholars", "publications", "books", "patents"]), req.params.sheet);
       const q = input(naacQuery, req.query);
       const view = await fetchView(config.apiUrl, `/internal/naac/${sheet}?${new URLSearchParams(q)}`, auth(req), tableView);
       send(res, "text/csv; charset=utf-8", `naac-${sheet}-${q.from_year}-${q.to_year}.csv`, tableCsv(view));

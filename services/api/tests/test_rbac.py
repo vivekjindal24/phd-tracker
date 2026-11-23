@@ -54,6 +54,8 @@ PUBLIC = frozenset(
 )
 MODULE_OF_TAG = {
     "publications": "publications",
+    "faculty publications": "publications",
+    "patents": "patents",
     "conferences": "conferences",
     "documents": "documents",
     "thesis": "documents",

@@ -3,20 +3,18 @@ DOI or from ORCID; the Library verifies each (correcting indexing and DOI) or re
 note. No approval chain. Only verified papers count in the NAAC sheets (naac.py)."""
 
 import uuid
-from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import Select, func, select, true
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
-from app import items, notices, scope
+from app import items, scope, verification
 from app.auth.principal import Principal
 from app.crud import insert, soft_delete, update
 from app.errors import ApiError, forbidden
 from app.models import Faculty, FacultyPublication, OrgUnit, User
 from app.modules import module_enabled
-from app.notify import notify
 from app.rbac import can
 
 ENTITY = "faculty_publications"
@@ -90,7 +88,7 @@ def view(principal: Principal, row: Any) -> dict[str, Any]:
         "issn_isbn": p.issn_isbn,
         "doi": p.doi,
         "pub_status": p.pub_status,
-        "library_note": p.library_note if p.verification == "returned" else None,
+        "return_note": verification.note_of(p),
         "checked_at": p.checked_at,
         "checked_by": checker,
         "can_edit": is_author(principal, p) and p.verification != "verified",
@@ -99,19 +97,13 @@ def view(principal: Principal, row: Any) -> dict[str, Any]:
 
 
 async def _tell_library(session: AsyncSession, principal: Principal, count: int) -> None:
-    library = [uuid.UUID(h["id"]) for h in await notices.holders(session, None, "library")]
     title = (
         f"{principal.full_name} added {count} papers to verify"
         if count > 1
         else f"{principal.full_name} added a paper to verify"
     )
-    notify(
-        session,
-        [u for u in library if u != principal.user_id],
-        "approval_waiting",
-        title,
-        link="/faculty-publications?verification=waiting",
-    )
+    link = "/faculty-publications?verification=waiting"
+    await verification.tell_office(session, principal, "library", title, link)
 
 
 async def create(
@@ -147,12 +139,7 @@ async def edit(
     """The author's change; a returned paper goes back to the Library."""
     require_editable(principal, p)
     if p.verification == "returned":
-        changes |= {
-            "verification": "waiting",
-            "library_note": None,
-            "checked_at": None,
-            "checked_by": None,
-        }
+        changes |= verification.BACK_TO_WAITING
         await _tell_library(session, principal, 1)
     await update(session, principal, p, changes)
 
@@ -160,24 +147,6 @@ async def edit(
 async def remove(session: AsyncSession, principal: Principal, p: FacultyPublication) -> None:
     require_editable(principal, p)
     await soft_delete(session, principal, p)
-
-
-async def _check(
-    session: AsyncSession,
-    principal: Principal,
-    p: FacultyPublication,
-    author_user_id: uuid.UUID,
-    changes: dict[str, Any],
-    title: str,
-    category: str,
-    body: str = "",
-) -> None:
-    if not can_check(principal, p):
-        raise forbidden()
-    stamp = {"checked_at": datetime.now(UTC), "checked_by": principal.user_id}
-    await update(session, principal, p, changes | stamp)
-    link = f"/faculty-publications/{p.id}"
-    notify(session, [author_user_id], category, title, body, link=link)
 
 
 async def verify(
@@ -189,31 +158,27 @@ async def verify(
 ) -> None:
     """The Library confirms the indexing and DOI it checked; the paper then counts."""
     p, faculty = row[0], row[1]
+    if not can_check(principal, p):
+        raise forbidden()
     if await items.paper_file_required(session) and not await items.has_file(session, ENTITY, p.id):
         raise ApiError(
             422,
             "file_required",
             "The university asks for the paper itself. Return it so the author attaches it.",
         )
-    if p.verification != "waiting":
-        raise ApiError(
-            409, "verification_state", "Only a paper waiting for the Library can be verified."
-        )
-    changes = {"indexing": indexing, "doi": doi, "verification": "verified", "library_note": None}
-    await _check(
-        session, principal, p, faculty.user_id, changes, f"Verified: {p.title}", "approved"
-    )
+    changes = {"indexing": indexing, "doi": doi}
+    await verification.verify(session, principal, p, changes, faculty.user_id, p.title, _link(p))
 
 
 async def return_(session: AsyncSession, principal: Principal, row: Any, note: str) -> None:
-    """Back to the author to correct, waiting or already verified (a later correction)."""
     p, faculty = row[0], row[1]
-    if p.verification == "returned":
-        raise ApiError(409, "verification_state", "This paper is already with its author.")
-    changes = {"verification": "returned", "library_note": note}
-    await _check(
-        session, principal, p, faculty.user_id, changes, f"Returned: {p.title}", "sent_back", note
-    )
+    if not can_check(principal, p):
+        raise forbidden()
+    await verification.return_(session, principal, p, note, faculty.user_id, p.title, _link(p))
+
+
+def _link(p: FacultyPublication) -> str:
+    return f"/faculty-publications/{p.id}"
 
 
 async def home(session: AsyncSession, principal: Principal) -> dict[str, int] | None:

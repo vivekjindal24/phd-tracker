@@ -4,7 +4,7 @@ dashboard and export filters through these predicates. Out of scope -> 403, neve
 import uuid
 from typing import TypeVar
 
-from sqlalchemy import ColumnElement, Select, cast, false, literal, or_, select, true
+from sqlalchemy import ColumnElement, Select, and_, cast, false, literal, or_, select, true
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.principal import Principal
@@ -13,6 +13,7 @@ from app.errors import forbidden
 from app.models import (
     FacultyPublication,
     OrgUnit,
+    Patent,
     Project,
     ProjectMember,
     RoleAssignment,
@@ -119,6 +120,18 @@ def faculty_publication_predicate(principal: Principal) -> ColumnElement[bool]:
     Faculty."""
     own = [FacultyPublication.faculty_id == principal.faculty_id] if principal.faculty_id else []
     return or_(*own, unit_predicate(principal, "faculty_publications", Faculty.unit_id))
+
+
+def patent_predicate(principal: Principal) -> ColumnElement[bool]:
+    """Patents the caller reads (SECURITY.md §3): a member of faculty's own, and those of faculty
+    in a head's or admin's subtree (offices: all); a scholar's as their other records. The query
+    outer-joins Faculty and Scholar on the patent's owner."""
+    own = [Patent.faculty_id == principal.faculty_id] if principal.faculty_id else []
+    return or_(
+        *own,
+        and_(Patent.faculty_id.is_not(None), unit_predicate(principal, "patents", Faculty.unit_id)),
+        and_(Patent.scholar_id.is_not(None), scholar_predicate(principal, "patents")),
+    )
 
 
 def org_tree_predicate(principal: Principal) -> ColumnElement[bool]:

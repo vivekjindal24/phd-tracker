@@ -5,7 +5,15 @@ import uuid
 from datetime import date, datetime
 from typing import Annotated, Literal
 
-from pydantic import AwareDatetime, BaseModel, EmailStr, Field, StringConstraints, model_validator
+from pydantic import (
+    AwareDatetime,
+    BaseModel,
+    EmailStr,
+    Field,
+    StringConstraints,
+    field_validator,
+    model_validator,
+)
 
 from app.enums import (
     ConferenceType,
@@ -14,6 +22,8 @@ from app.enums import (
     ExaminerOrigin,
     Indexing,
     ItemState,
+    PatentStatus,
+    PatentVerifier,
     PubStatus,
     PubType,
     Recommendation,
@@ -30,6 +40,11 @@ Doi = Annotated[str, StringConstraints(strip_whitespace=True, pattern=r"^10\.\d{
 ShortText = Annotated[str, StringConstraints(strip_whitespace=True, max_length=50)]
 
 
+def _not_a_patent(pub_type: str | None) -> None:
+    if pub_type == "patent":  # kept only for papers recorded before patents had a module
+        raise ValueError("Record a patent under Patents, not as a publication.")
+
+
 class PublicationIn(BaseModel):
     title: LongTitle
     authors: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=2000)]
@@ -40,6 +55,12 @@ class PublicationIn(BaseModel):
     doi: Doi | None = None
     pub_year: int = Field(ge=1950, le=2100)
     pub_status: PubStatus
+
+    @field_validator("pub_type")
+    @classmethod
+    def _no_patent(cls, v: str | None) -> str | None:
+        _not_a_patent(v)
+        return v
 
 
 class DoiDetails(BaseModel):
@@ -98,6 +119,12 @@ class PublicationUpdate(BaseModel):
     pub_year: int | None = Field(default=None, ge=1950, le=2100)
     pub_status: PubStatus | None = None
 
+    @field_validator("pub_type")
+    @classmethod
+    def _no_patent(cls, v: str | None) -> str | None:
+        _not_a_patent(v)
+        return v
+
 
 class VerificationIn(BaseModel):
     """What the Library confirms at its step (PRD M1)."""
@@ -139,7 +166,7 @@ class FacultyPublicationView(FacultyPublicationRow):
     issn_isbn: str | None
     doi: str | None
     pub_status: PubStatus
-    library_note: str | None  # why the Library returned it; shown while returned
+    return_note: str | None  # why it was returned; shown while returned
     checked_at: datetime | None
     checked_by: str | None
     can_edit: bool  # the author, until the Library verifies it
@@ -150,6 +177,63 @@ class ReturnIn(BaseModel):
     """Why the Library returns a faculty paper: what to correct (PRD M1)."""
 
     note: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=2000)]
+
+
+# --- patents (PRD M10) -------------------------------------------------------------------
+
+Short = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)]
+
+
+class PatentIn(BaseModel):
+    title: LongTitle
+    inventors: Annotated[
+        str, StringConstraints(strip_whitespace=True, min_length=1, max_length=2000)
+    ]
+    application_number: Short
+    filed_on: date
+    office: Short = "Indian Patent Office"
+    patent_status: PatentStatus
+    published_on: date | None = None
+    granted_on: date | None = None
+    patent_number: Short | None = None
+
+    @model_validator(mode="after")
+    def _dates(self) -> "PatentIn":
+        if self.patent_status == "published" and self.published_on is None:
+            raise ValueError("A published patent needs its publication date.")
+        if self.patent_status == "granted" and (self.granted_on is None or not self.patent_number):
+            raise ValueError("A granted patent needs its grant date and patent number.")
+        for day in (self.published_on, self.granted_on):
+            if day is not None and day < self.filed_on:
+                raise ValueError("A patent is published and granted after it is filed.")
+        return self
+
+
+class PatentRow(BaseModel):
+    id: uuid.UUID
+    owner: Ref  # the member of faculty or the scholar
+    owner_kind: Literal["faculty", "scholar"]
+    unit: str
+    title: str
+    application_number: str
+    filed_on: date
+    patent_status: PatentStatus
+    granted_on: date | None
+    verification: Verification
+    updated_at: datetime
+
+
+class PatentView(PatentRow):
+    inventors: str
+    office: str
+    published_on: date | None
+    patent_number: str | None
+    return_note: str | None  # why it was returned; shown while returned
+    checked_at: datetime | None
+    checked_by: str | None
+    verifier: PatentVerifier  # which office checks it, as the university chose
+    can_edit: bool  # its author
+    can_check: bool  # the verifying office, on someone else's patent
 
 
 class ConferenceIn(BaseModel):

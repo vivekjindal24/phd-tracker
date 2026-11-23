@@ -13,6 +13,7 @@ from app import (
     grievances,
     items,
     meetings,
+    patents,
     reviews,
     scope,
     signed_copies,
@@ -29,6 +30,7 @@ from app.models import (
     Meeting,
     Milestone,
     OrgUnit,
+    Patent,
     Scholar,
     ShodhgangaDeposit,
     Viva,
@@ -143,6 +145,9 @@ async def require_file_read(
     if table == "faculty_publications":  # whoever reads the paper
         await _faculty_paper(session, principal, record_id)
         return
+    if table == "patents":  # whoever reads the patent
+        await _patent(session, principal, record_id)
+        return
     await require_read(session, principal, table, record_id)
 
 
@@ -152,6 +157,12 @@ async def _faculty_paper(
     if not await module_enabled(session, "publications"):
         raise ApiError(404, "module_disabled", "This feature is not enabled.")
     return (await faculty_papers.get_or_403(session, principal, record_id))[0]
+
+
+async def _patent(session: AsyncSession, principal: Principal, record_id: uuid.UUID) -> Patent:
+    if not await module_enabled(session, "patents"):
+        raise ApiError(404, "module_disabled", "This feature is not enabled.")
+    return (await patents.get_or_403(session, principal, record_id))[0]
 
 
 async def document_or_403(
@@ -228,6 +239,9 @@ async def require_write(
         return
     if table == "grievances":  # the scholar or the cell while open; the appeal's decider then
         await grievances.require_attach(session, principal, record_id)
+        return
+    if table == "patents":  # the author, while it is not verified
+        patents.require_attachable(principal, await _patent(session, principal, record_id))
         return
     if table == "faculty_publications":  # the author, until the Library verifies it
         paper = await _faculty_paper(session, principal, record_id)

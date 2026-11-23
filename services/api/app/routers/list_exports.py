@@ -28,6 +28,7 @@ from app.routers import (
     fellowships,
     meetings,
     milestones,
+    patents,
     projects,
     publications,
     reports,
@@ -135,6 +136,12 @@ _add("faculty-publications", "Faculty publications",
     ("Title", "title"), ("Faculty", "faculty.name"), ("Department", "unit"),
     ("Type", "pub_type~"), ("Venue", "venue"), ("Year", "pub_year"), ("Indexed in", "indexing~"),
     ("Library", "verification~"), ("Last change", "updated_at"),
+))  # fmt: skip
+_add("patents", "Patents", patents.list_patents, "patents", (
+    ("Title", "title"), ("Inventor", "owner.name"), ("As", "owner_kind"), ("Department", "unit"),
+    ("Application number", "application_number"), ("Filed on", "filed_on"),
+    ("Status", "patent_status"), ("Granted on", "granted_on"), ("Checked", "verification~"),
+    ("Last change", "updated_at"),
 ))  # fmt: skip
 _add("theses", "Thesis submissions", theses.list_theses, "documents", (
     ("Thesis", "title"), *SCHOLAR, *STATE,

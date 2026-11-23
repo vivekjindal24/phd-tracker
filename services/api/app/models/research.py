@@ -14,6 +14,7 @@ from app.enums import (
     CONFERENCE_TYPES,
     ETHICS_KINDS,
     INDEXINGS,
+    PATENT_STATUSES,
     PUB_STATUSES,
     PUB_TYPES,
     VERIFICATIONS,
@@ -63,32 +64,81 @@ class Publication(PublicationFields, ApprovalColumns, DomainRow, Base):
     )
 
 
-class FacultyPublication(PublicationFields, DomainRow, Base):
+class VerificationColumns:
+    """A record an office verifies, or returns with a note, without a chain (verification.py):
+    waiting -> verified, or returned -> (corrected) waiting."""
+
+    verification: Mapped[str] = mapped_column(Text, server_default=text("'waiting'"))
+    return_note: Mapped[str | None] = mapped_column(Text)  # why it was returned
+    checked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    checked_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"))
+
+
+def _verification_checks(table: str) -> tuple:
+    return (
+        CheckConstraint(
+            f"verification IN ({sql_in(VERIFICATIONS)})", name=f"ck_{table}_verification"
+        ),
+        CheckConstraint(
+            "(verification = 'waiting' AND checked_at IS NULL)"
+            " OR (verification = 'verified' AND checked_at IS NOT NULL)"
+            " OR (verification = 'returned' AND checked_at IS NOT NULL AND return_note <> '')",
+            name=f"ck_{table}_check",
+        ),
+    )
+
+
+class FacultyPublication(PublicationFields, VerificationColumns, DomainRow, Base):
     """A faculty member's paper (PRD M1): no chain; the Library verifies it or returns it with
     a note (faculty_papers.py). Only verified ones count in the NAAC sheets."""
 
     __tablename__ = "faculty_publications"
     __table_args__ = (
         *_publication_checks("faculty_publications"),
-        CheckConstraint(
-            f"verification IN ({sql_in(VERIFICATIONS)})",
-            name="ck_faculty_publications_verification",
-        ),
-        CheckConstraint(
-            "(verification = 'waiting' AND checked_at IS NULL)"
-            " OR (verification = 'verified' AND checked_at IS NOT NULL)"
-            " OR (verification = 'returned' AND checked_at IS NOT NULL AND library_note <> '')",
-            name="ck_faculty_publications_check",
-        ),
+        *_verification_checks("faculty_publications"),
     )
 
     faculty_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("faculty.id"), index=True
     )
-    verification: Mapped[str] = mapped_column(Text, server_default=text("'waiting'"))
-    library_note: Mapped[str | None] = mapped_column(Text)
-    checked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    checked_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"))
+
+
+class Patent(VerificationColumns, DomainRow, Base):
+    """A patent of a member of faculty or a scholar (PRD M10): filed, published, granted. No
+    chain: the office the university chose (settings.patent_verifier) verifies it or returns it
+    (patents.py). Only verified ones count in the NAAC sheet."""
+
+    __tablename__ = "patents"
+    __table_args__ = (
+        *_verification_checks("patents"),
+        CheckConstraint("(faculty_id IS NULL) <> (scholar_id IS NULL)", name="ck_patents_owner"),
+        CheckConstraint(f"patent_status IN ({sql_in(PATENT_STATUSES)})", name="ck_patents_status"),
+        CheckConstraint(
+            "(patent_status <> 'published' OR published_on IS NOT NULL)"
+            " AND (patent_status <> 'granted' OR (granted_on IS NOT NULL"
+            " AND patent_number IS NOT NULL))"
+            " AND (published_on IS NULL OR published_on >= filed_on)"
+            " AND (granted_on IS NULL OR granted_on >= filed_on)",
+            name="ck_patents_dates",
+        ),
+        _trgm("ix_patents_title_trgm", "title"),
+    )
+
+    faculty_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("faculty.id"), index=True
+    )
+    scholar_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("scholars.id"), index=True
+    )
+    title: Mapped[str] = mapped_column(Text)
+    inventors: Mapped[str] = mapped_column(Text)
+    application_number: Mapped[str] = mapped_column(Text)
+    filed_on: Mapped[date] = mapped_column(Date)
+    office: Mapped[str] = mapped_column(Text)  # "Indian Patent Office", "USPTO", ...
+    patent_status: Mapped[str] = mapped_column(Text)
+    published_on: Mapped[date | None] = mapped_column(Date)
+    granted_on: Mapped[date | None] = mapped_column(Date)
+    patent_number: Mapped[str | None] = mapped_column(Text)
 
 
 class Conference(DomainRow, Base):

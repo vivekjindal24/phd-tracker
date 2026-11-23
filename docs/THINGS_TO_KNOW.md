@@ -281,6 +281,24 @@ remove a point only when the behaviour itself changes.
 - **Not yet:** reading the DOI out of an uploaded PDF, keeping the ORCID iD on the profile,
   and checking the journal against predatory lists. *(owner, 2026-11-23)*
 
+## Patents
+
+- **A module of its own.** Switch on Patents in Settings → Modules. Members of faculty and
+  scholars record their own: application number, filing date, office, and whether it is
+  filed, published or granted. *(owner, 2026-11-23)*
+- **The university chooses who checks them.** Settings → UGC rules → who verifies patents:
+  the Research Office (the default) or the Library. That office verifies each one against
+  the patent office's record or returns it with a note. Only verified patents count in the
+  NAAC sheet. *(owner, 2026-11-23)*
+- **A patent moves on.** When a verified patent is later published or granted, its inventor
+  updates it, and it goes back to be checked. It is never removed once verified.
+  *(owner, 2026-11-23)*
+- **"Patent" is no longer a kind of publication.** Papers entered as patents before this stay
+  as they were but count nowhere; enter them again under Patents. *(owner, 2026-11-23)*
+- **Counted once.** A patent recorded by a scholar and by their supervisor under the same
+  application number (spaces and case ignored) is one row in NAAC naming both.
+  *(owner, 2026-11-23)*
+
 ## Thesis submission gates
 
 - **The gates block; they do not warn.** A scholar cannot submit the thesis before 3 years

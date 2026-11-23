@@ -96,10 +96,10 @@ export default function FacultyPublicationPage() {
     <>
       <PageHeader eyebrow={`Faculty publication · ${p.faculty.name}`} title={p.title}
         actions={<span className={`badge ${VERIFICATION_BADGE[p.verification]}`}>{VERIFICATION_LABELS[p.verification]}{p.verification === "verified" ? checked : ""}</span>} />
-      {p.verification === "returned" && p.library_note && (
+      {p.verification === "returned" && p.return_note && (
         <Card className="tile-butter">
           <h2>Returned by the Library{p.checked_at ? ` on ${formatDate(p.checked_at)}` : ""}</h2>
-          <p>{p.library_note}</p>
+          <p>{p.return_note}</p>
           {p.can_edit && <p className="muted">Correct it below; saving sends it back to the Library.</p>}
         </Card>
       )}

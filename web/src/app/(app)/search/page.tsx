@@ -11,7 +11,7 @@ type Hit = { title: string; detail: string | null; link: string };
 const GROUPS: [string, string][] = [
   ["scholars", "Scholars"], ["faculty", "Faculty"], ["reports", "Progress reports"],
   ["meetings", "Meetings"], ["decisions", "Committee decisions"], ["seminars", "Seminars"],
-  ["publications", "Publications"], ["faculty_publications", "Faculty publications"],
+  ["publications", "Publications"], ["faculty_publications", "Faculty publications"], ["patents", "Patents"],
 ];
 
 function Results() {

@@ -50,6 +50,7 @@ ModuleKey = Literal[
     "fellowships",
     "projects",
     "ledger",
+    "patents",
 ]
 MODULE_KEYS = get_args(ModuleKey)
 
@@ -262,6 +263,12 @@ PUB_STATUSES = get_args(PubStatus)
 # A faculty paper with the Library: waiting -> verified, or returned with a note (PRD M1).
 Verification = Literal["waiting", "returned", "verified"]
 VERIFICATIONS = get_args(Verification)
+# A patent's own progress, as the patent office reports it (PRD M10).
+PatentStatus = Literal["filed", "published", "granted"]
+PATENT_STATUSES = get_args(PatentStatus)
+# Who verifies patents, as the university chooses (settings.patent_verifier).
+PatentVerifier = Literal["research_office", "library"]
+PATENT_VERIFIERS = get_args(PatentVerifier)
 ConferenceType = Literal["paper_presented", "poster", "attended", "invited_talk", "workshop"]
 CONFERENCE_TYPES = get_args(ConferenceType)
 
@@ -382,6 +389,7 @@ FileOwner = Literal[
     "progress_reports",
     "publications",
     "faculty_publications",
+    "patents",
     "conferences",
     "documents",
     "thesis_submissions",

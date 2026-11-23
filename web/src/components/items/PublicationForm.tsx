@@ -121,7 +121,8 @@ export function PublicationForm({
       <div className="row">
         <Field label="Type">
           <select value={v.pub_type} onChange={(e) => set("pub_type", e.target.value as PubType)}>
-            {(Object.keys(PUB_TYPE_LABELS) as PubType[]).map((k) => <option key={k} value={k}>{PUB_TYPE_LABELS[k]}</option>)}
+            {/* Patents are their own record now (Research → Patents); the type stays only for old papers. */}
+            {(Object.keys(PUB_TYPE_LABELS) as PubType[]).filter((k) => k !== "patent").map((k) => <option key={k} value={k}>{PUB_TYPE_LABELS[k]}</option>)}
           </select>
         </Field>
         <Field label="Status">

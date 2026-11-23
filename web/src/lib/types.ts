@@ -24,7 +24,8 @@ export type ModuleKey =
   | "admissions"
   | "fellowships"
   | "projects"
-  | "ledger";
+  | "ledger"
+  | "patents";
 
 export type Me = {
   id: string;
@@ -93,6 +94,7 @@ export type SettingsData = {
   min_publications: number;
   publications_indexed_only: boolean;
   publication_file_required: boolean;
+  patent_verifier: PatentVerifier;
   grievance_appeals_to: AppealsTo;
   modules: Record<ModuleKey, boolean>;
   chains: Record<ItemType, { kind: StepKind }[]>;
@@ -151,6 +153,7 @@ export const MODULE_LABELS: Record<ModuleKey, string> = {
   fellowships: "Fellowships",
   projects: "Research projects",
   ledger: "Grant ledger",
+  patents: "Patents",
 };
 
 export const STAGES = [
@@ -513,9 +516,60 @@ export type FacultyPublicationRow = {
   updated_at: string;
 };
 export type FacultyPublication = FacultyPublicationRow & PublicationContent & {
-  library_note: string | null;
+  return_note: string | null;
   checked_at: string | null;
   checked_by: string | null;
+  can_edit: boolean;
+  can_check: boolean;
+};
+/** A patent of a member of faculty or a scholar (PRD M10): checked by the office the
+ *  university chose (settings.patent_verifier), verified or returned with a note. */
+export type PatentStatus = "filed" | "published" | "granted";
+export const PATENT_STATUS_LABELS: Record<PatentStatus, string> = {
+  filed: "Filed",
+  published: "Published",
+  granted: "Granted",
+};
+/** A patent's check, whichever office does it. */
+export const PATENT_CHECK_LABELS: Record<Verification, string> = {
+  waiting: "Waiting to be checked",
+  returned: "Returned",
+  verified: "Verified",
+};
+export type PatentVerifier = "research_office" | "library";
+export const PATENT_VERIFIER_LABELS: Record<PatentVerifier, string> = {
+  research_office: "Research Office",
+  library: "Library",
+};
+export type PatentContent = {
+  title: string;
+  inventors: string;
+  application_number: string;
+  filed_on: string;
+  office: string;
+  patent_status: PatentStatus;
+  published_on: string | null;
+  granted_on: string | null;
+  patent_number: string | null;
+};
+export type PatentRow = {
+  id: string;
+  owner: Ref;
+  owner_kind: "faculty" | "scholar";
+  unit: string;
+  title: string;
+  application_number: string;
+  filed_on: string;
+  patent_status: PatentStatus;
+  granted_on: string | null;
+  verification: Verification;
+  updated_at: string;
+};
+export type Patent = PatentRow & PatentContent & {
+  return_note: string | null;
+  checked_at: string | null;
+  checked_by: string | null;
+  verifier: PatentVerifier;
   can_edit: boolean;
   can_check: boolean;
 };
@@ -557,6 +611,7 @@ export type FileOwner =
   | "scholars"
   | "publications"
   | "faculty_publications"
+  | "patents"
   | "conferences"
   | "documents"
   | "thesis_submissions"

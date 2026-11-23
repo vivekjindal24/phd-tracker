@@ -15,6 +15,7 @@ from app import (
     faculty_papers,
     grievances,
     items,
+    patents,
     scope,
     seminars,
 )
@@ -422,6 +423,7 @@ async def build(session: AsyncSession, principal: Principal) -> dict[str, Any]:
         out["scholar"] = await _scholar_section(session, principal)
     out["grievances"] = await grievances.home(session, principal)
     out["faculty_papers"] = await faculty_papers.home(session, principal)
+    out["patents"] = await patents.home(session, principal)
     if principal.faculty_id and principal.can_supervise:
         out["supervisor"] = await _supervisor_section(session, principal)
     by_unit: dict[uuid.UUID, tuple[str, list[str]]] = {}

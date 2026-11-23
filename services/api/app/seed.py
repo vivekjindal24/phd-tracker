@@ -32,6 +32,7 @@ from app.models import (
     LedgerEntry,
     Module,
     OrgUnit,
+    Patent,
     Project,
     ProjectMember,
     Publication,
@@ -208,6 +209,7 @@ async def demo(session: AsyncSession) -> None:
     await _demo_records(session, units, scholars)
     await _demo_grants(session, units, faculty, scholars)
     await _demo_faculty_papers(session, faculty)
+    await _demo_patents(session, faculty, scholars)
 
     await session.execute(update(Module).values(enabled=True))
     await session.commit()
@@ -327,6 +329,46 @@ async def _demo_faculty_papers(session: AsyncSession, faculty: dict[str, Faculty
             indexing=["scopus"],
             pub_year=date.today().year,
             pub_status="published",
+        ),
+    )
+
+
+async def _demo_patents(
+    session: AsyncSession, faculty: dict[str, Faculty], scholars: dict[str, Scholar]
+) -> None:
+    """A granted patent the Research Office has verified, and a scholar's filed one waiting."""
+    office = await session.scalar(select(User.id).where(User.email == f"research@{DOMAIN}"))
+    year = date.today().year
+    await insert(
+        session,
+        None,
+        Patent(
+            faculty_id=faculty["meera"].id,
+            title="A method for low-latency keyword spotting in Indian languages",
+            inventors="Meera Krishnan, Priya Sharma",
+            application_number="202341012345",
+            filed_on=date(year - 3, 2, 14),
+            office="Indian Patent Office",
+            patent_status="granted",
+            published_on=date(year - 2, 8, 18),
+            granted_on=date(year, 1, 9),
+            patent_number="IN 498765",
+            verification="verified",
+            checked_at=datetime.now(UTC),
+            checked_by=office,
+        ),
+    )
+    await insert(
+        session,
+        None,
+        Patent(
+            scholar_id=scholars["priya"].id,
+            title="A wearable sensor for early detection of crop stress",
+            inventors="Priya Sharma, Meera Krishnan",
+            application_number="202641054321",
+            filed_on=date(year, 3, 2),
+            office="Indian Patent Office",
+            patent_status="filed",
         ),
     )
 

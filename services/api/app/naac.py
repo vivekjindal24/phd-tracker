@@ -7,7 +7,7 @@ from collections.abc import Awaitable, Callable
 from datetime import date
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
@@ -18,6 +18,7 @@ from app.models import (
     LedgerEntry,
     Milestone,
     OrgUnit,
+    Patent,
     Project,
     Publication,
     Scholar,
@@ -186,11 +187,57 @@ async def _books(session: AsyncSession, period: Period) -> Rows:
     ]
 
 
+async def _patents(session: AsyncSession, period: Period) -> Rows:
+    """Each verified patent published or granted in the years, a row per event (NAAC asks for
+    patents published and awarded). One recorded by both a scholar and a member of faculty
+    under the same application number is one row naming each."""
+    start, end = period
+    rows = await session.execute(
+        select(Patent, User.full_name, OrgUnit.name)
+        .outerjoin(Faculty, Faculty.id == Patent.faculty_id)
+        .outerjoin(Scholar, Scholar.id == Patent.scholar_id)
+        .join(User, User.id == func.coalesce(Faculty.user_id, Scholar.user_id))
+        .join(OrgUnit, OrgUnit.id == func.coalesce(Faculty.unit_id, Scholar.unit_id))
+        .where(
+            Patent.deleted_at.is_(None),
+            Patent.verification == "verified",
+            or_(Patent.published_on.between(start, end), Patent.granted_on.between(start, end)),
+        )
+    )
+    found: dict[str, tuple[Patent, list[str], list[str]]] = {}
+    for p, name, unit in rows:
+        key = "".join(p.application_number.split()).lower()
+        _, names, units = found.setdefault(key, (p, [], []))
+        names.append(f"{name} ({'faculty' if p.faculty_id else 'scholar'})")
+        if unit not in units:
+            units.append(unit)
+    out: Rows = []
+    for p, names, units in found.values():
+        for event, day in (("Published", p.published_on), ("Granted", p.granted_on)):
+            if day is not None and start <= day <= end:
+                out.append(
+                    [
+                        academic_year(day),
+                        event,
+                        p.title,
+                        p.inventors,
+                        p.application_number,
+                        p.patent_number,
+                        p.office,
+                        str(day),
+                        "; ".join(names),
+                        "; ".join(units),
+                    ]
+                )
+    return sorted(out, key=lambda r: (r[7], r[2]))
+
+
 # A sheet built from an optional module stops with it (SECURITY.md §3).
 SHEET_MODULES: dict[str, ModuleKey] = {
     "projects": "projects",
     "publications": "publications",
     "books": "publications",
+    "patents": "patents",
 }
 
 SHEETS: dict[str, tuple[str, list[str], Callable[[AsyncSession, Period], Awaitable[Rows]]]] = {
@@ -243,6 +290,22 @@ SHEETS: dict[str, tuple[str, list[str], Callable[[AsyncSession, Period], Awaitab
             "Unit",
         ],
         _publications,
+    ),
+    "patents": (
+        "Patents published and granted",
+        [
+            "Academic year",
+            "Event",
+            "Title",
+            "Inventors",
+            "Application number",
+            "Patent number",
+            "Patent office",
+            "Date",
+            "Recorded by",
+            "Unit",
+        ],
+        _patents,
     ),
     "books": (
         "Books and chapters",

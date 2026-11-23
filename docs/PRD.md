@@ -214,7 +214,7 @@ Acceptance criteria:
 reports, RDC register, dashboards, search, notifications, exports). Optional
 modules, switched by the root admin: **publications, conferences & talks,
 documents & thesis, coursework, admissions, fellowships, research projects,
-grant ledger.** A disabled module disappears from navigation and its API
+grant ledger, patents.** A disabled module disappears from navigation and its API
 returns 404 `module_disabled`.
 
 **F5 — Notifications.** In-app inbox plus email (SMTP): item waiting for your
@@ -895,8 +895,29 @@ year; PhD scholars registered and awarded per guide per year; publications per
 year with indexing (UGC-CARE / Scopus / WoS); books and chapters. Built from
 the records already kept — no extra data entry. Publications are the scholars'
 (approved) and the faculty's (verified by the Library, M1); a paper both
-recorded under one DOI is one row naming each of them ("Recorded by"). Metric numbering follows the
+recorded under one DOI is one row naming each of them ("Recorded by"). Patents
+published and granted (M10) are a sheet of their own. Metric numbering follows the
 framework in force; the sheets carry the underlying rows, not computed scores.
+
+**M10 — Patents** (Decided 2026-11-23). A member of faculty or a scholar
+records their own patents: title, inventors, application number, filing date,
+patent office, status (filed / published / granted, with the publication date,
+and the grant date and patent number). No chain: the office the root admin
+chooses in Settings → UGC rules (the Research Office by default, or the
+Library) checks each against the patent office's record and **verifies** it, or
+**returns** it with a note; the corrected patent goes back to it. A patent
+moves on after it is checked, so its author may update a verified one (for
+example when it is granted); the update sends it back to be checked. Papers
+(filing receipt, grant certificate) are optional and attached while it is not
+verified; a verified patent cannot be removed. The office never checks its
+own. Read by its author; a member of faculty's by the offices and heads and
+admins over their unit; a scholar's as their other records (supervisor, heads,
+admins, offices). Notices: the office for each new or updated patent, the
+author when it is verified or returned; Home shows each what waits. "Patent"
+is no longer a publication type (M1): papers recorded as patents before stay as
+they were and are re-entered here to count. NAAC (M9) gets a sheet of verified
+patents published or granted in the years, a row per event, a patent recorded
+by both a scholar and a member of faculty under one application number once.
 
 ## 7. Non-Goals
 

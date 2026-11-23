@@ -56,6 +56,8 @@ type Dashboard = {
   grievances: { decides: boolean; to_decide: number; overdue: number; next_due: string | null; to_answer: number; past_deadline?: number } | null;
   // Null unless the Library or a member of faculty, with publications on (faculty_papers.home).
   faculty_papers: { to_verify: number; returned: number } | null;
+  // Null unless the verifying office, a member of faculty or a scholar, with patents on.
+  patents: { checks: boolean; to_verify: number; returned: number } | null;
 };
 
 const DUE_TEXT: Record<DueStatus, [string, string]> = {
@@ -229,6 +231,27 @@ function FacultyPaperTiles({ f, isLibrary }: { f: NonNullable<Dashboard["faculty
   );
 }
 
+/** The verifying office's patents to check, and an inventor's patents it returned. */
+function PatentTiles({ p }: { p: NonNullable<Dashboard["patents"]> }) {
+  if (!p.checks && p.returned === 0) return null;
+  return (
+    <section className="dash-section" aria-label="Patents">
+      <div className="bento">
+        {p.checks && (
+          <Tile label="Patents to verify" value={p.to_verify} href="/patents?verification=waiting"
+            tone={p.to_verify ? "tile-accent" : "tile-sage"} />
+        )}
+        {p.returned > 0 && (
+          <Tile label="Your patents returned for a correction" value={p.returned}
+            href="/patents?verification=returned" tone="tile-butter">
+            <span className="tile-sub">correct them to send them back</span>
+          </Tile>
+        )}
+      </div>
+    </section>
+  );
+}
+
 const GRIEVANCE_ROLES = new Set(["grievance_cell", "ombudsperson"]);
 
 // "Prof. Kavita Rao" -> "Kavita"; "Justice (Retd.) S. K. Menon" -> "S. K. Menon": titles go, and
@@ -251,7 +274,7 @@ export default function HomePage() {
   const grievanceOnly = !me.is_root_admin && me.roles.every((r) => GRIEVANCE_ROLES.has(r));
   const toDecide = d?.grievances?.decides ? d.grievances.to_decide : 0;
   const isLibrary = me.roles.includes("library");
-  const toVerify = isLibrary ? (d?.faculty_papers?.to_verify ?? 0) : 0;
+  const toVerify = (isLibrary ? (d?.faculty_papers?.to_verify ?? 0) : 0) + (d?.patents?.checks ? d.patents.to_verify : 0);
 
   return (
     <>
@@ -262,7 +285,7 @@ export default function HomePage() {
             {d && d.queue_count > 0
               ? `${d.queue_count} item${d.queue_count === 1 ? " is" : "s are"} waiting for you`
               : toDecide > 0 ? `${toDecide} grievance${toDecide === 1 ? " is" : "s are"} waiting for you`
-              : toVerify > 0 ? `${toVerify} faculty paper${toVerify === 1 ? " is" : "s are"} waiting for you`
+              : toVerify > 0 ? `${toVerify} record${toVerify === 1 ? " is" : "s are"} waiting for you to verify`
               : sch?.next_seminar ? "Your next seminar is coming up" : "Welcome back"}
           </h1>
         </div>
@@ -274,6 +297,7 @@ export default function HomePage() {
         <>
           {d.grievances && <GrievanceTiles g={d.grievances} />}
           {d.faculty_papers && <FacultyPaperTiles f={d.faculty_papers} isLibrary={isLibrary} />}
+          {d.patents && <PatentTiles p={d.patents} />}
           {(d.queue_count > 0 || (!sch && !grievanceOnly)) && (
             <section className="dash-section">
               <div className="bento">

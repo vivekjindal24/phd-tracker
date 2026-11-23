@@ -102,6 +102,17 @@ MATRIX: dict[str, dict[str, frozenset[str]]] = {
         "research_office": frozenset({R}),
         "library": frozenset({R, U}),
     },
+    # Patents (patents.py): a member of faculty's own by faculty_id, a scholar's under scope as
+    # their other records. Which office verifies is a setting (settings.patent_verifier), so the
+    # verify/return step is patents.py's, not a matrix action.
+    "patents": {
+        "scholar": frozenset({R, C, U, D}),
+        "supervisor": frozenset({R}),
+        "unit_head": frozenset({R}),
+        "admin": frozenset({R}),
+        "research_office": frozenset({R}),
+        "library": frozenset({R}),
+    },
     "conferences": {
         "scholar": frozenset({R, C, U, D}),
         "supervisor": frozenset({R}),

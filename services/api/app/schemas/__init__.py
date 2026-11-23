@@ -36,6 +36,7 @@ from app.enums import (
     MutableCategory,
     NoticeSigner,
     PanelKind,
+    PatentVerifier,
     Period,
     Rating,
     SeminarGraders,
@@ -393,6 +394,7 @@ class SettingsOut(BaseModel):
     min_publications: int
     publications_indexed_only: bool
     publication_file_required: bool
+    patent_verifier: PatentVerifier
     grievance_appeals_to: AppealsTo
     modules: dict[ModuleKey, bool]
     chains: dict[ItemType, list[ChainStep]]
@@ -427,6 +429,7 @@ class SettingsUpdate(BaseModel):
     min_publications: int | None = Field(default=None, ge=0, le=10)
     publications_indexed_only: bool | None = None
     publication_file_required: bool | None = None
+    patent_verifier: PatentVerifier | None = None
     grievance_appeals_to: AppealsTo | None = None
 
     @model_validator(mode="after")

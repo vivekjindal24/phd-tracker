@@ -32,6 +32,7 @@ from app.models.research import (
     Conference,
     EthicsClearance,
     FacultyPublication,
+    Patent,
     Publication,
 )
 from app.models.seminars import (
@@ -106,6 +107,7 @@ __all__ = [
     "Notification",
     "OrgUnit",
     "PasswordToken",
+    "Patent",
     "ProgressReport",
     "Project",
     "ProjectMember",

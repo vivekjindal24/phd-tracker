@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { Button, Card, Field, Switch } from "@/components/ui/kit";
-import type { SettingsData } from "@/lib/types";
+import { PATENT_VERIFIER_LABELS } from "@/lib/types";
+import type { PatentVerifier, SettingsData } from "@/lib/types";
 import type { Save } from "./save";
 
 /** University ordinance values for the UGC rules the system warns about (PRD Phase 4). */
@@ -68,6 +69,15 @@ export function RulesSettings({ data, save }: { data: SettingsData; save: Save }
           <span>The paper itself must be attached to every publication: a scholar cannot submit one without it, and the Library cannot verify a faculty paper without it. Off: attaching it is optional.</span>
           <Switch checked={data.publication_file_required} label="Require the paper file"
             onChange={(v) => save("/settings", "PATCH", { publication_file_required: v }).catch(() => {})} />
+        </li>
+        <li>
+          <span>Who checks patents against the patent office&apos;s record, and verifies or returns them. Only verified patents count in the NAAC data.</span>
+          <select aria-label="Who verifies patents" value={data.patent_verifier}
+            onChange={(e) => save("/settings", "PATCH", { patent_verifier: e.target.value }).catch(() => {})}>
+            {(Object.keys(PATENT_VERIFIER_LABELS) as PatentVerifier[]).map((k) => (
+              <option key={k} value={k}>The {PATENT_VERIFIER_LABELS[k]}</option>
+            ))}
+          </select>
         </li>
         <li>
           <span>Everyone who logs in with a password also needs a code from an authenticator app. Switch this on for a live university; each person sets it up at their next log in.</span>

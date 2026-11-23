@@ -58,6 +58,7 @@ async def _read(session: AsyncSession) -> SettingsOut:
             "min_publications": settings.min_publications,
             "publications_indexed_only": settings.publications_indexed_only,
             "publication_file_required": settings.publication_file_required,
+            "patent_verifier": settings.patent_verifier,
             "grievance_appeals_to": settings.grievance_appeals_to,
             "modules": modules,
             "chains": chains,

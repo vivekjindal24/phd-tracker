@@ -252,7 +252,7 @@ async def register_export_view(
 
 @router.get("/naac/{sheet}")
 async def naac_view(
-    sheet: Literal["projects", "scholars", "publications", "books"],
+    sheet: Literal["projects", "scholars", "publications", "books", "patents"],
     from_year: int = Query(ge=2000, le=2100),
     to_year: int = Query(ge=2000, le=2100),
     principal: Principal = Depends(current_principal),

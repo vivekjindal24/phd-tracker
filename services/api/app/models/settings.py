@@ -28,6 +28,7 @@ from app.enums import (
     DEFAULT_SEMINAR_FORMS,
     ITEM_TYPES,
     MODULE_KEYS,
+    PATENT_VERIFIERS,
     SEMINAR_GRADERS,
     sql_in,
 )
@@ -66,6 +67,9 @@ class Settings(Timestamps, Base):
         ),
         CheckConstraint(
             f"grievance_appeals_to IN ({sql_in(APPEALS_TO)})", name="ck_settings_appeals_to"
+        ),
+        CheckConstraint(
+            f"patent_verifier IN ({sql_in(PATENT_VERIFIERS)})", name="ck_settings_patent_verifier"
         ),
         CheckConstraint(
             "max_extension_days BETWEEN 0 AND 1825 AND max_relaxation_days BETWEEN 0 AND 1825 "
@@ -140,6 +144,9 @@ class Settings(Timestamps, Base):
     # The paper itself must be attached: before a scholar submits a publication, and before the
     # Library verifies a faculty one (items.py, faculty_papers.py). Off: the file is optional.
     publication_file_required: Mapped[bool] = mapped_column(Boolean, server_default=text("false"))
+    # Which office verifies patents (patents.py; owner, 2026-11-23): the Research Office or the
+    # Library, as the university chooses.
+    patent_verifier: Mapped[str] = mapped_column(Text, server_default=text("'research_office'"))
     # Who decides a scholar's appeal against the grievance cell (grievances.py; owner,
     # 2026-11-23): the Ombudsperson UGC 2023 asks for, or the Vice Chancellor where chosen.
     grievance_appeals_to: Mapped[str] = mapped_column(Text, server_default=text("'ombudsperson'"))

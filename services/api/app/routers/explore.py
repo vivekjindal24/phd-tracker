@@ -10,7 +10,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
-from app import dates, faculty_papers, meetings, scope, seminars
+from app import dates, faculty_papers, meetings, patents, scope, seminars
 from app.auth.deps import current_principal
 from app.auth.principal import Principal
 from app.db import get_session
@@ -23,6 +23,7 @@ from app.models import (
     Meeting,
     Milestone,
     OrgUnit,
+    Patent,
     ProgressReport,
     Publication,
     Scholar,
@@ -378,6 +379,30 @@ async def search(
                 "link": f"/faculty-publications/{p.id}",
             }
             for p, _, n, _, _ in rows
+        ]
+
+    out["patents"] = []
+    if (principal.faculty_id or can(principal, "patents", "read")) and (
+        await module_enabled(session, "patents")
+    ):
+        rows = await session.execute(
+            patents.base_query(principal)
+            .where(
+                or_(
+                    Patent.title.icontains(q, autoescape=True),
+                    Patent.application_number.icontains(q, autoescape=True),
+                )
+            )
+            .order_by(Patent.filed_on.desc())
+            .limit(GROUP_LIMIT)
+        )
+        out["patents"] = [
+            {
+                "title": p.title,
+                "detail": f"{n} · {p.application_number} · {p.patent_status}",
+                "link": f"/patents/{p.id}",
+            }
+            for p, n, _, _, _ in rows
         ]
 
     open_ = await seminars.open_to_faculty(session)

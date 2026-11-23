@@ -159,6 +159,7 @@ role's scope (§2).
 | to-do list | R, tick done (own) | R own scholars' | R | R | R | — | — |
 | publications | CRU own, submit | R, step | R | R | R, step | — | R, step |
 | faculty publications§ | — | — | R subtree | R subtree | R | — | R, verify, return (never its own) |
+| patents¶ | CRUD own | R | R subtree | R subtree | R; verify, return if chosen | — | R; verify, return if chosen |
 | conferences | CRUD own | R | R | R | R | — | R |
 | documents & versions | CRU own | R, comment | — | — | — | — | — |
 | thesis submissions | CR own, submit | R, step | R, step (department) | R, step (department) | R, step | R, step | R, step |
@@ -193,6 +194,13 @@ record (whatever roles they hold, or none) creates, reads and updates their own,
 one the Library has not verified; once verified only the Library's return reopens it
 (409 `already_verified`). Another member of faculty reads none (403). The rule is
 `faculty_papers.py` with `scope.faculty_publication_predicate`.
+
+¶ Patents: a member of faculty's belong to them whatever role they hold (as §); a scholar's
+follow the scholar column and `scope.scholar_predicate`. Whoever records one updates it (a
+verified one goes back to be checked) and removes it until it is verified (then 409
+`already_verified`); its papers attach only while not verified. Only the office named in
+`settings.patent_verifier` verifies or returns, never on its own patent; anyone else → 403.
+Rules: `patents.py`, `scope.patent_predicate`.
 
 **Vice Chancellor** (no column above: one rule in `rbac.py`): R on every
 entity the research_office column reads, and nothing else — no C, U or D
