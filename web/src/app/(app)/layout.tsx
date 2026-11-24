@@ -4,7 +4,8 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import type { ReactNode } from "react";
-import { Owl, OwlMark } from "@/components/brand/Owl";
+import { LogoMark } from "@/components/brand/LogoMark";
+import { Owl } from "@/components/brand/Owl";
 import { UniversityMark } from "@/components/brand/UniversityMark";
 import { Nav, NavSheet } from "@/components/Nav";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -56,7 +57,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       <header className="topbar">
         <div className="topbar-inner clay">
           <Link href="/home" className="wordmark" aria-label="Anveshan home">
-            <OwlMark />
+            <LogoMark />
             <span>Anveshan</span>
           </Link>
           <UniversityMark />

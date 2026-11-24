@@ -32,8 +32,14 @@
   `web/src/components/brand/` — poses: `idle`, `reading` (loading),
   `sleeping` (server waking up), `cheering` (APR approved), `empty`
   (empty states). No raster images.
-- **Icon:** the owl's face in a clay circle — the logo mark, the favicon
-  (`web/src/app/icon.svg`) and the app icon.
+- **Logo symbol:** a spiral that starts heavy and narrows toward an open
+  frontier, with an amber seeker dot released from its tip (the researcher's
+  path). Inline in the UI as `LogoMark` (`web/src/components/brand/`), its
+  colours bound to the `--logo-tip/base/seeker` tokens so it follows the
+  theme. The favicon (`web/src/app/icon.svg`) and `apple-icon.png` are the
+  plum app icon. Masters, PNGs, the animated version, video and the
+  generator live in `docs/brand/` (see its README). The owl stays as the
+  mascot only.
 - **Wordmark:** "Anveshan" in Fraunces SemiBold beside the icon, on a clay
   pill in the top bar.
 - **Brand Voice:** plain, official, zero marketing gloss in labels and
@@ -187,5 +193,5 @@ Rules for changes:
 
 Compliance PDFs (APR, milestone register) do **not** use claymorphism: they
 are photocopied in committee meetings. Black-on-white, Fraunces headings
-optional, rules not shadows, readable in grayscale. The owl icon may appear
-small in the header.
+optional, rules not shadows, readable in grayscale. The flat logo symbol
+(`docs/brand/static/anveshan-symbol-flat*.svg`) may appear small in the header.

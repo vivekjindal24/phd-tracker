@@ -5,7 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import QRCode from "qrcode";
 import { Suspense, useEffect, useState } from "react";
 import type { FormEvent } from "react";
-import { Owl, OwlMark } from "@/components/brand/Owl";
+import { LogoMark } from "@/components/brand/LogoMark";
+import { Owl } from "@/components/brand/Owl";
 import { UniversityMark } from "@/components/brand/UniversityMark";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Button, ErrorText, Field } from "@/components/ui/kit";
@@ -221,7 +222,7 @@ export default function LoginPage() {
       <section className="login-hero" aria-labelledby="brand">
         <UniversityMark />
         <Link className="login-brand" href="/">
-          <OwlMark size={52} />
+          <LogoMark size={52} />
           <h1 id="brand">Anveshan</h1>
         </Link>
         <p className="login-tagline">Your research, every step — from first meeting to degree.</p>

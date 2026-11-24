@@ -22,6 +22,9 @@
   --owl-body: #d9a07e;
   --owl-belly: #f7ddb0;
   --owl-cap: #3d2c2e;
+  --logo-tip: #9570d6;
+  --logo-base: #6d4bc3;
+  --logo-seeker: #e3922a;
   --owl-beak: #e9a85c;
 
   --clay-shadow: 8px 8px 18px rgb(61 44 46 / 0.16), inset -5px -5px 10px rgb(61 44 46 / 0.1),
@@ -83,6 +86,9 @@
     --owl-body: #c48a68;
     --owl-belly: #e8c99a;
     --owl-cap: #17111f;
+    --logo-tip: #d9ccf2;
+    --logo-base: #9f88d6;
+    --logo-seeker: #f2cc8f;
     --clay-shadow: 8px 8px 18px rgb(0 0 0 / 0.38), inset -5px -5px 10px rgb(0 0 0 / 0.28),
       inset 5px 5px 10px rgb(230 215 255 / 0.08);
     --clay-shadow-hover: 12px 14px 24px rgb(0 0 0 / 0.42), inset -5px -5px 10px rgb(0 0 0 / 0.28),
@@ -114,6 +120,9 @@
   --owl-body: #c48a68;
   --owl-belly: #e8c99a;
   --owl-cap: #17111f;
+  --logo-tip: #d9ccf2;
+  --logo-base: #9f88d6;
+  --logo-seeker: #f2cc8f;
   --clay-shadow: 8px 8px 18px rgb(0 0 0 / 0.38), inset -5px -5px 10px rgb(0 0 0 / 0.28),
     inset 5px 5px 10px rgb(230 215 255 / 0.08);
   --clay-shadow-hover: 12px 14px 24px rgb(0 0 0 / 0.42), inset -5px -5px 10px rgb(0 0 0 / 0.28),

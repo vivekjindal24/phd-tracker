@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { Owl, OwlMark } from "@/components/brand/Owl";
+import { LogoMark } from "@/components/brand/LogoMark";
+import { Owl } from "@/components/brand/Owl";
 import "@/components/ui/ui.css";
 import "./landing.css";
 
@@ -544,7 +545,7 @@ export function Landing() {
         <div className="lp-wrap">
           <div className="clay lp-top-inner">
             <Link className="lp-brand" href="/" aria-label="Anveshan, home">
-              <OwlMark size={40} />
+              <LogoMark size={40} />
               <span>Anveshan</span>
             </Link>
             <nav className="lp-nav" aria-label="Sections">

@@ -130,21 +130,3 @@ export function Owl({
     </svg>
   );
 }
-
-/** The owl-face logo mark; the same drawing ships as app/icon.svg (favicon). */
-export function OwlMark({ size = 42 }: { size?: number }) {
-  return (
-    <svg viewBox="0 0 64 64" width={size} height={size} aria-hidden="true">
-      <circle cx="32" cy="32" r="30" fill="var(--butter)" />
-      <ellipse cx="32" cy="38" rx="19" ry="17" fill="var(--owl-body)" />
-      <circle cx="25" cy="36" r="7" fill="#fff8f0" />
-      <circle cx="39" cy="36" r="7" fill="#fff8f0" />
-      <circle cx="26" cy="37" r="3.4" fill="#3d2c2e" />
-      <circle cx="38" cy="37" r="3.4" fill="#3d2c2e" />
-      <path d="M30 42q2 5 4 0z" fill="var(--owl-beak)" />
-      <path d="M32 12l20 6-20 6-20-6z" fill="var(--owl-cap)" />
-      <path d="M23 21v4q9 4 18 0v-4l-9 3z" fill="var(--owl-cap)" />
-      <path d="M32 18l15 2v8" fill="none" stroke="#f2cc8f" strokeWidth="1.6" strokeLinecap="round" />
-    </svg>
-  );
-}
