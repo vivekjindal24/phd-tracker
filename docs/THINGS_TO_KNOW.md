@@ -321,6 +321,11 @@ remove a point only when the behaviour itself changes.
   sponsored research: projects that received a grant entry in the financial year (April to
   March), agencies counted once whatever the spelling's case or spaces. Patents: verified ones,
   by calendar year.
+- **These counting rules have not been matched against a filed return.** Neither form defines
+  them, and no university's earlier NIRF or AISHE submission was available to check them
+  against. The returns page lists them so the Research Office can compare them with its own
+  practice before filing. At each new install, ask the office for last year's filed forms and
+  run the same year to compare.
 - **Disability means benchmark disability.** AISHE's PwBD is 40% or more under the RPwD Act
   2016, and the profile now says so.
 - **Gaps are shown, not hidden.** A scholar whose category or gender is not recorded is

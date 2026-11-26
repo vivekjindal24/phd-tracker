@@ -65,6 +65,20 @@ export default function ReturnsPage() {
         </p>
         {list(AISHE)}
       </Card>
+      <Card>
+        <h2>How the counts are made</h2>
+        <p className="muted">
+          The forms do not say how to count these, so Anveshan uses these rules. Check them against how your office has filed before,
+          and tell your administrator if a rule differs.
+        </p>
+        <ul>
+          <li>NIRF Ph.D. pursuing: admitted by 30 June and neither awarded nor left by then.</li>
+          <li>AISHE enrolment: on the rolls at any time in the academic year, so a scholar awarded mid-year is counted.</li>
+          <li>AISHE results: &ldquo;appeared&rdquo; means the viva was held in the year; &ldquo;awarded&rdquo; means the degree was awarded in it.</li>
+          <li>NIRF sponsored research: projects that received money in the financial year (April to March).</li>
+          <li>Patents: verified patents only, by calendar year.</li>
+        </ul>
+      </Card>
       <p className="muted">The NAAC Criterion 3 rows are on <Link href="/naac">NAAC data</Link>.</p>
     </>
   );
