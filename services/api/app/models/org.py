@@ -167,6 +167,20 @@ class Signature(DomainRow, Base):
     confirmed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
+class ScholarPhoto(DomainRow, Base):
+    """A scholar's photo (PRD F6), shown on their profile to whoever may open it. One live row
+    each; the scholar or an admin over their unit puts it there (photos.py)."""
+
+    __tablename__ = "scholar_photos"
+    __table_args__ = (
+        Index("uq_scholar_photos_scholar", "scholar_id", unique=True, postgresql_where=LIVE),
+    )
+
+    scholar_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("scholars.id"))
+    content: Mapped[bytes] = mapped_column(LargeBinary)
+    content_type: Mapped[str] = mapped_column(Text)
+
+
 class RoleAssignment(DomainRow, Base):
     __tablename__ = "role_assignments"
     __table_args__ = (

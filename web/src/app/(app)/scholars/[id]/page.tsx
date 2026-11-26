@@ -22,6 +22,7 @@ import { api } from "@/lib/api";
 import { formatDate } from "@/lib/format";
 import { useSession } from "@/lib/session";
 import { RequestMember } from "@/components/RequestMember";
+import { ScholarPhoto } from "@/components/ScholarPhoto";
 import {
   CATEGORY_LABELS, DISABILITY_LABEL, GENDER_LABELS, LEFT_LABELS, MILESTONE_LABELS, MINORITY_LABELS, NATIONALITY_LABELS, STAGES,
   STUDY_MODE_LABELS,
@@ -411,6 +412,7 @@ export default function ScholarProfile() {
       <div className="profile-grid">
         <Card>
           <h2>Details</h2>
+          <ScholarPhoto scholarId={scholar.id} name={scholar.full_name} />
           <dl className="kv">
             <dt>Department</dt>
             <dd>{scholar.unit.name}</dd>

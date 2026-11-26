@@ -248,6 +248,15 @@ remove a point only when the behaviour itself changes.
 - **Not covered:** sexual harassment goes to the Internal Complaints Committee (the form says
   so); grievances are not anonymous (UGC asks for a named student). *(owner, 2026-11-23)*
 
+## Scholar photo
+
+- **Who sees it:** everyone who may open the scholar's profile, their supervisors included.
+  **Who changes it:** the scholar, or the admin over their unit (for example from the
+  admission form's photo). *(owner, 2026-11-26)*
+- **Not on paper.** The photo is not printed in the PhD file or on any PDF.
+- **No demo photos.** The demo data has none; until one is added the profile shows initials.
+- **Size.** PNG or JPEG up to 500 KB; a bigger phone photo is shrunk in the browser first.
+
 ## Publications
 
 - **Fill in from the DOI.** On Add publication the scholar pastes the DOI and the title,

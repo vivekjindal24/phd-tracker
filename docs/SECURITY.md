@@ -56,6 +56,11 @@
   the old one and needs confirming again. Unit heads are not keepers. Once it
   signs an action, it is stamped on that item: whoever may read the item sees
   it in the history and on its PDF, as on a signed paper form.
+- **Scholar photos** (PRD F6; `photos.py`): whoever may open a scholar's
+  profile sees the photo (`GET /scholars/{id}/photo`, the directory's own
+  rule, `scope.scholar_directory_predicate`), so their supervisors do. Only the
+  scholar and an admin over their unit put it there or take it away (403
+  otherwise). PNG or JPEG, type read from the bytes, 500 KB at most, never SVG.
 - **Signed copies** (PRD F17b; `signed_copies.py`): the scan of a form signed
   on paper, for one entry of a scholar's PhD file. Uploaded by the scholar's
   supervisor (co-supervisor where co-supervision is on), an admin over the

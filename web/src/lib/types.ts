@@ -1104,6 +1104,7 @@ export type AuditRow = {
 };
 
 /** A specimen signature (PRD F17b); `image` is a data: URL. */
+export type Photo = { image: string | null; can_change: boolean };
 export type Signature = { image: string; uploaded_at: string; uploaded_by_self: boolean; confirmed_at: string | null };
 export type PendingSignature = { user_id: string; full_name: string; email: string; signature: Signature };
 

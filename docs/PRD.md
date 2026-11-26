@@ -268,6 +268,11 @@ the Research Office and the Vice Chancellor — not by supervisors or other
 faculty — on the page, in the list and in exported files alike. No rule
 (duration, caps) reads them; the NIRF and AISHE tables (M9) count them.
 
+**Scholar photo** (Decided 2026-11-26, from a stakeholder's request). A scholar
+may have a photo on their profile, seen by everyone who may open the profile,
+their supervisors included. The scholar adds, changes or removes it; so does
+the admin over their unit. It is not printed in the PhD file or any PDF.
+
 **Co-supervisor** (university setting `co_supervision`, set by the root
 admin): `off` — none; `view` — a scholar may have one co-supervisor (any
 faculty record, any unit — external co-supervisors are added as faculty; a

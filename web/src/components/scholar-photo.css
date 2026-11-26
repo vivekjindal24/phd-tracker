@@ -1,0 +1,37 @@
+.scholar-photo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+.scholar-photo-img {
+  width: 112px;
+  height: 112px;
+  border-radius: var(--radius-lg);
+  object-fit: cover;
+  flex: none;
+}
+.scholar-photo-none {
+  display: grid;
+  place-items: center;
+  background: var(--lilac);
+  font-family: var(--font-display), Georgia, serif;
+  font-size: var(--text-xl);
+}
+.scholar-photo-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.photo-pick {
+  cursor: pointer;
+}
+.photo-pick:focus-within {
+  outline: 2px solid var(--accent-strong);
+  outline-offset: 3px;
+}
+.photo-pick.is-busy {
+  opacity: 0.6;
+  cursor: progress;
+}

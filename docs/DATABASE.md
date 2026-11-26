@@ -77,6 +77,11 @@ or neither, and never the person themself). Usable for signing only once
 confirmed. A new upload soft-deletes the old row. The bytes stay out of
 `audit_log`.
 
+**scholar_photos** — a scholar's photo (PRD F6): `scholar_id` FK scholars
+(partial UNIQUE `uq_scholar_photos_scholar`: one live row each), `content`
+bytea (PNG or JPEG, 500 KB at most), `content_type`. A new upload or a removal
+soft-deletes the old row. The bytes stay out of `audit_log`.
+
 **role_assignments** — `user_id` FK, `role` CHECK (`unit_head` / `admin` /
 `research_office` / `exam_office` / `library` / `vice_chancellor` / `grievance_cell` /
 `ombudsperson`; the last two since migration 0057), `unit_id` FK org_units.

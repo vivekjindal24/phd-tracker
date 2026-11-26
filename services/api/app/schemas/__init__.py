@@ -258,6 +258,11 @@ class UserOut(Out):
     created_at: datetime
 
 
+class PhotoOut(BaseModel):
+    image: str | None  # a data: URL, small enough to send inline
+    can_change: bool
+
+
 class SignatureOut(BaseModel):
     image: str  # a data: URL, small enough to send inline
     uploaded_at: datetime

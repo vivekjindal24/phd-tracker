@@ -214,6 +214,10 @@ contents of a record are read there, never in the log.
    dry-run table (rows to create, rows already present, row errors with row
    and column) → fix and re-upload until clean → **Import** (all or nothing),
    optionally **send invitations**.
+3c. **Photo**: on a scholar's profile, the Details card shows the photo, or
+   their initials until there is one. The scholar or the admin over their unit
+   uses **Add a photo** / **Change photo** (PNG or JPEG; a large phone photo is
+   shrunk in the browser first) and **Remove**.
 4. **Roles**: assign HoD / admin for units in their subtree only.
 5. Root admin additionally sees **Settings**: **University identity** (name,
    address and logo, set once here and shown across the portal and on every
