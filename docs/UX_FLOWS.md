@@ -358,10 +358,15 @@ department or Research Office to record it.
 
 ## Flow 7 — Publication verified by the Library (module)
 
-**Add publication** opens with **Fill in from the DOI**: paste the DOI or its
+**Add publication** opens with **Start from the paper**: choose the PDF → its
+DOI is read in the browser and looked up as below, and "Attached when you save:
+paper.pdf" (with **Don't attach**) shows; no DOI found → a note to paste it, the
+PDF still attached. On **Save** the record is created, then the PDF attached; if
+that upload fails the record opens with "Saved, but the paper you chose could not
+be attached: … Attach it below." Then **Fill in from the DOI**: paste the DOI or its
 doi.org link → **Fill in** → the form below fills from Crossref with a note
 to check every field and tick the indexing (or that this DOI is already
-recorded). Below the form, **Import from ORCID**: the ORCID iD (or its
+recorded). The same holds on a faculty member's **Add your publication**. Below the form, **Import from ORCID**: the ORCID iD (or its
 orcid.org link) → **Show my works** → the public works, each with a DOI ticked
 unless already recorded (no DOI or already recorded: shown but not
 selectable) → **Import n as drafts** → "n drafts added" with the skipped

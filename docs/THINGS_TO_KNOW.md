@@ -263,6 +263,10 @@ remove a point only when the behaviour itself changes.
   authors, venue, ISSN/ISBN, type and year fill themselves from Crossref. The scholar still
   checks each field and ticks where it is indexed: Crossref does not know Scopus, Web of
   Science or UGC-CARE, and the Library still verifies it. *(owner, 2026-11-22)*
+- **Or start from the paper.** Choosing the paper's PDF fills the form the same way: the
+  browser reads the DOI out of the PDF and the PDF is attached on saving, so it is chosen only
+  once. It finds the DOI in most publishers' PDFs; a scanned copy has no text, so the author
+  is asked to paste the DOI. The PDF itself is never sent to Crossref. *(owner, 2026-11-26)*
 - **The server needs the internet for it.** The lookup goes from the university's server to
   api.crossref.org. Only the DOI is sent, never a name. Without outbound internet the button
   says so and the scholar types the details. *(owner, 2026-11-22)*

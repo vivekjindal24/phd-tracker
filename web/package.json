@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "test": "node --experimental-strip-types --test src/lib/safeNext.test.ts"
+    "test": "node --experimental-strip-types --test src/lib/safeNext.test.ts src/lib/doi.test.ts"
   },
   "dependencies": {
     "next": "16.4.5",

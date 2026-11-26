@@ -727,7 +727,12 @@ DOI** (Decided 2026-11-22): the scholar pastes a DOI (or its doi.org link) and
 the form fills title, authors, type, venue, ISSN/ISBN and year from Crossref's
 public API; the scholar checks and saves as usual, and is told if they have
 already recorded that DOI. Indexing is never filled (Crossref does not know
-it). Only the DOI is sent out; no key is needed. **Import from ORCID**
+it). Only the DOI is sent out; no key is needed. **Start from the paper**
+(Decided 2026-11-26, from a stakeholder's request): on a new publication the
+author may instead choose the paper's PDF; the browser reads its DOI (the PDF's
+own metadata, else its first page) and fills the form the same way, and the PDF
+is attached when the record is saved. The PDF goes nowhere before that save. A
+scanned PDF has no text, so the author is told to paste the DOI. **Import from ORCID**
 (Decided 2026-11-23): the scholar gives their ORCID iD (checked against its
 check digit); their public works are listed, and the chosen ones with a DOI
 (up to 50 at a time) are filled from Crossref and saved as drafts. A DOI
