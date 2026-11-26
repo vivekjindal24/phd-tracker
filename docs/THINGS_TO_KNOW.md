@@ -332,6 +332,21 @@ remove a point only when the behaviour itself changes.
   counted in a column of their own; those with no admission date are named at the end, so
   their profiles can be completed before filing.
 
+## Leadership trends
+
+- **Five academic years, the current one so far.** For the unit chosen on the Leadership page
+  (the university, a school or a department): scholars admitted, degrees awarded, median years
+  from admission to award, and publications. Who sees it is who sees the Leadership page: heads
+  and admins for their own units, the Research Office, the Vice Chancellor and the root admin
+  for any.
+- **Median, not average,** like the completion figure above it, so one scholar who took twelve
+  years does not move the number much.
+- **Publications by calendar year.** A paper records only its year, so 2025's papers are shown
+  under 2025-26. Scholars' papers count once approved, faculty papers once the Library verifies
+  them; a paper both recorded (same DOI) counts once.
+- **Only what is recorded.** Years before the university started using Anveshan show what was
+  entered or imported for them, which may be little.
+
 ## Not in Anveshan
 
 - **Consultancy.** Paid work faculty do for outside clients, and its revenue, is not recorded

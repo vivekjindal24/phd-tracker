@@ -909,7 +909,16 @@ export type LeadershipView = {
   total: LeadershipRow;
   by_unit: LeadershipRow[];
   at_risk: { scholar: Ref; stage: Stage; limit_date: string | null; reasons: string[] }[];
+  trends: TrendYear[];
   as_of: string;
+};
+export type TrendYear = {
+  year: string;
+  so_far: boolean;
+  admitted: number;
+  awarded: number;
+  median_years_to_complete: number | null;
+  publications: number;
 };
 
 // --- grants (PRD M6-M8) ---

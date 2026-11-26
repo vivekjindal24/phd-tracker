@@ -155,6 +155,9 @@ co-supervisor (setting on) may log their own meetings but never sets sharing.
 2. **Scholars at risk**: overdue progress report, nearing (180 days) or past
    the maximum duration, no supervision meeting in 120 days, extensions or
    leave beyond their limits — each with its reason.
+   **Trends**: the last five academic years (the current one so far) for the
+   same unit: admitted, degrees awarded, median years to complete,
+   publications.
 3. On a profile, **Time limit** shows the must-submit-by date (admission +
    6 years + extensions + relaxation); an admin or the Research Office
    records extensions / leave with the resolution number; the scholar's home

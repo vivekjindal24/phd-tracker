@@ -245,11 +245,21 @@ class AtRisk(BaseModel):
     reasons: list[str]
 
 
+class TrendYear(BaseModel):
+    year: str
+    so_far: bool
+    admitted: int
+    awarded: int
+    median_years_to_complete: float | None
+    publications: int
+
+
 class LeadershipView(BaseModel):
     unit: Ref
     total: LeadershipRow
     by_unit: list[LeadershipRow]
     at_risk: list[AtRisk]
+    trends: list[TrendYear]
     as_of: date
 
 

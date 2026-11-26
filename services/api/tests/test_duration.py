@@ -1,10 +1,11 @@
 """UGC duration rules, exits and the leadership view (PRD Phase 4)."""
 
-from datetime import date
+from datetime import UTC, date, datetime
 
-from app import duration
-from app.models import Milestone, Scholar, TimeAdjustment
+from app import duration, naac
+from app.models import FacultyPublication, Milestone, Scholar, TimeAdjustment
 from tests.conftest import auth, unassign_supervisor
+from tests.test_naac import _publication
 
 LIMITS = duration.Limits(
     max_years=6, max_extension_days=730, max_relaxation_days=730, max_maternity_leave_days=240
@@ -155,3 +156,51 @@ async def test_leadership_view(client, session, world):
     assert denied.status_code == 403
     for user in (world.scholar_a1, world.sup_a2, world.library):
         assert (await client.get("/api/v1/leadership", headers=auth(user.id))).status_code == 403
+
+
+async def test_leadership_trends_by_academic_year(client, session, world):
+    today = datetime.now(UTC).date()
+    year = today.year if today.month >= 7 else today.year - 1  # the academic year now running
+    await _admitted(session, world.s_a1, date(year, 7, 1))
+    await _admitted(session, world.s_a2, date(year - 5, 9, 1), stage="Degree Awarded")
+    session.add_all(
+        [
+            Milestone(
+                scholar_id=world.s_a2.id,
+                milestone_type="degree_awarded",
+                status="Approved",
+                approval_body="RDC",
+                resolution_date=date(year - 1, 9, 1),
+            ),
+            _publication(world, "Shared", pub_year=year - 1, doi="10.1/X"),
+            _publication(world, "Own", pub_year=year - 1),
+            _publication(world, "Draft", pub_year=year - 1, state="draft"),
+            FacultyPublication(
+                faculty_id=world.sup_a2_faculty.id,
+                title="Shared",
+                authors="A, B",
+                pub_type="journal",
+                venue="J. Graphs",
+                pub_year=year - 1,
+                pub_status="published",
+                doi="10.1/x",  # the scholar's paper, so counted once
+                verification="verified",
+                checked_at=datetime.now(UTC),
+            ),
+        ]
+    )
+    await session.commit()
+
+    view = (await client.get("/api/v1/leadership", headers=auth(world.dean_a.id))).json()
+    trends = {t["year"]: t for t in view["trends"]}
+    assert len(trends) == 5
+    now, last = (
+        trends[naac.academic_year(date(year, 7, 1))],
+        trends[naac.academic_year(date(year - 1, 7, 1))],
+    )
+    assert now["so_far"] and now["admitted"] == 1 and now["awarded"] == 0
+    assert not last["so_far"] and last["awarded"] == 1
+    assert last["median_years_to_complete"] == 4.0 and last["publications"] == 2
+
+    other = await client.get("/api/v1/leadership", headers=auth(world.hod_b1.id))
+    assert all(t["publications"] == 0 and t["awarded"] == 0 for t in other.json()["trends"])

@@ -58,6 +58,20 @@ function Leadership() {
           </Table>
         )}
       </section>
+      <section className="lead-section" aria-labelledby="trends-title">
+        <h2 id="trends-title">Trends</h2>
+        <Table label="Trends by academic year" head={["Academic year", "Admitted", "Degrees awarded", "Median years to complete", "Publications"]}>
+          {v.trends.map((t) => (
+            <tr key={t.year}>
+              <td>{t.year}{t.so_far && <span className="muted"> (so far)</span>}</td>
+              <td className="mono">{t.admitted}</td>
+              <td className="mono">{t.awarded}</td>
+              <td className="mono">{t.median_years_to_complete ?? "—"}</td>
+              <td className="mono">{t.publications}</td>
+            </tr>
+          ))}
+        </Table>
+      </section>
       {v.by_unit.length > 0 && (
         <section className="lead-section" aria-labelledby="units-title">
           <h2 id="units-title">By unit</h2>
@@ -76,7 +90,7 @@ function Leadership() {
           </Table>
         </section>
       )}
-      <p className="muted">Time to completion counts from admission to the approved “degree awarded” decision in the register. Drop-outs are scholars marked as withdrawn or cancelled.</p>
+      <p className="muted">Time to completion counts from admission to the approved “degree awarded” decision in the register. Drop-outs are scholars marked as withdrawn or cancelled. In Trends, admissions count by admission date and degrees by the day they were awarded; publications are published papers of the unit&apos;s scholars (approved) and faculty (verified by the Library), one per DOI, and since a paper carries only its calendar year, 2025&apos;s papers appear under 2025-26.</p>
     </>
   );
 }

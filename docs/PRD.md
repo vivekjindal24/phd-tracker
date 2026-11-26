@@ -988,7 +988,7 @@ Intentionally NOT in this version:
    admissions; UGC rules warned before they are broken (6-year maximum with
    allowed extensions and leave, minimum coursework credits — supervisor caps
    are already enforced, F6); leadership view (scholars at risk, time to
-   completion and drop-outs by unit).
+   completion and drop-outs by unit, five-year trends).
 5. **Grants:** fellowships, research projects, grant ledger.
 6. **Production packaging:** self-hosted Docker Compose stack for a
    university server/NAS (ARCHITECTURE.md §4).
