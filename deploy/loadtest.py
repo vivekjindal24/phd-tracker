@@ -15,7 +15,8 @@ It then runs inside the API container and goes through Caddy, like a browser.
 Not behind the tunnel: also -e LOAD_URL=https://<the site's address>.
 Against a local API, from services/api:
     PYTHONPATH=. LOAD_URL=http://localhost:8900 LOAD_WEB=0 python ../../deploy/loadtest.py
-Stages: LOAD_STAGES=10,25,50 (people at once); LOAD_SECONDS=60 per stage.
+Stages: LOAD_STAGES=10,25,50 (people at once); LOAD_SECONDS=60 per stage; LOAD_SLOW_S=1 (the
+p95 page time that ends the test).
 """
 
 # ruff: noqa: S311  (random only paces simulated people)
@@ -43,7 +44,7 @@ PASSWORD = os.environ["LOAD_PASSWORD"]
 COOKIE = "anveshan_refresh"
 # ~20 requests a minute each: past this many on one account, its 600 a minute runs out.
 PER_ACCOUNT = 25
-SLOW_S = 1.0  # a page slower than this at the 95th percentile: the stage is over capacity
+SLOW_S = float(os.environ.get("LOAD_SLOW_S", "1"))  # p95 page time past this: over capacity
 
 # (weight, page, API calls the web app makes for it)
 PAGES = [
@@ -226,7 +227,7 @@ async def main() -> None:
             break
         capacity = n
     print(
-        f"capacity: {capacity} people clicking at once with pages under {SLOW_S:.0f} s for 95 in"
+        f"capacity: {capacity} people clicking at once with pages under {SLOW_S:g} s for 95 in"
         " 100 and nothing failed"
         if capacity
         else "capacity: below the first stage"
