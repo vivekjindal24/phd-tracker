@@ -41,6 +41,8 @@ STAGES = [int(n) for n in os.environ.get("LOAD_STAGES", "10,25,50,100,150,200").
 SECONDS = int(os.environ.get("LOAD_SECONDS", "60"))
 PASSWORD = os.environ["LOAD_PASSWORD"]
 COOKIE = "anveshan_refresh"
+# ~20 requests a minute each: past this many on one account, its 600 a minute runs out.
+PER_ACCOUNT = 25
 SLOW_S = 1.0  # a page slower than this at the 95th percentile: the stage is over capacity
 
 # (weight, page, API calls the web app makes for it)
@@ -180,9 +182,30 @@ async def sign_in(people: list[Person]) -> None:
     )
 
 
+async def usable() -> list[str]:
+    """The demo accounts that sign in with this password: an install may have changed some
+    (a password set by hand, an account set up later without one); those are left out."""
+    probes = [Person(email) for email in ACCOUNTS]
+    answers = await asyncio.gather(*(p.login() for p in probes))
+    await asyncio.gather(*(p.http.aclose() for p in probes))
+    if odd := [r for r in answers if r.status_code not in (200, 401)]:
+        raise SystemExit(f"sign-in answered {odd[0].status_code}: {odd[0].text}")
+    if skipped := [p.email for p in probes if not p.token]:
+        print(f"left out, they do not sign in with this password: {', '.join(skipped)}")
+    if not (ok := [p.email for p in probes if p.token]):
+        raise SystemExit("no demo account signs in with this password")
+    if max(STAGES) / len(ok) > PER_ACCOUNT:
+        print(
+            f"note: {max(STAGES)} people on {len(ok)} accounts is over {PER_ACCOUNT} per account;"
+            " the per-person request limit may refuse some (429) and end the test early"
+        )
+    return ok
+
+
 async def main() -> None:
-    print(f"target {BASE} (site {SITE}), {len(ACCOUNTS)} demo accounts, {SECONDS} s per stage")
-    people = [Person(ACCOUNTS[i % len(ACCOUNTS)]) for i in range(max(STAGES))]
+    accounts = await usable()
+    print(f"target {BASE} (site {SITE}), {len(accounts)} demo accounts, {SECONDS} s per stage")
+    people = [Person(accounts[i % len(accounts)]) for i in range(max(STAGES))]
     await sign_in(people)
     print(
         f"{'people':>6} {'clicks':>6} {'req/s':>6} {'p50 s':>6} {'p95 s':>6} {'max s':>6}  failed"
