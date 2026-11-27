@@ -97,6 +97,7 @@ jobs:
               -e 's/^GARAGE_CAPACITY=.*/GARAGE_CAPACITY=1GB/' \
               -e "s/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=$(openssl rand -hex 24)/" \
               -e "s/^JWT_SECRET=.*/JWT_SECRET=$(openssl rand -hex 32)/" \
+              -e "s/^AUDIT_KEY=.*/AUDIT_KEY=$(openssl rand -hex 32)/" \
               -e "s/^CRON_SECRET=.*/CRON_SECRET=$(openssl rand -hex 32)/" \
               -e "s/^GARAGE_RPC_SECRET=.*/GARAGE_RPC_SECRET=$(openssl rand -hex 32)/" \
               -e "s/^S3_ACCESS_KEY_ID=.*/S3_ACCESS_KEY_ID=GK$(openssl rand -hex 12)/" \

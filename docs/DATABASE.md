@@ -576,8 +576,12 @@ refuses it), `title`, `body`, `link`, `read_at`,
 `action` CHECK (insert / update / soft_delete / restore / transition / lookup),
 `from_state` / `to_state`, `prev` / `data` jsonb snapshots (password hashes
 and token hashes redacted; a grievance's words and its papers' file names stored as
-"[redacted]", migration 0058 scrubbing earlier rows), `actor_id`, `actor_roles` text[], `at`. Written
-only by `crud.py` / `workflow.py`. "Every mutation" means every record a person
+"[redacted]", migration 0058 scrubbing earlier rows), `actor_id`, `actor_roles` text[], `at`,
+`seq` bigint UNIQUE (place in the chain) and `hash` (the entry's seal), both set
+by the BEFORE INSERT trigger `audit_chain` (migration 0068; SECURITY.md §6). The
+trigger `audit_append_only` refuses UPDATE and DELETE; `core.audit_check()`
+verifies the chain; both need the connection setting `anveshan.audit_key`
+(`AUDIT_KEY`, extension `pgcrypto`). Written only by `crud.py` / `workflow.py`. "Every mutation" means every record a person
 creates or changes; operational rows are not audited: `notifications` (and
 their read flag), `refresh_tokens`, `password_tokens`, `login_attempts`, SSO
 login attempts, `job_runs`, and `approval_actions` (itself the approval trail,

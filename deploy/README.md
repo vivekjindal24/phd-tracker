@@ -106,7 +106,9 @@ so the storage provider holds nothing readable. Database dumps older than
 `BACKUP_KEEP_DAYS` are removed there too; files are kept.
 
 Keep the passphrase somewhere other than this server (the registrar's safe, a
-password manager): without it the off-site copy cannot be read. The backup log
+password manager): without it the off-site copy cannot be read. Keep `AUDIT_KEY`
+there too, and never change it: it seals the audit trail, and a restored
+database is checked with it (SECURITY.md §6). The backup log
 says each night whether the off-site copy was sent, or that it is not
 configured.
 

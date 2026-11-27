@@ -57,6 +57,7 @@ services:
     environment:
       DATABASE_URL: postgresql://anveshan:${POSTGRES_PASSWORD}@db:5432/anveshan
       JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET}
+      AUDIT_KEY: ${AUDIT_KEY:?set AUDIT_KEY}
       CORS_ORIGINS: *site
       APP_BASE_URL: *site
       # Browsers and the API both reach the file store at its public URL; inside this

@@ -7,9 +7,10 @@ import { Button, ErrorText, Field, PageHeader, Table } from "@/components/ui/kit
 import { ListFoot } from "@/components/ListFoot";
 import { RequireRole } from "@/components/ui/RequireRole";
 import { formatWhen } from "@/lib/format";
+import { useSession } from "@/lib/session";
 import { ROLE_LABELS } from "@/lib/types";
-import type { AuditRow, Role, Scholar } from "@/lib/types";
-import { usePagedFetch } from "@/lib/useFetch";
+import type { AuditIntegrity, AuditRow, Role, Scholar } from "@/lib/types";
+import { useFetch, usePagedFetch } from "@/lib/useFetch";
 
 const ACTIONS: Record<AuditRow["action"], string> = {
   insert: "Added",
@@ -28,7 +29,36 @@ function describe(r: AuditRow): string {
   return "";
 }
 
+/** Whether every entry still matches its seal (SECURITY.md §6). University-wide, so shown to
+ *  root admins and the Research Office, who read the whole trail. */
+function TrailStatus() {
+  const { data, error } = useFetch<AuditIntegrity>("/audit-log/integrity");
+  if (error) return <ErrorText>{error}</ErrorText>;
+  if (!data) return null;
+  if (!data.intact) {
+    return (
+      <div className="trail-status broken" role="alert">
+        <strong>The audit trail has been tampered with.</strong> Entry {data.broken_at} no longer
+        matches its seal: it, or the one before it, was changed or removed outside Anveshan. Keep a
+        copy of the database as it is now and ask whoever runs the server to compare it with the
+        nightly backups.
+      </div>
+    );
+  }
+  return (
+    <div className="trail-status" role="status">
+      <strong>The audit trail is intact.</strong> All {data.entries.toLocaleString("en-IN")} entries
+      match their seals (checked {formatWhen(data.checked_at)}).
+      {data.head && (
+        <> Newest seal, worth noting down now and then: <span className="mono">{data.head}</span></>
+      )}
+    </div>
+  );
+}
+
 function AuditLog() {
+  const { me } = useSession();
+  const seesTrail = !!me && (me.is_root_admin || me.office_roles.includes("research_office"));
   const [scholar, setScholar] = useState<Scholar | null>(null);
   const [action, setAction] = useState("");
   const [table, setTable] = useState("");
@@ -48,6 +78,7 @@ function AuditLog() {
     <>
       <PageHeader eyebrow="Compliance" title="Audit log" />
       <p className="muted">Who added, changed, removed or moved which record, and when. The contents of a record are never shown here; open the record itself to read them.</p>
+      {seesTrail && <TrailStatus />}
       <div className="toolbar">
         {scholar ? (
           <Field label="Scholar">

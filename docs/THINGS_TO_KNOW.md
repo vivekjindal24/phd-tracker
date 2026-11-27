@@ -262,6 +262,22 @@ remove a point only when the behaviour itself changes.
   recommended.
 - **Files uploaded before scanning was added were not scanned.**
 
+## The audit trail cannot be quietly changed
+
+- **Every entry in the audit log is sealed** as it is written, each seal tied to the one
+  before, with a key kept outside the database. Nobody can change or remove an entry through
+  Anveshan, and if someone does it directly in the database, the next daily check finds the
+  exact entry and tells the root admins; the audit log page shows it too. *(pilot list,
+  2026-11-27)*
+- **The key (`AUDIT_KEY`) must be kept safe off the server**, with the backup passphrase, and
+  never changed. Lose it and the trail can no longer be checked (Anveshan keeps working).
+- **What it cannot catch:** someone removing the newest entries leaves no gap. The audit log
+  page shows the newest seal; noting it now and then (say, monthly, in a register) closes that.
+  Whoever controls both the server and the key could still rewrite the trail — that is the
+  server's own security.
+- **Entries written before 27 Nov 2026 were sealed on that day**, in the order they were
+  written; changes made to them before then cannot be detected.
+
 ## Request limit and page security
 
 - **Each person may make about 600 requests a minute**, and visitors not signed in 300 a

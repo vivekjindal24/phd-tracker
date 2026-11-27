@@ -1096,6 +1096,15 @@ export const RATING_LABELS: Record<Rating, string> = {
 };
 export type PeriodActivity = { meetings: number; publications: string[] | null; conferences: string[] | null };
 
+/** Whether every audit entry still matches its seal (GET /audit-log/integrity). */
+export type AuditIntegrity = {
+  entries: number;
+  intact: boolean;
+  broken_at: number | null;
+  head: string | null;
+  checked_at: string;
+};
+
 export type AuditRow = {
   id: string;
   at: string;

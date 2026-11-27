@@ -45,6 +45,7 @@ for _ai in ("AI_BASE_URL", "AI_API_KEY", "AI_MODEL"):
 for _wa in ("WHATSAPP_TOKEN", "WHATSAPP_PHONE_NUMBER_ID", "WHATSAPP_TEMPLATE"):
     os.environ.pop(_wa, None)
 os.environ.setdefault("JWT_SECRET", "test-secret-0123456789abcdef0123456789")
+os.environ.setdefault("AUDIT_KEY", "test-audit-key-0123456789abcdef012345")
 os.environ.setdefault("CORS_ORIGINS", "http://localhost:3000")
 # The virus scanner is required (scanner.py): tests get a stand-in that knows only EICAR.
 os.environ["CLAMAV_HOST"], _clamd_port = start_fake_clamd()
@@ -74,11 +75,14 @@ def default_date_format() -> None:
 
 
 @pytest.fixture(autouse=True)
-def fresh_rate_limit() -> None:
-    """Each test starts with fresh request counts (ratelimit.py), however fast the run."""
+def no_rate_limit(monkeypatch) -> None:
+    """The request limit (ratelimit.py) stays out of the way, even for tests that walk every
+    route; test_ratelimit.py sets its own small limits."""
     from app import ratelimit
 
     ratelimit.reset()
+    monkeypatch.setattr(ratelimit, "PER_ADDRESS", 10**9)
+    monkeypatch.setattr(ratelimit, "PER_USER", 10**9)
 
 
 TEST_RUN_LOCK = 4_242_001  # Postgres advisory lock: one test run per test database at a time

@@ -169,7 +169,8 @@ anveshan (repo: phd-tracker)/
 
 All config arrives by environment and is validated loudly at startup
 (`app/config.py`); never secrets in the repo, never `.env` committed.
-API: `DATABASE_URL`, `JWT_SECRET` (≥32 bytes), `CORS_ORIGINS`,
+API: `DATABASE_URL`, `JWT_SECRET` (≥32 bytes), `AUDIT_KEY` (≥32 bytes, seals the
+audit trail; never changed, SECURITY.md §6), `CORS_ORIGINS`,
 `S3_ENDPOINT`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`,
 `S3_REGION`, `MAX_UPLOAD_MB` (default 100), `CLAMAV_HOST` (required: the virus
 scanner every upload passes; owner, 2026-11-27), `CLAMAV_PORT` (default 3310),

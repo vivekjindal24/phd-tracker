@@ -1287,6 +1287,16 @@ class CommentOut(BaseModel):
 # --- audit log ---------------------------------------------------------------------------
 
 
+class AuditIntegrity(BaseModel):
+    """Whether every audit entry still matches its seal (audit_trail.py)."""
+
+    entries: int  # entries that hold, oldest first
+    intact: bool
+    broken_at: int | None  # the first entry that does not
+    head: str | None  # the newest seal: note it to catch later removal of newer entries
+    checked_at: datetime
+
+
 class AuditRow(BaseModel):
     """One audit entry as its readers see it: never the recorded values (routers/audit.py)."""
 

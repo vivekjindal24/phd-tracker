@@ -10,13 +10,14 @@ from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy import String, cast, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import scope
+from app import audit_trail, scope
 from app.auth.principal import Principal
 from app.db import get_session
 from app.enums import AuditAction
+from app.errors import forbidden
 from app.models import AuditLog, Scholar, User
 from app.rbac import require_perm
-from app.schemas import AuditRow
+from app.schemas import AuditIntegrity, AuditRow
 from app.sorting import Sort, ordered, page_of
 
 router = APIRouter(tags=["audit"])
@@ -133,3 +134,14 @@ async def read_audit_log(
             }
         )
     return out
+
+
+@router.get("/audit-log/integrity", response_model=AuditIntegrity)
+async def audit_integrity(
+    principal: Principal = Depends(require_perm("audit_log", "read")),
+    session: AsyncSession = Depends(get_session),
+) -> AuditIntegrity:
+    """University-wide, so for those who read the whole trail: root admins, Research Office."""
+    if not (principal.is_root_admin or "research_office" in principal.office_roles):
+        raise forbidden()
+    return await audit_trail.check(session)

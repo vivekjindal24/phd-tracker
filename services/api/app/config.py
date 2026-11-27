@@ -126,6 +126,9 @@ class Scanner:
 class Settings:
     database_url: str
     jwt_secret: str
+    # Seals the audit trail (db.py, migration 0068); kept out of the database, never rotated:
+    # entries sealed with a lost key can no longer be checked (SECURITY.md §6).
+    audit_key: str
     cors_origins: tuple[str, ...]
     app_base_url: str
     smtp: Smtp | None
@@ -323,6 +326,9 @@ def _load_certificate() -> CertificateWording:
 
 def load_settings() -> Settings:
     database_url = _normalize_db_url(_require("DATABASE_URL"))
+    audit_key = _require("AUDIT_KEY")
+    if len(audit_key.encode()) < MIN_JWT_SECRET_BYTES:
+        raise ConfigError(f"AUDIT_KEY must be at least {MIN_JWT_SECRET_BYTES} bytes")
     jwt_secret = _require("JWT_SECRET")
     if len(jwt_secret.encode()) < MIN_JWT_SECRET_BYTES:
         raise ConfigError(f"JWT_SECRET must be at least {MIN_JWT_SECRET_BYTES} bytes")
@@ -331,6 +337,7 @@ def load_settings() -> Settings:
     return Settings(
         database_url=database_url,
         jwt_secret=jwt_secret,
+        audit_key=audit_key,
         cors_origins=origins,
         app_base_url=app_base_url,
         smtp=_load_smtp(),

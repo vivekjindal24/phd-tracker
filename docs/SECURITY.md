@@ -494,6 +494,22 @@ do not read those fields on a scholar's page.
   `Referrer-Policy` and `Permissions-Policy`.
 - **Errors:** one envelope `{"error": {code, message, details}}`; messages
   never leak internals; unhandled exceptions log server-side, return 500.
+- **Tamper-evident audit trail** (migration 0068, `audit_trail.py`): the table
+  is append-only (a trigger refuses UPDATE and DELETE), and Postgres seals each
+  entry as it is written — numbered (`seq`) and an HMAC-SHA256 (`hash`) over its
+  contents and the previous entry's seal. The key is `AUDIT_KEY`: set on each
+  connection at start-up (`db.py`), never stored in the database, so someone
+  who can only reach the database (a stolen dump, a DBA, an injected query)
+  cannot re-seal an entry they changed; an insert without it fails.
+  `core.audit_check()` walks the chain: a changed entry fails its seal, a
+  removed one leaves a gap. The daily job runs it and tells the root admins
+  (in-app and email) and the log when it breaks; the audit-log page shows the
+  result and the newest seal to root admins and the Research Office
+  (`GET /audit-log/integrity`). **Limits:** removing the *newest* entries, or
+  all of them, leaves no gap — noting the newest seal now and then catches that;
+  and whoever holds both the database and `AUDIT_KEY` (the server's root) can
+  still rewrite it. A migration that must rewrite old entries (as 0058 did) has
+  to switch the guard off and re-seal from that entry on, in the open.
 - **Audit:** every mutation writes `audit_log`; password and token hashes are
   redacted from snapshots, and so are a grievance's words (subject, description,
   decisions, appeal) and the names of papers attached to one (`crud.py`;
@@ -609,6 +625,8 @@ Verified 2026-10-25 (code, tests and the approval-chain click-through):
 - [x] No self-approval / consecutive-step approval
 - [x] Admins cannot grant roles above their own unit
 - [x] Rotating single-use refresh tokens in an httpOnly cookie; login throttling
+- [x] Audit trail append-only and sealed (HMAC chain), checked daily
+- [ ] `AUDIT_KEY` kept off the server (with `OFFSITE_PASSPHRASE`) at every live install
 - [ ] `require_two_factor` switched on at every live university install
 - [ ] Off-site backup configured and `run.sh fetch` tried at every live install
 - [x] Private bucket; presigned URLs only after `get_or_403`

@@ -5,10 +5,12 @@ from datetime import date, datetime
 from typing import Any
 
 from sqlalchemy import (
+    BigInteger,
     Boolean,
     CheckConstraint,
     Date,
     DateTime,
+    FetchedValue,
     ForeignKey,
     Index,
     Integer,
@@ -44,6 +46,7 @@ class AuditLog(Base):
     __table_args__ = (
         CheckConstraint(f"action IN ({sql_in(AUDIT_ACTIONS)})", name="ck_audit_action"),
         Index("ix_audit_record", "table_name", "record_id"),
+        UniqueConstraint("seq", name="uq_audit_log_seq"),
     )
 
     id: Mapped[uuid.UUID] = _uuid_pk()
@@ -57,6 +60,10 @@ class AuditLog(Base):
     actor_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"))
     actor_roles: Mapped[list[str]] = mapped_column(ARRAY(Text), server_default=text("'{}'"))
     at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    # Set by the database on insert (trigger audit_chain, migration 0068): the entry's place in
+    # the chain, and its seal over its contents and the previous entry's seal.
+    seq: Mapped[int] = mapped_column(BigInteger, server_default=FetchedValue())
+    hash: Mapped[str] = mapped_column(Text, server_default=FetchedValue())
 
 
 class RefreshToken(Base):
