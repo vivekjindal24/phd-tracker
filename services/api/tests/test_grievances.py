@@ -1,7 +1,7 @@
 """A scholar's grievance (grievances.py): who reads it, each step, appeals and deadlines."""
 
 import uuid
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from sqlalchemy import select
@@ -76,7 +76,7 @@ async def test_decided_then_appealed_to_the_ombudsperson(client, world, panel):
     cell, ombudsperson = panel
     gid = await filed(client, world)
     view = (await client.get(f"{API}/{gid}", headers=auth(world.scholar_a1.id))).json()
-    assert view["due_on"] == str(grievances.working_days_after(date.today(), 15))
+    assert view["due_on"] == str(grievances.working_days_after(grievances.today(), 15))
     assert (await step(client, world.scholar_a1, gid, "decide", {"text": "x"})).status_code == 409
     res = await step(client, cell, gid, "decide", {"text": "Meetings fixed monthly from now."})
     assert res.status_code == 200 and res.json()["status"] == "decided"
@@ -122,7 +122,7 @@ async def test_withdrawn_or_accepted(client, world, panel):
 
 async def test_the_daily_job_reminds_and_closes(session, world, panel):
     cell, _ = panel
-    today = date.today()
+    today = grievances.today()
     due_soon = Grievance(
         scholar_id=world.s_a1.id, category="other", subject="a", description="a",
         status="open", due_on=today + timedelta(days=3),
@@ -202,11 +202,11 @@ async def test_home_shows_each_role_what_waits_on_them(client, session, world, p
 
     first, second = await filed(client, world), await filed(client, world)
     late = await session.get(Grievance, uuid.UUID(second))
-    late.due_on = date.today() - timedelta(days=2)
+    late.due_on = grievances.today() - timedelta(days=2)
     await session.commit()
     mine = await home(cell)
     assert (mine["decides"], mine["to_decide"], mine["overdue"]) == (True, 2, 1)
-    assert mine["next_due"] == str(grievances.working_days_after(date.today(), 15))
+    assert mine["next_due"] == str(grievances.working_days_after(grievances.today(), 15))
     assert (await home(world.vice_chancellor))["past_deadline"] == 1
     assert (await home(ombudsperson))["to_decide"] == 0
     assert await home(world.dean_a) is None  # no grievance role, no scholar: no tile
