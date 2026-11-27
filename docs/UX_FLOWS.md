@@ -104,7 +104,8 @@ non-initiator never sees the New button and the API 403s anyway.
    finds the items in **Your queue** and acts as in steps 2-4. An item
    untouched for 7 days is brought back to its step's people by notification;
    after 14 days at the supervisor step the head finds it in **Your queue**
-   too. The history then reads "Dr X (on behalf of Dr Y) approved".
+   too, and at the advisory committee step the head or the department admin.
+   The history then reads "Dr X (on behalf of Dr Y) approved".
 4b. **Signing** (when the university requires it): pressing Approve or Send
    back opens **Sign to approve** / **Sign to send back** above the decision:
    the six-digit code from the authenticator app, or **Email me a code** for
@@ -285,7 +286,11 @@ and roles frozen. **Correct date or order** fixes any version's date, order
 number or notes, and **Correct details** an outside expert's name, institution or email on any
 version; **Withdraw**
 removes a version recorded by mistake, making the one before it current again.
-The current committee, with roles, prints on the progress report PDF.
+The current committee, with roles, prints on the progress report PDF. Where the
+university added the **Advisory committee** step to the progress report chain
+(Settings → Approval chains), each report waits there for the chairperson (or a
+member from this university if the chair is from outside), who finds it in
+**Your queue**.
 
 **People → Department committees** shows a department's research committee
 (called as the university names it in Settings). Pick the department; the card
@@ -321,7 +326,11 @@ department or Research Office to record it.
 
 1. HoD / department admin → **Seminars → Schedule**: kind of seminar, title,
    date & time, venue/link, (progress only) report due date and period, pick
-   scholars (their unit) and panel. Everyone concerned is notified.
+   scholars (their unit) and panel; **Add their advisory committee members to
+   the panel** puts the chosen scholars' committee members from this university
+   on it too (each can be taken off again). Everyone concerned is notified,
+   the scholars' committee members included. The seminar page shows each
+   scholar's **Advisory committee** beside the **Panel**.
 1a. The HoD / department admin (or the Dean) → the seminar → **Download notice**:
    the circular, one page per scholar, with lines for the department admin,
    the HoD and the Dean to sign by hand; its scan goes back in as the

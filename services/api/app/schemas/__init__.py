@@ -17,6 +17,7 @@ from app.enums import (
     AuditAction,
     Category,
     CommentTarget,
+    CommitteeRole,
     CoSupervision,
     DateFormat,
     Designation,
@@ -1102,6 +1103,12 @@ class SeminarRow(BaseModel):
     scholar_count: int
 
 
+class SeminarCommitteeMember(BaseModel):
+    name: str
+    role: CommitteeRole
+    external: bool  # an outside expert: no login, not notified
+
+
 class SeminarScholarView(BaseModel):
     scholar: Ref
     roll_number: str
@@ -1109,6 +1116,7 @@ class SeminarScholarView(BaseModel):
     report_state: ItemState | None
     hardcopy_received_on: date | None
     finalised_at: datetime | None
+    committee: list[SeminarCommitteeMember]  # the current advisory committee (PRD F9b)
 
 
 class PanelMember(BaseModel):

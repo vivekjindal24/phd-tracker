@@ -248,6 +248,26 @@ remove a point only when the behaviour itself changes.
 - **Not covered:** sexual harassment goes to the Internal Complaints Committee (the form says
   so); grievances are not anonymous (UGC asks for a named student). *(owner, 2026-11-23)*
 
+## The advisory committee in reviews
+
+- **At seminars it is invited, not the panel.** The scholar's committee members from this
+  university are told of the seminar and can open it; the panel is still whoever is named.
+  One button puts the committee on the panel when that is what the department wants.
+  *(owner, 2026-11-26)*
+- **An approval step only if the university wants it.** Add "Advisory committee" to the
+  progress report chain in Settings → Approval chains; it is off until then. It fits that
+  chain only. *(owner, 2026-11-26)*
+- **The chairperson signs for the committee.** If the chair is an outside expert (no login),
+  any member from this university signs. Outside members never log in.
+- **The signer reads that scholar's progress reports** while the step is in use — nothing
+  else of the scholar.
+- **A silent committee does not stall a report.** After 14 days the HoD or the department
+  admin can approve or send it back in its place, recorded "on behalf of" the chair; at 7
+  days the department admins are reminded. *(owner, 2026-11-27)*
+- **Record the committee first.** A report cannot move into the step while the scholar's
+  committee has no member from this university; the supervisor is told so.
+- **Taking the step out** waits until no report under review still passes it.
+
 ## Scholar photo
 
 - **Who sees it:** everyone who may open the scholar's profile, their supervisors included.

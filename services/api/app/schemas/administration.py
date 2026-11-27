@@ -324,6 +324,7 @@ class CommitteeMemberPatch(BaseModel):
 
 class CommitteeMemberOut(BaseModel):
     id: uuid.UUID
+    faculty_id: uuid.UUID | None  # a member from this university
     name: str
     institution: str
     email: str | None  # an outside member's; shown only to those who keep the committee

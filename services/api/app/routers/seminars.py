@@ -9,7 +9,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
-from app import dates, grading, notices, scope, seminars
+from app import committee, dates, grading, notices, scope, seminars
 from app.auth.deps import current_principal
 from app.auth.principal import Principal
 from app.crud import insert, soft_delete, update
@@ -17,6 +17,7 @@ from app.db import get_session
 from app.enums import SEMINAR_KIND_LABELS
 from app.errors import ApiError, forbidden
 from app.models import (
+    CommitteeFormation,
     Faculty,
     OrgUnit,
     ProgressReport,
@@ -96,6 +97,16 @@ async def list_seminars(
     return [_row(s, name, n) for s, name, n in rows]
 
 
+async def _committee_of(session: AsyncSession, scholar_id: uuid.UUID) -> list[dict[str, Any]]:
+    formation = await committee.current(session, CommitteeFormation.scholar_id == scholar_id)
+    if formation is None:
+        return []
+    return [
+        {"name": m["name"], "role": m["role"], "external": m["external"]}
+        for m in await committee.members(session, formation.id)
+    ]
+
+
 async def _detail(
     session: AsyncSession, principal: Principal, seminar_id: uuid.UUID
 ) -> dict[str, Any]:
@@ -119,6 +130,8 @@ async def _detail(
         .where(SeminarScholar.seminar_id == seminar.id, SeminarScholar.deleted_at.is_(None))
         .order_by(User.full_name)
     )
+    scholar_rows = scholar_rows.all()
+    committees = {sc.id: await _committee_of(session, sc.id) for _, sc, _, _, _ in scholar_rows}
     panel_rows = await session.execute(
         select(SeminarPanel, User.full_name)
         .join(Faculty, Faculty.id == SeminarPanel.faculty_id)
@@ -137,6 +150,7 @@ async def _detail(
                 "report_state": state,
                 "hardcopy_received_on": ss.hardcopy_received_on,
                 "finalised_at": ss.finalised_at,
+                "committee": committees[sc.id],
             }
             for ss, sc, name, sup_name, state in scholar_rows
         ],

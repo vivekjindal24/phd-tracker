@@ -11,7 +11,7 @@ from app.crud import update
 from app.db import get_session
 from app.enums import PHD_FORMS, SEMINAR_KINDS, ItemType, ModuleKey
 from app.errors import ApiError, forbidden
-from app.models import ApprovalChain, Module, Settings
+from app.models import ApprovalChain, Module, ProgressReport, Settings
 from app.notify import email_configured
 from app.schemas import ChainIn, ExamControllerIn, ModuleUpdate, SettingsOut, SettingsUpdate
 
@@ -149,6 +149,36 @@ async def set_module(
     return await _read(session)
 
 
+async def _check_committee_step(
+    session: AsyncSession, item_type: str, old: list[dict], new: list[str]
+) -> None:
+    """The advisory committee step reviews progress reports only (PRD F9b). While a report on
+    its way carries the step, it stays in the chain: its signers read reports only while the
+    chain has it (scope.py)."""
+    if "committee" in new and item_type != "progress_report":
+        raise ApiError(
+            422,
+            "committee_step_reports_only",
+            "The advisory committee step can be added to the progress report chain only.",
+        )
+    removing = any(s["kind"] == "committee" for s in old) and "committee" not in new
+    if removing and await session.scalar(
+        select(ProgressReport.id)
+        .where(
+            ProgressReport.deleted_at.is_(None),
+            ProgressReport.state.in_(("in_review", "sent_back")),
+            ProgressReport.chain_snapshot.contains([{"kind": "committee"}]),
+        )
+        .limit(1)
+    ):
+        raise ApiError(
+            409,
+            "committee_step_in_use",
+            "Progress reports under review still pass the advisory committee step. Remove it "
+            "once they are approved.",
+        )
+
+
 @router.put("/chains/{item_type}", response_model=SettingsOut)
 async def set_chain(
     item_type: ItemType,
@@ -159,6 +189,7 @@ async def set_chain(
     """Applies to new submissions only: in-flight items keep their chain_snapshot."""
     row = await session.get(ApprovalChain, item_type)
     assert row is not None, "chains are seeded by migration 0001"
+    await _check_committee_step(session, item_type, row.steps, [s.kind for s in body.steps])
     await update(
         session,
         principal,

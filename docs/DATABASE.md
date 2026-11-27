@@ -412,7 +412,9 @@ clearance is in review or approved. Partial unique `uq_clearance_active
 
 **approval_actions** — history of every chain action: `item_type`,
 `item_id` (indexed pair; polymorphic, no FK — CHECK whitelist on
-`item_type`), `step_index`, `step_kind`, `action` CHECK (submit / approve /
+`item_type`), `step_index`, `step_kind` (CHECK `ck_actions_step_kind`: supervisor /
+department / research_office / exam_office / library / vice_chancellor / committee),
+`action` CHECK (submit / approve /
 send_back / resubmit), `to_step` int (send-back destination; NULL = back to
 initiator), `comment` (required for send_back — CHECK), `rating` (NULL, or on an approve
 of an assessed item: satisfactory / needs_improvement / unsatisfactory —

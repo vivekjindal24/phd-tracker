@@ -81,6 +81,7 @@ async def members(session: AsyncSession, formation_id: uuid.UUID) -> list[dict[s
     out = [
         {
             "id": m.id,
+            "faculty_id": m.faculty_id,
             "name": m.name or faculty_name or scholar_name,
             "institution": m.institution or faculty_unit or scholar_unit,
             "email": m.email,
@@ -91,6 +92,67 @@ async def members(session: AsyncSession, formation_id: uuid.UUID) -> list[dict[s
         for m, faculty_name, faculty_unit, scholar_name, scholar_unit in rows
     ]
     return sorted(out, key=lambda m: (COMMITTEE_ROLES.index(m["role"]), m["name"]))
+
+
+def signer_ids(rows: list[tuple[uuid.UUID | None, str]]) -> list[uuid.UUID]:
+    """Who signs the committee approval step (owner, 2026-11-26): the chairperson, or, when the
+    chair is an outside expert (no login) or there is none, any member from this university.
+    `rows` are (faculty_id, role) of one version's members."""
+    internal = [(fid, role) for fid, role in rows if fid is not None]
+    chair = [fid for fid, role in internal if role == "chairperson"]
+    return chair or [fid for fid, _ in internal]
+
+
+async def _current_rows(
+    session: AsyncSession, scholar_ids: list[uuid.UUID] | None = None
+) -> dict[uuid.UUID, list[tuple[uuid.UUID | None, str]]]:
+    """(faculty_id, role) of every member of each scholar's current advisory committee."""
+    stmt = select(CommitteeFormation.scholar_id, CommitteeFormation.id).where(
+        CommitteeFormation.scholar_id.is_not(None), CommitteeFormation.deleted_at.is_(None)
+    )
+    if scholar_ids is not None:
+        stmt = stmt.where(CommitteeFormation.scholar_id.in_(scholar_ids))
+    latest: dict[uuid.UUID, uuid.UUID] = {}
+    for scholar_id, formation_id in await session.execute(stmt.order_by(*NEWEST_FIRST)):
+        latest.setdefault(scholar_id, formation_id)  # newest first: the first one is current
+    rows = await session.execute(
+        select(CommitteeFormation.scholar_id, CommitteeMember.faculty_id, CommitteeMember.role)
+        .join(CommitteeMember, CommitteeMember.formation_id == CommitteeFormation.id)
+        .where(
+            CommitteeFormation.id.in_(list(latest.values())), CommitteeMember.deleted_at.is_(None)
+        )
+    )
+    out: dict[uuid.UUID, list[tuple[uuid.UUID | None, str]]] = {}
+    for scholar_id, faculty_id, role in rows:
+        out.setdefault(scholar_id, []).append((faculty_id, role))
+    return out
+
+
+async def signers(session: AsyncSession, scholar_id: uuid.UUID) -> list[uuid.UUID]:
+    """Faculty ids who sign the committee step for this scholar; empty if nobody can."""
+    return signer_ids((await _current_rows(session, [scholar_id])).get(scholar_id, []))
+
+
+async def internal_members(session: AsyncSession, scholar_ids: list[uuid.UUID]) -> list[uuid.UUID]:
+    """Faculty ids of this university on these scholars' current advisory committees."""
+    rows = await _current_rows(session, scholar_ids)
+    return list(dict.fromkeys(fid for members in rows.values() for fid, _ in members if fid))
+
+
+async def seats_of(
+    session: AsyncSession, faculty_id: uuid.UUID
+) -> tuple[tuple[uuid.UUID, ...], tuple[uuid.UUID, ...]]:
+    """The scholars on whose current advisory committee this faculty member sits, and those
+    for whom they sign the committee step."""
+    mine = (
+        select(CommitteeFormation.scholar_id)
+        .join(CommitteeMember, CommitteeMember.formation_id == CommitteeFormation.id)
+        .where(CommitteeMember.faculty_id == faculty_id, CommitteeMember.deleted_at.is_(None))
+    )
+    rows = await _current_rows(session, list(await session.scalars(mine)))
+    member_of = tuple(s for s, members in rows.items() if any(f == faculty_id for f, _ in members))
+    signs_for = tuple(s for s, members in rows.items() if faculty_id in signer_ids(members))
+    return member_of, signs_for
 
 
 async def formations(session: AsyncSession, owner: ColumnElement[bool]) -> list[dict[str, Any]]:

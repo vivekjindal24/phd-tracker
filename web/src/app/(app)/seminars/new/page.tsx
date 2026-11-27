@@ -9,7 +9,7 @@ import { Button, ErrorText, Field, PageHeader } from "@/components/ui/kit";
 import { api } from "@/lib/api";
 import { useSession } from "@/lib/session";
 import { SEMINAR_KIND_LABELS } from "@/lib/types";
-import type { Faculty, OrgUnit, Period, Scholar, SeminarDetail, SeminarKind } from "@/lib/types";
+import type { CommitteeView, Faculty, OrgUnit, Period, Scholar, SeminarDetail, SeminarKind } from "@/lib/types";
 import { errorText, useFetch } from "@/lib/useFetch";
 import "../seminars.css";
 
@@ -33,6 +33,9 @@ function ScheduleSeminarForm() {
   const [period, setPeriod] = useState<Period>(new Date().getMonth() < 6 ? "January-June" : "July-December");
   const [scholarIds, setScholarIds] = useState<string[]>([]);
   const [panelIds, setPanelIds] = useState<string[]>([]);
+  // Committee members put on the panel with the button: they may sit outside the list below.
+  const [fromCommittees, setFromCommittees] = useState<{ id: string; name: string }[]>([]);
+  const [committeeNote, setCommitteeNote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -40,6 +43,25 @@ function ScheduleSeminarForm() {
     if (!unitId && myUnits.length > 0 && myUnits[0]) setUnitId(myUnits[0].id);
   }, [myUnits, unitId]);
   useEffect(() => setScholarIds([]), [unitId]);
+
+  async function addCommittees() {
+    setCommitteeNote(null);
+    try {
+      const views = await Promise.all(scholarIds.map((sid) => api<CommitteeView>(`/scholars/${sid}/committee`)));
+      const found = new Map<string, string>();
+      for (const view of views) {
+        for (const m of view.formations[0]?.members ?? []) if (m.faculty_id) found.set(m.faculty_id, m.name);
+      }
+      if (found.size === 0) {
+        setCommitteeNote("None of these scholars has a committee member from this university.");
+        return;
+      }
+      setPanelIds((ids) => [...new Set([...ids, ...found.keys()])]);
+      setFromCommittees([...found].map(([id, name]) => ({ id, name })));
+    } catch (err) {
+      setCommitteeNote(errorText(err));
+    }
+  }
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -108,7 +130,21 @@ function ScheduleSeminarForm() {
           value={scholarIds} onChange={setScholarIds} detail={(s) => s.roll_number} />
         <PersonChecks<Faculty> legend="Panel" path="/faculty" value={panelIds} onChange={setPanelIds}
           detail={(f) => f.unit.name} />
-        <p className="muted">Scholars, their supervisors, the HoD/Dean and the panel will be notified.</p>
+        <div className="committee-panel">
+          <Button disabled={scholarIds.length === 0} onClick={addCommittees}>Add their advisory committee members to the panel</Button>
+          {committeeNote && <p className="muted" role="status">{committeeNote}</p>}
+          {fromCommittees.some((m) => panelIds.includes(m.id)) && (
+            <ul className="plain-list" aria-label="On the panel from the committees">
+              {fromCommittees.filter((m) => panelIds.includes(m.id)).map((m) => (
+                <li key={m.id} className="row">
+                  <span>{m.name} <span className="muted">· committee member, on the panel</span></span>
+                  <Button kind="ghost" onClick={() => setPanelIds((ids) => ids.filter((x) => x !== m.id))}>Take off the panel</Button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+        <p className="muted">Scholars, their supervisors, their advisory committees, the HoD/Dean and the panel will be notified. Committee members not on the panel are invited, not panellists.</p>
         <ErrorText>{error}</ErrorText>
         <Button kind="primary" type="submit" disabled={busy || scholarIds.length === 0}>
           {busy ? "Scheduling…" : "Schedule and notify"}

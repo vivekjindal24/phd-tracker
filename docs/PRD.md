@@ -192,7 +192,10 @@ absent person:
   be named.
 - **Head steps in at 14 days:** after 14 days at the supervisor step the
   heads over the scholar's unit are told and may approve or send back in the
-  supervisor's place.
+  supervisor's place. At the advisory committee step (F9b) the heads *and* the
+  department admins over the scholar's unit may, so a silent chairperson cannot
+  stall a report (Decided 2026-11-27); at 7 days the department admins are
+  reminded with the signer.
 - Whatever a stand-in or the head does is recorded and shown as done **on
   behalf of** the supervisor (item history and the report PDF). The other
   rules are unchanged: nobody acts on an item about themselves or on two
@@ -322,7 +325,8 @@ it while still unsubmitted. No seminar scheduled → no deadline shown.
   cancellable until it takes place.
 - **Notifications** (in-app + email) on schedule, change and cancel: the
   selected scholars, their supervisors (and co-supervisors when on), the heads
-  of the unit and of every unit above it (HoD, Dean), and the panel.
+  of the unit and of every unit above it (HoD, Dean), the panel, and the
+  scholars' advisory committee members from this university (F9b).
 - **Hardcopy:** university setting `require_hardcopy`; when on, the department
   records "hardcopy received" per scholar.
 - **Grading:** university setting `seminar_graders` = `panel` (named panel
@@ -395,8 +399,24 @@ from the directory, 422 `directory_name`). Versions stay in date order (422
 `chairperson_taken`). An admin over the scholar's unit or the
 Research Office keeps the list; the scholar, supervisor, heads above and the
 Vice Chancellor read it. It shows on the scholar's page and prints on the
-progress report PDF. A record only: membership opens no records and adds no
-approval step, and outside members get no login (§7). The supervisor cannot be
+progress report PDF. Outside members get no login (§7).
+
+**The committee in reviews** (Decided 2026-11-26). *Seminars:* the committee
+members from this university are told of each seminar their scholar presents
+at (scheduled, changed, cancelled) and may open it; the seminar page lists each
+scholar's committee apart from the panel. They are panellists only if named on
+the panel — **Add their advisory committee members to the panel** does that in
+one step when scheduling. *Approval:* a university may add an **Advisory
+committee** step to the progress report chain (Settings → Approval chains; no
+other chain, 422 `committee_step_reports_only`). It is signed by the
+chairperson, or by any member from this university when the chair is an
+outside expert or none is named. While the chain has the step, that signer
+reads the scholar's progress reports; otherwise membership opens no records. A
+report cannot move into the step while the scholar's committee has no member
+from this university (422 `workflow_violation`), and the step cannot be taken
+out of the chain while a report under review still passes it (409
+`committee_step_in_use`). After 14 days the head or department admin may act
+in its place (F3). The supervisor cannot be
 added as a member (409 `supervisor_is_convener`); nobody twice in one version
 (409 `duplicate_member`).
 

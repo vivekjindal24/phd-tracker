@@ -6,7 +6,7 @@ export type GrievanceRole = "grievance_cell" | "ombudsperson";
 export type AssignedRole = "unit_head" | "admin" | OfficeRole | GrievanceRole;
 export type Role = "scholar" | "supervisor" | AssignedRole;
 export type CoSupervision = "off" | "view" | "approve";
-export type StepKind = "supervisor" | "department" | OfficeRole;
+export type StepKind = "supervisor" | "department" | OfficeRole | "committee";
 export type ItemType =
   | "progress_report"
   | "publication"
@@ -132,6 +132,7 @@ export const STEP_LABELS: Record<StepKind, string> = {
   exam_office: "Exam Office",
   library: "Library",
   vice_chancellor: "Vice Chancellor",
+  committee: "Advisory committee",
 };
 
 export const ITEM_LABELS: Record<ItemType, string> = {
@@ -386,6 +387,7 @@ export type SeminarDetail = SeminarRow & {
     report_state: ItemState | null;
     hardcopy_received_on: string | null;
     finalised_at: string | null;
+    committee: { name: string; role: CommitteeRole; external: boolean }[]; // the advisory committee
   }[];
   panel: { faculty_id: string; name: string; kind: "panel" | "attending" }[];
   can_manage: boolean;
@@ -1037,6 +1039,7 @@ export const COMMITTEE_SEAT_LABELS: Record<CommitteeSeat, string> = {
 };
 export type CommitteeMember = {
   id: string;
+  faculty_id: string | null; // a member from this university
   name: string;
   institution: string;
   email: string | null; // an outside member's; only for those who keep the committee

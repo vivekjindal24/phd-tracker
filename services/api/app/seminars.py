@@ -6,7 +6,7 @@ from datetime import date, datetime
 from sqlalchemy import ColumnElement, cast, literal, or_, select, true
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import scope
+from app import committee, scope
 from app.auth.principal import Principal
 from app.errors import ApiError, forbidden
 from app.models import (
@@ -41,6 +41,10 @@ def visible(principal: Principal, open_to_faculty: bool = False) -> ColumnElemen
         clauses.append(Seminar.unit_id.in_(scope.subtree_unit_ids(paths)))
     if principal.scholar_id:
         clauses.append(Seminar.id.in_(live_scholar_seminars(Scholar.id == principal.scholar_id)))
+    if principal.committee_of:  # their advisory committee scholars' seminars (PRD F9b)
+        clauses.append(
+            Seminar.id.in_(live_scholar_seminars(Scholar.id.in_(principal.committee_of)))
+        )
     fid = principal.faculty_id
     if fid and open_to_faculty:
         clauses.append(Seminar.status == "scheduled")
@@ -151,16 +155,18 @@ async def check_faculty(session: AsyncSession, faculty_ids: list[uuid.UUID]) -> 
 
 async def recipients(session: AsyncSession, seminar: Seminar, unit_path: str) -> list[uuid.UUID]:
     """Scholars, their supervisors (+co-supervisors when on), heads of the unit and every
-    unit above, and the panel (PRD F15)."""
+    unit above, the panel (PRD F15), and the scholars' advisory committee members from this
+    university (PRD F9b)."""
     co_on = (await session.scalar(select(Settings.co_supervision))) != "off"
     scholars = (
         await session.execute(
-            select(Scholar.user_id, Scholar.supervisor_id, Scholar.co_supervisor_id)
+            select(Scholar.id, Scholar.user_id, Scholar.supervisor_id, Scholar.co_supervisor_id)
             .join(SeminarScholar, SeminarScholar.scholar_id == Scholar.id)
             .where(SeminarScholar.seminar_id == seminar.id, SeminarScholar.deleted_at.is_(None))
         )
     ).all()
     faculty_ids = {s.supervisor_id for s in scholars if s.supervisor_id}
+    faculty_ids |= set(await committee.internal_members(session, [s.id for s in scholars]))
     if co_on:
         faculty_ids |= {s.co_supervisor_id for s in scholars if s.co_supervisor_id}
     faculty_ids |= set(

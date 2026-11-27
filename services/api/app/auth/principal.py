@@ -8,8 +8,10 @@ from datetime import UTC, datetime
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app import committee
 from app.enums import READ_ALL_ROLES
 from app.models import (
+    ApprovalChain,
     Faculty,
     OrgUnit,
     RoleAssignment,
@@ -43,6 +45,10 @@ class Principal:
     is_reviewer: bool = False
     # Supervisors (faculty ids) who named the caller as their stand-in for today.
     stands_in_for: tuple[uuid.UUID, ...] = ()
+    # Scholars on whose current advisory committee the caller sits (PRD F9b), and those whose
+    # committee step they sign — the latter only while the progress report chain has one.
+    committee_of: tuple[uuid.UUID, ...] = ()
+    committee_signs: tuple[uuid.UUID, ...] = ()
 
     @property
     def supervises(self) -> tuple[uuid.UUID, ...]:
@@ -85,6 +91,14 @@ class Principal:
         return any(unit_path == p or unit_path.startswith(p + ".") for p in self.unit_paths(role))
 
 
+async def committee_step_in_use(session: AsyncSession) -> bool:
+    """The university put the advisory committee step in the progress report chain."""
+    steps = await session.scalar(
+        select(ApprovalChain.steps).where(ApprovalChain.item_type == "progress_report")
+    )
+    return any(s["kind"] == "committee" for s in steps or [])
+
+
 async def load_principal(session: AsyncSession, user: User) -> Principal:
     assignments = (
         await session.execute(
@@ -121,7 +135,15 @@ async def load_principal(session: AsyncSession, user: User) -> Principal:
                 )
             )
         )
+    committee_of: tuple[uuid.UUID, ...] = ()
+    committee_signs: tuple[uuid.UUID, ...] = ()
+    if faculty:
+        committee_of, committee_signs = await committee.seats_of(session, faculty.id)
+        if committee_signs and not await committee_step_in_use(session):
+            committee_signs = ()
     return Principal(
+        committee_of=committee_of,
+        committee_signs=committee_signs,
         stands_in_for=stands_in_for,
         user_id=user.id,
         is_reviewer=user.is_reviewer,

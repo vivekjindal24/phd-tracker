@@ -72,7 +72,13 @@ SigningAction = Literal["approve", "send_back"]
 SIGNING_ACTIONS = get_args(SigningAction)
 
 StepKind = Literal[
-    "supervisor", "department", "research_office", "exam_office", "library", "vice_chancellor"
+    "supervisor",
+    "department",
+    "research_office",
+    "exam_office",
+    "library",
+    "vice_chancellor",
+    "committee",  # the scholar's advisory committee; progress report chain only (PRD F9b)
 ]
 STEP_KINDS = get_args(StepKind)
 

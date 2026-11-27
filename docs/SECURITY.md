@@ -404,7 +404,18 @@ do not read those fields on a scholar's page.
     supervisor) only a `unit_head` holds this step, not another admin: the
     HoD, or the Dean when the HoD is the proposer *(owner, 2026-11-22)*;
   - `research_office` / `exam_office` / `library` / `vice_chancellor` → any
-    holder of that role.
+    holder of that role;
+  - `committee` (progress report chain only, PRD F9b) → the chairperson of
+    the scholar's current advisory committee, or, when the chair is an outside
+    expert or none is named, any member from this university
+    (`committee.signer_ids`, loaded into `Principal.committee_signs` while the
+    chain has the step). That signer reads the scholar's progress reports
+    through `scope.scholar_predicate` — nothing else of the scholar. A
+    `unit_head` or `admin` over the scholar's unit acts in its place once the
+    item has not moved for 14 days (`workflow.ESCALATES_TO`), recorded on
+    behalf of the signer *(owner, 2026-11-27)*. Committee members from this
+    university (`Principal.committee_of`) also see their scholars' seminars
+    (`seminars.visible`); outside members have no login.
 - **No self-approval:** a user may not act on an item about themselves, and
   may not act on two consecutive steps of the same item, nor on the step
   right after their own submit or resubmit (the engine checks

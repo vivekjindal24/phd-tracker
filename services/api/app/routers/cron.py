@@ -209,8 +209,9 @@ async def _meetings_tomorrow(session: AsyncSession, today: date) -> int:
 
 async def _waiting_approvals(session: AsyncSession, today: date) -> tuple[int, int]:
     """PRD F3: an item nobody has moved for REMIND_AFTER_DAYS is brought back to the people of
-    its step (at the supervisor step also the department's admins, who can chase it); at
-    ESCALATE_AFTER_DAYS a supervisor-step item goes to the heads, who may now act on it."""
+    its step (at the supervisor or committee step also the department's admins, who can chase
+    it); at ESCALATE_AFTER_DAYS it goes to those who may now act in the step's place
+    (workflow.ESCALATES_TO)."""
     # ponytail: exact-day match like the other reminders here, and every in-review item is
     # read; track reminded rows / push the day test into SQL if either starts to matter.
     reminded = escalated = 0
@@ -244,16 +245,26 @@ async def _waiting_approvals(session: AsyncSession, today: date) -> tuple[int, i
                         " A supervisor who is away can name a stand-in under My account; after "
                         f"{workflow.ESCALATE_AFTER_DAYS} days the head of department may act."
                     )
+                if step == "committee":
+                    ids += await _unit_role_holders(session, path, "admin")
+                    body += (
+                        f" After {workflow.ESCALATE_AFTER_DAYS} days the head of department or "
+                        "the department admin may act for the committee."
+                    )
                 notify(session, ids, "approval_waiting", f"Still waiting: {label}", body, ctx.link)
                 reminded += 1
-            elif days == workflow.ESCALATE_AFTER_DAYS and step == "supervisor":
+            elif days == workflow.ESCALATE_AFTER_DAYS and step in workflow.ESCALATES_TO:
+                who = "supervisor" if step == "supervisor" else "advisory committee"
+                ids = []
+                for role in workflow.ESCALATES_TO[step]:
+                    ids += await _unit_role_holders(session, path, role)
                 notify(
                     session,
-                    await _unit_role_holders(session, path, "unit_head"),
+                    list(dict.fromkeys(ids)),
                     "approval_waiting",
                     f"Waiting {days} days: {label}",
-                    "The supervisor has not acted. As head you can now approve it or send it "
-                    "back in their place.",
+                    f"The {who} has not acted. You can now approve it or send it back in "
+                    "their place.",
                     ctx.link,
                 )
                 escalated += 1

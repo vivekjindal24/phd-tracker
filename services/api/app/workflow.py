@@ -12,6 +12,7 @@ from typing import Any, Protocol
 from sqlalchemy import cast, func, literal, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app import committee
 from app.auth.principal import Principal
 from app.crud import audit, snapshot
 from app.enums import INITIATOR, OFFICE_ROLES
@@ -46,6 +47,7 @@ STEP_LABELS = {
     "exam_office": "Exam Office",
     "library": "Library",
     "vice_chancellor": "Vice Chancellor",
+    "committee": "Advisory committee",
 }
 
 
@@ -103,8 +105,9 @@ def is_guide(principal: Principal, ctx: ItemContext) -> bool:
     )
 
 
-# A waiting item: the step's people are reminded after REMIND_AFTER_DAYS (daily job); at the
-# supervisor step the head may act in the supervisor's place after ESCALATE_AFTER_DAYS (PRD F3).
+# A waiting item: the step's people are reminded after REMIND_AFTER_DAYS (daily job); after
+# ESCALATE_AFTER_DAYS the head may act in the supervisor's place (PRD F3), and the head or the
+# department admin in the advisory committee's (owner, 2026-11-27).
 REMIND_AFTER_DAYS = 7
 ESCALATE_AFTER_DAYS = 14
 
@@ -137,6 +140,8 @@ def holds_step(principal: Principal, ctx: ItemContext, kind: str) -> bool:
         return principal.covers("unit_head", path) or (
             not _head_signs(ctx) and principal.covers("admin", path)
         )
+    if kind == "committee":  # the chair, or a member from this university (committee.signer_ids)
+        return ctx.scholar.id in principal.committee_signs
     return kind in OFFICE_ROLES and kind in principal.office_roles
 
 
@@ -152,16 +157,19 @@ async def _last_action(session: AsyncSession, ctx: ItemContext) -> ApprovalActio
     )
 
 
+ESCALATES_TO = {"supervisor": ("unit_head",), "committee": ("unit_head", "admin")}
+
+
 def _head_steps_in(
     principal: Principal, ctx: ItemContext, kind: str, last: ApprovalActionRow | None
 ) -> bool:
-    """Escalation: a head over the scholar's unit acts at a supervisor step nobody has moved
-    for ESCALATE_AFTER_DAYS."""
+    """Escalation: at a supervisor or advisory committee step nobody has moved for
+    ESCALATE_AFTER_DAYS, those of ESCALATES_TO over the scholar's unit act instead."""
     return (
-        kind == "supervisor"
+        kind in ESCALATES_TO
         and last is not None
         and principal.user_id != ctx.scholar.user_id
-        and principal.covers("unit_head", ctx.scholar_unit_path)
+        and any(principal.covers(role, ctx.scholar_unit_path) for role in ESCALATES_TO[kind])
         and datetime.now(UTC) - last.at >= timedelta(days=ESCALATE_AFTER_DAYS)
     )
 
@@ -241,6 +249,10 @@ async def step_actor_ids(
             return []
         nearest = max(level for _, level in rows)
         return [uid for uid, level in rows if level == nearest]
+    if kind == "committee":
+        fids = await committee.signers(session, ctx.scholar.id)
+        rows = await session.scalars(select(Faculty.user_id).where(Faculty.id.in_(fids)))
+        return [u for u in rows if u != actor]
     rows = await session.scalars(
         select(RoleAssignment.user_id).where(
             RoleAssignment.role == kind,
@@ -301,16 +313,18 @@ async def _transition(
 ) -> None:
     prev = snapshot(ctx.item)  # type: ignore[arg-type]
     from_state = ctx.item.state
-    # A stand-in or the head at the supervisor step: the record names whose place they took.
+    # A stand-in or the head at the supervisor step, the head or admin at the committee step:
+    # the record names whose place they took (the committee's: its signer, the chair first).
     behalf = None
-    if (
-        step_index is not None
-        and current_kind(ctx) == "supervisor"
-        and not _is_step_supervisor(principal, ctx)
-    ):
+    kind_now = current_kind(ctx) if step_index is not None else None
+    if kind_now == "supervisor" and not _is_step_supervisor(principal, ctx):
         behalf = await session.scalar(
             select(Faculty.user_id).where(Faculty.id == ctx.scholar.supervisor_id)
         )
+    if kind_now == "committee" and ctx.scholar.id not in principal.committee_signs:
+        signers = await committee.signers(session, ctx.scholar.id)
+        if signers:
+            behalf = await session.scalar(select(Faculty.user_id).where(Faculty.id == signers[0]))
     for key, value in changes.items():
         setattr(ctx.item, key, value)
     _record(
@@ -318,6 +332,11 @@ async def _transition(
     )
     await session.flush()
     await session.refresh(ctx.item)
+    if current_kind(ctx) == "committee" and not await committee.signers(session, ctx.scholar.id):
+        raise violation(
+            "This scholar's advisory committee has no member from this university to sign for "
+            "it. Ask the department admin to record the committee first."
+        )
     audit(
         session,
         principal,

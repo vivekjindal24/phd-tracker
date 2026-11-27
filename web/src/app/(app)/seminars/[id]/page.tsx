@@ -10,7 +10,7 @@ import { RequestMember } from "@/components/RequestMember";
 import { Button, Card, ErrorText, PageHeader, Table } from "@/components/ui/kit";
 import { api } from "@/lib/api";
 import { formatDate, formatWhen } from "@/lib/format";
-import { SEMINAR_KIND_LABELS } from "@/lib/types";
+import { COMMITTEE_ROLE_LABELS, SEMINAR_KIND_LABELS } from "@/lib/types";
 import type { SeminarDetail } from "@/lib/types";
 import { errorText, useFetch } from "@/lib/useFetch";
 import "../seminars.css";
@@ -98,6 +98,24 @@ export default function SeminarPage() {
                 ))}
               </ul>
             )}
+          </Card>
+          <Card>
+            <h2>Advisory committees</h2>
+            <p className="muted">Each scholar&apos;s committee is told of the seminar and may attend; it is not the panel unless named there.</p>
+            {s.scholars.map((x) => (
+              <section key={x.scholar.id} className="committee-of" aria-label={`Advisory committee of ${x.scholar.name}`}>
+                <h3>{x.scholar.name}</h3>
+                {x.committee.length === 0 ? <p className="muted">No committee recorded.</p> : (
+                  <ul className="panel-list">
+                    {x.committee.map((m) => (
+                      <li key={`${m.name}-${m.role}`}>
+                        {m.name} <span className="muted">· {COMMITTEE_ROLE_LABELS[m.role]}{m.external && " · outside expert"}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </section>
+            ))}
           </Card>
           {s.can_manage && !cancelled && <NoticeCard base={`/seminars/${s.id}`} what="seminar" department={s.unit.name} />}
           {s.can_attend && (

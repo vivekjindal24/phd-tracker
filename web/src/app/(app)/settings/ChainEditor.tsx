@@ -8,6 +8,8 @@ import type { Save } from "./save";
 
 const MAX_STEPS = 8;
 const KINDS = Object.keys(STEP_LABELS) as StepKind[];
+// The advisory committee reviews progress reports only; the API refuses it elsewhere.
+const kindsFor = (itemType: ItemType) => KINDS.filter((k) => k !== "committee" || itemType === "progress_report");
 
 function ChainRow({
   itemType,
@@ -65,7 +67,7 @@ function ChainRow({
       <div className="chain-controls">
         <label className="visually-hidden" htmlFor={`add-${itemType}`}>Step to add</label>
         <select id={`add-${itemType}`} value={adding} onChange={(e) => setAdding(e.target.value as StepKind)}>
-          {KINDS.map((k) => (
+          {kindsFor(itemType).map((k) => (
             <option key={k} value={k}>{STEP_LABELS[k]}</option>
           ))}
         </select>

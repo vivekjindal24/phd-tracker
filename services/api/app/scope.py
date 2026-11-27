@@ -56,6 +56,10 @@ def scholar_predicate(principal: Principal, entity: str) -> ColumnElement[bool]:
     paths = _unit_paths(principal, roles)
     if paths:
         clauses.append(Scholar.unit_id.in_(subtree_unit_ids(paths)))
+    if entity == "progress_reports" and principal.committee_signs:
+        # Whoever signs a scholar's advisory committee step reads their progress reports,
+        # while the university uses that step (PRD F9b).
+        clauses.append(Scholar.id.in_(principal.committee_signs))
     return or_(*clauses) if clauses else false()
 
 
