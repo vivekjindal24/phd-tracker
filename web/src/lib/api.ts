@@ -1,7 +1,7 @@
 /**
  * API client (SECURITY.md §1, UX Flow 0).
- * - access token in memory only; refresh token in localStorage (known tradeoff, SECURITY.md §7:
- *   upgrade path = httpOnly cookie behind a Next route-handler proxy)
+ * - access token in memory only; the refresh token is an httpOnly cookie the API sets and only
+ *   the browser can send (SECURITY.md §7) — scripts here never see it
  * - a 401 triggers ONE refresh-and-replay; refresh tokens are single-use, so concurrent 401s
  *   share one in-flight refresh
  * - requests slower than WAKE_AFTER_MS raise the "waking up the server" signal
@@ -9,7 +9,11 @@
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 const EXPORT_URL = process.env.NEXT_PUBLIC_EXPORT_URL ?? "";
-const REFRESH_KEY = "anveshan.refresh";
+// Not a secret: only whether this browser signed in, so a visitor who never did makes no
+// pointless refresh call on each page load.
+const SIGNED_IN_KEY = "anveshan.signedIn";
+const LEGACY_REFRESH_KEY = "anveshan.refresh"; // where the token sat before the cookie (removed)
+const WITH_COOKIE: RequestInit = { credentials: "include" }; // the API differs in origin in dev
 const WAKE_AFTER_MS = 3000;
 
 export class ApiError extends Error {
@@ -45,25 +49,22 @@ export function onBusy(listener: (busy: boolean) => void): () => void {
   return () => busyListeners.delete(listener);
 }
 
-function readRefresh(): string | null {
+function setSignedIn(signedIn: boolean) {
   try {
-    return localStorage.getItem(REFRESH_KEY);
+    localStorage.removeItem(LEGACY_REFRESH_KEY);
+    if (signedIn) localStorage.setItem(SIGNED_IN_KEY, "1");
+    else localStorage.removeItem(SIGNED_IN_KEY);
   } catch {
-    return null; // storage blocked: the user simply logs in each visit
-  }
-}
-
-function writeRefresh(token: string | null) {
-  try {
-    if (token) localStorage.setItem(REFRESH_KEY, token);
-    else localStorage.removeItem(REFRESH_KEY);
-  } catch {
-    // storage blocked: session lasts for this tab only
+    // storage blocked: the session still renews while this tab is open
   }
 }
 
 export function hasStoredSession(): boolean {
-  return readRefresh() !== null;
+  try {
+    return localStorage.getItem(SIGNED_IN_KEY) !== null;
+  } catch {
+    return false; // storage blocked: the user simply logs in each visit
+  }
 }
 
 async function send(
@@ -107,20 +108,19 @@ async function toError(res: Response): Promise<ApiError> {
   return new ApiError(res.status, "http_error", `The server answered ${res.status}.`);
 }
 
-type Tokens = { access_token: string; refresh_token: string };
+type Tokens = { access_token: string };
 
 function store(tokens: Tokens) {
   accessToken = tokens.access_token;
-  writeRefresh(tokens.refresh_token);
+  setSignedIn(true);
 }
 
 async function refresh(): Promise<boolean> {
-  const token = readRefresh();
-  if (!token) return false;
+  if (!hasStoredSession()) return false;
   refreshInFlight ??= (async () => {
-    const res = await send("/auth/refresh", { method: "POST", body: JSON.stringify({ refresh_token: token }) }, null);
+    const res = await send("/auth/refresh", { ...WITH_COOKIE, method: "POST" }, null);
     if (!res.ok) {
-      writeRefresh(null);
+      setSignedIn(false);
       accessToken = null;
       return false;
     }
@@ -132,7 +132,13 @@ async function refresh(): Promise<boolean> {
   return refreshInFlight;
 }
 
+/** After a page load the access token is gone: renew first rather than send a doomed request. */
+async function ensureToken(): Promise<void> {
+  if (!accessToken) await refresh();
+}
+
 async function request(path: string, init: RequestInit): Promise<Response> {
+  await ensureToken();
   let res = await send(path, init, accessToken);
   if (res.status === 401 && (await refresh())) {
     res = await send(path, init, accessToken);
@@ -159,6 +165,7 @@ async function fetchFile(path: string, from: "export" | "api"): Promise<Response
   if (!base && from === "export") {
     throw new ApiError(0, "config_error", "PDF and CSV exports are not set up on this server yet.");
   }
+  await ensureToken();
   let res = await send(path, {}, accessToken, base);
   if (res.status === 401 && (await refresh())) {
     res = await send(path, {}, accessToken, base);
@@ -185,7 +192,7 @@ export async function download(path: string, from: "export" | "api" = "export"):
 
 /** Any endpoint that answers with a token pair: password login, SSO code, set-password link. */
 async function obtainTokens(path: string, body: object): Promise<string[] | null> {
-  const res = await send(path, { method: "POST", body: JSON.stringify(body) }, null);
+  const res = await send(path, { ...WITH_COOKIE, method: "POST", body: JSON.stringify(body) }, null);
   if (!res.ok) throw await toError(res);
   const tokens = await res.json();
   store(tokens);
@@ -210,12 +217,9 @@ export function ssoStartUrl(provider: string): string {
 }
 
 export async function logout(): Promise<void> {
-  const token = readRefresh();
   accessToken = null;
-  writeRefresh(null);
-  if (token) {
-    await send("/auth/logout", { method: "POST", body: JSON.stringify({ refresh_token: token }) }, null);
-  }
+  setSignedIn(false);
+  await send("/auth/logout", { ...WITH_COOKIE, method: "POST" }, null); // revokes, drops the cookie
 }
 
 export const json = (body: unknown): RequestInit => ({ body: JSON.stringify(body) });

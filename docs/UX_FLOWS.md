@@ -11,9 +11,9 @@
    a visitor with a valid session goes straight to `/home`. The wordmark on
    `/login` links back to `/`.
 2. Email + password → `POST /api/v1/auth/login` → access token in memory,
-   refresh token in localStorage. When configured, **Continue with Google /
+   refresh token in an httpOnly cookie (SECURITY.md §7). When configured, **Continue with Google /
    Microsoft** → provider → back to `/login` with a one-time code exchanged
-   for the same token pair. **Forgot password?** emails a set-password link
+   for the same tokens. **Forgot password?** emails a set-password link
    (same message whether or not the email exists). `/auth/me` returns role assignments and
    enabled modules.
 3. Navigation shows the union of the user's roles, grouped: **My work**

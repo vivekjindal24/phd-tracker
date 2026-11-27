@@ -105,7 +105,8 @@
   (never localStorage, never a cookie). Claims carry only `sub` — roles and
   scope are loaded from the DB per request, so a revoked role takes effect
   immediately.
-- **Refresh token:** 48-byte urlsafe random; DB stores only its sha256 hash.
+- **Refresh token:** 48-byte urlsafe random; DB stores only its sha256 hash;
+  the browser holds it in an httpOnly cookie scripts cannot read (§7).
   Single-use, rotating; `POST /auth/logout` revokes it.
 - **Password hashing:** argon2id (RFC 9106 low-memory profile).
 - **Accounts** are created by admins (within their unit) or by admission
@@ -499,12 +500,20 @@ do not read those fields on a scholar's page.
   migration 0058 scrubbed rows written before). The audit-log page shows no row
   about a grievance or its papers to anyone, as for drafts.
 
-## 7. Token Storage Tradeoff (known, accepted)
+## 7. Token Storage
 
-The refresh token sits in localStorage: an XSS bug could steal it. Judged
-low-risk for a closed tool with no third-party scripts, and the CSP (§6) stops
-injected script from running. **Upgrade path:**
-httpOnly SameSite=Strict cookie behind a Next route-handler proxy.
+The access token lives only in the page's memory. The refresh token never
+reaches page scripts: the API sets it as the cookie `anveshan_refresh` —
+httpOnly, `SameSite=Strict`, `Path=/api/v1/auth`, `Secure` when `APP_BASE_URL`
+is https, lasting `refresh_token_days` — on login, set-password, SSO exchange
+and each renewal, and `/auth/refresh` and `/auth/logout` read it from there
+(logout also drops it). No response body carries it. An injected script could
+still act while its page is open but cannot carry the session away. SameSite
+keeps other sites from sending the cookie, and CORS (credentials allowed for
+the listed origins only) keeps them from reading a renewal's answer. The web
+keeps only a non-secret "signed in" flag in localStorage, so a visitor who
+never signed in makes no renewal call. Sessions signed in before 2026-11-27
+(token in localStorage) end once: that key is removed and people sign in again.
 
 ## 8. Data Protection
 
@@ -599,7 +608,7 @@ Verified 2026-10-25 (code, tests and the approval-chain click-through):
       its item types, unshared meeting minutes, disabled module
 - [x] No self-approval / consecutive-step approval
 - [x] Admins cannot grant roles above their own unit
-- [x] Rotating single-use refresh tokens; login throttling
+- [x] Rotating single-use refresh tokens in an httpOnly cookie; login throttling
 - [ ] `require_two_factor` switched on at every live university install
 - [ ] Off-site backup configured and `run.sh fetch` tried at every live install
 - [x] Private bucket; presigned URLs only after `get_or_403`

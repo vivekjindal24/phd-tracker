@@ -7,9 +7,10 @@ import pytest
 from sqlalchemy import select
 
 from app import notify
+from app.auth.service import REFRESH_COOKIE
 from app.config import Smtp, settings
 from app.models import AuditLog, RefreshToken, User
-from tests.conftest import auth
+from tests.conftest import auth, refresh_with
 
 SMTP = Smtp(host="smtp.test", port=587, user="u", password="p", mail_from="noreply@x.edu")
 
@@ -127,10 +128,10 @@ async def test_set_password_logs_out_other_devices(client, session, world, outbo
     login = await client.post(
         "/api/v1/auth/login", json={"email": "meera@x.edu", "password": "correct-horse-battery"}
     )
-    old_refresh = login.json()["refresh_token"]
+    old_refresh = login.cookies[REFRESH_COOKIE]
     await client.post("/api/v1/auth/forgot-password", json={"email": "meera@x.edu"})
     await _set(client, _token(outbox[0]))
-    res = await client.post("/api/v1/auth/refresh", json={"refresh_token": old_refresh})
+    res = await refresh_with(client, old_refresh)
     assert res.status_code == 401
     live = await session.scalars(
         select(RefreshToken).where(

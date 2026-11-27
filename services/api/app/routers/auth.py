@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request, Response
 from fastapi.responses import RedirectResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -7,6 +7,7 @@ from app import dates, privacy
 from app.auth import service, sso
 from app.auth.deps import any_principal, current_principal
 from app.auth.principal import Principal
+from app.config import settings
 from app.crud import update
 from app.db import get_session
 from app.enums import SsoProvider
@@ -14,37 +15,71 @@ from app.errors import ApiError
 from app.models import Module, OrgUnit, User
 from app.notify import unread_count, whatsapp_configured
 from app.schemas import (
+    AccessToken,
     ChangePasswordIn,
     EmailMutedIn,
     ForgotPasswordIn,
     LoginIn,
     MeOut,
-    RefreshIn,
     SetPasswordIn,
     SsoExchangeIn,
-    TokenPair,
     UnitRoleOut,
     WhatsappIn,
 )
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
+# The refresh token lives only in this cookie (SECURITY.md §7): httpOnly, so no script can read
+# it; SameSite=Strict, so no other site can make the browser send it; and sent only to these
+# routes. Secure wherever the portal is served over https.
+REFRESH_COOKIE = service.REFRESH_COOKIE
+COOKIE_PATH = "/api/v1/auth"
 
-@router.post("/login", response_model=TokenPair)
-async def login(body: LoginIn, session: AsyncSession = Depends(get_session)) -> TokenPair:
+
+def _signed_in(
+    response: Response, access: str, refresh: str, recovery: list[str] | None = None
+) -> AccessToken:
+    response.set_cookie(
+        REFRESH_COOKIE,
+        refresh,
+        max_age=settings.refresh_token_days * 86_400,
+        path=COOKIE_PATH,
+        secure=settings.app_base_url.startswith("https://"),
+        httponly=True,
+        samesite="strict",
+    )
+    return AccessToken(access_token=access, recovery_codes=recovery)
+
+
+def _expired() -> ApiError:
+    return ApiError(401, "invalid_token", "Your session has expired. Please log in.")
+
+
+@router.post("/login", response_model=AccessToken)
+async def login(
+    body: LoginIn, response: Response, session: AsyncSession = Depends(get_session)
+) -> AccessToken:
     access, refresh, recovery = await service.login(session, body.email, body.password, body.code)
-    return TokenPair(access_token=access, refresh_token=refresh, recovery_codes=recovery)
+    return _signed_in(response, access, refresh, recovery)
 
 
-@router.post("/refresh", response_model=TokenPair)
-async def refresh(body: RefreshIn, session: AsyncSession = Depends(get_session)) -> TokenPair:
-    access, new_refresh = await service.rotate_refresh(session, body.refresh_token)
-    return TokenPair(access_token=access, refresh_token=new_refresh)
+@router.post("/refresh", response_model=AccessToken)
+async def refresh(
+    request: Request, response: Response, session: AsyncSession = Depends(get_session)
+) -> AccessToken:
+    if not (raw := request.cookies.get(REFRESH_COOKIE)):
+        raise _expired()
+    access, new_refresh = await service.rotate_refresh(session, raw)
+    return _signed_in(response, access, new_refresh)
 
 
 @router.post("/logout", status_code=204)
-async def logout(body: RefreshIn, session: AsyncSession = Depends(get_session)) -> None:
-    await service.revoke_refresh(session, body.refresh_token)
+async def logout(
+    request: Request, response: Response, session: AsyncSession = Depends(get_session)
+) -> None:
+    if raw := request.cookies.get(REFRESH_COOKIE):
+        await service.revoke_refresh(session, raw)
+    response.delete_cookie(REFRESH_COOKIE, path=COOKIE_PATH, httponly=True, samesite="strict")
 
 
 @router.post("/forgot-password", status_code=204)
@@ -54,17 +89,17 @@ async def forgot_password(
     await service.forgot_password(session, body.email)
 
 
-@router.post("/set-password", response_model=TokenPair)
+@router.post("/set-password", response_model=AccessToken)
 async def set_password(
-    body: SetPasswordIn, session: AsyncSession = Depends(get_session)
-) -> TokenPair:
+    body: SetPasswordIn, response: Response, session: AsyncSession = Depends(get_session)
+) -> AccessToken:
     """Consumes an invite / reset link and logs the person straight in."""
     user_id = await service.set_password_with_link(session, body.token, body.password)
     if await service.two_factor_required(session):  # an emailed link must not skip the code
         await session.commit()
         raise ApiError(403, "login_required", "Your password is set. Log in with it to continue.")
     access, refresh = await service.issue_tokens(session, user_id)
-    return TokenPair(access_token=access, refresh_token=refresh)
+    return _signed_in(response, access, refresh)
 
 
 @router.get("/sso/providers", response_model=list[SsoProvider])
@@ -92,13 +127,13 @@ async def sso_callback(
     )
 
 
-@router.post("/sso/exchange", response_model=TokenPair)
+@router.post("/sso/exchange", response_model=AccessToken)
 async def sso_exchange(
-    body: SsoExchangeIn, session: AsyncSession = Depends(get_session)
-) -> TokenPair:
+    body: SsoExchangeIn, response: Response, session: AsyncSession = Depends(get_session)
+) -> AccessToken:
     user_id = await sso.exchange(session, body.code)
     access, refresh = await service.issue_tokens(session, user_id)
-    return TokenPair(access_token=access, refresh_token=refresh)
+    return _signed_in(response, access, refresh)
 
 
 @router.get("/me", response_model=MeOut)

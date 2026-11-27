@@ -270,6 +270,9 @@ remove a point only when the behaviour itself changes.
   scraping or guessing passwords across many accounts.
 - **A whole campus can share one internet address**, so the 300 is shared by everyone on
   it who has not signed in yet (the login page, the privacy notice, certificate checks).
+- **The sign-in that keeps people logged in is kept where the page's own code cannot read
+  it** (an httpOnly cookie), so a flaw in a page cannot carry a session off to another
+  computer. Everyone signed in before 27 Nov 2026 signs in once more after this update.
 - **The pages run only Anveshan's own code**: no outside scripts, fonts or trackers, and
   the portal cannot be shown inside another site's frame. Adding analytics or a chat
   widget later needs a change to the page security policy.

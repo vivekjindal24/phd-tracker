@@ -25,6 +25,7 @@ log = logging.getLogger("anveshan.auth")
 # RFC 9106 second recommended (low-memory) profile: t=3, m=64 MiB, p=4.
 _hasher = PasswordHasher(time_cost=3, memory_cost=64 * 1024, parallelism=4)
 JWT_ALGORITHM = "HS256"
+REFRESH_COOKIE = "anveshan_refresh"  # the only place a refresh token travels (routers/auth.py)
 THROTTLE_MAX_FAILURES = 5
 THROTTLE_WINDOW = timedelta(minutes=15)
 PASSWORD_LINK_TTL = timedelta(hours=72)

@@ -81,13 +81,11 @@ class LoginIn(BaseModel):
     ) = None
 
 
-class RefreshIn(BaseModel):
-    refresh_token: str = Field(min_length=1, max_length=200)
+class AccessToken(BaseModel):
+    """The refresh token never appears here: it travels only in an httpOnly cookie
+    (routers/auth.py), out of reach of the page's scripts (SECURITY.md §7)."""
 
-
-class TokenPair(BaseModel):
     access_token: str
-    refresh_token: str
     token_type: str = "bearer"  # noqa: S105 — OAuth token type, not a secret
     recovery_codes: list[str] | None = None  # shown once, at two-factor setup
 

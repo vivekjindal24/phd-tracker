@@ -2,8 +2,9 @@ import pytest
 from sqlalchemy import select, update
 
 from app.auth import service
+from app.auth.service import REFRESH_COOKIE
 from app.models import AuditLog, User
-from tests.conftest import auth
+from tests.conftest import auth, refresh_with
 from tests.world import PASSWORD
 
 
@@ -11,10 +12,25 @@ async def _login(client, email, password=PASSWORD):
     return await client.post("/api/v1/auth/login", json={"email": email, "password": password})
 
 
-async def test_login_returns_token_pair(client, world):
+async def test_login_gives_an_access_token_and_a_refresh_cookie(client, world):
     res = await _login(client, "scholar_a1@x.edu")
     assert res.status_code == 200
-    assert res.json()["access_token"] and res.json()["refresh_token"]
+    assert res.json()["access_token"] and "refresh_token" not in res.json()
+    cookie = res.headers["set-cookie"]
+    assert cookie.startswith(f"{REFRESH_COOKIE}=")
+    for flag in ("HttpOnly", "SameSite=strict", "Path=/api/v1/auth", "Max-Age="):
+        assert flag in cookie, cookie
+    assert "Secure" not in cookie  # APP_BASE_URL is http in tests; https installs add it
+
+
+async def test_refresh_reads_the_cookie_and_rotates_it(client, world):
+    first = (await _login(client, "scholar_a1@x.edu")).cookies[REFRESH_COOKIE]
+    res = await client.post("/api/v1/auth/refresh")  # the client sends the cookie it was given
+    assert res.status_code == 200 and res.json()["access_token"]
+    assert res.cookies[REFRESH_COOKIE] != first
+    assert (await client.post("/api/v1/auth/refresh")).status_code == 200
+    client.cookies.clear()
+    assert (await client.post("/api/v1/auth/refresh")).status_code == 401
 
 
 async def test_login_is_case_insensitive_on_email(client, world):
@@ -43,20 +59,17 @@ async def test_inactive_user_cannot_log_in(client, world, session):
 
 
 async def test_refresh_token_is_single_use(client, world):
-    first = (await _login(client, "scholar_a1@x.edu")).json()["refresh_token"]
-    rotated = await client.post("/api/v1/auth/refresh", json={"refresh_token": first})
-    assert rotated.status_code == 200
-    replay = await client.post("/api/v1/auth/refresh", json={"refresh_token": first})
-    assert replay.status_code == 401
+    first = (await _login(client, "scholar_a1@x.edu")).cookies[REFRESH_COOKIE]
+    assert (await refresh_with(client, first)).status_code == 200
+    assert (await refresh_with(client, first)).status_code == 401
 
 
 async def test_logout_revokes_refresh_token(client, world):
-    token = (await _login(client, "scholar_a1@x.edu")).json()["refresh_token"]
-    assert (
-        await client.post("/api/v1/auth/logout", json={"refresh_token": token})
-    ).status_code == 204
-    res = await client.post("/api/v1/auth/refresh", json={"refresh_token": token})
-    assert res.status_code == 401
+    token = (await _login(client, "scholar_a1@x.edu")).cookies[REFRESH_COOKIE]
+    out = await refresh_with(client, token, "logout")
+    assert out.status_code == 204
+    assert f'{REFRESH_COOKIE}=""' in out.headers["set-cookie"]  # the browser drops it
+    assert (await refresh_with(client, token)).status_code == 401
 
 
 async def test_missing_or_garbage_token_is_401(client, world):
@@ -87,16 +100,14 @@ async def test_me_for_root_admin_and_scholar(client, world):
 
 
 async def test_change_password_revokes_sessions_and_redacts_audit(client, world, session):
-    refresh = (await _login(client, "scholar_a1@x.edu")).json()["refresh_token"]
+    refresh = (await _login(client, "scholar_a1@x.edu")).cookies[REFRESH_COOKIE]
     res = await client.post(
         "/api/v1/auth/change-password",
         json={"current_password": PASSWORD, "new_password": "a-brand-new-passphrase"},
         headers=auth(world.scholar_a1.id),
     )
     assert res.status_code == 204
-    assert (
-        await client.post("/api/v1/auth/refresh", json={"refresh_token": refresh})
-    ).status_code == 401
+    assert (await refresh_with(client, refresh)).status_code == 401
     assert (await _login(client, "scholar_a1@x.edu", "a-brand-new-passphrase")).status_code == 200
     row = await session.scalar(
         select(AuditLog).where(AuditLog.record_id == str(world.scholar_a1.id))

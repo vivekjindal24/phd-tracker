@@ -170,6 +170,16 @@ async def unassign_supervisor(session, scholar_id) -> None:
     await session.commit()
 
 
+async def refresh_with(client: AsyncClient, token: str, path: str = "refresh"):
+    """POST /auth/<path> carrying exactly this refresh cookie, whatever the client holds."""
+    from app.auth.service import REFRESH_COOKIE
+
+    client.cookies.clear()
+    return await client.post(
+        f"/api/v1/auth/{path}", headers={"Cookie": f"{REFRESH_COOKIE}={token}"}
+    )
+
+
 def auth(user_id) -> dict[str, str]:
     return {"Authorization": f"Bearer {create_access_token(user_id)}"}
 

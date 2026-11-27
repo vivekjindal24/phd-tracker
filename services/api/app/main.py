@@ -79,7 +79,7 @@ app.add_middleware(BaseHTTPMiddleware, dispatch=ratelimit.limit)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=list(settings.cors_origins),
-    allow_credentials=False,  # bearer tokens, no cookies
+    allow_credentials=True,  # the refresh cookie (routers/auth.py); origins are explicit
     allow_methods=["GET", "POST", "PATCH", "PUT", "DELETE"],
     allow_headers=["Authorization", "Content-Type"],
     # the web reads list totals, and a download's file name, cross-origin

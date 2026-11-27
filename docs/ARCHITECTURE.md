@@ -78,7 +78,7 @@ Garage container).
 
 ```
 Browser (web)
-   │  Bearer access JWT (memory) + refresh token (localStorage)
+   │  Bearer access JWT (memory) + refresh token (httpOnly cookie)
    ├──────────────► services/api ──► Postgres (schema core)
    │                   │   ▲  /internal/*, caller's token forwarded
    │                   │   └──────── services/export ◄── PDF/CSV download
@@ -255,4 +255,4 @@ keep-alive: it runs once a day.
 | Optional modules as a settings table | not every university needs grants/admissions; disabled = invisible + 404 |
 | JWT + rotating refresh over server sessions | stateless API; works on any host |
 | Docker images for every service | the same build runs on the demo laptop and on a university's NAS |
-| Access token in memory, refresh in localStorage | XSS-theft risk judged low for a closed tool; upgrade path in SECURITY.md |
+| Access token in memory, refresh in an httpOnly cookie | no page script can read the long-lived token (SECURITY.md §7) |

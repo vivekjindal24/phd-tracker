@@ -39,8 +39,7 @@ PUBLIC = frozenset(
         "GET /privacy",  # the privacy notice, read before signing in too
         "GET /verify/{token}",
         "POST /auth/login",
-        "POST /auth/refresh",
-        "POST /auth/logout",
+        "POST /auth/logout",  # (POST /auth/refresh is a 401 without its session cookie)
         "POST /auth/forgot-password",
         "POST /auth/set-password",
         "GET /auth/sso/providers",

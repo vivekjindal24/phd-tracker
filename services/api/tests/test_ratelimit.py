@@ -4,6 +4,7 @@ over it, a 429 in the usual envelope with Retry-After, still carrying CORS heade
 from app import ratelimit
 from app.config import settings
 from tests.conftest import auth
+from tests.world import PASSWORD
 
 
 async def test_over_the_limit_is_refused_per_key(client, world, monkeypatch):
@@ -24,6 +25,20 @@ async def test_over_the_limit_is_refused_per_key(client, world, monkeypatch):
 
     assert [await me(world.scholar_a1) for _ in range(4)] == [200, 200, 200, 429]
     assert await me(world.admin_a1) == 200
+
+    # Renewing a session is counted per session, not per address (a campus shares one).
+    login = await client.post(
+        "/api/v1/auth/login", json={"email": "meera@x.edu", "password": PASSWORD}
+    )
+    assert login.status_code == 429  # this address is over its count
+    ratelimit.reset()
+    assert (
+        await client.post("/api/v1/auth/login", json={"email": "meera@x.edu", "password": PASSWORD})
+    ).status_code == 200
+    for _ in range(2):  # with the login, the address's count is used up
+        assert (await client.get("/api/v1/privacy")).status_code == 200
+    assert (await client.post("/api/v1/auth/refresh")).status_code == 200
+    assert (await client.get("/api/v1/privacy")).status_code == 429
 
     # Health checks are never limited.
     assert (await client.get("/api/v1/healthz")).status_code == 200
