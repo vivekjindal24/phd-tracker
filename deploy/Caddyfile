@@ -2,6 +2,17 @@
 # Automatic HTTPS when SCHEME=https; SCHEME=http only for a local trial.
 # Caddy serves LISTEN_SCHEME, which is SCHEME except behind a tunnel that ends TLS
 # (compose.tunnel.yml): there public URLs stay SCHEME and Caddy serves plain http.
+# The client's own address, for the API's request limit (services/api/app/ratelimit.py).
+# Directly on the internet it is the connecting address. Behind a tunnel (compose.tunnel.yml)
+# every request arrives from cloudflared, so the address Cloudflare saw is taken from
+# Cf-Connecting-Ip, trusted only from TRUSTED_PROXIES. Default: no proxy is trusted.
+{
+	servers {
+		trusted_proxies static {$TRUSTED_PROXIES:127.0.0.1/32}
+		client_ip_headers Cf-Connecting-Ip
+	}
+}
+
 {$LISTEN_SCHEME}://{$DOMAIN} {
 	encode zstd gzip
 	header {
@@ -13,7 +24,10 @@
 		-Server
 	}
 	handle /api/* {
-		reverse_proxy api:8900
+		reverse_proxy api:8900 {
+			# One address, not a list a client could start with a forged entry.
+			header_up X-Forwarded-For {client_ip}
+		}
 	}
 	handle_path /export/* {
 		reverse_proxy export:8902

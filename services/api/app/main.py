@@ -3,8 +3,9 @@ import logging
 from fastapi import APIRouter, Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.middleware.base import BaseHTTPMiddleware
 
-from app import dates
+from app import dates, ratelimit
 from app.config import settings
 from app.db import get_session
 from app.errors import install_error_handlers
@@ -73,6 +74,8 @@ async def _date_format(session: AsyncSession = Depends(get_session)) -> None:
 
 app = FastAPI(title="Anveshan API", version="0.1.0", dependencies=[Depends(_date_format)])
 logging.getLogger("anveshan").info("CORS allowed origins: %s", list(settings.cors_origins))
+# Added before CORS so it runs inside it: a 429 still carries the CORS headers the web needs.
+app.add_middleware(BaseHTTPMiddleware, dispatch=ratelimit.limit)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=list(settings.cors_origins),

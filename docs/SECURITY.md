@@ -474,6 +474,23 @@ do not read those fields on a scholar's page.
   scanned.
 - **CORS:** explicit origin allowlist (`CORS_ORIGINS`) on API and export —
   never `*`.
+- **Request limit** (`ratelimit.py`): every route but `/healthz` counts
+  requests per minute — 600 per signed-in user (valid bearer token), else 300
+  per client address — and answers 429 `rate_limited` with `Retry-After` past
+  that. It sits inside CORS, so the web can read the 429. On top of the
+  per-email login throttle (§1); counts live in the API process (one replica).
+  The client address is the one Caddy hands on as a single `X-Forwarded-For`
+  value: the connecting address, or behind the Cloudflare Tunnel
+  `Cf-Connecting-Ip`, trusted only from `TRUSTED_PROXIES` (set by
+  `compose.tunnel.yml`); a header a client forges is ignored.
+- **Content Security Policy** (web `proxy.ts`): a fresh nonce per request;
+  scripts only from the site and with that nonce (`'strict-dynamic'`), no
+  `eval`; the browser may connect only to the site, the API, the export service
+  and the file store (`FILES_URL`); no frames, plugins or embedding
+  (`frame-ancestors 'none'`); pdf.js's worker from the site. Styles allow
+  inline (React style attributes cannot carry a nonce). Reading the nonce
+  renders every page per request. Caddy adds HSTS, `nosniff`, `X-Frame-Options`,
+  `Referrer-Policy` and `Permissions-Policy`.
 - **Errors:** one envelope `{"error": {code, message, details}}`; messages
   never leak internals; unhandled exceptions log server-side, return 500.
 - **Audit:** every mutation writes `audit_log`; password and token hashes are
@@ -485,7 +502,8 @@ do not read those fields on a scholar's page.
 ## 7. Token Storage Tradeoff (known, accepted)
 
 The refresh token sits in localStorage: an XSS bug could steal it. Judged
-low-risk for a closed tool with no third-party scripts. **Upgrade path:**
+low-risk for a closed tool with no third-party scripts, and the CSP (§6) stops
+injected script from running. **Upgrade path:**
 httpOnly SameSite=Strict cookie behind a Next route-handler proxy.
 
 ## 8. Data Protection
@@ -587,6 +605,7 @@ Verified 2026-10-25 (code, tests and the approval-chain click-through):
 - [x] Private bucket; presigned URLs only after `get_or_403`
 - [x] No secrets in repo; loud env validation
 - [x] CORS allowlist on both services
+- [x] General request limit (API) and nonce-based CSP (web)
 - [x] Soft delete + audit on every mutation; hashes redacted (operational
       tables excepted, DATABASE.md `audit_log`)
 - [ ] HTTPS verified on every deployment — each self-hosted install is

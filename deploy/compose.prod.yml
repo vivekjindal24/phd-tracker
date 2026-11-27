@@ -111,6 +111,9 @@ services:
         NEXT_PUBLIC_API_URL: *site
         NEXT_PUBLIC_EXPORT_URL: ${SCHEME:-https}://${DOMAIN}/export
     restart: unless-stopped
+    environment:
+      # The file store, which the page's security policy lets the browser reach (proxy.ts).
+      FILES_URL: ${SCHEME:-https}://${FILES_DOMAIN}
     depends_on: [api]
 
   caddy:

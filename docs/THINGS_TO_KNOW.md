@@ -262,6 +262,18 @@ remove a point only when the behaviour itself changes.
   recommended.
 - **Files uploaded before scanning was added were not scanned.**
 
+## Request limit and page security
+
+- **Each person may make about 600 requests a minute**, and visitors not signed in 300 a
+  minute from one internet address; past that the portal says "Too many requests in a
+  short time. Please wait a minute." Normal use stays far below it; it stops scripts
+  scraping or guessing passwords across many accounts.
+- **A whole campus can share one internet address**, so the 300 is shared by everyone on
+  it who has not signed in yet (the login page, the privacy notice, certificate checks).
+- **The pages run only Anveshan's own code**: no outside scripts, fonts or trackers, and
+  the portal cannot be shown inside another site's frame. Adding analytics or a chat
+  widget later needs a change to the page security policy.
+
 ## Personal data (DPDP Act 2023)
 
 - **The University is responsible; Anveshan gives it the tools.** Its lawyer should check the

@@ -6,6 +6,8 @@ services:
   caddy:
     environment:
       LISTEN_SCHEME: http
+      # Only cloudflared reaches Caddy here, so it is trusted for Cf-Connecting-Ip (Caddyfile).
+      TRUSTED_PROXIES: private_ranges
     ports: !reset []
     # No FILES_DOMAIN alias: TLS for that name lives at Cloudflare now, so the API reaches
     # the file store through its public https URL, the same one browsers use.

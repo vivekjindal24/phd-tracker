@@ -68,9 +68,11 @@ install, backup and restore steps are in `deploy/README.md`.
 **Demo and testing (since 2026-11-27):** the owner's laptop server runs this
 stack behind a Cloudflare Tunnel and pulls and rebuilds itself from pushed
 commits on `rewrite`; `main` still serves v2 until the cut-over merge. The
-free-cloud deployment (Vercel web, Render API and export, Neon, R2) was retired
+free-cloud deployment (Vercel web, Render API and export, Neon) was retired
 that day by the owner: the required virus scanner needs about 1 GB of memory
-and Render's free tier has 512 MB. Its setup survives in git history.
+and Render's free tier has 512 MB. Its setup survives in git history. Local
+development still keeps its files in the R2 bucket `anveshan-dev` (CI uses a
+Garage container).
 
 ## 5. Architecture Diagram
 
@@ -204,7 +206,10 @@ all-or-nothing; with any provider also `SSO_ALLOWED_DOMAINS` (comma-separated)
 and `API_PUBLIC_URL` (the provider redirects to
 `<API_PUBLIC_URL>/api/v1/auth/sso/<provider>/callback` — register that URL
 with the provider).
-Web: `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_EXPORT_URL`.
+Web: `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_EXPORT_URL` (build time), `FILES_URL`
+(run time: the file store's public URL, which the CSP lets the browser reach;
+required — every page fails without it). Caddy: `TRUSTED_PROXIES` (only
+behind a tunnel; SECURITY.md §6).
 
 ## 10. Scheduled Jobs
 
