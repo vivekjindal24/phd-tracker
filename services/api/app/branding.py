@@ -9,7 +9,7 @@ from fastapi import Request
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import dates
+from app import dates, scanner
 from app.auth.principal import Principal
 from app.crud import insert, soft_delete
 from app.errors import ApiError
@@ -75,6 +75,7 @@ async def read_image_upload(request: Request, noun: str) -> tuple[bytes, str]:
     content = b"".join(chunks)
     for magic, content_type in MAGIC_TYPES.items():
         if content.startswith(magic):
+            await scanner.scan_bytes(content)
             return content, content_type
     raise ApiError(422, f"invalid_{noun}", f"Upload the {noun} as a PNG or JPEG image.")
 

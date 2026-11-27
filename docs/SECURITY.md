@@ -462,6 +462,17 @@ do not read those fields on a scholar's page.
   `get_or_403`; upload URLs bind content type and max size and expire in
   5 minutes; download responses force `Content-Disposition: attachment` with a
   sanitised filename. The bucket is private — no public objects.
+- **Virus scanning** (owner, 2026-11-27: required everywhere): every upload
+  passes ClamAV (`scanner.py`, INSTREAM over TCP to `CLAMAV_HOST`) before it can
+  be opened. A file the browser put in storage stays `pending` (not listable or
+  downloadable) until `/files/{id}/complete` has scanned it; an infected one is
+  removed from storage at once and its row kept soft-deleted with
+  `status = 'infected'` (audited), and the uploader gets 422 `infected_file`
+  naming the virus. Images (logo, signature, photo) and import spreadsheets are
+  scanned in memory and never kept if infected. It fails closed: a scanner that
+  cannot answer (down, reloading, a size limit) gives 503 `scanner_unavailable`
+  and nothing is kept. Files uploaded before the scanner was added were not
+  scanned.
 - **CORS:** explicit origin allowlist (`CORS_ORIGINS`) on API and export —
   never `*`.
 - **Errors:** one envelope `{"error": {code, message, details}}`; messages

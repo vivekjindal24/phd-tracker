@@ -530,8 +530,10 @@ redacted from `audit_log`.
 `file_name`, `content_type` (allowlist in `app/files.py`: PDF, Office, images,
 text/CSV, zip), `size_bytes` (CHECK > 0; the `MAX_UPLOAD_MB` cap is checked at
 presign, and the size is signed into the upload URL), `etag` (from the bucket on
-completion), `status` CHECK (pending / ready — `ready` only after the API has
-confirmed the object exists at the declared size), `slot` (nullable; a named
+completion), `status` CHECK (pending / ready / infected — `ready` only after the
+API has confirmed the object exists at the declared size and the virus scanner
+passed it; `infected` (migration 0067): the scanner found a virus, the object was
+removed and the row soft-deleted as the record of it), `slot` (nullable; a named
 place on a scholar's record — `employer_noc` / `entrance_minutes`, only with
 `table_name = 'scholars'`, `ck_files_slot`; migration 0042), `uploaded_by` FK users, owner
 pair `(table_name, record_id)` with a CHECK whitelist that each phase widens by

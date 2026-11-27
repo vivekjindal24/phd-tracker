@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import bulk_import, spreadsheet
+from app import bulk_import, scanner, spreadsheet
 from app.auth.principal import Principal
 from app.db import get_session
 from app.errors import ApiError
@@ -31,7 +31,9 @@ async def _read_capped(request: Request) -> bytes:
         chunks.append(chunk)
     if size == 0:
         raise ApiError(422, "empty_file", "Choose a filled-in template to upload.")
-    return b"".join(chunks)
+    content = b"".join(chunks)
+    await scanner.scan_bytes(content)
+    return content
 
 
 @router.get("/{kind}/template")

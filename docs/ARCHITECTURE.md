@@ -22,6 +22,7 @@ university's own server/NAS (production).
 | `web` | Next.js App Router | Nothing — client UI |
 | Database | Postgres 16 | the single source of state |
 | Object storage | S3-compatible (R2 / Garage) | file bytes only; the API holds metadata and signs URLs |
+| Virus scanner | ClamAV daemon (`clamav/clamav-debian`) | nothing — the API streams every upload to it before keeping it (`scanner.py`) |
 
 Hard rules (AGENTS.md): the export service holds zero auth/data logic; all
 business rules live in the API's `scope`/`rbac`/`workflow` modules, never in
@@ -52,6 +53,7 @@ UI or scripts; file bytes never pass through the export service.
 | Email | free SMTP relay | university SMTP |
 | TLS / routing | platform default | Caddy reverse proxy (automatic HTTPS) |
 | Scheduled jobs | GitHub Actions cron, once daily | cron container: daily job + nightly backup |
+| Virus scanner | a ClamAV daemon reachable from the API (required) | `clamav` container, signatures on the data disk |
 
 The code never branches on the target: everything differs only by
 environment variables (§9). In production Caddy serves the app on one origin
@@ -173,7 +175,9 @@ All config arrives by environment and is validated loudly at startup
 (`app/config.py`); never secrets in the repo, never `.env` committed.
 API: `DATABASE_URL`, `JWT_SECRET` (≥32 bytes), `CORS_ORIGINS`,
 `S3_ENDPOINT`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`,
-`S3_REGION`, `MAX_UPLOAD_MB` (default 100), `SMTP_HOST`, `SMTP_PORT`,
+`S3_REGION`, `MAX_UPLOAD_MB` (default 100), `CLAMAV_HOST` (required: the virus
+scanner every upload passes; owner, 2026-11-27), `CLAMAV_PORT` (default 3310),
+`SMTP_HOST`, `SMTP_PORT`,
 `SMTP_USER`, `SMTP_PASSWORD`, `MAIL_FROM`, `APP_BASE_URL`, `CRON_SECRET`.
 Certificate wording, settled per university at install (blank = default; an
 unknown placeholder in the body stops startup): `CERTIFICATE_DEGREE`,

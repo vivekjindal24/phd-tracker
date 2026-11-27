@@ -1,8 +1,8 @@
 # Self-hosting Anveshan
 
 One installation per university, on a Linux server or NAS with Docker and Docker
-Compose. Seven containers: Postgres, Garage (file store), API, export, web,
-Caddy (HTTPS) and cron (daily job + nightly backups). ARCHITECTURE.md §4 has the
+Compose. Eight containers: Postgres, Garage (file store), ClamAV (virus scanner),
+API, export, web, Caddy (HTTPS) and cron (daily job + nightly backups). ARCHITECTURE.md §4 has the
 design; this is the operator's checklist. Commands run from the repo root.
 
 ## Before you start
@@ -11,6 +11,12 @@ design; this is the operator's checklist. Commands run from the repo root.
   `files.phd.univ.ac.in` (file downloads/uploads), with ports 80 and 443 open to
   them. Caddy gets and renews the certificates. No public address or open ports?
   See Behind a Cloudflare Tunnel below.
+- Memory: at least 3 GB of RAM; 8 GB recommended for a university. The virus scanner
+  alone holds about 1 GB (its signatures), kept lean so it never doubles while it
+  updates them — scanning pauses for about a minute instead. Its first start
+  downloads about 300 MB of signatures; until then uploads are refused, not let
+  through. `MAX_UPLOAD_MB` above 400 also needs `CLAMD_CONF_MaxScanSize` raised on
+  the `clamav` service.
 - Full-disk encryption on the data disk and on the backup disk (SECURITY.md §8):
   the local backups are plain files.
 - Recommended: S3-compatible storage somewhere else for the encrypted off-site

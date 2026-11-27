@@ -6,10 +6,10 @@ import uuid
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import records, storage
+from app import records, scanner, storage
 from app.auth.principal import Principal
 from app.config import settings
-from app.crud import insert, update
+from app.crud import insert, soft_delete, update
 from app.errors import ApiError, forbidden
 from app.models import FileRow
 
@@ -97,6 +97,14 @@ async def complete_upload(session: AsyncSession, principal: Principal, row: File
         raise ApiError(409, "upload_missing", "The file did not arrive. Please upload it again.")
     if meta.get("ContentLength") != row.size_bytes:
         raise ApiError(409, "upload_mismatch", "The uploaded file differs from what was declared.")
+    if found := await scanner.scan_object(row.storage_key):
+        # Gone from storage at once; the row stays, soft-deleted and marked, as the record of it.
+        # Committed here because the request then fails, which would roll it back.
+        await storage.delete(row.storage_key)
+        await update(session, principal, row, {"status": "infected"})
+        await soft_delete(session, principal, row)
+        await session.commit()
+        raise scanner.infected(found)
     return await update(
         session, principal, row, {"status": "ready", "etag": str(meta.get("ETag", "")).strip('"')}
     )

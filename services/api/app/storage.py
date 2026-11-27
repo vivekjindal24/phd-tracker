@@ -4,6 +4,7 @@ after the owner record's get_or_403 (SECURITY.md §6)."""
 
 import asyncio
 import re
+from collections.abc import Iterator
 from functools import lru_cache
 
 import boto3
@@ -74,6 +75,16 @@ async def head(key: str) -> dict | None:
     return await asyncio.to_thread(_head)
 
 
+def object_chunks(key: str, size: int) -> Iterator[bytes]:
+    """The object's bytes in chunks, for the virus scanner (blocking: run off the loop)."""
+    body = _client().get_object(Bucket=settings.s3.bucket, Key=key)["Body"]
+    try:
+        yield from body.iter_chunks(size)
+    finally:
+        body.close()
+
+
 async def delete(key: str) -> None:
-    """Test cleanup only — production soft-deletes the row and keeps the object."""
+    """An infected upload (files.py) and test cleanup. Otherwise rows are soft-deleted and the
+    object kept."""
     await asyncio.to_thread(_client().delete_object, Bucket=settings.s3.bucket, Key=key)

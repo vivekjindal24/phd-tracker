@@ -248,6 +248,20 @@ remove a point only when the behaviour itself changes.
 - **Not covered:** sexual harassment goes to the Internal Complaints Committee (the form says
   so); grievances are not anonymous (UGC asks for a named student). *(owner, 2026-11-23)*
 
+## Virus scanning
+
+- **Every upload is scanned for viruses, everywhere** — documents, scans, photos,
+  signatures, the logo and import spreadsheets — by ClamAV on the University's own server.
+  Nothing is sent outside. *(owner, 2026-11-27)*
+- **An infected file is refused**: removed at once, the uploader told which virus, and the
+  refusal recorded. A file is never opened by anyone before it has been scanned.
+- **If the scanner is down, uploads wait** ("uploads are paused") rather than go through
+  unscanned. This also happens for about a minute each day while it loads new signatures,
+  and for a few minutes after the server first starts.
+- **It needs about 1 GB of the server's memory**; the server needs 3 GB at least, 8 GB
+  recommended.
+- **Files uploaded before scanning was added were not scanned.**
+
 ## Personal data (DPDP Act 2023)
 
 - **The University is responsible; Anveshan gives it the tools.** Its lawyer should check the

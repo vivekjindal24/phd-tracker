@@ -427,7 +427,7 @@ GrievanceStatus = Literal["open", "decided", "closed", "appealed", "appeal_decid
 GRIEVANCE_STATUSES = get_args(GrievanceStatus)
 AppealsTo = Literal["ombudsperson", "vice_chancellor"]
 APPEALS_TO = get_args(AppealsTo)
-FileStatus = Literal["pending", "ready"]
+FileStatus = Literal["pending", "ready", "infected"]  # infected: refused, object removed
 FILE_STATUSES = get_args(FileStatus)
 # Named places for a scholar's own documents in the PhD file (files.slot, owner `scholars`).
 FileSlot = Literal["employer_noc", "entrance_minutes"]

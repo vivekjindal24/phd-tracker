@@ -6,6 +6,8 @@ import sys
 from collections.abc import Iterator
 from pathlib import Path
 
+from tests.fake_clamd import start as start_fake_clamd
+
 
 def _load_private_env() -> None:
     """Fill variables the shell didn't set from the private dev file (never in git)."""
@@ -43,6 +45,9 @@ for _ai in ("AI_BASE_URL", "AI_API_KEY", "AI_MODEL"):
 for _wa in ("WHATSAPP_TOKEN", "WHATSAPP_PHONE_NUMBER_ID", "WHATSAPP_TEMPLATE"):
     os.environ.pop(_wa, None)
 os.environ.setdefault("JWT_SECRET", "test-secret-0123456789abcdef0123456789")
+# The virus scanner is required (scanner.py): tests get a stand-in that knows only EICAR.
+os.environ["CLAMAV_HOST"], _clamd_port = start_fake_clamd()
+os.environ["CLAMAV_PORT"] = str(_clamd_port)
 
 import pytest  # noqa: E402
 from httpx import ASGITransport, AsyncClient  # noqa: E402

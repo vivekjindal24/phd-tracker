@@ -114,6 +114,15 @@ class CertificateWording:
 
 
 @dataclass(frozen=True)
+class Scanner:
+    """The ClamAV daemon every upload passes through (scanner.py). Required: no file is kept
+    unscanned (owner, 2026-11-27)."""
+
+    host: str
+    port: int
+
+
+@dataclass(frozen=True)
 class Settings:
     database_url: str
     jwt_secret: str
@@ -121,6 +130,7 @@ class Settings:
     app_base_url: str
     smtp: Smtp | None
     s3: S3
+    scanner: Scanner
     ai: Ai | None
     sso: Sso | None = None
     whatsapp: Whatsapp | None = None  # unset: WhatsApp off (recorded per notification)
@@ -252,6 +262,13 @@ def _load_s3() -> S3:
     )
 
 
+def _load_scanner() -> Scanner:
+    port = os.environ.get("CLAMAV_PORT", "3310").strip()
+    if not port.isdigit() or not 1 <= int(port) <= 65535:
+        raise ConfigError("CLAMAV_PORT must be a port number")
+    return Scanner(host=_require("CLAMAV_HOST"), port=int(port))
+
+
 def _normalize_db_url(url: str) -> str:
     """Accept the string exactly as Neon/Render show it; the app always uses psycopg 3."""
     for prefix in ("postgresql+psycopg://", "postgresql://", "postgres://"):
@@ -318,6 +335,7 @@ def load_settings() -> Settings:
         app_base_url=app_base_url,
         smtp=_load_smtp(),
         s3=_load_s3(),
+        scanner=_load_scanner(),
         ai=_load_ai(),
         sso=_load_sso(),
         whatsapp=_load_whatsapp(),
