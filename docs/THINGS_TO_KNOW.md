@@ -248,6 +248,24 @@ remove a point only when the behaviour itself changes.
 - **Not covered:** sexual harassment goes to the Internal Complaints Committee (the form says
   so); grievances are not anonymous (UGC asks for a named student). *(owner, 2026-11-23)*
 
+## Personal data (DPDP Act 2023)
+
+- **The University is responsible; Anveshan gives it the tools.** Its lawyer should check the
+  notice and the procedures in SECURITY.md §8a before go-live. *(owner, 2026-11-27)*
+- **Everyone reads the notice first**, at their first visit and again whenever the University
+  changes it. Until the University saves its own, Anveshan's draft is shown with the
+  University's name in it.
+- **Name a privacy officer** in Settings → Privacy notice. Until then the root admins receive
+  every data request.
+- **Download my data** gives a summary (account, roles, profile, what is on file); a scholar's
+  full academic record is their PhD file.
+- **Erasure has limits.** Degree records, approvals and the audit trail are kept because the
+  University must keep them; a WhatsApp number, a photo or an unused signature can go.
+- **The outside services listed in the notice follow the installation's settings** (email,
+  WhatsApp, AI assistant): turning one on adds it to the notice by itself.
+- **Not yet automatic:** clearing old notifications and login records after a year; a breach
+  is handled by hand following SECURITY.md §8a.
+
 ## The advisory committee in reviews
 
 - **At seminars it is invited, not the panel.** The scholar's committee members from this

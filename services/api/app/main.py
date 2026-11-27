@@ -45,6 +45,7 @@ from app.routers import (
     org_units,
     patents,
     photos,
+    privacy,
     projects,
     publications,
     reports,
@@ -78,7 +79,8 @@ app.add_middleware(
     allow_credentials=False,  # bearer tokens, no cookies
     allow_methods=["GET", "POST", "PATCH", "PUT", "DELETE"],
     allow_headers=["Authorization", "Content-Type"],
-    expose_headers=[TOTAL_HEADER],  # the web reads list totals cross-origin
+    # the web reads list totals, and a download's file name, cross-origin
+    expose_headers=[TOTAL_HEADER, "Content-Disposition"],
 )
 install_error_handlers(app)
 
@@ -112,6 +114,7 @@ for module in (
     settings_router,
     signatures,
     photos,
+    privacy,
     signed_copies,
     notifications,
     files,

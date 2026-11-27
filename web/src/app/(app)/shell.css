@@ -90,3 +90,9 @@
 .topbar-actions .btn {
   white-space: nowrap;
 }
+
+.privacy-footer {
+  text-align: center;
+  padding: var(--space-6) var(--space-4);
+  font-size: var(--text-sm);
+}

@@ -1,10 +1,12 @@
 """University-wide settings: co-supervision, module switches, approval chains (root admin)."""
 
+from datetime import UTC, datetime
+
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import apr, branding, dates, grading, notices, phd_index
+from app import apr, branding, dates, grading, notices, phd_index, privacy
 from app.auth.deps import current_principal, require_root_admin
 from app.auth.principal import Principal
 from app.crud import update
@@ -13,7 +15,14 @@ from app.enums import PHD_FORMS, SEMINAR_KINDS, ItemType, ModuleKey
 from app.errors import ApiError, forbidden
 from app.models import ApprovalChain, Module, ProgressReport, Settings
 from app.notify import email_configured
-from app.schemas import ChainIn, ExamControllerIn, ModuleUpdate, SettingsOut, SettingsUpdate
+from app.schemas import (
+    ChainIn,
+    ExamControllerIn,
+    ModuleUpdate,
+    PrivacyOfficerIn,
+    SettingsOut,
+    SettingsUpdate,
+)
 
 router = APIRouter(prefix="/settings", tags=["settings"])
 
@@ -60,6 +69,8 @@ async def _read(session: AsyncSession) -> SettingsOut:
             "publication_file_required": settings.publication_file_required,
             "patent_verifier": settings.patent_verifier,
             "grievance_appeals_to": settings.grievance_appeals_to,
+            "privacy_notice": settings.privacy_notice,
+            "privacy_officer_id": settings.privacy_officer_id,
             "modules": modules,
             "chains": chains,
             "email_configured": email_configured(),
@@ -91,10 +102,24 @@ async def update_settings(
     if "phd_forms" in changes:  # likewise one form at a time; an all-empty form is dropped
         merged = {**row.phd_forms, **changes["phd_forms"]}
         changes["phd_forms"] = {k: v for k, v in merged.items() if any(v.values())}
+    if changes.get("privacy_notice", row.privacy_notice) != row.privacy_notice:
+        changes["privacy_notice_changed_at"] = datetime.now(UTC)  # everyone reads it again
     await update(session, principal, row, {**changes, "updated_by": principal.user_id})
     await session.commit()
     if "date_format" in changes:
         dates.use(changes["date_format"])  # at once here; other workers within a minute
+    return await _read(session)
+
+
+@router.put("/privacy-officer", response_model=SettingsOut)
+async def set_privacy_officer(
+    body: PrivacyOfficerIn,
+    principal: Principal = Depends(require_root_admin),
+    session: AsyncSession = Depends(get_session),
+) -> SettingsOut:
+    """Who answers data requests and is named in the privacy notice (privacy.py)."""
+    await privacy.set_officer(session, principal, body.user_id)
+    await session.commit()
     return await _read(session)
 
 

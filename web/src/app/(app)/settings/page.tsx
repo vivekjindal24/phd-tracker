@@ -15,6 +15,7 @@ import { ReportTemplate } from "./ReportTemplate";
 import { RulesSettings } from "./RulesSettings";
 import { PhdForms } from "./PhdForms";
 import { PhdIndex } from "./PhdIndex";
+import { PrivacySettings } from "./PrivacySettings";
 import { SeminarForms } from "./SeminarForms";
 import { SeminarSettings } from "./SeminarSettings";
 import "./settings.css";
@@ -76,6 +77,7 @@ export default function SettingsPage() {
           <PhdForms data={data} save={save} />
           <PhdIndex data={data} save={save} />
           <RulesSettings data={data} save={save} />
+          <PrivacySettings data={data} save={save} />
           <Offices emailConfigured={data.email_configured} controllerId={data.exam_controller_id}
             appealsTo={data.grievance_appeals_to} save={save} />
           <ChainEditor chains={data.chains} save={save} />

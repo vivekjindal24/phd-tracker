@@ -8,6 +8,7 @@ import { LogoMark } from "@/components/brand/LogoMark";
 import { Owl } from "@/components/brand/Owl";
 import { UniversityMark } from "@/components/brand/UniversityMark";
 import { Nav, NavSheet } from "@/components/Nav";
+import { PrivacyGate } from "@/components/privacy/PrivacyGate";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { BusyBar } from "@/components/ui/BusyBar";
 import { Button, ErrorText } from "@/components/ui/kit";
@@ -82,7 +83,8 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           </div>
         </div>
       </header>
-      <main className="page">{children}</main>
+      <main className="page">{me.privacy_notice_due ? <PrivacyGate onRead={reload} /> : children}</main>
+      <footer className="privacy-footer"><Link href="/privacy">Privacy</Link></footer>
     </>
   );
 }

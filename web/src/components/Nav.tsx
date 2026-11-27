@@ -17,7 +17,7 @@ const onlyScholar = (me: Me) => me.roles.length === 1 && me.roles[0] === "schola
 // The grievance cell and the Ombudsperson read grievances only: every other entry is decided
 // as if they did not hold those roles, and someone holding nothing else sees just these.
 const GRIEVANCE_ROLES = new Set(["grievance_cell", "ombudsperson"]);
-const ANYONE = new Set(["/home", "/notices", "/grievances", "/account", "/faculty-publications", "/patents"]);
+const ANYONE = new Set(["/home", "/notices", "/grievances", "/account", "/faculty-publications", "/patents", "/data-requests"]);
 function shows(item: Item, me: Me): boolean {
   if (ANYONE.has(item.href)) return item.show(me);
   const roles = me.roles.filter((r) => !GRIEVANCE_ROLES.has(r));
@@ -78,6 +78,7 @@ const NAV: Entry[] = [
   { href: "/register", label: "Register", show: (me) => me.roles.some((r) => r !== "library") },
   { href: "/audit", label: "Audit log", show: (me) => me.roles.some((r) => r === "admin" || r === "research_office" || r === "vice_chancellor") },
   { href: "/settings", label: "Settings", show: (me) => me.is_root_admin },
+  { href: "/data-requests", label: "Data requests", show: (me) => me.answers_data_requests },
   { href: "/account", label: "My account", show: () => true },
 ];
 

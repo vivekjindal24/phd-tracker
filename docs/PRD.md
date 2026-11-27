@@ -737,6 +737,26 @@ The list puts grievances still to be decided first, soonest deadline on top;
 Home shows each role what waits on them (F10); grievance notices cannot be
 muted (F5).
 
+**F20 — Personal data** (Decided 2026-11-27; Digital Personal Data Protection Act
+2023). The University is the data fiduciary; Anveshan gives it the tools, and its
+lawyer confirms compliance. *Notice:* every person reads the University's privacy
+notice before anything else at their first visit, and again whenever it changes;
+it is also public at `/privacy` (linked from every page and the landing page).
+Until the root admin saves the University's own text (Settings → Privacy notice),
+Anveshan's draft stands, filled in with the University's name. Under it the notice
+names the privacy officer and lists the outside services this installation sends
+data to (file storage, email, WhatsApp and the AI assistant when configured,
+Crossref and ORCID). *Rights:* My account → **Your data** downloads a summary of
+what Anveshan holds about the person (account, roles, scholar or faculty profile,
+signature and photo on file, files uploaded, services used, their requests) and
+takes a request to correct, erase or anything else. *Requests* go to the privacy
+officer the root admin names (Settings), or to the root admins while none is
+named, who reply on **Data requests**; the person is told and reads the reply
+under Your data. A correction is made where the record lives (usually by the
+admin over the person's unit); records the University must keep are not erased.
+Requests' wording stays out of the audit log, and their notices cannot be muted.
+Procedures (breach, retention, erasure) are in SECURITY.md §8.
+
 ### 6.3 Optional modules
 
 **M1 — Publications** (chain). Title, authors, type (journal / conference /

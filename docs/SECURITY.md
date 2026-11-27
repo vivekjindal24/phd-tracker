@@ -322,6 +322,10 @@ login page shows them) and return only the university's name, address and logo.
 A logo is PNG or JPEG by its bytes, 500 KB at most; SVG is refused because it can
 carry script. Only the root admin changes them.
 
+**Privacy notice:** `GET /api/v1/privacy` needs no login either (read before
+signing in, PRD F20). It returns the notice, the privacy officer's name and email
+(chosen to be public) and the outside services in use — no one else's data.
+
 **Certificate verification:** `GET /api/v1/verify/{token}` is the one route
 with personal data and no login. The token is 256 random bits printed as the QR code; the
 answer is name, thesis title, unit, viva date, issue date and status, never the
@@ -486,7 +490,8 @@ httpOnly SameSite=Strict cookie behind a Next route-handler proxy.
   event kind and a link that needs a login — never names, titles or record
   content — so nothing personal reaches Meta or a mistyped number.
 - **Retention:** records are permanent — they ARE the PhD trail. Soft-delete
-  only; deletion requests escalate to the root admin.
+  only; a request to erase personal data goes through the privacy officer
+  (below).
 - **Backups (production):** nightly `pg_dump` + bucket copy to a second
   disk by the cron container (`deploy/cron/run.sh`); restore
   (`deploy/README.md`) tested before go-live. The backup disk needs full-disk
@@ -497,6 +502,58 @@ httpOnly SameSite=Strict cookie behind a Next route-handler proxy.
   passphrase is kept away from the server; losing it loses the off-site copy.
   Still open: nobody is alerted when a backup fails (it is only in the cron
   log), and a failure can lose up to a day (no point-in-time recovery).
+
+### 8a. Personal data (DPDP Act 2023; PRD F20; `privacy.py`)
+
+These are Anveshan's working procedures for the University's lawyer to confirm or
+change; they are not legal advice. The dates and periods below are as understood
+when written (2026-11) and must be checked against the Act and its Rules.
+
+- **Who is who.** The University decides why and how data is processed: it is
+  the data fiduciary. Whoever hosts and runs the installation for it (the
+  University's own IT, or a vendor under contract) processes data on its behalf;
+  the services in the notice's list are further processors. A vendor needs a
+  written contract with the University covering this.
+- **Notice.** `GET /privacy` (public). `users.privacy_notice_seen_at` records
+  when each person read it; `/auth/me.privacy_notice_due` holds them on the
+  notice until they have read the current one (`settings.privacy_notice_changed_at`
+  moves whenever the text changes). External thesis reviewers are not held: they
+  reach only their review link.
+- **Access.** `GET /privacy/my-data` returns the caller's own summary only; a
+  scholar's full academic record is their PhD file (F17), which they already
+  download.
+- **Requests.** `POST /privacy/requests` (anyone, about themself);
+  `GET /privacy/requests` and `POST /privacy/requests/{id}/answer` only for the
+  privacy officer (`settings.privacy_officer_id`), or the root admins while none
+  is named (403 otherwise; 409 `already_answered`). The wording (`details`,
+  `reply`) is redacted from `audit_log` and the table is left off the audit page,
+  as for grievances. Answer within the period the Rules set (90 days as
+  understood; aim for 30).
+- **Correction** is made where the record lives: profile fields by the admin
+  over the person's unit (scholars may fill in what is still blank themselves),
+  names and emails by an admin, a WhatsApp number by the person. The officer
+  replies with what was done.
+- **Erasure.** Academic and degree records, approvals and the audit trail are
+  kept: the University must keep them, which the DPDP Act allows. What can go:
+  a WhatsApp number (the person clears it), a photo (the person or their admin
+  removes it), a specimen signature never used to sign (removed on the profile),
+  an account never used (deactivated by an admin). The officer replies which
+  applies. Soft-deleted rows stay in backups until those roll over.
+- **Retention.** Degree and research records: permanently, as the University's
+  ordinances and the UGC require. Accounts of people who have left: deactivated
+  when they leave; their records stay. Notifications, login attempts and
+  expired tokens: no longer needed after a year (not yet purged automatically —
+  a known gap). Nightly backups: as long as `deploy/` keeps them.
+- **Breach.** Anyone who suspects one tells the root admin and the privacy
+  officer at once. They (1) contain it: revoke sessions
+  (`revoke_all_refresh`), rotate `JWT_SECRET` and storage keys, block the
+  route; (2) find out from `audit_log`, the server logs and the backups what
+  was reached and whose data; (3) tell each affected person without delay what
+  happened, what was exposed, what is being done and what they should do; and
+  (4) tell the Data Protection Board without delay, with the detailed report
+  within 72 hours as the Rules ask (as understood). Keep a written record of
+  each step and its time.
+- **Children.** Scholars and staff are adults; Anveshan holds no children's data.
 
 ## 9. Logging
 

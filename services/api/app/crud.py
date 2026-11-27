@@ -21,11 +21,15 @@ GRIEVANCE_WORDS = frozenset(
     {"subject", "description", "decision", "appeal_reason", "appeal_decision"}
 )
 GRIEVANCE_FILE_NAMES = frozenset({"file_name", "storage_key"})
+# Likewise what a person writes about their personal data, and the answer (privacy.py).
+DATA_REQUEST_WORDS = frozenset({"details", "reply"})
 
 
 def _redacted(obj: Base) -> frozenset[str]:
     if obj.__tablename__ == "grievances":
         return REDACTED_COLUMNS | GRIEVANCE_WORDS
+    if obj.__tablename__ == "data_requests":
+        return REDACTED_COLUMNS | DATA_REQUEST_WORDS
     if obj.__tablename__ == "files" and getattr(obj, "table_name", None) == "grievances":
         return REDACTED_COLUMNS | GRIEVANCE_FILE_NAMES
     return REDACTED_COLUMNS

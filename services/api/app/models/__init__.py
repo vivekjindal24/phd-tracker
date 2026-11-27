@@ -26,6 +26,7 @@ from app.models.org import (
     SupervisorChange,
     User,
 )
+from app.models.privacy import DataRequest
 from app.models.reports import ProgressReport
 from app.models.requests import FacultyRequest
 from app.models.research import (
@@ -86,6 +87,7 @@ __all__ = [
     "Conference",
     "Course",
     "CourseworkClearance",
+    "DataRequest",
     "Document",
     "DocumentVersion",
     "Enrolment",

@@ -46,6 +46,8 @@ export type Me = {
   whatsapp_available: boolean;
   whatsapp_number: string | null;
   whatsapp_muted: string[];
+  privacy_notice_due: boolean; // shown before anything else until read
+  answers_data_requests: boolean;
 };
 
 export type OrgUnit = {
@@ -97,6 +99,8 @@ export type SettingsData = {
   publication_file_required: boolean;
   patent_verifier: PatentVerifier;
   grievance_appeals_to: AppealsTo;
+  privacy_notice: string; // "" = Anveshan's draft
+  privacy_officer_id: string | null;
   modules: Record<ModuleKey, boolean>;
   chains: Record<ItemType, { kind: StepKind }[]>;
   email_configured: boolean;
@@ -1216,4 +1220,30 @@ export type Grievance = {
   appeal_decided_by: string | null;
   appeals_to: string;
   can: { decide: boolean; withdraw: boolean; accept: boolean; appeal: boolean; decide_appeal: boolean; attach: boolean };
+};
+
+/** The privacy notice (GET /privacy, public; DPDP Act 2023). */
+export type PrivacyNotice = {
+  university: string;
+  text: string;
+  is_draft: boolean;
+  officer: { name: string; email: string } | null;
+  changed_at: string | null;
+  processors: { service: string; where: string; what: string }[];
+};
+export type DataRequestKind = "correction" | "erasure" | "other";
+export const DATA_REQUEST_KIND_LABELS: Record<DataRequestKind, string> = {
+  correction: "Correct my data",
+  erasure: "Erase my data",
+  other: "Something else",
+};
+export type DataRequest = {
+  id: string;
+  kind: DataRequestKind;
+  details: string;
+  status: "open" | "answered";
+  reply: string | null;
+  created_at: string;
+  answered_at: string | null;
+  requester: string | null;
 };

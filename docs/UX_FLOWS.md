@@ -587,6 +587,24 @@ Root admin → Settings → Offices: appoint the **Grievance cell** and the
 **Ombudsperson**, and choose who decides appeals. A step out of turn → 409
 `grievance_state`; anyone else opening it → 403.
 
+## Flow 12d — Personal data (PRD F20)
+
+1. **First visit**, and again after the notice changes: before any page, "How your
+   personal data is used" — the notice, who to write to, the outside services —
+   and **I have read this**. The notice is also at **Privacy** in every page's
+   footer and on the landing page, signed in or not.
+2. **My account → Your data**: **Download my data** (a JSON summary); **Ask the
+   University**: Correct my data / Erase my data / Something else, what and why →
+   **Send request** → "Sent." The requests list below shows each one, Open or
+   Answered with the reply.
+3. The privacy officer (or the root admins while none is named) gets an unmutable
+   notification → **Data requests**: waiting ones first, each with a **Reply** box
+   → **Send reply**; the person is told.
+4. Root admin → **Settings → Privacy notice**: edit the text (it starts as
+   Anveshan's draft) → **Save notice** (everyone reads it again), **Go back to
+   Anveshan's draft**; **Privacy officer**: find a person → **Name as privacy
+   officer**, or **Leave it to the root admins**.
+
 ## Flow 12 — Notifications
 
 Bell icon with unread count → inbox (newest first, mark read). Each item

@@ -19,6 +19,8 @@ from app.enums import (
     CommentTarget,
     CommitteeRole,
     CoSupervision,
+    DataRequestKind,
+    DataRequestStatus,
     DateFormat,
     Designation,
     FileOwner,
@@ -134,6 +136,8 @@ class MeOut(BaseModel):
     whatsapp_available: bool  # the server has WhatsApp configured
     whatsapp_number: str | None
     whatsapp_muted: list[str]
+    privacy_notice_due: bool  # shown before anything else until read (privacy.py)
+    answers_data_requests: bool
 
 
 MAX_ADJUSTMENT_DAYS = 1825  # five years: the most any time limit or single adjustment may be
@@ -409,6 +413,8 @@ class SettingsOut(BaseModel):
     publication_file_required: bool
     patent_verifier: PatentVerifier
     grievance_appeals_to: AppealsTo
+    privacy_notice: str  # '' = Anveshan's draft (privacy.py)
+    privacy_officer_id: uuid.UUID | None
     modules: dict[ModuleKey, bool]
     chains: dict[ItemType, list[ChainStep]]
     email_configured: bool  # from the server's environment; forms offer email links only if set
@@ -444,6 +450,7 @@ class SettingsUpdate(BaseModel):
     publication_file_required: bool | None = None
     patent_verifier: PatentVerifier | None = None
     grievance_appeals_to: AppealsTo | None = None
+    privacy_notice: str | None = Field(default=None, max_length=20000)
 
     @model_validator(mode="after")
     def _unique_criteria(self) -> "SettingsUpdate":
@@ -457,6 +464,47 @@ class SettingsUpdate(BaseModel):
             if len(names) != len(set(names)):
                 raise ValueError("report sections must have different names")
         return self
+
+
+class PrivacyOfficerIn(BaseModel):
+    """Who answers data requests and is named in the privacy notice; null: the root admins."""
+
+    user_id: uuid.UUID | None
+
+
+class ProcessorOut(BaseModel):
+    service: str
+    where: str
+    what: str
+
+
+class PrivacyNoticeOut(BaseModel):
+    university: str
+    text: str
+    is_draft: bool  # Anveshan's draft: the university has not written its own yet
+    officer: dict[str, str] | None  # name and email of the privacy officer
+    changed_at: datetime | None
+    processors: list[ProcessorOut]
+
+
+class DataRequestIn(BaseModel):
+    kind: DataRequestKind
+    details: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=3000)]
+
+
+class DataRequestAnswerIn(BaseModel):
+    reply: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=3000)]
+
+
+class DataRequestOut(BaseModel):
+    id: uuid.UUID
+    kind: DataRequestKind
+    details: str
+    status: DataRequestStatus
+    reply: str | None
+    created_at: datetime
+    answered_at: datetime | None
+    requester: str | None  # shown to whoever answers
 
 
 class ExamControllerIn(BaseModel):

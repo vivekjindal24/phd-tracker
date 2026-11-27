@@ -3,7 +3,7 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app import dates
+from app import dates, privacy
 from app.auth import service, sso
 from app.auth.deps import any_principal, current_principal
 from app.auth.principal import Principal
@@ -145,6 +145,8 @@ async def me(
         whatsapp_available=whatsapp_configured(),
         whatsapp_number=user.whatsapp_number,
         whatsapp_muted=list(user.whatsapp_muted),
+        privacy_notice_due=await privacy.notice_due(session, user),
+        answers_data_requests=await privacy.handles(session, principal),
     )
 
 

@@ -67,7 +67,8 @@ recovery codes), `email_muted` text[] (notification categories the
 user muted for email; CHECK ⊆ categories in §3.7), `whatsapp_number` (NULL =
 no WhatsApp; set only by the person themself, which is the opt-in; CHECK E.164
 `^\+[1-9][0-9]{7,14}$`), `whatsapp_muted` text[] (as `email_muted`, for
-WhatsApp).
+WhatsApp), `privacy_notice_seen_at` (when the person last read the privacy notice;
+migration 0066).
 
 **signatures** — a person's specimen signature (PRD F17b): `user_id` FK users
 (partial UNIQUE `uq_signatures_user`: one live row each), `content` bytea (PNG
@@ -176,7 +177,9 @@ faculty one); `patent_verifier` (CHECK `research_office` / `library`, default
 `research_office`; migration 0062: which office verifies patents); `grievance_appeals_to` (CHECK `ombudsperson` / `vice_chancellor`,
 default `ombudsperson`; migration 0057: who decides a grievance appeal);
 `updated_by`, `updated_at`.
-University-wide switches that are not modules live here.
+University-wide switches that are not modules live here. Privacy (migration 0066): `privacy_notice` text (default '' = Anveshan's draft),
+`privacy_notice_changed_at` (set whenever the text changes; everyone reads it again),
+`privacy_officer_id` FK users (NULL: the root admins answer data requests).
 
 **approval_chains** — `item_type` PK CHECK (`progress_report`,
 `publication`, `coursework_clearance`, `thesis_submission`,
@@ -515,6 +518,13 @@ appeal's), `decision`, `decided_at`, `decided_by` FK users, `appeal_reason`,
 `appealed_at`, `appeal_decision`, `appeal_decided_at`, `appeal_decided_by` FK
 users, `closed_at`, timestamps, soft delete. Its papers hang off it in **files**
 (owner `grievances`).
+
+**data_requests** — a person's request about their own personal data (PRD F20;
+migration 0066): `user_id` FK users, `kind` CHECK (`correction` / `erasure` /
+`other`), `details` (1–3000 chars), `status` CHECK (`open` / `answered`), `reply`,
+`answered_at`, `answered_by` FK users (CHECK `ck_data_requests_answer`: all three
+set exactly when answered), timestamps, soft delete. `details` and `reply` are
+redacted from `audit_log`.
 
 **files** — `storage_key` (UNIQUE; `<table>/<record>/<file id>/<safe name>`),
 `file_name`, `content_type` (allowlist in `app/files.py`: PDF, Office, images,

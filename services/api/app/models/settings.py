@@ -2,11 +2,13 @@
 
 import json
 import uuid
+from datetime import datetime
 from typing import Any
 
 from sqlalchemy import (
     Boolean,
     CheckConstraint,
+    DateTime,
     ForeignKey,
     Integer,
     LargeBinary,
@@ -106,6 +108,13 @@ class Settings(Timestamps, Base):
     # Who signs notices as the Controller of Examinations when several hold the Exam Office role;
     # set by the Exam Office or the root admin, for the whole university (notices.py).
     exam_controller_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id")
+    )
+    # The privacy notice (DPDP Act 2023; privacy.py): the university's text ('' = Anveshan's
+    # draft), when it last changed (everyone sees it again), and who answers data requests.
+    privacy_notice: Mapped[str] = mapped_column(Text, server_default=text("''"))
+    privacy_notice_changed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    privacy_officer_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id")
     )
     # The university's own index of the PhD file: rows of {title, sources} (phd_index.py);

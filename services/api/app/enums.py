@@ -97,8 +97,8 @@ SSO_PROVIDERS = get_args(SsoProvider)
 AuditAction = Literal["insert", "update", "soft_delete", "restore", "transition", "lookup"]
 AUDIT_ACTIONS = get_args(AuditAction)
 
-# What a person may mute (email, WhatsApp); grievance notices carry legal deadlines and are
-# always delivered (grievances.py).
+# What a person may mute (email, WhatsApp); grievance and data request notices carry legal
+# deadlines and are always delivered (grievances.py, privacy.py).
 MutableCategory = Literal[
     "approval_waiting",
     "sent_back",
@@ -111,7 +111,7 @@ MutableCategory = Literal[
     "notice",  # a notice posted on the notice board
     "system",
 ]
-NotificationCategory = Literal[MutableCategory, "grievance"]
+NotificationCategory = Literal[MutableCategory, "grievance", "data_request"]
 NOTIFICATION_CATEGORIES = get_args(NotificationCategory)
 # E.164: "+" then country code and number, 8-15 digits (users.whatsapp_number CHECK).
 WHATSAPP_NUMBER_RE = r"^\+[1-9][0-9]{7,14}$"
@@ -553,3 +553,10 @@ FACULTY_REQUEST_STATUSES = ("pending", "accepted", "declined", "cancelled")
 def sql_in(values: tuple[str, ...]) -> str:
     """Render a tuple as a SQL IN-list for CHECK constraints (values are code constants)."""
     return ", ".join("'" + v.replace("'", "''") + "'" for v in values)
+
+
+# A person's request about their own personal data (DPDP Act 2023; privacy.py).
+DataRequestKind = Literal["correction", "erasure", "other"]
+DATA_REQUEST_KINDS = get_args(DataRequestKind)
+DataRequestStatus = Literal["open", "answered"]
+DATA_REQUEST_STATUSES = get_args(DataRequestStatus)

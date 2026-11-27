@@ -36,6 +36,7 @@ PUBLIC = frozenset(
         "GET /healthz",
         "GET /branding",
         "GET /branding/logo",
+        "GET /privacy",  # the privacy notice, read before signing in too
         "GET /verify/{token}",
         "POST /auth/login",
         "POST /auth/refresh",

@@ -23,7 +23,7 @@ router = APIRouter(tags=["audit"])
 # Drafts and their versions are the scholar's and supervisor's alone (PRD M3), and grievances
 # are read only by those grievances.py names, so not even that one exists is shown here — nor
 # the papers attached to a grievance.
-HIDDEN_TABLES = ("documents", "document_versions", "grievances")
+HIDDEN_TABLES = ("documents", "document_versions", "grievances", "data_requests")
 FILE_OWNER = AuditLog.data["table_name"].astext
 SCHOLAR_ID = AuditLog.data["scholar_id"].astext
 BOOKKEEPING = ("updated_at", "updated_by")

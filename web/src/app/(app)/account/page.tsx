@@ -3,6 +3,7 @@
 import { type FormEvent, useState } from "react";
 import { Button, Card, ErrorText, Field, PageHeader } from "@/components/ui/kit";
 import { SignatureCard } from "@/components/SignatureCard";
+import { YourData } from "@/components/privacy/YourData";
 import { StandInCard } from "@/components/StandInCard";
 import { api, logout } from "@/lib/api";
 import { useSession } from "@/lib/session";
@@ -61,6 +62,7 @@ export default function AccountPage() {
         </form>
       </Card>
       {me && <div className="card-gap"><SignatureCard userId={me.id} self /></div>}
+      <div className="card-gap"><YourData /></div>
       {me?.faculty_id && <div className="card-gap"><StandInCard /></div>}
     </>
   );

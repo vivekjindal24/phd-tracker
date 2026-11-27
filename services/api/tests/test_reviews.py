@@ -173,6 +173,7 @@ async def test_a_reviewer_reaches_nothing_but_their_own_review(
                 "/healthz",
                 "/branding",
                 "/branding/logo",
+                "/privacy",
                 "/verify/{token}",
                 "/auth/login",
                 "/auth/refresh",

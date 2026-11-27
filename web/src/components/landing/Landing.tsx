@@ -594,6 +594,7 @@ export function Landing() {
             <b>Anveshan</b> · Sanskrit for <i>exploration, inquiry</i>
           </span>
           <span>The research system for Indian universities</span>
+          <Link href="/privacy">Privacy</Link>
         </div>
       </footer>
     </div>

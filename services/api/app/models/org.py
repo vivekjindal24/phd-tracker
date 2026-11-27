@@ -133,6 +133,8 @@ class User(DomainRow, Base):
     totp_last_step: Mapped[int | None] = mapped_column(BigInteger)  # a code works once
     recovery_hashes: Mapped[list[str]] = mapped_column(ARRAY(Text), server_default=text("'{}'"))
     email_muted: Mapped[list[str]] = mapped_column(ARRAY(Text), server_default=text("'{}'::text[]"))
+    # When the person last read the privacy notice; shown again once it changes (privacy.py).
+    privacy_notice_seen_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     # Set only by the person themself — setting it is the WhatsApp opt-in (PRD F5).
     whatsapp_number: Mapped[str | None] = mapped_column(Text)
     whatsapp_muted: Mapped[list[str]] = mapped_column(

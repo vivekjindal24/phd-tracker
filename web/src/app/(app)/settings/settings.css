@@ -302,3 +302,7 @@
   font-weight: 800;
   padding: 0 2px;
 }
+
+.settings-privacy h3 {
+  margin-top: var(--space-5);
+}
