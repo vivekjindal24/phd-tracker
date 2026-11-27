@@ -193,10 +193,10 @@ async def change_password(
 ) -> None:
     user = await session.get(User, principal.user_id)
     assert user is not None
-    if not service.verify_password(user.password_hash, body.current_password):
+    if not await service.verify_password(user.password_hash, body.current_password):
         raise ApiError(422, "wrong_password", "Your current password is incorrect.")
     await update(
-        session, principal, user, {"password_hash": service.hash_password(body.new_password)}
+        session, principal, user, {"password_hash": await service.hash_password(body.new_password)}
     )
     await service.revoke_all_refresh(session, user.id)
     await session.commit()

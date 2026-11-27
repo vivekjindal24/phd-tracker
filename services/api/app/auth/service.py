@@ -1,6 +1,7 @@
 """Passwords, access JWTs, rotating refresh tokens, login throttling, set-password links
 (SECURITY.md §1)."""
 
+import asyncio
 import hashlib
 import logging
 import secrets
@@ -38,13 +39,15 @@ _INVALID_CODE = ApiError(
 _NO_ACCOUNT_HASH = _hasher.hash(secrets.token_urlsafe(32))
 
 
-def hash_password(password: str) -> str:
-    return _hasher.hash(password)
+# Hashing takes tens of milliseconds of CPU on purpose: off the event loop, so a morning rush
+# of sign-ins does not hold up everyone else's pages (deploy/loadtest.py).
+async def hash_password(password: str) -> str:
+    return await asyncio.to_thread(_hasher.hash, password)
 
 
-def verify_password(password_hash: str | None, password: str) -> bool:
+async def verify_password(password_hash: str | None, password: str) -> bool:
     try:  # no hash: unknown, invited or SSO-only account
-        return _hasher.verify(password_hash or _NO_ACCOUNT_HASH, password)
+        return await asyncio.to_thread(_hasher.verify, password_hash or _NO_ACCOUNT_HASH, password)
     except (VerificationError, InvalidHashError):
         return False
 
@@ -177,14 +180,14 @@ async def login(
     """Tokens, plus the recovery codes when this login set two-factor up."""
     await check_throttle(session, email)
     user = await session.scalar(select(User).where(User.email == email, User.deleted_at.is_(None)))
-    password_ok = verify_password(user.password_hash if user else None, password)
+    password_ok = await verify_password(user.password_hash if user else None, password)
     if user is None or not user.is_active or not password_ok:
         raise await count_failure(session, email, _INVALID)
     recovery = None
     if await two_factor_required(session):
         recovery = await _second_step(session, user, code)
     if _hasher.check_needs_rehash(user.password_hash):
-        user.password_hash = hash_password(password)
+        user.password_hash = await hash_password(password)
     return (*await issue_tokens(session, user.id), recovery)
 
 
@@ -308,6 +311,6 @@ async def set_password_with_link(session: AsyncSession, raw: str, password: str)
     if user is None or user.deleted_at is not None or not user.is_active:
         raise _LINK_INVALID
     row.used_at = now
-    await audited_update(session, None, user, {"password_hash": hash_password(password)})
+    await audited_update(session, None, user, {"password_hash": await hash_password(password)})
     await revoke_all_refresh(session, user.id)
     return user.id

@@ -293,6 +293,33 @@ remove a point only when the behaviour itself changes.
   the portal cannot be shown inside another site's frame. Adding analytics or a chat
   widget later needs a change to the page security policy.
 
+## How many people at once
+
+- **Measured, not guessed: `deploy/loadtest.py`** (deploy/README.md, "Capacity test").
+  Simulated people click through the busiest pages (home, approvals, scholars,
+  publications, notifications, to-dos, seminars, search), each reading for 5–15 s
+  between clicks. The result is the largest number of them whose pages still come back
+  within 1 s for 95 clicks in 100, with nothing failing.
+- **"At once" means clicking at the same moment, not signed in.** Most signed-in people
+  are reading, typing or away. How many click at the same moment at a university is not
+  known until the pilot; a tenth of the accounts is a cautious planning guess.
+- **Measured on the development MacBook (8 cores, 27 Nov 2026):**
+  - The whole production stack (Caddy, web app, API, database) in Docker, sharing the
+    machine with other work: 200 people clicking at once, 95 in 100 pages back within
+    0.23 s, nothing failing.
+  - The API on its own: 500 people within 0.19 s. At 800 people pages slowed to 1.6 s.
+  - The API runs as one process (services/api/Dockerfile), and that single process is the
+    ceiling. A slower server reaches it sooner, so measure the real one.
+- **Sign-in is deliberately slow** (a password takes a moment to check, so stolen
+  password lists cannot be tried quickly). 300 people signing in within a few seconds
+  took about 7 s in all, and everyone else's pages kept answering meanwhile.
+- **A campus behind one internet address signs in at most 300 people a minute** (the
+  request limit above). A 9 a.m. rush of 1,000 people therefore takes about four
+  minutes to get everyone in. People past the limit see "Please wait a minute", and
+  their next try works.
+- **Run it again on the real server before go-live**, with the university's own expected
+  numbers. It needs the demo data, so run it on a trial install, not on the live one.
+
 ## Personal data (DPDP Act 2023)
 
 - **The University is responsible; Anveshan gives it the tools.** Its lawyer should check the

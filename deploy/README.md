@@ -88,6 +88,28 @@ git pull
 docker compose -f deploy/compose.prod.yml up -d --build   # the API migrates on start
 ```
 
+## Capacity test
+
+How many people at once this server serves. `deploy/loadtest.py` signs in the demo
+university's accounts with their `SEED_PASSWORD`. Simulated
+people then click through the busiest pages, each reading for 5–15 s between clicks.
+The test holds 10, 25, 50, 100, 150 and 200 people for a minute each and stops at the
+first stage where pages slow past 1 s or anything fails. It runs inside the API
+container and goes through Caddy, like a browser. It only signs in and marks
+notifications seen. It needs the demo data, so run it on a trial install (such as the
+demo server), not a live one.
+
+```bash
+read -rs LOAD_PASSWORD   # type the demo password; it is not shown
+docker compose -f deploy/compose.prod.yml --env-file deploy/.env exec -T \
+  -e LOAD_PASSWORD="$LOAD_PASSWORD" api python - < deploy/loadtest.py
+```
+
+Behind the tunnel, add `-f deploy/compose.tunnel.yml` after `compose.prod.yml`. Not
+behind it, add `-e LOAD_URL=https://<the app's address>` (Caddy serves only https then).
+`LOAD_STAGES=50,100,300` (after `-e`) sets other stages, and `LOAD_SECONDS` sets the
+length of each. What the numbers mean: docs/THINGS_TO_KNOW.md, "How many people at once".
+
 ## Backups
 
 Every night at 02:00 the cron container writes `BACKUP_DIR/db/anveshan-<date>.dump`

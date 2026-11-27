@@ -115,7 +115,7 @@ async def create_user(
         principal,
         email=body.email,
         full_name=body.full_name,
-        password_hash=hash_password(body.password) if body.password else None,
+        password_hash=await hash_password(body.password) if body.password else None,
         faculty=faculty,
         scholar=scholar,
     )

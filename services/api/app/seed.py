@@ -175,7 +175,7 @@ async def bootstrap(
         print("already seeded: a root unit exists; nothing changed")
         return
     root = await create_unit(session, None, None, university, "University", code)
-    admin = await _user(session, email, name, hash_password(_password()))
+    admin = await _user(session, email, name, await hash_password(_password()))
     await _role(session, admin, "admin", root)
     await session.commit()
     print(f"bootstrapped {university}; root admin {email}")
@@ -185,7 +185,7 @@ async def demo(session: AsyncSession) -> None:
     if await _root(session):
         print("already seeded: a root unit exists; nothing changed")
         return
-    pw = hash_password(_password())
+    pw = await hash_password(_password())
     units = {
         "ADU": await create_unit(
             session, None, None, "Anveshan Demo University", "University", "ADU"
@@ -490,7 +490,7 @@ async def reset_passwords(session: AsyncSession) -> None:
     result = await session.execute(
         update(User)
         .where(User.email.like(f"%@{DOMAIN}"))
-        .values(password_hash=hash_password(_password()))
+        .values(password_hash=await hash_password(_password()))
     )
     await session.commit()
     print(f"reset {result.rowcount} demo passwords")

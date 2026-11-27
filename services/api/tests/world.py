@@ -6,6 +6,7 @@ Root (University)
 
 One user per role, plus Meera: supervisor of scholar a1, HoD of A1 and admin of A1."""
 
+import asyncio
 import uuid
 from dataclasses import dataclass
 from datetime import date
@@ -17,7 +18,7 @@ from app.models import Faculty, OrgUnit, RoleAssignment, Scholar, SupervisorAppo
 from app.org import create_unit
 
 PASSWORD = "correct-horse-battery"
-_HASH = hash_password(PASSWORD)  # argon2 is slow on purpose: hash once per session
+_HASH = asyncio.run(hash_password(PASSWORD))  # argon2 is slow on purpose: hash once per session
 
 
 @dataclass

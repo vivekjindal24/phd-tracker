@@ -164,7 +164,7 @@ async def convert(
         principal,
         email=a.email,
         full_name=a.candidate_name,
-        password_hash=auth_service.hash_password(body.password) if body.password else None,
+        password_hash=await auth_service.hash_password(body.password) if body.password else None,
         scholar=Scholar(
             unit_id=a.unit_id,
             roll_number=body.roll_number,
