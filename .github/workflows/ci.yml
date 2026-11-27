@@ -126,12 +126,13 @@ jobs:
           TOKEN=$(curl -fsS -X POST http://localhost/api/v1/auth/login -H 'Content-Type: application/json' \
             -d '{"email":"admin@ci.example.org","password":"ci-password-0123456789"}' \
             | python3 -c 'import json,sys; print(json.load(sys.stdin)["access_token"])')
-          # A PNG header, then the standard EICAR test string (split so nothing flags this file).
-          printf '\211PNG\r\n\032\n' > /tmp/eicar.png
-          printf '%s%s' 'X5O!P%@AP[4\PZX54(P^)7CC)7}$' 'EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*' >> /tmp/eicar.png
-          code=$(curl -s -o /tmp/out.json -w '%{http_code}' -X PUT http://localhost/api/v1/settings/logo \
-            -H "Authorization: Bearer $TOKEN" -H 'Content-Type: image/png' --data-binary @/tmp/eicar.png)
-          cat /tmp/out.json; echo
+          # The standard EICAR test string (split so nothing flags this file). ClamAV knows it only
+          # at the start of a file, so it goes to the import upload, which is scanned before
+          # anything else is checked (an image must start with its own header).
+          printf '%s%s' 'X5O!P%@AP[4\PZX54(P^)7CC)7}$' 'EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*' > /tmp/eicar.xlsx
+          code=$(curl -s -o /tmp/out.json -w '%{http_code}' -X POST http://localhost/api/v1/import/faculty \
+            -H "Authorization: Bearer $TOKEN" --data-binary @/tmp/eicar.xlsx)
+          echo "$code"; cat /tmp/out.json; echo
           test "$code" = 422 && grep -q infected_file /tmp/out.json
       - name: Scheduled jobs
         run: |
