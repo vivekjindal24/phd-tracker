@@ -23,6 +23,15 @@
 ## 2. services/api (Python/FastAPI)
 
 - **Tools:** ruff (lint, configured in `pyproject.toml`), pytest.
+- **Dependencies:** ranges in `pyproject.toml`; the exact, hash-checked
+  versions in `requirements.lock` (the image) and `requirements-dev.lock`
+  (CI and the dev venv: the same pins plus test tools). After changing
+  `pyproject.toml`, or to take updates, regenerate both, run the tests and
+  commit them together:
+  `uv pip compile pyproject.toml --universal --generate-hashes --python-version 3.12 -o requirements.lock`
+  then the same with `--extra dev -c requirements.lock -o requirements-dev.lock`
+  (add `--upgrade` to move to newer versions). Install with
+  `uv pip install --require-hashes -r requirements-dev.lock`.
 - Async routes with async SQLAlchemy sessions — never sync sessions from
   async routes. No blocking I/O in handlers.
 - Pydantic validates every boundary; Literals mirror the DB CHECK

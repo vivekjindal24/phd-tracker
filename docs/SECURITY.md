@@ -619,5 +619,6 @@ Verified 2026-10-25 (code, tests and the approval-chain click-through):
       tables excepted, DATABASE.md `audit_log`)
 - [ ] HTTPS verified on every deployment — each self-hosted install is
       checked at go-live
-- [x] `pip-audit` / `npm audit` clean before pilot — re-run before the pilot:
-      the API image installs from version ranges, not a lockfile
+- [x] API dependencies locked with hashes (`requirements.lock`, CODE_STYLE.md);
+      `pip-audit` on the lock and `npm audit` (web, export) clean on 2026-11-27 —
+      re-run whenever the locks change and before each install

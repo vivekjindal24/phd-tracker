@@ -1,4 +1,4 @@
-# One image for Render (dev/test) and the self-hosted NAS stack (ARCHITECTURE.md §4).
+# The API image for every install (ARCHITECTURE.md §4).
 FROM python:3.12-slim
 
 COPY --from=ghcr.io/astral-sh/uv:0.5.11 /uv /usr/local/bin/uv
@@ -6,9 +6,10 @@ COPY --from=ghcr.io/astral-sh/uv:0.5.11 /uv /usr/local/bin/uv
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 WORKDIR /srv
 
-# Dependencies first (cached layer): read straight from pyproject.toml, no project build.
-COPY pyproject.toml .
-RUN uv pip install --system --no-cache -r pyproject.toml
+# Dependencies first (cached layer): the exact, hash-checked versions in requirements.lock,
+# so every build installs what CI tested (CODE_STYLE.md, "Dependencies").
+COPY requirements.lock .
+RUN uv pip install --system --no-cache --require-hashes -r requirements.lock
 
 COPY alembic.ini .
 COPY alembic ./alembic
