@@ -360,7 +360,7 @@ it while still unsubmitted. No seminar scheduled → no deadline shown.
 - **Standard parts:** Introduction, Literature review, Methodology,
   Experiments & results, Discussion, Writing & presentation, Other.
 - **AI service:** one OpenAI-compatible connection (`AI_BASE_URL`,
-  `AI_API_KEY`, `AI_MODEL`) — Gemini's free tier for cloud testing (demo data
+  `AI_API_KEY`, `AI_MODEL`) — Gemini's free tier for demo testing (demo data
   only: Google may use free-tier inputs), a local Ollama model in production.
 
 **F9 — RDC / committee register (milestones).** Research Office (and scoped
@@ -1068,8 +1068,9 @@ Each phase ends with a check-in with the owner before the next starts.
 ## 10. Constraints
 
 - **Technical:** FastAPI + Node export + Next.js on Postgres with
-  S3-compatible files (ARCHITECTURE.md). Development/testing on free cloud
-  tiers (Neon, Render, Vercel, Cloudflare R2); production self-hosted per
+  S3-compatible files (ARCHITECTURE.md). Demo/testing on the owner's
+  laptop server (free cloud tiers retired 2026-11-27: the required virus scanner
+  does not fit them); production self-hosted per
   university on a home server/NAS via Docker Compose. Repo develops on an
   exFAT volume (AppleDouble junk — gitignored).
 - **Business:** solo developer, no funding; department-first pricing

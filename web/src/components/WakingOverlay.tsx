@@ -5,7 +5,7 @@ import { onWaking } from "@/lib/api";
 import { Owl } from "./brand/Owl";
 import "./waking.css";
 
-/** Free-tier cold start (15–60 s): the sleeping owl instead of a frozen page (ARCHITECTURE.md §11). */
+/** A slow first answer (over 3 s): the sleeping owl instead of a frozen page (ARCHITECTURE.md §11). */
 export function WakingOverlay() {
   const [waking, setWaking] = useState(false);
   useEffect(() => onWaking(setWaking), []);

@@ -17,8 +17,8 @@
     auth/data logic; reads only via the API's `/internal` endpoints with the
     caller's token forwarded.
   - `web` — Next.js (App Router), warm academic claymorphism with the owl.
-- **Deployment:** one installation per university. Dev/test on free cloud
-  tiers (Neon, Render, Vercel, Cloudflare R2); production self-hosted on a
+- **Deployment:** one installation per university. Demo/test on the owner's
+  laptop server (the free-cloud deployment was retired 2026-11-27); production self-hosted on a
   server/NAS via Docker Compose (Postgres, Garage, API, export, web, Caddy, cron); see `deploy/README.md`.
   Same images everywhere; only environment differs.
 - **Primary Users:** scholar, supervisor, unit_head, admin (scoped),

@@ -2,16 +2,16 @@
 
 > v3 rewrite (2026-10): university-wide scope (org tree, multi-role scoped
 > access, configurable approval chains, optional modules), object storage for
-> files, and two deployment targets — free cloud for dev/test, self-hosted
-> Docker Compose for production. The v1 Frappe app and the v2 code survive
+> files, and one deployment target — self-hosted Docker Compose (the free-cloud
+> dev/test deployment was retired on 2026-11-27, §4). The v1 Frappe app and the v2 code survive
 > only in git history (before commit `c6dae35`).
 
 ## 1. System Overview
 
 Anveshan is a polyglot monorepo: three small services, one Postgres database,
-one S3-compatible bucket. Every piece ships as a Docker image so the same
-build runs on free cloud tiers (development, testing, demos) and on a
-university's own server/NAS (production).
+one S3-compatible bucket. Every piece ships as a Docker image, run together by
+Docker Compose on a university's own server/NAS (production) and on the
+owner's laptop server (demos and testing).
 
 ## 2. Services
 
@@ -40,20 +40,22 @@ UI or scripts; file bytes never pass through the export service.
 | WhatsApp | Meta WhatsApp Cloud API (`httpx`), one utility template, after commit like email; outcome recorded |
 | Export | Express + pdfkit; @cantoo/pdf-lib (maintained pdf-lib, opens scanning apps' locked PDFs) to stamp reviewer copies and merge signed scans (node:22-slim) |
 | Web | Next.js 16 (App Router, client components behind an auth gate), `output: "standalone"` for self-hosting |
-| CI/CD | Render builds `services/api/Dockerfile` and Vercel builds `web/` on every push to the deploy branch; GitHub Actions `ci.yml` runs the tests and a fresh-install stack on every push |
+| CI/CD | GitHub Actions `ci.yml` runs the tests and a fresh-install stack on every push; the laptop server pulls and rebuilds itself from pushed commits |
 
 ## 4. Deployment Targets
 
-| | Dev / test (free cloud) | Production (per university) |
-|---|---|---|
-| Postgres | Neon (branch per environment) | `postgres:16` container, volume on the NAS |
-| API, export | Render free (Docker build from repo, region Ohio = Neon's) | containers built from the same Dockerfiles |
-| Web | Vercel | `web` standalone container |
-| Files | Cloudflare R2 | Garage container (S3-compatible), volume on the NAS, served at its own `FILES_DOMAIN` through Caddy |
-| Email | free SMTP relay | university SMTP |
-| TLS / routing | platform default | Caddy reverse proxy (automatic HTTPS) |
-| Scheduled jobs | GitHub Actions cron, once daily | cron container: daily job + nightly backup |
-| Virus scanner | a ClamAV daemon reachable from the API (required) | `clamav` container, signatures on the data disk |
+Every install, the demo included, is the same Docker Compose stack
+(`deploy/compose.prod.yml`):
+
+| Piece | Runs as |
+|---|---|
+| Postgres | `postgres:16` container, volume on the data disk |
+| API, export, web | containers built from the repo's Dockerfiles (`web` standalone) |
+| Files | Garage container (S3-compatible), served at its own `FILES_DOMAIN` through Caddy |
+| Email | university SMTP |
+| TLS / routing | Caddy reverse proxy (automatic HTTPS), or a Cloudflare Tunnel (`deploy/compose.tunnel.yml`) |
+| Scheduled jobs | cron container: daily job + nightly backup |
+| Virus scanner | `clamav` container (required), signatures on the data disk |
 
 The code never branches on the target: everything differs only by
 environment variables (§9). In production Caddy serves the app on one origin
@@ -63,20 +65,12 @@ and browsers sign and reach the same URL. Garage replaced MinIO (Decided
 2026-10-24): MinIO stopped publishing its free server image. The operator's
 install, backup and restore steps are in `deploy/README.md`.
 
-**Current dev/test deployment (2026-10):** branch `rewrite` →
-web `https://research.vivekjindal.in` (Vercel project `anveshan`, root
-`web/`, production branch `rewrite`), API `https://anveshan-api-5xem.onrender.com`
-(Render service `anveshan-api`, root `services/api`), export
-`https://phd-tracker-ik19.onrender.com` (Render, root `services/export`;
-Vercel `NEXT_PUBLIC_EXPORT_URL`), database `anveshan` in the existing Neon
-project. Files: R2 bucket `anveshan-dev`, whose CORS policy must allow the
-web origin (and `http://localhost:3000` for local dev) for GET/PUT/HEAD with
-the `content-type` header, exposing `ETag`; browsers upload and download
-straight to the bucket. Self-hosted installs need no bucket policy: Caddy
-answers CORS for Garage (`deploy/Caddyfile`). Email: Render free services block outbound SMTP
-ports 25/465/587 (since 2025-09), so the API uses Brevo on `SMTP_PORT=2525`
-(STARTTLS). Both redeploy on every push to `rewrite`; `main`
-still serves v2 until the cut-over merge.
+**Demo and testing (since 2026-11-27):** the owner's laptop server runs this
+stack behind a Cloudflare Tunnel and pulls and rebuilds itself from pushed
+commits on `rewrite`; `main` still serves v2 until the cut-over merge. The
+free-cloud deployment (Vercel web, Render API and export, Neon, R2) was retired
+that day by the owner: the required virus scanner needs about 1 GB of memory
+and Render's free tier has 512 MB. Its setup survives in git history.
 
 ## 5. Architecture Diagram
 
@@ -162,7 +156,7 @@ anveshan (repo: phd-tracker)/
 ├── AGENTS.md  README.md
 ├── deploy/                   self-hosted stack: compose.prod.yml, Caddyfile, garage.toml,
 │                             garage-init.sh, cron/ (daily job + backups), README.md
-├── .github/workflows/        ci.yml (tests + fresh-install stack), cron.yml (daily job, cloud)
+├── .github/workflows/        ci.yml (tests + fresh-install stack)
 ├── docs/                     source of truth
 ├── services/api/             FastAPI app + alembic/ + tests/
 ├── services/export/          Express service + src/ + tests/
@@ -238,9 +232,8 @@ keep-alive: it runs once a day.
   email are unaffected; the outcome is stored as `failed` with Meta's reason.
 - **Export service down:** export buttons show the error envelope; daily use
   is unaffected.
-- **Cold start (Render free tier, ~15-min spin-down):** first request is slow;
-  the web shows the sleeping owl ("Waking up the server…"). No keep-alive
-  pinger. Not applicable on self-hosted production.
+- **Slow API (first answer over 3 s):** the web shows the sleeping owl
+  ("Waking up the server…") instead of a frozen page. No keep-alive pinger.
 - **Chain edited while items are in flight:** in-flight items follow their
   `chain_snapshot`; only new submissions use the new chain.
 
@@ -256,5 +249,5 @@ keep-alive: it runs once a day.
 | Files in S3-compatible storage, presigned URLs | theses are 10–50 MB; same code on R2 (dev) and Garage on a NAS (prod) |
 | Optional modules as a settings table | not every university needs grants/admissions; disabled = invisible + 404 |
 | JWT + rotating refresh over server sessions | stateless API; works on any host |
-| Docker images for every service | one build runs on free cloud and on a NAS |
+| Docker images for every service | the same build runs on the demo laptop and on a university's NAS |
 | Access token in memory, refresh in localStorage | XSS-theft risk judged low for a closed tool; upgrade path in SECURITY.md |

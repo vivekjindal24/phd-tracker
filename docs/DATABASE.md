@@ -8,13 +8,12 @@
 
 ## 1. Engine & Access
 
-- **Postgres 16** — Neon in dev/test, a `postgres:16` container in
-  self-hosted production, a `postgres:16` service container in CI.
+- **Postgres 16** — a `postgres:16` container in every install, a `postgres:16` service container in CI.
   Extensions: `ltree` (org tree), `pg_trgm` (search), `citext` (emails).
 - Only `services/api` connects. The export service reads via the API's
   `/internal` endpoints; the web holds no DB access.
 - `DATABASE_URL` (`postgresql+psycopg://…`) validated at startup. Small pool
-  (`pool_size=2, max_overflow=3`) for Neon's free tier; `pool_pre_ping` on.
+  (`pool_size=2, max_overflow=3`); `pool_pre_ping` on.
 - **File bytes are never stored in Postgres** — only metadata (`files`); bytes
   live in S3-compatible storage.
 

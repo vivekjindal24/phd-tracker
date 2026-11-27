@@ -173,7 +173,7 @@ Rules for changes:
   - a passed viva and the Shodhganga deposit — for the office recording it,
     and for the scholar on first view.
 - **Empty states:** the owl idles (blink, gentle bob).
-- **Cold start:** while the API wakes (Render free tier, 15–60s), the
+- **Cold start:** while the API is slow to answer (over 3 s), the
   sleeping owl with "Waking up the server…" — intentional, not broken.
 - Animate only `transform`, `opacity` and `box-shadow` on small elements.
 - **`prefers-reduced-motion: reduce`** disables confetti, bobbing and

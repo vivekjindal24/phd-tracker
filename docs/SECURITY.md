@@ -445,8 +445,7 @@ do not read those fields on a scholar's page.
 - Required: `DATABASE_URL`, `JWT_SECRET` (≥32 bytes), `S3_*`, `CRON_SECRET`;
   `SMTP_*` and `WHATSAPP_*` all-or-nothing (ARCHITECTURE.md §9); `SEED_PASSWORD` only for
   seeding.
-- Dev secrets live in each platform's settings (Neon, Render, Vercel,
-  Cloudflare); production secrets in the server's compose `.env` file,
+- Secrets live in the server's compose `.env` file (the demo laptop's too),
   readable only by root, never in git. Rotate any exposed secret immediately.
 
 ## 6. API Security
@@ -590,8 +589,7 @@ Verified 2026-10-25 (code, tests and the approval-chain click-through):
 - [x] CORS allowlist on both services
 - [x] Soft delete + audit on every mutation; hashes redacted (operational
       tables excepted, DATABASE.md `audit_log`)
-- [ ] HTTPS verified on every deployment — cloud dev verified (Render API and
-      the Vercel web redirect to HTTPS, valid certificates); each self-hosted
-      install is checked at go-live
+- [ ] HTTPS verified on every deployment — each self-hosted install is
+      checked at go-live
 - [x] `pip-audit` / `npm audit` clean before pilot — re-run before the pilot:
       the API image installs from version ranges, not a lockfile
