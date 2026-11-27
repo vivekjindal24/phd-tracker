@@ -386,6 +386,10 @@ remove a point only when the behaviour itself changes.
   here; the university keeps its NAAC/NIRF consultancy figures elsewhere. *(owner, 2026-11-23)*
 - **MoUs.** Agreements with other institutions or industry are a university-wide record (IQAC
   or the ERP), not a research-degree one, so Anveshan does not keep them. *(owner, 2026-11-23)*
+- **Hindi.** Screens, printed papers and emails are in English only. A Hindi version (a
+  language switch, and bilingual notices and forms where the university prints them) is built
+  when a university asks for it; its translations need checking by someone who writes official
+  Hindi. *(owner, 2026-11-27)*
 
 ## Thesis submission gates
 
